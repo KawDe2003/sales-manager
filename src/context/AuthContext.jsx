@@ -19,6 +19,11 @@ export const AuthProvider = ({ children }) => {
     // Check active sessions and sets the user
     const getSession = async () => {
       try {
+        if (!supabase?.auth) {
+          console.error('[Auth] Supabase auth not initialized');
+          setLoading(false);
+          return;
+        }
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) console.error('[Auth] Session error:', error);
         setUser(session?.user ?? null);
@@ -29,23 +34,33 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
+    // Safety timeout: Ensure loading finishes within 3 seconds no matter what
+    const timeoutId = setTimeout(() => {
+      console.warn('[Auth] Loading timeout reached - forcing app render');
+      setLoading(false);
+    }, 3000);
+
     getSession();
 
-    // Safety timeout: Ensure loading finishes even if Supabase hangs
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
-
-    // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      clearTimeout(timeout);
-    });
+    let subscription = null;
+    try {
+      if (supabase?.auth) {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user ?? null);
+          setLoading(false);
+          clearTimeout(timeoutId);
+        });
+        subscription = data?.subscription;
+      }
+    } catch (err) {
+      console.error('[Auth] onAuthStateChange Error:', err);
+    }
 
     return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
+      clearTimeout(timeoutId);
     };
   }, []);
 
