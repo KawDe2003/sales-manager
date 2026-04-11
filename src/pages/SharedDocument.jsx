@@ -390,18 +390,25 @@ const SharedDocument = () => {
 
           {/* Bottom Call to Action for Quotes */}
           {isQuote && docData.status === 'Pending' && (
-            <div style={{ marginTop: '60px', padding: '48px', background: 'var(--subtle-bg)', borderRadius: '32px', border: '1px solid var(--subtle-border)', textAlign: 'center' }} className="no-print">
-               <h3 style={{ margin: '0 0 12px 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ready to proceed?</h3>
-               <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
-               <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            <div className="cta-container no-print" style={{ 
+              marginTop: '60px', 
+              padding: 'clamp(24px, 5vw, 48px)', 
+              background: 'var(--subtle-bg)', 
+              borderRadius: '32px', 
+              border: '1px solid var(--subtle-border)', 
+              textAlign: 'center' 
+            }}>
+               <h3 style={{ margin: '0 0 12px 0', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', fontWeight: 800, color: 'var(--text-primary)' }}>Ready to proceed?</h3>
+               <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
+               <div className="action-button-group">
                   <button 
                     onClick={() => { updateQuoteStatus(id, 'Accepted'); showNotification('Quotation successfully accepted.'); }}
-                    className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--success)', border: 'none' }}>
+                    className="btn btn-primary action-btn-large" style={{ background: 'var(--accent-primary)' }}>
                     <CheckCircle size={20} /> Approve & Accept Proposal
                   </button>
                   <button 
                     onClick={() => { updateQuoteStatus(id, 'Rejected'); showNotification('Proposal declined.'); }}
-                    className="btn btn-secondary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', border: 'none' }}>
+                    className="btn btn-secondary action-btn-large" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
                     <XCircle size={20} /> Decline
                   </button>
                </div>
@@ -456,12 +463,38 @@ const SharedDocument = () => {
           padding: 60px;
         }
         
+        .action-button-group {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+        }
+
+        .action-btn-large {
+          padding: 0 40px;
+          height: 56px;
+          font-size: 1.05rem;
+          border: none;
+        }
+
         @media (max-width: 640px) {
           .main-doc-container {
             padding: 24px 16px;
           }
           .glass-panel {
             border-radius: 16px;
+          }
+          .action-button-group {
+            flex-direction: column;
+            gap: 12px;
+          }
+          .action-btn-large {
+            width: 100%;
+            padding: 0 20px;
+            font-size: 0.95rem;
+            height: 52px;
+          }
+          .cta-container {
+             padding: 32px 20px !important;
           }
         }
       `}</style>
