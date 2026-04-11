@@ -178,25 +178,37 @@ export default function StoreContextProvider({ children }) {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Migrate existing quotes/invoices to have a shareKey and valid UUID if missing
+  // Migrate existing data to have valid UUIDs and share keys
   useEffect(() => {
     if (!user) return;
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let changedC = false;
     let changedQ = false;
     let changedI = false;
 
+    // 1. Migrate Customers first
+    const customerIdMap = {}; // Map old string IDs to new UUIDs
+    const updatedCustomers = customers.map(c => {
+      if (!uuidRegex.test(c.id)) {
+        const newId = uuidv4();
+        customerIdMap[c.id] = newId;
+        changedC = true;
+        return { ...c, id: newId };
+      }
+      return c;
+    });
+
+    // 2. Migrate Quotes
     const updatedQuotes = quotes.map(q => {
       let updated = { ...q };
       let needsSync = false;
       
-      // Fix IDs that aren't UUIDs (like 'quote-demo-01')
       if (!uuidRegex.test(q.id)) {
         updated.id = uuidv4();
         changedQ = true;
         needsSync = true;
       }
-      // Fix keys that are missing or too long
       if (!q.shareKey || q.shareKey.length > 20) {
         updated.shareKey = generateShareKey();
         changedQ = true;
@@ -207,6 +219,7 @@ export default function StoreContextProvider({ children }) {
       return updated;
     });
 
+    // 3. Migrate Invoices
     const updatedInvoices = invoices.map(inv => {
       let updated = { ...inv };
       let needsSync = false;
@@ -216,6 +229,19 @@ export default function StoreContextProvider({ children }) {
         changedI = true;
         needsSync = true;
       }
+      
+      // Update linked customer ID if it was migrated
+      if (customerIdMap[inv.customerId]) {
+        updated.customerId = customerIdMap[inv.customerId];
+        changedI = true;
+        needsSync = true;
+      } else if (!uuidRegex.test(inv.customerId) && inv.customerId !== 'unknown') {
+        // Fallback for dangling IDs
+        updated.customerId = 'unknown';
+        changedI = true;
+        needsSync = true;
+      }
+
       if (!inv.shareKey || inv.shareKey.length > 20) {
         updated.shareKey = generateShareKey();
         changedI = true;
@@ -226,10 +252,11 @@ export default function StoreContextProvider({ children }) {
       return updated;
     });
 
+    if (changedC) setCustomers(updatedCustomers);
     if (changedQ) setQuotes(updatedQuotes);
     if (changedI) setInvoices(updatedInvoices);
 
-  }, [user]); // Run when user logs in so sync functions work
+  }, [user]);
   
   const resetToSeynexDefaults = () => {
     if (window.confirm("This will permanently remove your current data and load the Seynex Technology business defaults. Proceed?")) {
