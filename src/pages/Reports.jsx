@@ -326,7 +326,7 @@ const Reports = () => {
             </span>
           </div>
         </div>
-      </div>div>
+      </div>
 
       {showExpenseModal && (
         <div style={{
@@ -336,7 +336,7 @@ const Reports = () => {
           padding: '24px'
         }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ padding: '32px 40px', borderBottom: '1px solid var(--panel-border)', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), transparent)'}}>
+            <div className="modal-header">
                <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>Track Expense Request</h2>
             </div>
             
@@ -345,7 +345,7 @@ const Reports = () => {
               addExpense({ ...expenseForm, amount: Number(expenseForm.amount) });
               setShowExpenseModal(false);
               setExpenseForm({ description: '', amount: '', category: 'Operational' });
-            }} style={{ padding: '40px' }}>
+            }} className="modal-body">
               <div className="form-group mb-6">
                 <label className="form-label" style={{ fontSize: '0.85rem' }}>Expense Description</label>
                 <input required type="text" className="form-input" style={{ height: '44px' }} placeholder="e.g. AWS Hosting Bill" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} />
@@ -367,7 +367,7 @@ const Reports = () => {
               
               <div style={{ height: '1px', background: 'var(--panel-border)', margin: '0 0 32px 0' }}></div>
 
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end gap-4 responsive-form-actions">
                 <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={() => setShowExpenseModal(false)}>Discard</button>
                 <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Approve Expense</button>
               </div>

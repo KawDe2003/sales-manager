@@ -30,7 +30,7 @@ const Quotations = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex justify-between items-center mb-8">
+      <div className="responsive-header mb-8">
         <div>
           <h1 className="h1 mb-2">Proposals & Quotes</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Generate and track professional software offers for new prospects.</p>
@@ -262,15 +262,15 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <div style={{ padding: '32px 40px', borderBottom: '1px solid var(--panel-border)', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), transparent)'}}>
+        <div className="modal-header">
            <div className="flex justify-between items-center">
              <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Quotation' : 'Craft New Proposal'}</h2>
              <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
            </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} style={{ padding: '40px' }}>
-          <div className="grid grid-cols-2 gap-8">
+        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Quotation ID #</label>
               <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.quoteNumber} onChange={e => setFormData({...formData, quoteNumber: e.target.value})} />
@@ -282,7 +282,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           </div>
 
           <div style={{ margin: '32px 0 0 0', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: '0.85rem' }}>Prospect / Gym Name</label>
                 <div style={{ position: 'relative' }}>
@@ -364,7 +364,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
 
           <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>Discard</button>
             <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Finalize Quotation</button>
           </div>

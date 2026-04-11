@@ -27,10 +27,10 @@ const Settings = () => {
         <p className="text-secondary" style={{ fontSize: '1rem' }}>Global settings for branding, API connectivity, and automated communication workflows.</p>
       </div>
 
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Company & API */}
-        <div className="col-span-7 flex flex-col gap-8">
+        <div className="lg:col-span-7 flex flex-col gap-8">
           
           {/* Company Profile */}
           <div className="glass-panel">
@@ -41,7 +41,7 @@ const Settings = () => {
               <h2 className="h2" style={{ margin: 0 }}>Corporate Identity</h2>
             </div>
             
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group">
                 <label className="form-label">Dashboard Brand Name</label>
                 <div style={{ position: 'relative' }}>
@@ -86,7 +86,7 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 mt-6 pt-6 border-t border-panel">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-panel">
               <div className="form-group">
                 <label className="form-label">Bank Name</label>
                 <input type="text" className="form-input" value={smsConfig.bankDetails?.bank || ''}
@@ -182,7 +182,7 @@ const Settings = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group">
                 <label className="form-label">Gateway Username</label>
                 <input type="text" className="form-input" 
@@ -315,7 +315,7 @@ const Settings = () => {
         </div>
 
         {/* Right Column: Templates & Branding */}
-        <div className="col-span-5 flex flex-col gap-8">
+        <div className="lg:col-span-5 flex flex-col gap-8">
           
           {/* Automation Rules */}
           <div className="glass-panel">
@@ -327,7 +327,7 @@ const Settings = () => {
             </div>
             <p className="text-secondary" style={{ marginBottom: '24px', fontSize: '0.85rem' }}>Configure the system's background scheduler for automatic outbound reminders.</p>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
                 <div className="flex justify-between items-center mb-4">
                   <span style={{ fontWeight: 600 }}>Unpaid Invoices</span>
@@ -465,7 +465,7 @@ const Settings = () => {
               <h2 className="h2" style={{ margin: 0 }}>Advanced SMS Protocols</h2>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-group">
                 <label className="form-label">Global Header</label>
                 <input type="text" className="form-input" 

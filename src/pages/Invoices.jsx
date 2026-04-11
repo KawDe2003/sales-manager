@@ -254,15 +254,15 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '720px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <div style={{ padding: '32px 40px', borderBottom: '1px solid var(--panel-border)', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), transparent)'}}>
+        <div className="modal-header">
            <div className="flex justify-between items-center">
              <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
              <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
            </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} style={{ padding: '40px' }}>
-          <div className="grid grid-cols-2 gap-8">
+        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Serial #</label>
               <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.invoiceNumber} onChange={e => setFormData({...formData, invoiceNumber: e.target.value})} />
@@ -338,7 +338,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
 
           <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>Discard</button>
             <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Finalize Ledger</button>
           </div>

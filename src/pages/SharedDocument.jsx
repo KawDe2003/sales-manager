@@ -125,7 +125,7 @@ const SharedDocument = () => {
         <div className="glass-panel" style={{ padding: '60px', border: '1px solid var(--panel-border)', boxShadow: '0 40px 100px rgba(0,0,0,0.5)' }}>
           
           {/* Internal Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '80px' }}>
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8" style={{ marginBottom: '80px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <span className={`badge badge-${isQuote ? 'primary' : 'warning'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 16px', fontSize: '0.8rem', fontWeight: 800 }}>
@@ -150,11 +150,11 @@ const SharedDocument = () => {
               </div>
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ 
+            <div className="w-full md:w-auto text-left md:text-right mt-8 md:mt-0">
+              <div className="md:ml-auto" style={{ 
                 width: '64px', height: '64px', borderRadius: '20px', 
                 background: isReceipt ? 'rgba(34, 197, 94, 0.1)' : 'var(--subtle-bg)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', marginLeft: 'auto',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px',
                 border: isReceipt ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid var(--subtle-border)',
                 position: 'relative'
               }}>
@@ -169,10 +169,10 @@ const SharedDocument = () => {
           </div>
 
           {/* Line Items Container */}
-          <div style={{ background: 'var(--subtle-bg)', borderRadius: '24px', padding: '32px', border: '1px solid var(--subtle-border)', marginBottom: '48px' }}>
+          <div style={{ background: 'var(--subtle-bg)', borderRadius: '24px', padding: '32px', border: '1px solid var(--subtle-border)', marginBottom: '48px', overflowX: 'auto' }}>
              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px' }}>Billing Items</h4>
              
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', padding: '12px 16px', borderBottom: '1px solid var(--subtle-border)', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                    <div style={{ flex: 1 }}>Description</div>
                    <div style={{ width: '80px', textAlign: 'center' }}>Qty</div>
@@ -194,8 +194,8 @@ const SharedDocument = () => {
           </div>
 
           {/* Totals Section */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', position: 'relative' }}>
-             <div style={{ maxWidth: '400px' }}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8" style={{ position: 'relative' }}>
+             <div style={{ maxWidth: '400px', width: '100%' }}>
                 {!isQuote && (
                    <div style={{ padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--subtle-border)' }}>
                       <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--warning)' }}>
@@ -230,7 +230,7 @@ const SharedDocument = () => {
                 )}
              </div>
 
-             <div style={{ textAlign: 'right', minWidth: '320px' }}>
+             <div className="w-full md:w-auto" style={{ textAlign: 'right', minWidth: 'min(320px, 100%)' }}>
                 <div style={{ background: 'var(--subtle-bg)', padding: '32px', borderRadius: '24px', border: '1px solid var(--subtle-border)' }}>
                    <div className="flex justify-between items-center mb-6">
                       <div style={{ textAlign: 'left' }}>
