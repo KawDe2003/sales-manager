@@ -1,26 +1,32 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
-  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign 
+  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign, LogIn
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
-import Dashboard from './pages/Dashboard';
-import Customers from './pages/Customers';
-import Quotations from './pages/Quotations';
-import Invoices from './pages/Invoices';
-import Reports from './pages/Reports';
-import Inventory from './pages/Inventory';
-import Settings from './pages/Settings';
-import SharedDocument from './pages/SharedDocument';
-import Leads from './pages/Leads';
-import Logs from './pages/Logs';
-import Payments from './pages/Payments';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Quotations = lazy(() => import('./pages/Quotations'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SharedDocument = lazy(() => import('./pages/SharedDocument'));
+const Leads = lazy(() => import('./pages/Leads'));
+const Logs = lazy(() => import('./pages/Logs'));
+const Payments = lazy(() => import('./pages/Payments'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './pages/Login';
+const Login = lazy(() => import('./pages/Login'));
+
+const LoadingFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '200px' }}>
+    <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%' }}></div>
+  </div>
+);
 
 const App = () => {
   return (
@@ -61,9 +67,11 @@ const AppContent = () => {
   if (isPublicShareView) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-        <Routes>
-          <Route path="/share/:type/:id" element={<SharedDocument />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/share/:type/:id" element={<SharedDocument />} />
+          </Routes>
+        </Suspense>
       </div>
     );
   }
@@ -74,9 +82,11 @@ const AppContent = () => {
       return <Navigate to="/" replace />;
     }
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -212,18 +222,20 @@ const AppContent = () => {
         {/* Main Content */}
         <main className="main-content" style={{ flex: 1, padding: '48px 64px' }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <Routes>
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-              <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-              <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-              <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
-              <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
-              <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-              <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            </Routes>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+                <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
+                <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
