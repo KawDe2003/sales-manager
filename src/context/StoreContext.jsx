@@ -748,10 +748,10 @@ export default function StoreContextProvider({ children }) {
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
       .replace(/{number}/g, documentData?.invoiceNumber || documentData?.quoteNumber || '')
       .replace(/{documentType}/g, documentData?.documentType || 'Document')
-      .replace(/{link}/g, (documentData?.shareKey) ? `${window.location.origin}/share/${
+      .replace(/{link}/g, (documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
         type.toLowerCase() === 'quotation' ? 'quote' : 
         type.toLowerCase() === 'cashreceived' ? 'receipt' : 'invoice'
-      }/${documentData.shareKey}` : '')
+      }/${documentData.id || documentData.shareKey}` : '')
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')

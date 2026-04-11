@@ -35,9 +35,13 @@ const SharedDocument = () => {
               query.eq('share_key', id);
             }
 
+            const { data, error } = await query.single();
+            
             if (error) {
               console.error('[SharedDoc] Supabase Error:', error);
-              setFetchError(`${error.code}: ${error.message}`);
+              if (error.code !== 'PGRST116') {
+                setFetchError(`${error.code}: ${error.message}`);
+              }
             }
 
             if (data && !error) {
@@ -67,9 +71,13 @@ const SharedDocument = () => {
               query.eq('share_key', id);
             }
 
+            const { data, error } = await query.single();
+            
             if (error) {
               console.error('[SharedDoc] Supabase Error:', error);
-              setFetchError(`${error.code}: ${error.message}`);
+              if (error.code !== 'PGRST116') {
+                setFetchError(`${error.code}: ${error.message}`);
+              }
             }
 
             if (data && !error) {
