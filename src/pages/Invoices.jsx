@@ -209,8 +209,6 @@ const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecord
     </div>
   );
 };
-  );
-};
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
   const [formData, setFormData] = useState(initialData || {
