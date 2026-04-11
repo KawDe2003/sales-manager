@@ -14,7 +14,7 @@ const Invoices = lazy(() => import('./pages/Invoices'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Settings = lazy(() => import('./pages/Settings'));
-import SharedDocument from './pages/SharedDocument';
+const SharedDocument = lazy(() => import('./pages/SharedDocument'));
 const Leads = lazy(() => import('./pages/Leads'));
 const Logs = lazy(() => import('./pages/Logs'));
 const Payments = lazy(() => import('./pages/Payments'));
@@ -39,21 +39,6 @@ const App = () => {
     </AuthProvider>
   );
 };
-
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError(error) { return { hasError: true }; }
-  componentDidCatch(error, errorInfo) { console.error('ErrorBoundary caught:', error, errorInfo); }
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback || <div style={{ padding: '20px', color: 'white' }}>Component crashed. Check console.</div>;
-    }
-    return this.props.children;
-  }
-}
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -93,15 +78,12 @@ const AppContent = () => {
   // If on public share view, render without layout
   if (isPublicShareView) {
     return (
-      <div style={{ minHeight: '100vh', background: '#020617', color: 'white' }}>
-        <ErrorBoundary fallback={<div>Something went wrong loading the document.</div>}>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/share/:type/:id" element={<SharedDocument />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+      <div style={{ minHeight: '100vh', background: '#020617' }}>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/share/:type/:id" element={<SharedDocument />} />
+          </Routes>
+        </Suspense>
       </div>
     );
   }

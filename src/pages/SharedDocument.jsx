@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, ShieldCheck, Mail, Phone, MapPin, Building2, FileText, Receipt, ShoppingBag, Clock } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, Mail, Phone, MapPin, Building2 } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
@@ -239,9 +239,9 @@ const SharedDocument = () => {
                 border: isReceipt ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid var(--subtle-border)',
                 position: 'relative'
               }}>
-                {isQuote ? <FileText size={32} color="var(--accent-primary)" /> : 
-                 isReceipt ? <CheckCircle size={32} color="var(--success)" /> : 
-                 <Receipt size={32} color="var(--warning)" />}
+                {isQuote ? <FileText size={32} /> : 
+                 isReceipt ? <CheckCircle size={32} /> : 
+                 <Receipt size={32} />}
               </div>
               <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.1rem', marginBottom: '4px' }}>{smsConfig.companyName || 'GymSales Pro'}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyEmail || 'billing@gymsales.com'}</div>
@@ -385,7 +385,7 @@ const SharedDocument = () => {
                   <button 
                     onClick={() => { showNotification('Redirecting to secure payment gateway...', 'success'); }}
                     className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--accent-primary)', border: 'none' }}>
-                    <ShieldCheck size={20} /> Pay Now Securely
+                    <CheckCircle size={20} /> Pay Now Securely
                   </button>
                </div>
             </div>
