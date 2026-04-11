@@ -19,7 +19,8 @@ const SharedDocument = () => {
         setLoading(true);
 
         let foundDoc = null;
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+        // Permissive UUID check: 8-4-4-4-12 hex chars
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
         if (type === 'quote') {
           foundDoc = quotes.find(item => item.id === id || item.shareKey === id);

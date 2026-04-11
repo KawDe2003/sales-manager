@@ -180,20 +180,34 @@ export default function StoreContextProvider({ children }) {
 
   // Migrate existing quotes/invoices to have a shareKey if missing
   useEffect(() => {
-    let changed = false;
-    const migrate = (items, setItems) => {
-      const updated = items.map(item => {
-        if (!item.shareKey) {
-          changed = true;
-          return { ...item, shareKey: generateShareKey() };
-        }
-        return item;
-      });
-      if (changed) setItems(updated);
-    };
-    migrate(quotes, setQuotes);
-    migrate(invoices, setInvoices);
-  }, []);
+    let changedQ = false;
+    let changedI = false;
+
+    const updatedQuotes = quotes.map(q => {
+      if (!q.shareKey || q.shareKey.length > 20) { // Also replace old long ones
+        changedQ = true;
+        return { ...q, shareKey: generateShareKey() };
+      }
+      return q;
+    });
+
+    const updatedInvoices = invoices.map(inv => {
+      if (!inv.shareKey || inv.shareKey.length > 20) {
+        changedI = true;
+        return { ...inv, shareKey: generateShareKey() };
+      }
+      return inv;
+    });
+
+    if (changedQ) {
+      setQuotes(updatedQuotes);
+      updatedQuotes.forEach(syncQuoteToSupabase);
+    }
+    if (changedI) {
+      setInvoices(updatedInvoices);
+      updatedInvoices.forEach(syncInvoiceToSupabase);
+    }
+  }, [user]); // Run when user logs in so sync functions have 'user'
   
   const resetToSeynexDefaults = () => {
     if (window.confirm("This will permanently remove your current data and load the Seynex Technology business defaults. Proceed?")) {
