@@ -203,12 +203,12 @@ export default function StoreContextProvider({ children }) {
   };
 
   const generateShareKey = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 12; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result;
+    return `SNX-${code}`;
   };
 
   // --- SUPABASE SYNC LOGIC ---
@@ -685,10 +685,10 @@ export default function StoreContextProvider({ children }) {
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
       .replace(/{number}/g, documentData?.invoiceNumber || documentData?.quoteNumber || '')
       .replace(/{documentType}/g, documentData?.documentType || 'Document')
-      .replace(/{link}/g, (documentData?.shareKey || documentData?.id) ? `${window.location.origin}/share/${
+      .replace(/{link}/g, (documentData?.shareKey) ? `${window.location.origin}/share/${
         type.toLowerCase() === 'quotation' ? 'quote' : 
         type.toLowerCase() === 'cashreceived' ? 'receipt' : 'invoice'
-      }/${documentData.shareKey || documentData.id}` : '')
+      }/${documentData.shareKey}` : '')
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')

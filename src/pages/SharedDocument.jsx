@@ -19,16 +19,21 @@ const SharedDocument = () => {
         setLoading(true);
 
         let foundDoc = null;
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
         if (type === 'quote') {
           foundDoc = quotes.find(item => item.id === id || item.shareKey === id);
           if (!foundDoc) {
             console.log(`[SharedDoc] Quote not in local state, checking Supabase...`);
-            const { data, error } = await supabase
-              .from('quotations')
-              .select('*')
-              .or(`id.eq.${id},share_key.eq.${id}`)
-              .single();
+            const query = supabase.from('quotations').select('*');
+            
+            if (isUUID) {
+              query.or(`id.eq.${id},share_key.eq.${id}`);
+            } else {
+              query.eq('share_key', id);
+            }
+
+            const { data, error } = await query.single();
             
             if (data && !error) {
               foundDoc = { 
@@ -49,11 +54,15 @@ const SharedDocument = () => {
           
           if (!foundDoc) {
             console.log(`[SharedDoc] Invoice not in local state, checking Supabase...`);
-            const { data, error } = await supabase
-              .from('invoices')
-              .select('*')
-              .or(`id.eq.${id},share_key.eq.${id}`)
-              .single();
+            const query = supabase.from('invoices').select('*');
+            
+            if (isUUID) {
+              query.or(`id.eq.${id},share_key.eq.${id}`);
+            } else {
+              query.eq('share_key', id);
+            }
+
+            const { data, error } = await query.single();
             
             if (data && !error) {
               foundDoc = { 
