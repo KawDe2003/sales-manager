@@ -1,4 +1,4 @@
-import React, { useContext, useState, Suspense, lazy } from 'react';
+import React, { useContext, useState, Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
@@ -62,6 +62,18 @@ const AppContent = () => {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
+
+  useEffect(() => {
+    if (smsConfig.appFavicon) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = smsConfig.appFavicon;
+    }
+  }, [smsConfig.appFavicon]);
 
   // If on public share view, render without layout
   if (isPublicShareView) {

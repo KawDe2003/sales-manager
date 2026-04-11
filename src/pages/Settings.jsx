@@ -134,6 +134,32 @@ const Settings = () => {
                 </div>
               )}
             </div>
+
+            <div className="form-group" style={{ marginTop: '12px' }}>
+              <label className="form-label">Application Favicon</label>
+              <div style={{ position: 'relative' }}>
+                <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input type="file" accept="image/*" className="form-input" style={{ paddingLeft: '40px' }}
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        updateSmsConfig({ ...smsConfig, appFavicon: reader.result });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </div>
+              {smsConfig.appFavicon && (
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img src={smsConfig.appFavicon} alt="Favicon preview" style={{ height: '32px', width: '32px', objectFit: 'contain', borderRadius: '4px' }} />
+                  <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px' }}
+                    onClick={() => updateSmsConfig({ ...smsConfig, appFavicon: '' })}>Remove</button>
+                </div>
+              )}
+            </div>
             <button className="btn btn-primary" style={{ marginTop: '12px' }} onClick={handleSave}>
               <Save size={18} /> Push Branding Changes
             </button>
