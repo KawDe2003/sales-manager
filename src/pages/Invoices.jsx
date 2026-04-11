@@ -18,12 +18,12 @@ const Invoices = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h1 className="h1 mb-2">Invoice Ledger</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Full record of software licenses, service fees, and gym billing status.</p>
         </div>
-        <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
+        <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
           <Plus size={18} /> Create Invoice
         </button>
       </div>
@@ -116,122 +116,99 @@ const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecord
 
   return (
     <div className="glass-panel hover-lift" style={{ 
-      padding: '16px 24px', 
+      padding: '20px', 
       display: 'flex', 
-      alignItems: 'center', 
-      gap: '16px',
+      flexDirection: 'column',
+      gap: '20px',
       borderLeft: `4px solid ${borderLeftColor}`
     }}>
-      {/* Icon */}
-      <div style={{
-        width: '44px', height: '44px', borderRadius: '12px',
-        background: isPaid ? 'rgba(34, 197, 94, 0.1)' : 'var(--subtle-bg)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: `1px solid ${isPaid ? 'rgba(34, 197, 94, 0.2)' : 'var(--subtle-border)'}`, flexShrink: 0
-      }}>
-        <FileText size={20} color={isPaid ? 'var(--success)' : 'var(--text-muted)'} />
-      </div>
-
-      {/* Invoice Details */}
-      <div style={{ flex: '1 1 180px' }}>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '4px', letterSpacing: '-0.01em' }}>
-          {customer.gymName || 'Unknown Gym'}
+      {/* Top Identity Row */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '14px',
+            background: isPaid ? 'rgba(34, 197, 94, 0.08)' : 'rgba(129, 140, 248, 0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${isPaid ? 'rgba(34, 197, 94, 0.2)' : 'rgba(129, 140, 248, 0.2)'}`, flexShrink: 0
+          }}>
+            <Receipt size={22} color={isPaid ? 'var(--success)' : 'var(--accent-primary)'} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '2px', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {customer.gymName || 'Unknown Entity'}
+            </div>
+            <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>#{invoice.invoiceNumber}</span>
+              <span style={{ opacity: 0.3 }}>•</span>
+              <span className="sm-hidden">{customer.name || 'No Contact'}</span>
+              <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
+              <span className="sm-hidden">Due {new Date(invoice.dueDate).toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>#{invoice.invoiceNumber}</span>
-          <span style={{ opacity: 0.3 }}>•</span>
-          <User size={13} style={{ opacity: 0.7 }} /> 
-          <span>{customer.name || 'No Contact'}</span>
-        </div>
-      </div>
 
-      {/* Dates (Hidden on small screens) */}
-      <div className="sm-hidden" style={{ flex: '0 1 160px' }}>
-         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
-            <span style={{ display: 'inline-block', width: '36px', opacity: 0.6 }}>Issued</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{new Date(invoice.date).toLocaleDateString()}</span>
-         </div>
-         <div style={{ fontSize: '0.8rem', color: isOverdue ? 'var(--danger)' : 'var(--warning)', fontWeight: isOverdue ? 700 : 500 }}>
-            <span style={{ display: 'inline-block', width: '36px', opacity: isOverdue ? 1 : 0.6 }}>Due</span>
-            <span>{new Date(invoice.dueDate).toLocaleDateString()}</span>
-         </div>
-      </div>
-
-      {/* Amount Section */}
-      <div style={{ flex: '0 1 130px', textAlign: 'right' }}>
-        <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Amount Due</div>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-display)' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginRight: '4px' }}>LKR</span>
-          {invoice.amount?.toLocaleString() || 0}
+        <div style={{ flexShrink: 0 }}>
+          <select 
+            className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
+            style={{ width: '100px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
+            value={invoice.status}
+            onChange={(e) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, e.target.value)}
+          >
+            <option value="Draft">Draft</option>
+            <option value="Sent">Sent</option>
+            <option value="Paid">Paid</option>
+            <option value="Overdue">Overdue</option>
+          </select>
         </div>
       </div>
 
-      {/* Status Select */}
-      <div style={{ flex: '0 0 110px', paddingLeft: '8px' }}>
-        <select 
-          className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
-          style={{ width: '100%', cursor: 'pointer', outline: 'none', padding: '4px 8px', fontSize: '0.75rem', backgroundImage: 'none', textAlign: 'center', appearance: 'menulist' }}
-          value={invoice.status}
-          onChange={(e) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, e.target.value)}
-        >
-          <option value="Draft">Draft</option>
-          <option value="Sent">Sent</option>
-          <option value="Paid">Paid</option>
-          <option value="Overdue">Overdue</option>
-        </select>
-      </div>
+      {/* Detail & Action Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-panel">
+        <div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Outstanding Balance</div>
+          <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>
+            <span style={{ color: 'var(--accent-primary)', fontSize: '0.8rem', marginRight: '4px' }}>LKR</span>
+            {invoice.amount?.toLocaleString() || 0}
+          </div>
+        </div>
 
-      {/* Action Buttons */}
-      <div style={{ flex: '0 0 auto', display: 'flex', gap: '6px', marginLeft: '12px' }}>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={() => {
-            const link = `${window.location.origin}/share/invoice/${invoice.id}`;
-            navigator.clipboard.writeText(link);
-            showNotification && showNotification('Public share link copied to clipboard!', 'success');
-          }}
-          title="Copy Share Link"
-        >
-          <LinkIcon size={14} className="text-secondary" />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onSendSms}
-          title="Send SMS Link"
-        >
-          <Smartphone size={14} className="text-accent-primary" />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onEdit}
-          title="Edit Details"
-        >
-          <Edit2 size={14} />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onDownload}
-          title="Download PDF"
-        >
-          <Download size={14} />
-        </button>
-
-        {!isPaid && (
-           <button 
-             className="btn btn-primary" 
-             style={{ padding: '8px 12px', background: 'var(--accent-primary)', border: 'none' }} 
-             onClick={onRecordPayment}
-             title="Record a Payment for this Invoice"
-           >
-             <BadgeDollarSign size={14} /> <span style={{ fontSize: '0.75rem' }}>Payment</span>
-           </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0 }} 
+            onClick={() => {
+              const link = `${window.location.origin}/share/invoice/${invoice.id}`;
+              navigator.clipboard.writeText(link);
+              showNotification && showNotification('Link copied!', 'success');
+            }}
+            title="Share Link"
+          >
+            <LinkIcon size={16} />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendSms} title="Notify Client">
+            <Smartphone size={16} className="text-secondary" />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Record">
+            <Edit2 size={16} />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
+            <Download size={16} />
+          </button>
+          
+          {!isPaid && (
+             <button 
+               className="btn btn-primary" 
+               style={{ height: '40px', padding: '0 12px', background: 'var(--accent-primary)', border: 'none' }} 
+               onClick={onRecordPayment}
+             >
+               <BadgeDollarSign size={16} /> <span style={{ fontSize: '0.8rem' }}>Record Payment</span>
+             </button>
+          )}
+        </div>
       </div>
     </div>
+  );
+};
   );
 };
 

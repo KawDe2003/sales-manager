@@ -37,58 +37,58 @@ const Dashboard = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div>
-          <h1 className="h1 mb-1">Dashboard</h1>
-          <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Welcome back. Here's a summary of your sales and operations.</p>
+          <h1 className="h1 mb-2">Enterprise Insights</h1>
+          <p className="text-secondary" style={{ fontSize: '0.95rem', fontWeight: 500 }}>Global performance analytics and business operation metrics.</p>
         </div>
         <div className="btn-group">
-          <Link to="/quotations" className="btn btn-secondary">Create Quote</Link>
-          <Link to="/invoices" className="btn btn-primary">Create Invoice</Link>
+          <Link to="/quotations" className="btn btn-secondary" style={{ height: '44px' }}>Draft Quote</Link>
+          <Link to="/invoices" className="btn btn-primary" style={{ height: '44px' }}>Issue Invoice</Link>
         </div>
       </div>
 
       {/* Main Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard 
-          title="Total Revenue" 
+          title="Consolidated Revenue" 
           value={`LKR ${totalRevenue.toLocaleString()}`} 
           icon={<IndianRupee />} 
           color="var(--success)"
         />
         <StatCard 
-          title="Outstanding" 
+          title="Accounts Receivable" 
           value={`LKR ${outstandingRevenue.toLocaleString()}`} 
           icon={<ArrowUpRight />} 
           color="var(--warning)"
         />
         <StatCard 
-          title="Active Gyms" 
+          title="Enterprise Clients" 
           value={activeCustomers} 
           icon={<Users />} 
           color="var(--accent-primary)"
         />
         <StatCard 
-          title="Incoming Leads" 
+          title="Market Inbounds" 
           value={leadCount} 
           icon={<Target />} 
           color="var(--danger)"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Sales Funnel */}
         <div className="glass-panel lg:col-span-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="h3">Sales Performance Pipeline</h2>
+            <h2 className="h3">Conversion Intelligence Pipeline</h2>
             <TrendingUp size={18} className="text-muted" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '110px', padding: '0 10px' }}>
-             <FunnelStep label="Total Leads" count={leads.length} color="var(--danger)" total={leads.length || 1} />
-             <div style={{ fontSize: '24px', color: 'var(--panel-border)', fontWeight: 300, paddingBottom: '30px' }}>━━━━</div>
-             <FunnelStep label="Sent Quotes" count={quotes.length} color="var(--warning)" total={leads.length || 1} />
-             <div style={{ fontSize: '24px', color: 'var(--panel-border)', fontWeight: 300, paddingBottom: '30px' }}>━━━━</div>
-             <FunnelStep label="Closed Sales" count={activeCustomers} color="var(--success)" total={leads.length || 1} />
+          <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-4 md:gap-2 px-2" style={{ minHeight: '120px' }}>
+             <FunnelStep label="Gross Leads" count={leads.length} color="var(--danger)" total={leads.length || 1} />
+             <div className="sm-hidden" style={{ fontSize: '18px', color: 'var(--panel-border)', fontWeight: 300, paddingBottom: '30px' }}>━━━</div>
+             <FunnelStep label="Draft Proposals" count={quotes.length} color="var(--warning)" total={leads.length || 1} />
+             <div className="sm-hidden" style={{ fontSize: '18px', color: 'var(--panel-border)', fontWeight: 300, paddingBottom: '30px' }}>━━━</div>
+             <FunnelStep label="Client Conversions" count={activeCustomers} color="var(--success)" total={leads.length || 1} />
           </div>
         </div>
 

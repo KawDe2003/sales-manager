@@ -28,12 +28,12 @@ const Inventory = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h1 className="h1 mb-2">Product & Service Catalog</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Centralized inventory of software modules, specialized hardware, and consultancy services.</p>
         </div>
-        <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setEditingItem(null); setShowModal(true); }}>
+        <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingItem(null); setShowModal(true); }}>
           <Plus size={18} /> Register Item
         </button>
       </div>

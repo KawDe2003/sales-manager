@@ -122,115 +122,98 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
 
   return (
     <div className="glass-panel hover-lift" style={{ 
-      padding: '16px 24px', 
+      padding: '20px', 
       display: 'flex', 
-      alignItems: 'center', 
-      gap: '16px',
+      flexDirection: 'column',
+      gap: '20px',
       borderLeft: `4px solid ${borderLeftColor}`
     }}>
-      {/* Icon */}
-      <div style={{
-        width: '44px', height: '44px', borderRadius: '12px',
-        background: 'rgba(129, 140, 248, 0.1)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '1px solid rgba(129, 140, 248, 0.2)', flexShrink: 0
-      }}>
-        <FileText size={20} color="var(--accent-primary)" />
-      </div>
-
-      {/* Details */}
-      <div style={{ flex: '1 1 180px' }}>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '4px', letterSpacing: '-0.01em' }}>
-          {quote.prospectName || 'Unnamed Prospect'}
+      {/* Top Identity Row */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '14px',
+            background: 'rgba(129, 140, 248, 0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(129, 140, 248, 0.2)', flexShrink: 0
+          }}>
+            <FileText size={22} color="var(--accent-primary)" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '2px', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {quote.prospectName || 'Unnamed Prospect'}
+            </div>
+            <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>#{quote.quoteNumber}</span>
+              <span style={{ opacity: 0.3 }}>•</span>
+              <span className="sm-hidden">{quote.prospectPhone || 'No contact'}</span>
+              <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
+              <span className="sm-hidden">{new Date(quote.date).toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>#{quote.quoteNumber}</span>
-          <span style={{ opacity: 0.3 }}>•</span>
-          <User size={13} style={{ opacity: 0.7 }} /> 
-          <span>{quote.prospectPhone || 'No contact'}</span>
+
+        <div style={{ flexShrink: 0 }}>
+          <select 
+            className={`badge badge-${isAccepted ? 'success' : isRejected ? 'danger' : 'warning'}`}
+            style={{ 
+              width: '100px', cursor: 'pointer', outline: 'none', padding: '6px 8px', 
+              fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', 
+              appearance: 'none', border: '1px solid currentColor' 
+            }}
+            value={quote.status || 'Pending'}
+            onChange={(e) => updateQuoteStatus && updateQuoteStatus(quote.id, e.target.value)}
+          >
+            <option value="Pending">Pending</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Rejected">Rejected</option>
+          </select>
         </div>
       </div>
 
-      {/* Dates */}
-      <div className="sm-hidden" style={{ flex: '0 1 150px' }}>
-         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-            <span style={{ display: 'inline-block', width: '40px', opacity: 0.6 }}>Date</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{new Date(quote.date).toLocaleDateString()}</span>
-         </div>
-      </div>
-
-      {/* Amount Section */}
-      <div style={{ flex: '0 1 130px', textAlign: 'right' }}>
-        <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Offer Amount</div>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-display)' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginRight: '4px' }}>LKR</span>
-          {quote.amount?.toLocaleString() || 0}
+      {/* Detail & Action Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-panel">
+        <div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Net Offer Estimate</div>
+          <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>
+            <span style={{ color: 'var(--accent-primary)', fontSize: '0.8rem', marginRight: '4px' }}>LKR</span>
+            {quote.amount?.toLocaleString() || 0}
+          </div>
         </div>
-      </div>
 
-      {/* Status */}
-      <div style={{ flex: '0 0 110px', paddingLeft: '8px' }}>
-        <select 
-          className={`badge badge-${isAccepted ? 'success' : isRejected ? 'danger' : 'warning'}`}
-          style={{ width: '100%', cursor: 'pointer', outline: 'none', padding: '4px 8px', fontSize: '0.75rem', backgroundImage: 'none', textAlign: 'center', appearance: 'menulist' }}
-          value={quote.status || 'Pending'}
-          onChange={(e) => updateQuoteStatus && updateQuoteStatus(quote.id, e.target.value)}
-        >
-          <option value="Pending">Pending</option>
-          <option value="Accepted">Accepted</option>
-          <option value="Rejected">Rejected</option>
-        </select>
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{ flex: '0 0 auto', display: 'flex', gap: '6px', marginLeft: '12px' }}>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={() => {
-            const link = `${window.location.origin}/share/quote/${quote.id}`;
-            navigator.clipboard.writeText(link);
-            showNotification && showNotification('Public share link copied to clipboard!', 'success');
-          }}
-          title="Copy Share Link"
-        >
-          <LinkIcon size={14} className="text-secondary" />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onSendSms}
-          title="Send SMS Link"
-        >
-          <Smartphone size={14} className="text-accent-primary" />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onEdit}
-          title="Edit Quote"
-        >
-          <Edit2 size={14} />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onDownload}
-          title="Download PDF"
-        >
-          <Download size={14} />
-        </button>
-
-        {isAccepted && (
-           <button 
-             className="btn btn-primary" 
-             style={{ padding: '8px 12px', background: 'var(--success)', boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)', border: 'none' }} 
-             onClick={() => convertQuoteToInvoice && convertQuoteToInvoice(quote.id)}
-             title="Create Invoice from this Quote"
-           >
-             <Receipt size={14} /> <span style={{ fontSize: '0.75rem' }}>Convert</span>
-           </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0 }} 
+            onClick={() => {
+              const link = `${window.location.origin}/share/quote/${quote.id}`;
+              navigator.clipboard.writeText(link);
+              showNotification && showNotification('Link copied!', 'success');
+            }}
+            title="Share Link"
+          >
+            <LinkIcon size={16} />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendSms} title="Send SMS">
+            <Smartphone size={16} className="text-secondary" />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Edit Configuration">
+            <Edit2 size={16} />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
+            <Download size={16} />
+          </button>
+          
+          {isAccepted && (
+             <button 
+               className="btn btn-primary" 
+               style={{ height: '40px', padding: '0 12px', background: 'var(--success)', border: 'none' }} 
+               onClick={() => convertQuoteToInvoice && convertQuoteToInvoice(quote.id)}
+             >
+               <Receipt size={16} /> <span style={{ fontSize: '0.8rem' }}>Issue Invoice</span>
+             </button>
+          )}
+        </div>
       </div>
     </div>
   );

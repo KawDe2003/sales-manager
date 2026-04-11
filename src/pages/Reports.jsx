@@ -80,18 +80,18 @@ const Reports = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="mb-6 flex justify-between items-start no-print">
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
         <div>
           <h1 className="h1 mb-1">Reports & Analytics</h1>
           <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Real-time overview of your gym software sales performance.</p>
         </div>
-        <button className="btn btn-secondary" style={{ padding: '8px 16px' }} onClick={() => window.print()}>
-          <Download size={16} /> Download Summary
+        <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
+          <Download size={16} /> Export Report
         </button>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { title: 'Total Revenue', value: `LKR ${totalRevenue.toLocaleString()}`, icon: <TrendingUp />, color: 'var(--success)', sub: 'Paid Invoices' },
           { title: 'Net Profit', value: `LKR ${netProfit.toLocaleString()}`, icon: <Wallet />, color: netProfit >= 0 ? "var(--success)" : "var(--danger)", sub: 'Rev - Exp' },
@@ -109,7 +109,7 @@ const Reports = () => {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p className="text-secondary mb-1" style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</p>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 850, margin: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>{card.value}</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 850, margin: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.value}</h3>
               <p className="text-muted" style={{ fontSize: '0.65rem', marginTop: '4px', fontWeight: 600, opacity: 0.6 }}>{card.sub}</p>
             </div>
           </div>
@@ -219,20 +219,20 @@ const Reports = () => {
           <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '16px' }}>Monthly MoM Tracker</p>
           
           <div style={{ 
-             width: '90px', height: '90px', borderRadius: '50%', 
-             background: momGrowth >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(244, 63, 94, 0.1)',
-             border: `2px solid ${momGrowth >= 0 ? 'var(--success)' : 'var(--danger)'}`,
-             display: 'flex', alignItems: 'center', justifyContent: 'center',
-             color: momGrowth >= 0 ? 'var(--success)' : 'var(--danger)',
-             fontSize: '1.5rem', fontWeight: 900, fontFamily: 'var(--font-display)',
-             boxShadow: `0 0 16px ${momGrowth >= 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(244, 63, 94, 0.15)'}`
+            width: '90px', height: '90px', borderRadius: '50%', 
+            background: momGrowth >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+            border: `2px solid ${momGrowth >= 0 ? 'var(--success)' : 'var(--danger)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: momGrowth >= 0 ? 'var(--success)' : 'var(--danger)',
+            fontSize: '1.5rem', fontWeight: 900, fontFamily: 'var(--font-display)',
+            boxShadow: `0 0 16px ${momGrowth >= 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(244, 63, 94, 0.15)'}`
           }}>
              {momGrowth > 0 ? '+' : ''}{momGrowth}%
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6" style={{ marginBottom: '24px' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ marginBottom: '24px' }}>
         {/* Monthly Revenue Table */}
         <div className="glass-panel">
           <h2 className="h3" style={{ marginBottom: '16px' }}>Monthly Revenue (Paid)</h2>
@@ -272,7 +272,7 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Overdue Invoices */}
         <div className="glass-panel">
           <h2 className="h3" style={{ marginBottom: '16px' }}>
@@ -306,27 +306,27 @@ const Reports = () => {
             <FileText size={20} color="var(--accent-primary)" />
             <h2 className="h3" style={{ margin: 0 }}>Quotations Pipeline</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '12px' }}>
             {quotePipeline.map(({ label, count, color }) => (
               <div key={label} style={{
                 textAlign: 'center', padding: '20px 12px',
                 background: 'var(--subtle-bg)', borderRadius: '10px',
-                border: `1px solid ${color}40`
+                border: `1px solid ${color}40`, minWidth: 0
               }}>
-                <div style={{ fontSize: '2.2rem', fontWeight: 800, color }}>{count}</div>
-                <div className="text-secondary" style={{ fontSize: '0.8rem', marginTop: '4px' }}>{label}</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color }}>{count}</div>
+                <div className="text-secondary" style={{ fontSize: '0.75rem', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
               </div>
             ))}
           </div>
           <div style={{ marginTop: '16px', padding: '12px', background: 'var(--subtle-bg)', borderRadius: '8px', textAlign: 'center' }}>
             <span className="text-secondary" style={{ fontSize: '0.85rem' }}>
-              Total Pipeline Value: <strong style={{ color: 'var(--success)' }}>
+              Pipeline Value: <strong style={{ color: 'var(--success)' }}>
                 LKR {quotes.reduce((s, q) => s + Number(q.amount || 0), 0).toLocaleString()}
               </strong>
             </span>
           </div>
         </div>
-      </div>
+      </div>div>
 
       {showExpenseModal && (
         <div style={{

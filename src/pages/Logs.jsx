@@ -29,12 +29,12 @@ const Logs = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h1 className="h1 mb-2">Audit Trail</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Comprehensive system logs tracking communications, status updates, and automated tasks.</p>
         </div>
-        <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.1)' }} onClick={clearLogs}>
+        <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.1)', height: '44px' }} onClick={clearLogs}>
           <Trash2 size={18} /> Purge Records
         </button>
       </div>
@@ -42,17 +42,18 @@ const Logs = () => {
       <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ 
           padding: '20px 24px', background: 'var(--subtle-bg)', 
-          borderBottom: '1px solid var(--panel-border)', display: 'flex', gap: '8px' 
+          borderBottom: '1px solid var(--panel-border)', display: 'flex', gap: '8px', flexWrap: 'wrap' 
         }}>
           {['All', 'SMS', 'Status', 'System', 'Error'].map(type => (
             <button 
               key={type}
               onClick={() => setFilterType(type)}
               style={{
-                background: filterType === type ? 'var(--accent-primary)' : 'var(--subtle-bg)',
+                background: filterType === type ? 'var(--accent-primary)' : 'rgba(255,255,255,0.03)',
                 color: filterType === type ? 'white' : 'var(--text-secondary)',
-                border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-                fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                border: '1px solid rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                flex: '1 1 auto', textAlign: 'center', minWidth: '80px'
               }}
             >
               {type}
@@ -61,7 +62,8 @@ const Logs = () => {
         </div>
 
         <div className="table-container" style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
-          <table>
+          {/* Desktop Table */}
+          <table className="sm-hidden">
             <thead>
               <tr style={{ position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10 }}>
                 <th>Timestamp</th>
@@ -75,7 +77,7 @@ const Logs = () => {
                 <tr>
                   <td colSpan="4" style={{ textAlign: 'center', padding: '80px 24px' }}>
                     <div style={{ opacity: 0.15, marginBottom: '16px' }}><ClipboardList size={48} /></div>
-                    <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No activity records available for the selected criteria.</p>
+                    <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No records available.</p>
                   </td>
                 </tr>
               ) : (
@@ -112,6 +114,35 @@ const Logs = () => {
               )}
             </tbody>
           </table>
+
+          {/* Mobile List View */}
+          <div className="md-hidden" style={{ padding: '12px' }}>
+             {filteredLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                   <p className="text-secondary">No activity records.</p>
+                </div>
+             ) : (
+                [...filteredLogs].reverse().map(log => (
+                  <div key={log.id} style={{ 
+                    padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', 
+                    marginBottom: '12px', borderLeft: `4px solid ${
+                      log.type === 'Error' ? 'var(--danger)' : 
+                      log.type === 'SMS' ? 'var(--accent-primary)' : 
+                      log.type === 'Status' ? 'var(--warning)' : 'var(--success)'
+                    }`
+                  }}>
+                    <div className="flex justify-between items-center mb-2">
+                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} /> {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-primary)' }}>{log.type.toUpperCase()}</span>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '4px' }}>{log.message}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', opacity: 0.7 }}>{log.details || 'No details'}</div>
+                  </div>
+                ))
+             )}
+          </div>
         </div>
       </div>
     </div>

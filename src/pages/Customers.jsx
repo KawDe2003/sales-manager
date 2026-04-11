@@ -133,117 +133,104 @@ const CustomerCard = ({ gym, onEdit, onDelete, onSendReminder, onViewNotes }) =>
 
   return (
     <div className="glass-panel hover-lift" style={{ 
-      padding: '16px 24px', 
+      padding: '20px', 
       display: 'flex', 
-      alignItems: 'center', 
-      gap: '16px',
+      flexDirection: 'column',
+      gap: '20px',
       borderLeft: `4px solid ${gym.status === 'Active' ? 'var(--success)' : 'var(--danger)'}`
     }}>
-      {/* Avatar */}
-      <div style={{
-        width: '44px', height: '44px', borderRadius: '12px',
-        background: 'linear-gradient(135deg, rgba(129, 140, 248, 0.15), rgba(59, 130, 246, 0.05))',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '1px solid rgba(129, 140, 248, 0.2)', flexShrink: 0,
-        boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.05)'
-      }}>
-        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>
-          {(gym.gymName || 'G').charAt(0).toUpperCase()}
-        </span>
-      </div>
+      {/* Top Section: Identity & Primary Info */}
+      <div className="flex items-center gap-4 justify-between">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(129, 140, 248, 0.15), rgba(59, 130, 246, 0.05))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(129, 140, 248, 0.2)', flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>
+              {(gym.gymName || 'G').charAt(0).toUpperCase()}
+            </span>
+          </div>
 
-      {/* Gym Info */}
-      <div style={{ flex: '1 1 180px' }}>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '4px', letterSpacing: '-0.01em' }}>{gym.gymName || 'Unnamed Gym'}</div>
-        <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          <User size={13} style={{ opacity: 0.7 }} /> <span style={{ fontWeight: 500 }}>{gym.name || 'No contact'}</span>
-          <span style={{ opacity: 0.3 }}>•</span>
-          <span>{gym.phone || 'No phone'}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '2px', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gym.gymName || 'Unnamed Entity'}</div>
+            <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <User size={12} /> <span style={{ fontWeight: 600 }}>{gym.name || 'Owner'}</span>
+              <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
+              <span className="sm-hidden">{gym.phone || 'Phone'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          <span className={`badge badge-${gym.status === 'Active' ? 'success' : 'danger'}`} style={{ padding: '4px 10px', fontSize: '0.7rem' }}>
+            {gym.status || 'Active'}
+          </span>
           {gym.dob && new Date(gym.dob).getMonth() === new Date().getMonth() && new Date(gym.dob).getDate() === new Date().getDate() && (
-            <div className="flex items-center gap-1 ml-2" style={{ color: 'var(--accent-primary)', fontWeight: 800, animation: 'pulse 2s infinite' }}>
+            <div className="flex items-center gap-1" style={{ color: 'var(--accent-primary)', fontWeight: 800 }}>
               <Cake size={14} />
-              <span style={{ fontSize: '0.7rem' }}>Birthday Today!</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Fee Section (Hidden on small screens) */}
-      <div className="sm-hidden" style={{ flex: '0 1 120px' }}>
-        <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Annual Fee</div>
-        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem', fontFamily: 'var(--font-display)' }}>
-          <span style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', marginRight: '4px' }}>LKR</span>
-          {(gym.annualFee || 0).toLocaleString()}
-        </div>
-      </div>
+      {/* Middle/Bottom Section: Metadata & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-panel">
+        <div className="flex flex-wrap items-center gap-6">
+          {/* Fee Section (Hidden on small screens) */}
+          <div className="sm-hidden">
+            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Annual Fee</div>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-display)' }}>
+              <span style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', marginRight: '4px' }}>LKR</span>
+              {(gym.annualFee || 0).toLocaleString()}
+            </div>
+          </div>
 
-      {/* Renewal Tracking */}
-      <div style={{ flex: '0 1 160px' }}>
-        <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Next Renewal</div>
-        <div style={{ 
-          display: 'inline-flex', alignItems: 'center', gap: '6px', 
-          padding: '4px 10px', borderRadius: '6px',
-          background: isOverdue ? 'rgba(244, 63, 94, 0.1)' : isApproaching ? 'rgba(245, 158, 11, 0.1)' : 'var(--subtle-bg)',
-          color: isOverdue ? 'var(--danger)' : isApproaching ? 'var(--warning)' : 'var(--text-primary)',
-          border: `1px solid ${isOverdue ? 'rgba(244, 63, 94, 0.2)' : isApproaching ? 'rgba(245, 158, 11, 0.2)' : 'var(--subtle-border)'}`
-        }}>
-          <Calendar size={13} />
-          <span style={{ fontWeight: 700, fontSize: '0.75rem' }}>{gym.renewalDate ? new Date(gym.renewalDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
-        </div>
-      </div>
-
-      {/* Status Badge */}
-      <div style={{ flex: '0 0 auto' }}>
-        <span className={`badge badge-${gym.status === 'Active' ? 'success' : 'danger'}`} style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-          {gym.status || 'Active'}
-        </span>
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{ flex: '0 0 auto', display: 'flex', gap: '6px', marginLeft: '8px' }}>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', position: 'relative', background: 'var(--subtle-bg)' }} 
-          onClick={onViewNotes}
-          title="Daily Updates Timeline"
-        >
-          <StickyNote size={14} className="text-warning" />
-          {noteCount > 0 && (
-            <span style={{
-              position: 'absolute', top: '-4px', right: '-4px',
-              background: 'var(--accent-primary)', color: 'white',
-              fontSize: '9px', fontWeight: 800, padding: '1px 4px',
-              borderRadius: '6px', border: '2px solid var(--panel-bg)',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+          {/* Renewal Tracking */}
+          <div>
+            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Next Billing Review</div>
+            <div style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: '8px', 
+              padding: '6px 12px', borderRadius: '10px',
+              background: isOverdue ? 'rgba(244, 63, 94, 0.08)' : isApproaching ? 'rgba(245, 158, 11, 0.08)' : 'var(--subtle-bg)',
+              color: isOverdue ? 'var(--danger)' : isApproaching ? 'var(--warning)' : 'var(--text-primary)',
+              border: `1px solid ${isOverdue ? 'rgba(244, 63, 94, 0.2)' : isApproaching ? 'rgba(245, 158, 11, 0.2)' : 'var(--subtle-border)'}`
             }}>
-              {noteCount}
-            </span>
-          )}
-        </button>
-        <button
-          className="btn btn-secondary"
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }}
-          onClick={onSendReminder}
-          title="Trigger SMS Notification"
-        >
-          <MessageSquareText size={14} className="text-secondary" />
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ padding: '8px', background: 'var(--subtle-bg)' }} 
-          onClick={onEdit}
-          title="Edit Configuration"
-        >
-          <Edit2 size={14} />
-        </button>
-        <button 
-          className="btn btn-danger" 
-          style={{ padding: '8px' }} 
-          onClick={onDelete}
-          title="Revoke Access"
-        >
-          <Trash2 size={14} />
-        </button>
+              <Calendar size={13} />
+              <span style={{ fontWeight: 800, fontSize: '0.8rem' }}>{gym.renewalDate ? new Date(gym.renewalDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Improved Action Buttons Group */}
+        <div className="flex items-center gap-2 justify-end">
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0, position: 'relative' }} 
+            onClick={onViewNotes}
+            title="Communication Log"
+          >
+            <StickyNote size={16} className="text-warning" />
+            {noteCount > 0 && (
+              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--accent-primary)', color: 'white', fontSize: '9px', fontWeight: 800, padding: '1px 4px', borderRadius: '6px', border: '2px solid var(--panel-bg)'}}>
+                {noteCount}
+              </span>
+            )}
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendReminder} title="Direct SMS">
+            <MessageSquareText size={16} className="text-secondary" />
+          </button>
+          <div style={{ width: '1px', height: '24px', background: 'var(--panel-border)', margin: '0 4px' }}></div>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Card">
+            <Edit2 size={16} />
+          </button>
+          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0, color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)' }} onClick={onDelete} title="Purge Record">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );
