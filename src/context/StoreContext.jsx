@@ -380,8 +380,12 @@ export default function StoreContextProvider({ children }) {
     let updatedInvoices = [...invoices];
     let invoicesChanged = false;
     
+    const now = new Date();
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    today.setHours(0, 0, 0, 0); 
+    
+    // Only trigger automated schedules from 8:00 AM onwards
+    if (now.getHours() < 8) return;
     
     // 1. Check Renewals
     if (smsConfig?.autoRenewalEnabled) {
