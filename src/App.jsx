@@ -220,7 +220,7 @@ const AppContent = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="main-content" style={{ flex: 1, padding: '48px 64px' }}>
+        <main className="main-content" style={{ flex: 1 }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
