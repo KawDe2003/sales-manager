@@ -483,6 +483,38 @@ const Settings = () => {
             </div>
           </div>
 
+          {/* Security & Access */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                <ShieldCheck size={22} color="var(--danger)" />
+              </div>
+              <h2 className="h2" style={{ margin: 0 }}>Security & Access</h2>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Inactivity Session Timeout</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minutes</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  style={{ paddingLeft: '40px' }}
+                  min="1"
+                  max="1440"
+                  value={smsConfig.sessionTimeout || 5} 
+                  onChange={e => updateSmsConfig({...smsConfig, sessionTimeout: parseInt(e.target.value) || 1})} 
+                />
+              </div>
+              <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Automatically logout the user after the specified period of inactivity. This helps protect your data if you leave the dashboard open.
+              </p>
+            </div>
+          </div>
+
           {/* Dynamic Variable Glossary */}
           <div className="glass-panel" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), transparent)' }}>
             <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>

@@ -52,12 +52,48 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-  const { notification, theme, toggleTheme, smsConfig = {} } = useContext(StoreContext);
+  const { notification, theme, toggleTheme, smsConfig = {}, showNotification } = useContext(StoreContext);
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   
   const isPublicShareView = location.pathname.startsWith('/share');
+
+  // Inactivity Timer
+  useEffect(() => {
+    if (!user) return; // Only track for logged in users
+
+    let timeoutId;
+    const timeoutMinutes = smsConfig.sessionTimeout || 5;
+    const timeoutMs = timeoutMinutes * 60 * 1000;
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        showNotification('Session expired due to inactivity', 'error');
+        signOut();
+      }, timeoutMs);
+    };
+
+    // Events to listen for
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    // Add event listeners
+    events.forEach(event => {
+      document.addEventListener(event, resetTimer);
+    });
+
+    // Initial start
+    resetTimer();
+
+    // Cleanup
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => {
+        document.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user, smsConfig.sessionTimeout, signOut, showNotification]);
   const isLoginPage = location.pathname === '/login';
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
