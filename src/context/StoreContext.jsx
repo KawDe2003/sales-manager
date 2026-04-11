@@ -21,17 +21,17 @@ export default function StoreContextProvider({ children }) {
     const saved = localStorage.getItem('gym_inventory');
     if (saved) return JSON.parse(saved);
     return [
-      { id: 'inv-item-01', name: 'ZKTeco SenseFace 3 (Fingerprint / Face ID)', type: 'Hardware', price: 130000, desc: 'Advanced Biometric Terminal with RFID support' },
-      { id: 'inv-item-02', name: 'Electromagnetic Lock (Glass Door)', type: 'Hardware', price: 16500, desc: 'Secure magnetic locking system with matching brackets' },
-      { id: 'inv-item-03', name: 'Power Supply Unit for Lock & Device', type: 'Hardware', price: 18000, desc: 'Stable 12V supply for uninterrupted security' },
-      { id: 'inv-item-04', name: 'Glass Break Switch', type: 'Hardware', price: 5500, desc: 'Emergency release for safety compliance' },
-      { id: 'inv-item-05', name: 'Battery Backup', type: 'Hardware', price: 7000, desc: '12V 7Ah backup for power failure' },
-      { id: 'inv-item-06', name: 'Cabling & Networking Material', type: 'Hardware', price: 5000, desc: 'Cat6 cabling and conduit accessories' },
-      { id: 'inv-item-07', name: 'Installation & Technical Configuration', type: 'Service', price: 14500, desc: 'On-site terminal setup and cloud integration' },
-      { id: 'inv-item-08', name: 'Push Cloud Service (Annual Fee)', type: 'Software', price: 20000, desc: 'Cloud sync for active member attendance (Up to 400)' },
-      { id: 'inv-item-09', name: 'Server Hosting & Maintenance (Annual)', type: 'Software', price: 50000, desc: 'Proprietary central management server access' },
-      { id: 'inv-item-10', name: 'SMS API Integration (One Time)', type: 'Service', price: 3000, desc: 'Configuration of transactional SMS gateway' },
-      { id: 'inv-item-11', name: 'GYM Management Software Suite', type: 'Software', price: 150000, desc: 'Full business management, billing and attendance' }
+      { id: 'inv-item-01', name: 'ZKTeco SenseFace 3 (Fingerprint / Face ID)', type: 'Hardware', price: 130000, stock: 12, desc: 'Advanced Biometric Terminal with RFID support' },
+      { id: 'inv-item-02', name: 'Electromagnetic Lock (Glass Door)', type: 'Hardware', price: 16500, stock: 25, desc: 'Secure magnetic locking system with matching brackets' },
+      { id: 'inv-item-03', name: 'Power Supply Unit for Lock & Device', type: 'Hardware', price: 18000, stock: 15, desc: 'Stable 12V supply for uninterrupted security' },
+      { id: 'inv-item-04', name: 'Glass Break Switch', type: 'Hardware', price: 5500, stock: 40, desc: 'Emergency release for safety compliance' },
+      { id: 'inv-item-05', name: 'Battery Backup', type: 'Hardware', price: 7000, stock: 10, desc: '12V 7Ah backup for power failure' },
+      { id: 'inv-item-06', name: 'Cabling & Networking Material', type: 'Hardware', price: 5000, stock: 100, desc: 'Cat6 cabling and conduit accessories' },
+      { id: 'inv-item-07', name: 'Installation & Technical Configuration', type: 'Service', price: 14500, stock: null, desc: 'On-site terminal setup and cloud integration' },
+      { id: 'inv-item-08', name: 'Push Cloud Service (Annual Fee)', type: 'Software', price: 20000, stock: null, desc: 'Cloud sync for active member attendance (Up to 400)' },
+      { id: 'inv-item-09', name: 'Server Hosting & Maintenance (Annual)', type: 'Software', price: 50000, stock: null, desc: 'Proprietary central management server access' },
+      { id: 'inv-item-10', name: 'SMS API Integration (One Time)', type: 'Service', price: 3000, stock: null, desc: 'Configuration of transactional SMS gateway' },
+      { id: 'inv-item-11', name: 'GYM Management Software Suite', type: 'Software', price: 150000, stock: null, desc: 'Full business management, billing and attendance' }
     ];
   });
 
