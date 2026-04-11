@@ -167,7 +167,7 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
       </div>
 
       {/* Action Footer */}
-      <div className="flex justify-between items-center" style={{ marginTop: 'auto', paddingTop: '4px' }}>
+      <div className="flex justify-end items-center gap-3" style={{ marginTop: 'auto', paddingTop: '4px' }}>
         <div className="flex gap-2">
           <button className="btn btn-secondary" style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)' }} onClick={onEdit} title="Edit Lead">
             <Edit2 size={14} />

@@ -408,7 +408,7 @@ tr:hover td {
 }
 
 .main-content {
-  padding: 48px 64px;
+  padding: 40px;
   width: 100%;
   transition: padding 0.3s ease;
 }

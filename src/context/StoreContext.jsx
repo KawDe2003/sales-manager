@@ -174,12 +174,38 @@ export default function StoreContextProvider({ children }) {
     localStorage.setItem('gym_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Migrate existing quotes/invoices to have a shareKey if missing
+  useEffect(() => {
+    let changed = false;
+    const migrate = (items, setItems) => {
+      const updated = items.map(item => {
+        if (!item.shareKey) {
+          changed = true;
+          return { ...item, shareKey: generateShareKey() };
+        }
+        return item;
+      });
+      if (changed) setItems(updated);
+    };
+    migrate(quotes, setQuotes);
+    migrate(invoices, setInvoices);
+  }, []);
   
   const resetToSeynexDefaults = () => {
     if (window.confirm("This will permanently remove your current data and load the Seynex Technology business defaults. Proceed?")) {
       localStorage.clear();
       window.location.reload();
     }
+  };
+
+  const generateShareKey = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
 
   // Actions
@@ -226,7 +252,7 @@ export default function StoreContextProvider({ children }) {
   const deleteInventoryItem = (id) => setInventory(inventory.filter(i => i.id !== id));
   const updateInventoryItem = (id, data) => setInventory(inventory.map(i => i.id === id ? { ...i, ...data } : i));
   
-  const addInvoice = (invoice) => setInvoices([...invoices, { ...invoice, id: uuidv4(), status: 'Draft' }]);
+  const addInvoice = (invoice) => setInvoices([...invoices, { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' }]);
   const updateInvoice = (id, data) => setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
   
   const updateInvoiceStatus = (id, status) => {
@@ -246,7 +272,7 @@ export default function StoreContextProvider({ children }) {
     }));
   };
 
-  const addQuote = (quote) => setQuotes([...quotes, { ...quote, id: uuidv4(), status: 'Pending' }]);
+  const addQuote = (quote) => setQuotes([...quotes, { ...quote, id: uuidv4(), shareKey: generateShareKey(), status: 'Pending' }]);
 
   const updateQuote = (id, updatedData) => {
     setQuotes(quotes.map(q => {
@@ -283,6 +309,7 @@ export default function StoreContextProvider({ children }) {
 
     const newInvoice = {
       id: uuidv4(),
+      shareKey: generateShareKey(),
       invoiceNumber: `INV-${quote.quoteNumber.split('-')[1] || Math.floor(Math.random() * 10000)}`,
       date: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
@@ -585,10 +612,10 @@ export default function StoreContextProvider({ children }) {
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
       .replace(/{number}/g, documentData?.invoiceNumber || documentData?.quoteNumber || '')
       .replace(/{documentType}/g, documentData?.documentType || 'Document')
-      .replace(/{link}/g, documentData?.id ? `${window.location.origin}/share/${
+      .replace(/{link}/g, (documentData?.shareKey || documentData?.id) ? `${window.location.origin}/share/${
         type.toLowerCase() === 'quotation' ? 'quote' : 
         type.toLowerCase() === 'cashreceived' ? 'receipt' : 'invoice'
-      }/${documentData.id}` : '')
+      }/${documentData.shareKey || documentData.id}` : '')
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')

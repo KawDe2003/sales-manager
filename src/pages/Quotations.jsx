@@ -172,7 +172,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
       </div>
 
       {/* Detail & Action Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-panel">
+      <div className="flex flex-col md:flex-row md:items-center justify-between items-end md:items-center gap-4 pt-4 border-t border-panel">
         <div>
           <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Net Offer Estimate</div>
           <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>
@@ -181,7 +181,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap justify-end w-full">
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 

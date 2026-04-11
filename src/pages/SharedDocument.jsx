@@ -15,7 +15,7 @@ const SharedDocument = () => {
     console.log(`[SharedDoc] Available Quotes: ${quotes.length}, Invoices: ${invoices.length}`);
 
     if (type === 'quote') {
-      const q = quotes.find(item => item.id === id);
+      const q = quotes.find(item => item.id === id || item.shareKey === id);
       setDocData(q || null);
       if (q) {
         console.log(`[SharedDoc] Quote found: ${q.quoteNumber}`);
@@ -24,7 +24,7 @@ const SharedDocument = () => {
         console.warn(`[SharedDoc] Quote ID ${id} not found in local storage.`);
       }
     } else if (type === 'invoice') {
-      const inv = invoices.find(item => item.id === id);
+      const inv = invoices.find(item => item.id === id || item.shareKey === id);
       setDocData(inv || null);
       if (inv) {
         console.log(`[SharedDoc] Invoice found: ${inv.invoiceNumber}`);
@@ -34,7 +34,7 @@ const SharedDocument = () => {
         console.warn(`[SharedDoc] Invoice ID ${id} not found in local storage.`);
       }
     } else if (type === 'receipt') {
-      const inv = invoices.find(item => item.id === id);
+      const inv = invoices.find(item => item.id === id || item.shareKey === id);
       setDocData(inv || null);
       if (inv) {
         console.log(`[SharedDoc] Receipt found: ${inv.invoiceNumber}`);
@@ -88,25 +88,29 @@ const SharedDocument = () => {
   const isApproved = docData.status === 'Paid' || docData.status === 'Accepted';
 
   const themeStyles = isQuote ? {
-    '--bg-primary': '#020617',
+    '--bg-primary': '#020617', // Deep Dark Background
     '--bg-secondary': '#0f172a',
-    '--panel-bg': '#0f172a',
-    '--panel-border': 'rgba(255, 255, 255, 0.08)',
-    '--text-primary': '#ffffff',
-    '--text-secondary': '#94a3b8',
-    '--text-muted': '#64748b',
-    '--subtle-bg': 'rgba(255, 255, 255, 0.02)',
-    '--subtle-border': 'rgba(255, 255, 255, 0.08)',
+    '--panel-bg': '#ffffff',     // Light Preview Card
+    '--panel-border': '#e2e8f0',
+    '--text-primary': '#0f172a', // Dark text for the light card
+    '--text-secondary': '#475569',
+    '--text-muted': '#94a3b8',
+    '--subtle-bg': '#f8fafc',
+    '--subtle-border': '#e2e8f0',
+    '--accent-primary': '#3b82f6',
+    '--panel-shadow': '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
   } : {
-    '--bg-primary': '#f9fafb',
-    '--bg-secondary': '#ffffff',
-    '--panel-bg': '#ffffff',
-    '--panel-border': 'rgba(15, 23, 42, 0.1)',
+    '--bg-primary': '#020617', // Consistent deep dark background
+    '--bg-secondary': '#0f172a',
+    '--panel-bg': '#ffffff',     // Still Light Card for Invoices for readability
+    '--panel-border': '#e2e8f0',
     '--text-primary': '#0f172a',
     '--text-secondary': '#475569',
     '--text-muted': '#94a3b8',
-    '--subtle-bg': 'rgba(15, 23, 42, 0.02)',
-    '--subtle-border': 'rgba(15, 23, 42, 0.08)',
+    '--subtle-bg': '#f8fafc',
+    '--subtle-border': '#e2e8f0',
+    '--accent-primary': '#3b82f6',
+    '--panel-shadow': '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
   };
 
   return (
@@ -137,14 +141,19 @@ const SharedDocument = () => {
             <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'var(--subtle-bg)', height: '44px' }}>
               <Printer size={18} /> Print
             </button>
-            <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '44px', padding: '0 24px' }}>
-              <Download size={18} /> Download Secure PDF
+            <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '44px', padding: '0 24px', fontSize: '0.9rem' }}>
+              <Download size={18} /> Download {isQuote ? 'Quotation' : 'Invoice'}
             </button>
           </div>
         </div>
 
         {/* Main Document Content */}
-        <div className="glass-panel main-doc-container" style={{ border: '1px solid var(--panel-border)', boxShadow: '0 40px 100px rgba(0,0,0,0.5)' }}>
+        <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ color: 'white', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.8 }}>
+                Preview of {docTitle}
+            </h3>
+        </div>
+        <div className="glass-panel main-doc-container" style={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
           
           {/* Internal Header */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-8" style={{ marginBottom: '80px' }}>
@@ -153,20 +162,20 @@ const SharedDocument = () => {
                 <span className={`badge badge-${isQuote ? 'primary' : 'warning'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 16px', fontSize: '0.7rem', fontWeight: 800 }}>
                    {docTitle}
                 </span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(1rem, 3vw, 1.35rem)', fontFamily: 'var(--font-display)' }}>#{docNumber}</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 3vw, 1.25rem)', fontFamily: 'var(--font-display)' }}>#{docNumber}</span>
               </div>
               
-              <h2 className="h2" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', marginBottom: '16px', letterSpacing: '-0.03em' }}>{customerName}</h2>
+              <h2 className="h2" style={{ fontSize: 'clamp(1.2rem, 5vw, 2.2rem)', marginBottom: '12px', letterSpacing: '-0.03em' }}>{customerName}</h2>
               
-              <div style={{ display: 'flex', gap: '24px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
                  <div>
                    <div className="text-secondary" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Issue Date</div>
-                   <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 'clamp(0.9rem, 2.5vw, 1.05rem)' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                   <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                  </div>
                  {docData.dueDate && (
                    <div>
-                     <div className="text-secondary" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Payment Due</div>
-                     <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 'clamp(0.9rem, 2.5vw, 1.05rem)' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                     <div className="text-secondary" style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Payment Due</div>
+                     <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                    </div>
                  )}
               </div>
@@ -184,9 +193,9 @@ const SharedDocument = () => {
                  isReceipt ? <CheckCircle size={32} color="var(--success)" /> : 
                  <Receipt size={32} color="var(--warning)" />}
               </div>
-              <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.25rem', marginBottom: '4px' }}>{smsConfig.companyName || 'GymSales Pro'}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{smsConfig.companyEmail || 'billing@gymsales.com'}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{smsConfig.companyPhone || '+1 (234) 567-890'}</div>
+              <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.1rem', marginBottom: '4px' }}>{smsConfig.companyName || 'GymSales Pro'}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyEmail || 'billing@gymsales.com'}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyPhone || '+1 (234) 567-890'}</div>
             </div>
           </div>
 
@@ -203,13 +212,13 @@ const SharedDocument = () => {
                 </div>
 
                 {theItems.map((item, idx) => (
-                   <div key={idx} style={{ display: 'flex', padding: '16px 12px', borderBottom: idx === theItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
+                   <div key={idx} style={{ display: 'flex', padding: '12px 10px', borderBottom: idx === theItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
                       <div style={{ flex: 1, minWidth: '80px', wordBreak: 'break-word' }}>
-                        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 'clamp(0.95rem, 2.5vw, 1.1rem)' }}>{item.name}</div>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{item.name}</div>
                       </div>
-                      <div style={{ width: '50px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{item.quantity || 1}</div>
-                      <div style={{ width: '90px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
-                      <div style={{ width: '110px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.95rem, 2.5vw, 1.1rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
+                      <div style={{ width: '50px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{item.quantity || 1}</div>
+                      <div style={{ width: '90px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
+                      <div style={{ width: '110px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
                    </div>
                 ))}
              </div>
@@ -274,11 +283,11 @@ const SharedDocument = () => {
                    <div style={{ height: '1px', background: 'var(--subtle-border)', margin: '0 0 24px 0' }}></div>
 
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <div style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                      <div style={{ color: 'var(--accent-primary)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
                          {isQuote ? 'Projected Investment' : 'Current Balance Due'}
                       </div>
-                      <div style={{ fontSize: 'clamp(1.75rem, 7vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                         <span style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)', color: 'var(--text-muted)', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
+                      <div style={{ fontSize: 'clamp(1.4rem, 7.5vw, 2.5rem)', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                         <span style={{ fontSize: 'clamp(0.8rem, 3.5vw, 1rem)', color: 'var(--text-muted)', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
                          {totalAmount.toLocaleString()}
                       </div>
                    </div>

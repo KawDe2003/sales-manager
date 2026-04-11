@@ -206,7 +206,7 @@ const CustomerCard = ({ gym, onEdit, onDelete, onSendReminder, onViewNotes }) =>
         </div>
 
         {/* Improved Action Buttons Group */}
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-2 justify-end w-full">
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0, position: 'relative' }} 

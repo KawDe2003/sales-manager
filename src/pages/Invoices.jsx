@@ -172,7 +172,7 @@ const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecord
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap justify-end w-full">
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
