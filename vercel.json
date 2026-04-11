@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/quicksend",
+      "destination": "/api/quicksend"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
