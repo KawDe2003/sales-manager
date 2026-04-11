@@ -1,0 +1,218 @@
+import React, { useContext, useState } from 'react';
+import { BrowserRouter, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
+import { 
+  LayoutDashboard, Users, FileText, Receipt, BarChart3, 
+  Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
+  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign 
+} from 'lucide-react';
+import StoreContextProvider, { StoreContext } from './context/StoreContext';
+
+import Dashboard from './pages/Dashboard';
+import Customers from './pages/Customers';
+import Quotations from './pages/Quotations';
+import Invoices from './pages/Invoices';
+import Reports from './pages/Reports';
+import Inventory from './pages/Inventory';
+import Settings from './pages/Settings';
+import SharedDocument from './pages/SharedDocument';
+import Leads from './pages/Leads';
+import Logs from './pages/Logs';
+import Payments from './pages/Payments';
+
+const App = () => {
+  return (
+    <StoreContextProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </StoreContextProvider>
+  );
+};
+
+const AppContent = () => {
+  const { notification, theme, toggleTheme, smsConfig = {} } = useContext(StoreContext);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const isPublicShareView = location.pathname.startsWith('/share');
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const closeSidebar = () => setSidebarOpen(false);
+
+  return (
+    <div className={sidebarOpen ? "sidebar-open" : ""} style={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      minHeight: '100vh', 
+      background: isPublicShareView ? 'var(--bg-primary)' : 'transparent', 
+      position: 'relative' 
+    }}>
+      {/* Global Notification Toast */}
+      {notification && (
+        <div style={{
+          position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+          padding: '16px 24px', borderRadius: '12px', minWidth: '300px',
+          background: notification.type === 'success' ? 'var(--success)' : 'var(--danger)',
+          backdropFilter: 'blur(10px)', color: 'white',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          animation: 'fadeIn 0.3s ease-out',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          <span style={{ flex: 1, fontWeight: '600', fontSize: '0.9rem' }}>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      {!isPublicShareView && (
+        <header className="layout-header flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button 
+              className="btn btn-secondary md-hidden" 
+              onClick={toggleSidebar}
+              style={{ padding: '8px', border: 'none', background: 'rgba(255,255,255,0.05)' }}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            
+            <Link to="/" className="flex items-center gap-4" onClick={closeSidebar}>
+              <div style={{ 
+                width: '38px', height: '38px', borderRadius: '12px', 
+                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)'
+              }}>
+                <span style={{ color: 'white', fontWeight: '900', fontSize: '20px', fontFamily: 'var(--font-display)' }}>
+                  {(smsConfig.dashboardName || 'GymSales').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="sm-hidden">
+                <h1 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
+                  {smsConfig.dashboardName || 'GymSales'}<span style={{ color: 'var(--accent-primary)' }}>.</span>
+                </h1>
+              </div>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button 
+              className="btn btn-secondary" 
+              style={{ width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={18} className="text-warning" /> : <Moon size={18} className="text-accent-primary" />}
+            </button>
+
+            <Link 
+              to="/settings" 
+              className="btn btn-secondary" 
+              style={{ height: '42px' }}
+              onClick={closeSidebar}
+            >
+              <SettingsIcon size={18} className="text-secondary" />
+              <span className="sm-hidden" style={{ fontWeight: '600' }}>Settings</span>
+            </Link>
+          </div>
+        </header>
+      )}
+
+      <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+        {/* Sidebar Overlay (Mobile) */}
+        <div className="sidebar-overlay" onClick={closeSidebar}></div>
+
+        {/* Sidebar */}
+        {!isPublicShareView && (
+          <aside className="app-sidebar" style={{ 
+            width: '280px', 
+            background: 'var(--bg-secondary)',
+            opacity: 0.98,
+            borderRight: '1px solid var(--panel-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '32px 0',
+            height: 'calc(100vh - 72px)',
+            position: 'sticky',
+            top: '72px'
+          }}>
+            <div style={{ padding: '0 24px', marginBottom: '24px' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Navigation</span>
+            </div>
+            <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', flex: 1, gap: '4px' }}>
+              <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} />
+              <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} />
+              <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} />
+              <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} />
+              <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} />
+              <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} />
+              <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payment Portal" onClick={closeSidebar} />
+              <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Insights" onClick={closeSidebar} />
+              <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} />
+            </nav>
+            
+            <div style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
+                v3.2.0 Enterprise
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Main Content */}
+        <main className="main-content" style={{ flex: 1, padding: isPublicShareView ? '0' : '48px 64px' }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', paddingTop: isPublicShareView ? '48px' : '0' }}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/leads" element={<Leads />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/quotations" element={<Quotations />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/logs" element={<Logs />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/share/:type/:id" element={<SharedDocument />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+// NavItem Component
+const NavItem = ({ to, icon, label, onClick }) => {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      style={({ isActive }) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '12px 16px',
+        borderRadius: '12px',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        background: isActive ? 'var(--bg-primary)' : 'transparent',
+        fontWeight: isActive ? '700' : '500',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        fontSize: '0.9rem',
+        borderLeft: isActive ? '3px solid var(--accent-primary)' : '3px solid transparent',
+        paddingLeft: isActive ? '13px' : '16px'
+      })}
+      className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
+    >
+      {({ isActive }) => (
+        <>
+          <span style={{ color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex' }}>{icon}</span>
+          <span>{label}</span>
+        </>
+      )}
+    </NavLink>
+  );
+};
+
+export default App;
+
+
