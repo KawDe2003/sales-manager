@@ -23,8 +23,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
 
 const LoadingFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '200px' }}>
-    <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%' }}></div>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#020617' }}>
+    <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%' }}></div>
   </div>
 );
 
@@ -78,7 +78,7 @@ const AppContent = () => {
   // If on public share view, render without layout
   if (isPublicShareView) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <div style={{ minHeight: '100vh', background: '#020617' }}>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/share/:type/:id" element={<SharedDocument />} />

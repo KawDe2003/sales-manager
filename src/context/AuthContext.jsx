@@ -18,20 +18,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check active sessions and sets the user
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) console.error('[Auth] Session error:', error);
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error('[Auth] getSession Exception:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     getSession();
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
+    // Safety timeout: Ensure loading finishes even if Supabase hangs
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
+    // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      clearTimeout(timeout);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Will be passed down to Signup, Login and Logout components
