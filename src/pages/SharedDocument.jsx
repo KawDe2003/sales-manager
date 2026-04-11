@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
+import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { Download, Printer, CheckCircle, XCircle, ShieldCheck, Mail, Phone, MapPin, Building2, FileText, Receipt, ShoppingBag, Clock } from 'lucide-react';
 
@@ -9,41 +10,77 @@ const SharedDocument = () => {
   const { quotes = [], invoices = [], customers = [], updateQuoteStatus, showNotification, smsConfig = {}, theme } = useContext(StoreContext) || {};
   const [docData, setDocData] = useState(null);
   const [customerName, setCustomerName] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log(`[SharedDoc] Loading type: ${type}, id: ${id}`);
-    console.log(`[SharedDoc] Available Quotes: ${quotes.length}, Invoices: ${invoices.length}`);
+    const loadDocument = async () => {
+      console.log(`[SharedDoc] Loading type: ${type}, id: ${id}`);
+      setLoading(true);
 
-    if (type === 'quote') {
-      const q = quotes.find(item => item.id === id || item.shareKey === id);
-      setDocData(q || null);
-      if (q) {
-        console.log(`[SharedDoc] Quote found: ${q.quoteNumber}`);
-        setCustomerName(q.prospectName || 'Valued Prospect');
-      } else {
-        console.warn(`[SharedDoc] Quote ID ${id} not found in local storage.`);
+      let foundDoc = null;
+
+      if (type === 'quote') {
+        foundDoc = quotes.find(item => item.id === id || item.shareKey === id);
+        if (!foundDoc) {
+          console.log(`[SharedDoc] Quote not in local state, checking Supabase...`);
+          const { data, error } = await supabase
+            .from('quotations')
+            .select('*')
+            .or(`id.eq.${id},share_key.eq.${id}`)
+            .single();
+          
+          if (data && !error) {
+            foundDoc = { 
+              ...data, 
+              shareKey: data.share_key, 
+              quoteNumber: data.quote_number,
+              prospectName: data.prospect_name
+            };
+          }
+        }
+
+        if (foundDoc) {
+          setDocData(foundDoc);
+          setCustomerName(foundDoc.prospectName || 'Valued Prospect');
+        } else {
+          console.warn(`[SharedDoc] Quote ID ${id} not found.`);
+        }
+      } else if (type === 'invoice' || type === 'receipt') {
+        foundDoc = invoices.find(item => item.id === id || item.shareKey === id);
+        
+        if (!foundDoc) {
+          console.log(`[SharedDoc] Invoice not in local state, checking Supabase...`);
+          const { data, error } = await supabase
+            .from('invoices')
+            .select('*')
+            .or(`id.eq.${id},share_key.eq.${id}`)
+            .single();
+          
+          if (data && !error) {
+            foundDoc = { 
+              ...data, 
+              shareKey: data.share_key, 
+              invoiceNumber: data.invoice_number,
+              dueDate: data.due_date,
+              customerId: data.customer_id,
+              reminderSent: data.reminder_sent,
+              prospectName: data.prospect_name
+            };
+          }
+        }
+
+        if (foundDoc) {
+          setDocData(foundDoc);
+          const c = customers.find(cust => cust.id === foundDoc.customerId);
+          setCustomerName(c ? c.gymName : foundDoc.prospectName || 'Valued Client');
+        } else {
+          console.warn(`[SharedDoc] Invoice/Receipt ID ${id} not found.`);
+        }
       }
-    } else if (type === 'invoice') {
-      const inv = invoices.find(item => item.id === id || item.shareKey === id);
-      setDocData(inv || null);
-      if (inv) {
-        console.log(`[SharedDoc] Invoice found: ${inv.invoiceNumber}`);
-        const c = customers.find(cust => cust.id === inv.customerId);
-        setCustomerName(c ? c.gymName : 'Valued Client');
-      } else {
-        console.warn(`[SharedDoc] Invoice ID ${id} not found in local storage.`);
-      }
-    } else if (type === 'receipt') {
-      const inv = invoices.find(item => item.id === id || item.shareKey === id);
-      setDocData(inv || null);
-      if (inv) {
-        console.log(`[SharedDoc] Receipt found: ${inv.invoiceNumber}`);
-        const c = customers.find(cust => cust.id === inv.customerId);
-        setCustomerName(c ? c.gymName : 'Valued Client');
-      } else {
-        console.warn(`[SharedDoc] Receipt Invoice ID ${id} not found in local storage.`);
-      }
-    }
+      setLoading(false);
+    };
+
+    loadDocument();
   }, [type, id, quotes, invoices, customers]);
 
   const isQuote = type === 'quote';
@@ -59,6 +96,18 @@ const SharedDocument = () => {
   };
 
   const handlePrint = () => window.print();
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', 
+        justifyContent: 'center', padding: '32px', textAlign: 'center', background: 'var(--bg-primary)' 
+      }}>
+        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', marginBottom: '20px' }}></div>
+        <p className="text-secondary">Retrieving secure document...</p>
+      </div>
+    );
+  }
 
   if (!docData) {
     return (

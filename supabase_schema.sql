@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     amount NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Draft',
     items JSONB DEFAULT '[]'::jsonb,
+    prospect_name TEXT, -- Denormalized for public sharing
     reminder_sent BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );

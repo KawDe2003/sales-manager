@@ -1,9 +1,11 @@
-import React, { createContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 export const StoreContext = createContext();
 
 export default function StoreContextProvider({ children }) {
+  const { user } = useAuth();
   // Initialize state with localStorage or default mock data
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('gym_customers');
@@ -208,6 +210,55 @@ export default function StoreContextProvider({ children }) {
     return result;
   };
 
+  // --- SUPABASE SYNC LOGIC ---
+  const syncQuoteToSupabase = async (quote) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('quotations')
+        .upsert({
+          id: quote.id,
+          user_id: user.id,
+          share_key: quote.shareKey,
+          quote_number: quote.quoteNumber,
+          date: quote.date,
+          prospect_name: quote.prospectName,
+          prospect_phone: quote.prospectPhone,
+          amount: quote.amount,
+          status: quote.status,
+          items: quote.items
+        });
+      if (error) console.error('[Supabase Sync] Quote Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Quote Exception:', err);
+    }
+  };
+
+  const syncInvoiceToSupabase = async (invoice) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .upsert({
+          id: invoice.id,
+          user_id: user.id,
+          share_key: invoice.shareKey,
+          invoice_number: invoice.invoiceNumber,
+          date: invoice.date,
+          due_date: invoice.dueDate,
+          customer_id: invoice.customerId === 'unknown' ? null : invoice.customerId,
+          prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
+          amount: invoice.amount,
+          status: invoice.status,
+          items: invoice.items,
+          reminder_sent: invoice.reminderSent || false
+        });
+      if (error) console.error('[Supabase Sync] Invoice Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Invoice Exception:', err);
+    }
+  };
+
   // Actions
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const addCustomer = (customer) => {
@@ -252,13 +303,29 @@ export default function StoreContextProvider({ children }) {
   const deleteInventoryItem = (id) => setInventory(inventory.filter(i => i.id !== id));
   const updateInventoryItem = (id, data) => setInventory(inventory.map(i => i.id === id ? { ...i, ...data } : i));
   
-  const addInvoice = (invoice) => setInvoices([...invoices, { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' }]);
-  const updateInvoice = (id, data) => setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
+  const addInvoice = (invoice) => {
+    const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' };
+    setInvoices([...invoices, newInvoice]);
+    syncInvoiceToSupabase(newInvoice);
+  };
+  const updateInvoice = (id, data) => {
+    const updatedInvoices = invoices.map(i => {
+      if (i.id === id) {
+        const updated = { ...i, ...data };
+        syncInvoiceToSupabase(updated);
+        return updated;
+      }
+      return i;
+    });
+    setInvoices(updatedInvoices);
+  };
   
   const updateInvoiceStatus = (id, status) => {
     setInvoices(invoices.map(i => {
       if (i.id === id) {
+        const updated = { ...i, status };
         addLog('Status', `Invoice ${i.invoiceNumber} status changed to ${status}`);
+        syncInvoiceToSupabase(updated);
         // TRIGGER RECEIPT SMS IF CHANGED TO PAID
         if (status === 'Paid' && i.status !== 'Paid') {
           const customer = customers.find(c => c.id === i.customerId);
@@ -266,18 +333,24 @@ export default function StoreContextProvider({ children }) {
             triggerSMS('Payment', customer, i);
           }
         }
-        return { ...i, status };
+        return updated;
       }
       return i;
     }));
   };
 
-  const addQuote = (quote) => setQuotes([...quotes, { ...quote, id: uuidv4(), shareKey: generateShareKey(), status: 'Pending' }]);
+  const addQuote = (quote) => {
+    const newQuote = { ...quote, id: uuidv4(), shareKey: generateShareKey(), status: 'Pending' };
+    setQuotes([...quotes, newQuote]);
+    syncQuoteToSupabase(newQuote);
+  };
 
   const updateQuote = (id, updatedData) => {
     setQuotes(quotes.map(q => {
       if (q.id === id) {
-        return { ...q, ...updatedData };
+        const updated = { ...q, ...updatedData };
+        syncQuoteToSupabase(updated);
+        return updated;
       }
       return q;
     }));
@@ -286,8 +359,10 @@ export default function StoreContextProvider({ children }) {
   const updateQuoteStatus = (id, status) => {
     setQuotes(quotes.map(q => {
       if (q.id === id) {
+        const updated = { ...q, status };
         addLog('Status', `Quotation ${q.quoteNumber} marked as ${status}`);
-        return { ...q, status };
+        syncQuoteToSupabase(updated);
+        return updated;
       }
       return q;
     }));
@@ -321,6 +396,7 @@ export default function StoreContextProvider({ children }) {
     };
 
     setInvoices(prev => [...prev, newInvoice]);
+    syncInvoiceToSupabase(newInvoice);
     updateQuoteStatus(quoteId, 'Accepted');
     addLog('System', `Converted Quote ${quote.quoteNumber} to Invoice ${newInvoice.invoiceNumber}`);
     showNotification(`Converted! New invoice ${newInvoice.invoiceNumber} created.`);
@@ -402,12 +478,9 @@ export default function StoreContextProvider({ children }) {
             // Prevent multiple sends on the same exact day
             if (c.lastReminderDaysDiff !== daysDiff) {
               console.log(`[Auto Schedule] Sending renewal SMS to ${c.name} (${c.gymName})`);
-              // In real app, make API call. Using alert for demo:
-              setTimeout(() => {
-                 alert(`[AUTOMATIC SMS TRIGGERED]\\nRenewal reminder sent to ${c.gymName} (Due in ${daysDiff} days)`);
-              }, 1000);
-              
-              // Uncomment in production: triggerSMS('Renewal', c, null);
+              // Trigger actual SMS
+              triggerSMS('Renewal', c, null);
+              showNotification(`Auto-scheduled renewal reminder sent to ${c.gymName}`);
               updatedCustomers[index] = { ...c, lastReminderDaysDiff: daysDiff };
               customersChanged = true;
             }
@@ -428,11 +501,9 @@ export default function StoreContextProvider({ children }) {
           if (daysDiff <= (smsConfig.autoInvoiceDays || 3) && daysDiff >= 0) {
             const customer = customers.find(c => c.id === inv.customerId);
             if (customer) {
-              console.log(`[Auto Schedule] Sending invoice SMS to ${customer.name}`);
-              setTimeout(() => {
-                 alert(`[AUTOMATIC SMS TRIGGERED]\nInvoice reminder sent to ${customer.gymName} for INV# ${inv.invoiceNumber}`);
-              }, 1500);
-              // Uncomment in prod: triggerSMS('InvoiceReminder', customer, inv);
+              // Trigger actual SMS
+              triggerSMS('InvoiceReminder', customer, inv);
+              showNotification(`Auto-scheduled invoice reminder sent to ${customer.gymName}`);
               updatedInvoices[index] = { ...inv, reminderSent: true };
               invoicesChanged = true;
             }
@@ -451,12 +522,9 @@ export default function StoreContextProvider({ children }) {
           if (dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate()) {
             // Check if already sent this year
             if (c.lastBirthdaySentYear !== currentYear) {
-              console.log(`[Auto Schedule] Sending birthday wish to ${c.name} (${c.gymName})`);
-              setTimeout(() => {
-                 alert(`[AUTOMATIC SMS TRIGGERED]\nBirthday wish sent to ${c.name} (${c.gymName})`);
-              }, 2000);
-              
-              // triggerSMS('Birthday', c, null);
+              // Trigger actual SMS
+              triggerSMS('Birthday', c, null);
+              showNotification(`Auto-scheduled birthday wish sent to ${c.name}`);
               updatedCustomers[index] = { ...c, lastBirthdaySentYear: currentYear };
               customersChanged = true;
             }
