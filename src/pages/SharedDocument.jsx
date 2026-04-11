@@ -11,6 +11,7 @@ const SharedDocument = () => {
   const [docData, setDocData] = useState(null);
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     const loadDocument = async () => {
@@ -34,8 +35,11 @@ const SharedDocument = () => {
               query.eq('share_key', id);
             }
 
-            const { data, error } = await query.single();
-            
+            if (error) {
+              console.error('[SharedDoc] Supabase Error:', error);
+              setFetchError(`${error.code}: ${error.message}`);
+            }
+
             if (data && !error) {
               foundDoc = { 
                 ...data, 
@@ -63,8 +67,11 @@ const SharedDocument = () => {
               query.eq('share_key', id);
             }
 
-            const { data, error } = await query.single();
-            
+            if (error) {
+              console.error('[SharedDoc] Supabase Error:', error);
+              setFetchError(`${error.code}: ${error.message}`);
+            }
+
             if (data && !error) {
               foundDoc = { 
                 ...data, 
@@ -134,6 +141,13 @@ const SharedDocument = () => {
         </div>
         <h1 className="h1" style={{ fontSize: '2.5rem', marginBottom: '16px' }}>Document Expired or Not Found</h1>
         <p className="text-secondary" style={{ maxWidth: '500px', fontSize: '1.1rem' }}>The requested {docTitle} could not be retrieved from the secure vault. Please contact support if you believe this is an error.</p>
+        
+        {fetchError && (
+          <div style={{ marginTop: '24px', padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#991b1b', fontSize: '0.8rem', opacity: 0.6 }}>
+            Debug Info: {fetchError}
+          </div>
+        )}
+
         <button className="btn btn-secondary" style={{ marginTop: '32px' }} onClick={() => window.location.href = '/'}>Return Home</button>
       </div>
     );

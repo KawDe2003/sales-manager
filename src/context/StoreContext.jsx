@@ -178,36 +178,58 @@ export default function StoreContextProvider({ children }) {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Migrate existing quotes/invoices to have a shareKey if missing
+  // Migrate existing quotes/invoices to have a shareKey and valid UUID if missing
   useEffect(() => {
+    if (!user) return;
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let changedQ = false;
     let changedI = false;
 
     const updatedQuotes = quotes.map(q => {
-      if (!q.shareKey || q.shareKey.length > 20) { // Also replace old long ones
+      let updated = { ...q };
+      let needsSync = false;
+      
+      // Fix IDs that aren't UUIDs (like 'quote-demo-01')
+      if (!uuidRegex.test(q.id)) {
+        updated.id = uuidv4();
         changedQ = true;
-        return { ...q, shareKey: generateShareKey() };
+        needsSync = true;
       }
-      return q;
+      // Fix keys that are missing or too long
+      if (!q.shareKey || q.shareKey.length > 20) {
+        updated.shareKey = generateShareKey();
+        changedQ = true;
+        needsSync = true;
+      }
+
+      if (needsSync) syncQuoteToSupabase(updated);
+      return updated;
     });
 
     const updatedInvoices = invoices.map(inv => {
-      if (!inv.shareKey || inv.shareKey.length > 20) {
+      let updated = { ...inv };
+      let needsSync = false;
+
+      if (!uuidRegex.test(inv.id)) {
+        updated.id = uuidv4();
         changedI = true;
-        return { ...inv, shareKey: generateShareKey() };
+        needsSync = true;
       }
-      return inv;
+      if (!inv.shareKey || inv.shareKey.length > 20) {
+        updated.shareKey = generateShareKey();
+        changedI = true;
+        needsSync = true;
+      }
+
+      if (needsSync) syncInvoiceToSupabase(updated);
+      return updated;
     });
 
-    if (changedQ) {
-      setQuotes(updatedQuotes);
-      updatedQuotes.forEach(syncQuoteToSupabase);
-    }
-    if (changedI) {
-      setInvoices(updatedInvoices);
-      updatedInvoices.forEach(syncInvoiceToSupabase);
-    }
-  }, [user]); // Run when user logs in so sync functions have 'user'
+    if (changedQ) setQuotes(updatedQuotes);
+    if (changedI) setInvoices(updatedInvoices);
+
+  }, [user]); // Run when user logs in so sync functions work
   
   const resetToSeynexDefaults = () => {
     if (window.confirm("This will permanently remove your current data and load the Seynex Technology business defaults. Proceed?")) {
