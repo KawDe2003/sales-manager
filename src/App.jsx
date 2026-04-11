@@ -109,8 +109,7 @@ const AppContent = () => {
       minHeight: '100vh', 
       position: 'relative',
       overflowX: 'hidden',
-      width: '100vw',
-      maxWidth: '100%'
+      width: '100%'
     }}>
       {/* Global Notification Toast */}
       {notification && (
