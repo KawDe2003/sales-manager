@@ -309,12 +309,24 @@ tr:hover td {
   z-index: 1000;
 }
 
+.app-sidebar {
+  width: 280px;
+  border-right: 1px solid var(--panel-border);
+  height: calc(100vh - 72px);
+  position: sticky;
+  top: 72px;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .layout-header {
     padding: 0 20px;
   }
   .app-sidebar {
     position: fixed;
+    top: 0;
+    left: 0;
     height: 100vh;
     z-index: 1000;
     transform: translateX(-100%);

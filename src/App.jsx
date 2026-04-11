@@ -107,7 +107,10 @@ const AppContent = () => {
       display: 'flex', 
       flexDirection: 'column',
       minHeight: '100vh', 
-      position: 'relative' 
+      position: 'relative',
+      overflowX: 'hidden',
+      width: '100vw',
+      maxWidth: '100%'
     }}>
       {/* Global Notification Toast */}
       {notification && (
@@ -198,16 +201,11 @@ const AppContent = () => {
 
         {/* Sidebar */}
         <aside className="app-sidebar" style={{ 
-          width: '280px', 
           background: 'var(--bg-secondary)',
           opacity: 0.98,
-          borderRight: '1px solid var(--panel-border)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '32px 0',
-          height: 'calc(100vh - 72px)',
-          position: 'sticky',
-          top: '72px'
+          padding: '32px 0'
         }}>
           <div style={{ padding: '0 24px', marginBottom: '24px' }}>
             <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Navigation</span>
@@ -232,7 +230,7 @@ const AppContent = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="main-content" style={{ flex: 1 }}>
+        <main className="main-content" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
