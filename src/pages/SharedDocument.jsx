@@ -153,20 +153,20 @@ const SharedDocument = () => {
                 <span className={`badge badge-${isQuote ? 'primary' : 'warning'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 16px', fontSize: '0.8rem', fontWeight: 800 }}>
                    {docTitle}
                 </span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.5rem', fontFamily: 'var(--font-display)' }}>#{docNumber}</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontFamily: 'var(--font-display)' }}>#{docNumber}</span>
               </div>
               
-              <h2 className="h2" style={{ fontSize: '3rem', marginBottom: '24px', letterSpacing: '-0.03em' }}>{customerName}</h2>
+              <h2 className="h2" style={{ fontSize: 'clamp(2rem, 6vw, 3rem)', marginBottom: '24px', letterSpacing: '-0.03em' }}>{customerName}</h2>
               
               <div style={{ display: 'flex', gap: '40px' }}>
                  <div>
                    <div className="text-secondary" style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Issue Date</div>
-                   <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1.1rem' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                   <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 'clamp(1rem, 3vw, 1.1rem)' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                  </div>
                  {docData.dueDate && (
                    <div>
                      <div className="text-secondary" style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Payment Due</div>
-                     <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: '1.1rem' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                     <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 'clamp(1rem, 3vw, 1.1rem)' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                    </div>
                  )}
               </div>
@@ -194,22 +194,22 @@ const SharedDocument = () => {
           <div style={{ background: 'var(--subtle-bg)', borderRadius: '24px', padding: '32px', border: '1px solid var(--subtle-border)', marginBottom: '48px', overflowX: 'auto' }}>
              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px' }}>Billing Items</h4>
              
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '600px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 'min(450px, 100%)' }}>
                 <div style={{ display: 'flex', padding: '12px 16px', borderBottom: '1px solid var(--subtle-border)', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                   <div style={{ flex: 1 }}>Description</div>
-                   <div style={{ width: '80px', textAlign: 'center' }}>Qty</div>
-                   <div style={{ width: '120px', textAlign: 'right' }}>Unit Price</div>
-                   <div style={{ width: '150px', textAlign: 'right' }}>Total</div>
+                   <div style={{ flex: 1, minWidth: '100px' }}>Description</div>
+                   <div style={{ width: '60px', textAlign: 'center' }}>Qty</div>
+                   <div style={{ width: '100px', textAlign: 'right' }}>Unit Price</div>
+                   <div style={{ width: '120px', textAlign: 'right' }}>Total</div>
                 </div>
 
                 {theItems.map((item, idx) => (
                    <div key={idx} style={{ display: 'flex', padding: '24px 16px', borderBottom: idx === theItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.25rem' }}>{item.name}</div>
+                      <div style={{ flex: 1, minWidth: '100px', wordBreak: 'break-word' }}>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 'clamp(1.1rem, 3vw, 1.25rem)' }}>{item.name}</div>
                       </div>
-                      <div style={{ width: '80px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '1.1rem' }}>{item.quantity || 1}</div>
-                      <div style={{ width: '120px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '1.1rem' }}>LKR {Number(item.price || 0).toLocaleString()}</div>
-                      <div style={{ width: '150px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.25rem' }}>LKR {(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
+                      <div style={{ width: '60px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(1rem, 3vw, 1.1rem)' }}>{item.quantity || 1}</div>
+                      <div style={{ width: '100px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(1rem, 3vw, 1.1rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
+                      <div style={{ width: '120px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(1.1rem, 3vw, 1.25rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
                    </div>
                 ))}
              </div>
@@ -277,8 +277,8 @@ const SharedDocument = () => {
                       <div style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
                          {isQuote ? 'Projected Investment' : 'Current Balance Due'}
                       </div>
-                      <div style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                         <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
+                      <div style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                         <span style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', color: 'var(--text-muted)', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
                          {totalAmount.toLocaleString()}
                       </div>
                    </div>
