@@ -358,19 +358,10 @@ tr:hover td {
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
 
 /* Responsive Grid & Layout Utilities */
-.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+/* Mobile First: default to 1 column */
+.grid-cols-1, .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-12 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 
-.col-span-1 { grid-column: span 1 / span 1; }
-.col-span-2 { grid-column: span 2 / span 2; }
-.col-span-3 { grid-column: span 3 / span 3; }
-.col-span-4 { grid-column: span 4 / span 4; }
-.col-span-5 { grid-column: span 5 / span 5; }
-.col-span-7 { grid-column: span 7 / span 7; }
-.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-1, .col-span-2, .col-span-3, .col-span-4, .col-span-5, .col-span-7, .col-span-12 { grid-column: span 1 / span 1; }
 .col-span-full { grid-column: 1 / -1; }
 
 .items-end { align-items: flex-end; }
@@ -379,6 +370,21 @@ tr:hover td {
 /* Base Main Content padding */
 .main-content {
   padding: 48px 64px;
+}
+
+@media (min-width: 640px) {
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+  .col-span-1 { grid-column: span 1 / span 1; }
+  .col-span-2 { grid-column: span 2 / span 2; }
+  .col-span-3 { grid-column: span 3 / span 3; }
+  .col-span-4 { grid-column: span 4 / span 4; }
+  .col-span-5 { grid-column: span 5 / span 5; }
+  .col-span-7 { grid-column: span 7 / span 7; }
+  .col-span-12 { grid-column: span 12 / span 12; }
 }
 
 @media (min-width: 768px) {
@@ -402,16 +408,18 @@ tr:hover td {
   .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-/* Visibility Utility Breakpoints */
+/* Visibility Utility Breakpoints - Fixed */
 @media (max-width: 640px) {
   .sm-hidden { display: none !important; }
 }
-@media (max-width: 768px) {
+@media (min-width: 769px) {
   .md-hidden { display: none !important; }
+}
+
+@media (max-width: 768px) {
   .main-content { padding: 24px 16px !important; }
 }
-@media (max-width: 1024px) {
-  .lg-hidden { display: none !important; }
+@media (max-width: 1024px) and (min-width: 769px) {
   .main-content { padding: 32px 32px; }
 }
 
