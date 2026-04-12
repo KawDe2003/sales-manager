@@ -257,6 +257,27 @@ export default function StoreContextProvider({ children }) {
     if (changedQ) setQuotes(updatedQuotes);
     if (changedI) setInvoices(updatedInvoices);
 
+    // 4. Initial Global Cloud Sync (Upload anything that's only local)
+    const pushLocalToCloud = async () => {
+      console.log('[Supabase Sync] Migrating local data to cloud...');
+      for (const c of updatedCustomers) syncCustomerToSupabase(c);
+      for (const i of updatedInvoices) syncInvoiceToSupabase(i);
+      for (const q of updatedQuotes) syncQuoteToSupabase(q);
+      for (const itm of inventory) syncInventoryToSupabase(itm);
+      for (const l of leads) syncLeadToSupabase(l);
+      for (const e of expenses) syncExpenseToSupabase(e);
+      for (const p of payments) syncPaymentToSupabase(p);
+      syncConfigToSupabase(smsConfig);
+      console.log('[Supabase Sync] Migration complete.');
+    };
+    
+    // Run migration if it looks like we have local data but haven't synced it yet
+    const migrationFlag = localStorage.getItem('gym_sync_migrated');
+    if (!migrationFlag && (updatedCustomers.length > 2 || updatedInvoices.length > 1)) {
+        pushLocalToCloud();
+        localStorage.setItem('gym_sync_migrated', 'true');
+    }
+
   }, [user]);
   
   const resetToSeynexDefaults = () => {
@@ -311,7 +332,7 @@ export default function StoreContextProvider({ children }) {
           invoice_number: invoice.invoiceNumber,
           date: invoice.date,
           due_date: invoice.dueDate,
-          customer_id: invoice.customerId === 'unknown' ? null : invoice.customerId,
+          customer_id: (invoice.customerId && invoice.customerId !== 'unknown') ? invoice.customerId : null,
           prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
           amount: invoice.amount,
           status: invoice.status,
@@ -324,19 +345,252 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
+  const syncCustomerToSupabase = async (customer) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .upsert({
+          id: customer.id,
+          user_id: user.id,
+          gym_name: customer.gymName,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          dob: customer.dob,
+          purchase_date: customer.purchaseDate,
+          renewal_date: customer.renewalDate,
+          annual_fee: customer.annualFee,
+          status: customer.status,
+          notes: customer.notes || []
+        });
+      if (error) console.error('[Supabase Sync] Customer Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Customer Exception:', err);
+    }
+  };
+
+  const syncInventoryToSupabase = async (item) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .upsert({
+          id: item.id,
+          user_id: user.id,
+          name: item.name,
+          type: item.type,
+          price: item.price,
+          stock: item.stock,
+          desc: item.desc
+        });
+      if (error) console.error('[Supabase Sync] Inventory Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Inventory Exception:', err);
+    }
+  };
+
+  const syncLeadToSupabase = async (lead) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .upsert({
+          id: lead.id,
+          user_id: user.id,
+          gym_name: lead.gymName,
+          prospect_name: lead.prospectName,
+          phone: lead.phone,
+          status: lead.status,
+          date: lead.date,
+          notes: lead.notes
+        });
+      if (error) console.error('[Supabase Sync] Lead Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Lead Exception:', err);
+    }
+  };
+
+  const syncExpenseToSupabase = async (expense) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .upsert({
+          id: expense.id,
+          user_id: user.id,
+          category: expense.category,
+          amount: expense.amount,
+          date: expense.date,
+          description: expense.description
+        });
+      if (error) console.error('[Supabase Sync] Expense Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Expense Exception:', err);
+    }
+  };
+
+  const syncPaymentToSupabase = async (payment) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .upsert({
+          id: payment.id,
+          user_id: user.id,
+          customer_id: payment.customerId,
+          document_id: payment.documentId,
+          amount: payment.amount,
+          type: payment.type,
+          timestamp: payment.timestamp
+        });
+      if (error) console.error('[Supabase Sync] Payment Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Payment Exception:', err);
+    }
+  };
+
+  const syncLogToSupabase = async (log) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('activity_logs')
+        .upsert({
+          id: log.id,
+          user_id: user.id,
+          type: log.type,
+          message: log.message,
+          details: log.details,
+          timestamp: log.timestamp
+        });
+      if (error) console.error('[Supabase Sync] Log Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Log Exception:', err);
+    }
+  };
+
+  const syncConfigToSupabase = async (config) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: user.id,
+          config,
+          updated_at: new Date().toISOString()
+        });
+      if (error) console.error('[Supabase Sync] Config Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Config Exception:', err);
+    }
+  };
+
+  const fetchCloudData = async () => {
+    if (!user) return;
+    try {
+      console.log('[Supabase Sync] Fetching all business data...');
+      
+      const [
+        { data: cData }, { data: invData }, { data: qData }, { data: iData },
+        { data: lData }, { data: eData }, { data: pData }, { data: logData },
+        { data: profData }
+      ] = await Promise.all([
+        supabase.from('customers').select('*').eq('user_id', user.id),
+        supabase.from('inventory').select('*').eq('user_id', user.id),
+        supabase.from('quotations').select('*').eq('user_id', user.id),
+        supabase.from('invoices').select('*').eq('user_id', user.id),
+        supabase.from('leads').select('*').eq('user_id', user.id),
+        supabase.from('expenses').select('*').eq('user_id', user.id),
+        supabase.from('payments').select('*').eq('user_id', user.id),
+        supabase.from('activity_logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(500),
+        supabase.from('user_profiles').select('config').eq('user_id', user.id).single()
+      ]);
+
+      if (profData?.config) {
+        setSmsConfig(prev => ({ ...prev, ...profData.config }));
+      }
+
+      if (cData?.length) setCustomers(cData.map(c => ({
+        id: c.id, gymName: c.gym_name, name: c.name, email: c.email, phone: c.phone,
+        dob: c.dob, purchaseDate: c.purchase_date, renewalDate: c.renewal_date, 
+        annualFee: Number(c.annual_fee), status: c.status, notes: c.notes || []
+      })));
+
+      if (invData?.length) setInventory(invData.map(i => ({
+        id: i.id, name: i.name, type: i.type, price: Number(i.price), stock: Number(i.stock), desc: i.desc
+      })));
+
+      if (qData?.length) setQuotes(qData.map(q => ({
+        id: q.id, shareKey: q.share_key, quoteNumber: q.quote_number, date: q.date,
+        prospectName: q.prospect_name, prospectPhone: q.prospect_phone, amount: Number(q.amount),
+        status: q.status, items: q.items || []
+      })));
+
+      if (iData?.length) setInvoices(iData.map(inv => ({
+        id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
+        dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
+        status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent
+      })));
+
+      if (lData?.length) setLeads(lData.map(l => ({
+        id: l.id, gymName: l.gym_name, prospectName: l.prospect_name, phone: l.phone,
+        status: l.status, date: l.date, notes: l.notes
+      })));
+
+      if (eData?.length) setExpenses(eData.map(e => ({
+        id: e.id, category: e.category, amount: Number(e.amount), date: e.date, description: e.description
+      })));
+
+      if (pData?.length) setPayments(pData.map(p => ({
+        id: p.id, customerId: p.customer_id, documentId: p.document_id, amount: Number(p.amount),
+        type: p.type, timestamp: p.timestamp
+      })));
+
+      if (logData?.length) setActivityLogs(logData.map(l => ({
+        id: l.id, type: l.type, message: l.message, details: l.details, timestamp: l.timestamp
+      })));
+
+      console.log('[Supabase Sync] Load complete.');
+    } catch (err) {
+      console.error('[Supabase Sync] Global Fetch Exception:', err);
+    }
+  };
+
+  // Fetch from cloud on login
+  useEffect(() => {
+    if (user) fetchCloudData();
+  }, [user]);
+
   // Actions
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const addCustomer = (customer) => {
     const newCustomer = { 
       ...customer, 
       id: uuidv4(),
-      notes: [] // Initialize empty notes array
+      notes: [] 
     };
     setCustomers([...customers, newCustomer]);
+    syncCustomerToSupabase(newCustomer);
     addLog('System', `Added new Active Gym: ${customer.gymName}`);
   };
-  const deleteCustomer = (id) => setCustomers(customers.filter(c => c.id !== id));
-  const updateCustomer = (id, updatedData) => setCustomers(customers.map(c => c.id === id ? { ...c, ...updatedData } : c));
+
+  const deleteCustomer = async (id) => {
+    setCustomers(customers.filter(c => c.id !== id));
+    if (user) {
+      await supabase.from('customers').delete().eq('id', id);
+    }
+  };
+
+  const updateCustomer = (id, updatedData) => {
+    setCustomers(prev => prev.map(c => {
+      if (c.id === id) {
+        const updated = { ...c, ...updatedData };
+        syncCustomerToSupabase(updated);
+        return updated;
+      }
+      return c;
+    }));
+  };
   
   const addCustomerNote = (customerId, text) => {
     if (!text.trim()) return;
@@ -348,31 +602,64 @@ export default function StoreContextProvider({ children }) {
           text
         };
         const updatedNotes = [newNote, ...(c.notes || [])];
+        const updated = { ...c, notes: updatedNotes };
+        syncCustomerToSupabase(updated);
         addLog('Status', `Update logged for ${c.gymName}: ${text.substring(0, 30)}...`);
-        return { ...c, notes: updatedNotes };
+        return updated;
       }
       return c;
     }));
   };
   
   const addLog = (type, message, details = '') => {
-    setActivityLogs(prev => [{
+    const newLog = {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
-      type, // 'SMS', 'System', 'Status'
+      type, 
       message,
       details
-    }, ...prev].slice(0, 500)); // Keep last 500 logs
+    };
+    setActivityLogs(prev => [newLog, ...prev].slice(0, 500));
+    syncLogToSupabase(newLog);
   };
-  const addInventoryItem = (item) => setInventory([...inventory, { ...item, id: uuidv4() }]);
-  const deleteInventoryItem = (id) => setInventory(inventory.filter(i => i.id !== id));
-  const updateInventoryItem = (id, data) => setInventory(inventory.map(i => i.id === id ? { ...i, ...data } : i));
+
+  const addInventoryItem = (item) => {
+    const newItem = { ...item, id: uuidv4() };
+    setInventory([...inventory, newItem]);
+    syncInventoryToSupabase(newItem);
+  };
+
+  const deleteInventoryItem = async (id) => {
+    setInventory(inventory.filter(i => i.id !== id));
+    if (user) {
+      await supabase.from('inventory').delete().eq('id', id);
+    }
+  };
+
+  const updateInventoryItem = (id, data) => {
+    setInventory(prev => prev.map(i => {
+      if (i.id === id) {
+        const updated = { ...i, ...data };
+        syncInventoryToSupabase(updated);
+        return updated;
+      }
+      return i;
+    }));
+  };
   
   const addInvoice = (invoice) => {
     const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' };
     setInvoices([...invoices, newInvoice]);
     syncInvoiceToSupabase(newInvoice);
   };
+
+  const deleteInvoice = async (id) => {
+    setInvoices(invoices.filter(i => i.id !== id));
+    if (user) {
+      await supabase.from('invoices').delete().eq('id', id);
+    }
+  };
+
   const updateInvoice = (id, data) => {
     const updatedInvoices = invoices.map(i => {
       if (i.id === id) {
@@ -391,7 +678,6 @@ export default function StoreContextProvider({ children }) {
         const updated = { ...i, status };
         addLog('Status', `Invoice ${i.invoiceNumber} status changed to ${status}`);
         syncInvoiceToSupabase(updated);
-        // TRIGGER RECEIPT SMS IF CHANGED TO PAID
         if (status === 'Paid' && i.status !== 'Paid') {
           const customer = customers.find(c => c.id === i.customerId);
           if(customer && customer.phone) {
@@ -408,6 +694,13 @@ export default function StoreContextProvider({ children }) {
     const newQuote = { ...quote, id: uuidv4(), shareKey: generateShareKey(), status: 'Pending' };
     setQuotes([...quotes, newQuote]);
     syncQuoteToSupabase(newQuote);
+  };
+
+  const deleteQuote = async (id) => {
+    setQuotes(quotes.filter(q => q.id !== id));
+    if (user) {
+      await supabase.from('quotations').delete().eq('id', id);
+    }
   };
 
   const updateQuote = (id, updatedData) => {
@@ -437,13 +730,8 @@ export default function StoreContextProvider({ children }) {
     const quote = quotes.find(q => q.id === quoteId);
     if (!quote) return;
 
-    // 1. Find or create customer
     let customer = customers.find(c => c.gymName === quote.prospectName || c.phone === quote.prospectPhone);
-    
-    // If quote has prospect info as strings, we might need a customer ID
-    // Check if we need to link to existing customer
     if (!customer) {
-        // Find existing customer by name
         customer = customers.find(c => c.gymName === quote.prospectName);
     }
 
@@ -452,9 +740,9 @@ export default function StoreContextProvider({ children }) {
       shareKey: generateShareKey(),
       invoiceNumber: `INV-${quote.quoteNumber.split('-')[1] || Math.floor(Math.random() * 10000)}`,
       date: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
       customerId: customer ? customer.id : 'unknown',
-      prospectName: !customer ? quote.prospectName : undefined, // Fallback if no customer linked
+      prospectName: !customer ? quote.prospectName : undefined, 
       items: quote.items,
       amount: quote.amount,
       status: 'Draft'
@@ -469,7 +757,7 @@ export default function StoreContextProvider({ children }) {
   };
 
   const recordCashDeposit = (data) => {
-    const { customerId, documentId, amount, paymentType } = data; // paymentType: 'Invoice' or 'Quotation'
+    const { customerId, documentId, amount, paymentType } = data; 
     
     const newPayment = {
       id: uuidv4(),
@@ -481,19 +769,17 @@ export default function StoreContextProvider({ children }) {
     };
 
     setPayments(prev => [...prev, newPayment]);
+    syncPaymentToSupabase(newPayment);
 
-    // Update Invoice status if it's an invoice
     if (paymentType === 'Invoice') {
       const invoice = invoices.find(inv => inv.id === documentId);
       if (invoice) {
-        // Simple logic: if payment >= amount, mark as Paid
         if (amount >= invoice.amount) {
            updateInvoiceStatus(documentId, 'Paid');
         }
       }
     }
 
-    // Send SMS
     const customer = customers.find(c => c.id === customerId);
     if (customer && customer.phone) {
         triggerSMS('CashReceived', customer, { ...data, amount, documentType: paymentType, number: documentId });
@@ -504,14 +790,39 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addLead = (lead) => {
-    setLeads([...leads, { ...lead, id: uuidv4(), date: new Date().toISOString() }]);
+    const newLead = { ...lead, id: uuidv4(), date: new Date().toISOString() };
+    setLeads([...leads, newLead]);
+    syncLeadToSupabase(newLead);
     addLog('System', `New Lead Added: ${lead.gymName}`);
   };
-  const updateLead = (id, data) => setLeads(leads.map(l => l.id === id ? { ...l, ...data } : l));
-  const deleteLead = (id) => setLeads(leads.filter(l => l.id !== id));
+  const updateLead = (id, data) => {
+    setLeads(prev => prev.map(l => {
+        if (l.id === id) {
+            const updated = { ...l, ...data };
+            syncLeadToSupabase(updated);
+            return updated;
+        }
+        return l;
+    }));
+  };
+  const deleteLead = async (id) => {
+    setLeads(leads.filter(l => l.id !== id));
+    if (user) {
+        await supabase.from('leads').delete().eq('id', id);
+    }
+  };
 
-  const addExpense = (exp) => setExpenses([...expenses, { ...exp, id: uuidv4(), date: new Date().toISOString() }]);
-  const deleteExpense = (id) => setExpenses(expenses.filter(e => e.id !== id));
+  const addExpense = (exp) => {
+    const newExpense = { ...exp, id: uuidv4(), date: new Date().toISOString() };
+    setExpenses([...expenses, newExpense]);
+    syncExpenseToSupabase(newExpense);
+  };
+  const deleteExpense = async (id) => {
+    setExpenses(expenses.filter(e => e.id !== id));
+    if (user) {
+        await supabase.from('expenses').delete().eq('id', id);
+    }
+  };
 
   // Automated Scheduler for Renewals and Invoices
   useEffect(() => {
@@ -603,7 +914,10 @@ export default function StoreContextProvider({ children }) {
   }, []); // Run once on startup
 
   // SMS Service Core
-  const updateSmsConfig = (newConfig) => setSmsConfig(newConfig);
+  const updateSmsConfig = (newConfig) => {
+    setSmsConfig(newConfig);
+    syncConfigToSupabase(newConfig);
+  };
 
   const getBasicAuthHeader = () => {
     return 'Basic ' + btoa(`${smsConfig.email}:${smsConfig.apiKey}`);
@@ -778,6 +1092,7 @@ export default function StoreContextProvider({ children }) {
       payments, recordCashDeposit,
       activityLogs, addLog,
       addCustomerNote,
+      deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
       theme, toggleTheme,
       notification, showNotification,
