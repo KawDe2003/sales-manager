@@ -195,10 +195,10 @@ export default function StoreContextProvider({ children }) {
           id: item.id,
           user_id: user.id,
           name: item.name,
-          type: item.type,
+          item_type: item.type,
           price: item.price,
           stock: item.stock,
-          desc: item.desc
+          description: item.desc
         });
       if (error) console.error('[Supabase Sync] Inventory Error:', error);
     } catch (err) {
@@ -257,8 +257,8 @@ export default function StoreContextProvider({ children }) {
           customer_id: payment.customerId,
           document_id: payment.documentId,
           amount: payment.amount,
-          type: payment.type,
-          timestamp: payment.timestamp
+          payment_type: payment.type,
+          payment_timestamp: payment.timestamp
         });
       if (error) console.error('[Supabase Sync] Payment Error:', error);
     } catch (err) {
@@ -274,10 +274,10 @@ export default function StoreContextProvider({ children }) {
         .upsert({
           id: log.id,
           user_id: user.id,
-          type: log.type,
+          log_type: log.type,
           message: log.message,
           details: log.details,
-          timestamp: log.timestamp
+          log_timestamp: log.timestamp
         });
       if (error) console.error('[Supabase Sync] Log Error:', error);
     } catch (err) {
@@ -333,7 +333,7 @@ export default function StoreContextProvider({ children }) {
         safeFetch('leads', supabase.from('leads').select('*').eq('user_id', user.id)),
         safeFetch('expenses', supabase.from('expenses').select('*').eq('user_id', user.id)),
         safeFetch('payments', supabase.from('payments').select('*').eq('user_id', user.id)),
-        safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(500)),
+        safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('log_timestamp', { ascending: false }).limit(500)),
         safeFetch('user_profiles', supabase.from('user_profiles').select('config').eq('user_id', user.id).single())
       ]);
 
@@ -350,7 +350,7 @@ export default function StoreContextProvider({ children }) {
       })));
 
       if (invData) setInventory(invData.map(i => ({
-        id: i.id, name: i.name, type: i.type, price: Number(i.price), stock: Number(i.stock), desc: i.desc
+        id: i.id, name: i.name, type: i.item_type, price: Number(i.price), stock: Number(i.stock), desc: i.description
       })));
 
       if (qData) setQuotes(qData.map(q => ({
@@ -376,11 +376,11 @@ export default function StoreContextProvider({ children }) {
 
       if (pData) setPayments(pData.map(p => ({
         id: p.id, customerId: p.customer_id, documentId: p.document_id, amount: Number(p.amount),
-        type: p.type, timestamp: p.timestamp
+        type: p.payment_type, timestamp: p.payment_timestamp
       })));
 
       if (logData) setActivityLogs(logData.map(l => ({
-        id: l.id, type: l.type, message: l.message, details: l.details, timestamp: l.timestamp
+        id: l.id, type: l.log_type, message: l.message, details: l.details, timestamp: l.log_timestamp
       })));
 
       console.log('[Supabase Sync] Load complete.');
