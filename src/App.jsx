@@ -52,7 +52,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-  const { notification, theme, toggleTheme, smsConfig = {}, showNotification } = useContext(StoreContext);
+  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading } = useContext(StoreContext);
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -136,6 +136,11 @@ const AppContent = () => {
         </Routes>
       </Suspense>
     );
+  }
+
+  // Fully Cloud: Show global loader if store is still fetching for authenticated user
+  if (user && isStoreLoading) {
+    return <LoadingFallback />;
   }
 
   return (

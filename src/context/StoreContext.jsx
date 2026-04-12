@@ -7,148 +7,58 @@ export const StoreContext = createContext();
 
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
-  // Initialize state with localStorage or default mock data
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('gym_customers');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 'target-fitness-01', name: 'Mr Sidath Rathnayake', gymName: 'Target Fitness', email: '', phone: '0777888637', dob: '1985-04-11', purchaseDate: '2026-02-24', renewalDate: '2027-02-24', annualFee: 70000, status: 'Active', notes: [] },
-      { id: uuidv4(), name: 'John Doe', gymName: 'FitLife Gym', email: 'john@fitlife.com', phone: '0712345678', dob: '1990-05-15', purchaseDate: '2023-05-15', renewalDate: '2024-05-15', annualFee: 1200, status: 'Active', notes: [] },
-    ];
-  });
+  const [isStoreLoading, setIsStoreLoading] = useState(true);
 
-  const [inventory, setInventory] = useState(() => {
-    const saved = localStorage.getItem('gym_inventory');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 'inv-item-01', name: 'ZKTeco SenseFace 3 (Fingerprint / Face ID)', type: 'Hardware', price: 130000, stock: 12, desc: 'Advanced Biometric Terminal with RFID support' },
-      { id: 'inv-item-02', name: 'Electromagnetic Lock (Glass Door)', type: 'Hardware', price: 16500, stock: 25, desc: 'Secure magnetic locking system with matching brackets' },
-      { id: 'inv-item-03', name: 'Power Supply Unit for Lock & Device', type: 'Hardware', price: 18000, stock: 15, desc: 'Stable 12V supply for uninterrupted security' },
-      { id: 'inv-item-04', name: 'Glass Break Switch', type: 'Hardware', price: 5500, stock: 40, desc: 'Emergency release for safety compliance' },
-      { id: 'inv-item-05', name: 'Battery Backup', type: 'Hardware', price: 7000, stock: 10, desc: '12V 7Ah backup for power failure' },
-      { id: 'inv-item-06', name: 'Cabling & Networking Material', type: 'Hardware', price: 5000, stock: 100, desc: 'Cat6 cabling and conduit accessories' },
-      { id: 'inv-item-07', name: 'Installation & Technical Configuration', type: 'Service', price: 14500, stock: null, desc: 'On-site terminal setup and cloud integration' },
-      { id: 'inv-item-08', name: 'Push Cloud Service (Annual Fee)', type: 'Software', price: 20000, stock: null, desc: 'Cloud sync for active member attendance (Up to 400)' },
-      { id: 'inv-item-09', name: 'Server Hosting & Maintenance (Annual)', type: 'Software', price: 50000, stock: null, desc: 'Proprietary central management server access' },
-      { id: 'inv-item-10', name: 'SMS API Integration (One Time)', type: 'Service', price: 3000, stock: null, desc: 'Configuration of transactional SMS gateway' },
-      { id: 'inv-item-11', name: 'GYM Management Software Suite', type: 'Software', price: 150000, stock: null, desc: 'Full business management, billing and attendance' }
-    ];
-  });
+  // Initialize state as empty (Cloud-First)
+  const [customers, setCustomers] = useState([]);
+  const [inventory, setInventory] = useState([
+    // Keep these as "Seed" data for empty states or remove if preferred
+    // I will leave them empty as per "Fully Cloud" requirement
+  ]);
+  const [invoices, setInvoices] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [payments, setPayments] = useState([]);
 
-  const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem('gym_invoices');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        id: 'invoice-demo-in0014',
-        invoiceNumber: 'IN0014',
-        date: '2026-02-24',
-        dueDate: '2026-03-03',
-        customerId: 'target-fitness-01',
-        status: 'Sent',
-        amount: 565000,
-        items: [
-          { id: 'inv-item-01', name: 'ZKTeco SenseFace 3', quantity: 2, price: 130000 },
-          { id: 'inv-item-02', name: 'Electromagnetic Lock', quantity: 2, price: 16500 },
-          { id: 'inv-item-03', name: 'Power Supply Unit', quantity: 2, price: 18000 },
-          { id: 'inv-item-04', name: 'Glass Break Switch', quantity: 1, price: 5500 },
-          { id: 'inv-item-05', name: 'Battery Backup', quantity: 1, price: 7000 },
-          { id: 'inv-item-06', name: 'Cabling', quantity: 1, price: 5000 },
-          { id: 'inv-item-07', name: 'Installation and Configuration', quantity: 1, price: 14500 },
-          { id: 'inv-item-08', name: 'Push Cloud Service (Annual)', quantity: 1, price: 20000 },
-          { id: 'inv-item-09', name: 'Server Annual Fee', quantity: 1, price: 50000 },
-          { id: 'inv-item-10', name: 'SMS API Fee', quantity: 1, price: 3000 },
-          { id: 'inv-item-11', name: 'GYM Management Software', quantity: 1, price: 150000 }
-        ]
-      }
-    ];
-  });
-
-  const [quotes, setQuotes] = useState(() => {
-    const saved = localStorage.getItem('gym_quotes');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        id: 'quote-demo-01',
-        quoteNumber: 'QT0014',
-        date: '2026-02-24',
-        prospectName: 'Target Fitness',
-        prospectPhone: '0777888637',
-        status: 'Accepted',
-        amount: 565000,
-        items: [
-          { id: 'inv-item-01', name: 'ZKTeco SenseFace 3', quantity: 2, price: 130000 },
-          { id: 'inv-item-11', name: 'GYM Management Software', quantity: 1, price: 150000 }
-        ]
-      }
-    ];
-  });
-
-  const [leads, setLeads] = useState(() => {
-    const saved = localStorage.getItem('gym_leads');
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [activityLogs, setActivityLogs] = useState(() => {
-    const saved = localStorage.getItem('gym_logs');
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [expenses, setExpenses] = useState(() => {
-    const saved = localStorage.getItem('gym_expenses');
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [payments, setPayments] = useState(() => {
-    const saved = localStorage.getItem('gym_payments');
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  // SMS Configuration
-  const [smsConfig, setSmsConfig] = useState(() => {
-    const saved = localStorage.getItem('gym_sms_config');
-    if (saved) return JSON.parse(saved);
-    return {
-      apiKey: '2179165276941c4e5eb994053957585',
-      email: 'seynextech@gmail.com',
-      senderID: 'QKSendDemo',
-      companyName: 'Seynex Technology',
-      dashboardName: 'GymSales',
-      receiptLogo: '',
-      companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
-      companyPhone: '072 840 8880',
-      companyEmail: 'seynextech@gmail.com',
-      bankDetails: {
-        accountName: 'B M A P K DE SILVA',
-        bank: 'Sampath Bank',
-        branch: 'Ratmalana Branch',
-        accountNumber: '1018 5281 9432'
-      },
-      quoteTemplate: 'Hi {name},\nHere is your quotation for {gym}.\nTotal Amount: LKR {amount}\nView your Quote here: {link}',
-      thankYouTemplate: 'Hi {name},\nThank you! We have received payment for Invoice {invoiceNumber}.\nYour account is up to date.',
-      renewalTemplate: 'Hi {name},\nNotice: Your annual software renewal of LKR {amount} for {gym} is due on {date}. Please contact us to renew.',
-      invoiceReminderTemplate: 'Hi {name},\nReminder: Payment of LKR {amount} for Invoice {invoiceNumber} is due on {date}. Please arrange payment.',
-      birthdayTemplate: 'Happy Birthday {name}! Wishing you and the team at {gym} a fantastic year ahead! - {companyName}',
-      cashReceivedTemplate: 'Hi {name},\nCash Received! We have successfully received a deposit of LKR {amount} for {documentType} #{number}. Thank you!',
-      autoRenewalEnabled: false,
-      autoRenewalDays: '15,7,1',
-      autoInvoiceEnabled: false,
-      autoInvoiceDays: 3,
-      birthdayWishEnabled: true,
-      smsHeader: '',
-      smsFooter: '',
-      smsEncoding: 'GSM',
-      deliveryReports: true,
-      pdfColor: '#3b82f6',
-      pdfFooterText: 'Thank you for your business. Please process payment promptly.',
-      pdfNotes: 'This document is generated by GymSales Pro Management System.',
-      sessionTimeout: 5, // Default timeout in minutes
-      balance: 0 // Mock balance initially
-    };
+  // SMS Configuration (Base Defaults)
+  const [smsConfig, setSmsConfig] = useState({
+    apiKey: '2179165276941c4e5eb994053957585',
+    email: 'seynextech@gmail.com',
+    senderID: 'QKSendDemo',
+    companyName: 'Seynex Technology',
+    dashboardName: 'GymSales',
+    receiptLogo: '',
+    companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
+    companyPhone: '072 840 8880',
+    companyEmail: 'seynextech@gmail.com',
+    bankDetails: {
+      accountName: 'B M A P K DE SILVA',
+      bank: 'Sampath Bank',
+      branch: 'Ratmalana Branch',
+      accountNumber: '1018 5281 9432'
+    },
+    quoteTemplate: 'Hi {name},\nHere is your quotation for {gym}.\nTotal Amount: LKR {amount}\nView your Quote here: {link}',
+    thankYouTemplate: 'Hi {name},\nThank you! We have received payment for Invoice {invoiceNumber}.\nYour account is up to date.',
+    renewalTemplate: 'Hi {name},\nNotice: Your annual software renewal of LKR {amount} for {gym} is due on {date}. Please contact us to renew.',
+    invoiceReminderTemplate: 'Hi {name},\nReminder: Payment of LKR {amount} for Invoice {invoiceNumber} is due on {date}. Please arrange payment.',
+    birthdayTemplate: 'Happy Birthday {name}! Wishing you and the team at {gym} a fantastic year ahead! - {companyName}',
+    cashReceivedTemplate: 'Hi {name},\nCash Received! We have successfully received a deposit of LKR {amount} for {documentType} #{number}. Thank you!',
+    autoRenewalEnabled: false,
+    autoRenewalDays: '15,7,1',
+    autoInvoiceEnabled: false,
+    autoInvoiceDays: 3,
+    birthdayWishEnabled: true,
+    smsHeader: '',
+    smsFooter: '',
+    smsEncoding: 'GSM',
+    deliveryReports: true,
+    pdfColor: '#3b82f6',
+    pdfFooterText: 'Thank you for your business. Please process payment promptly.',
+    pdfNotes: 'This document is generated by GymSales Pro Management System.',
+    sessionTimeout: 5,
+    balance: 0
   });
 
   const [theme, setTheme] = useState(() => {
@@ -164,126 +74,32 @@ export default function StoreContextProvider({ children }) {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Save to localStorage on change
-  useEffect(() => { localStorage.setItem('gym_customers', JSON.stringify(customers)); }, [customers]);
-  useEffect(() => { localStorage.setItem('gym_inventory', JSON.stringify(inventory)); }, [inventory]);
-  useEffect(() => { localStorage.setItem('gym_invoices', JSON.stringify(invoices)); }, [invoices]);
-  useEffect(() => { localStorage.setItem('gym_quotes', JSON.stringify(quotes)); }, [quotes]);
-  useEffect(() => { localStorage.setItem('gym_sms_config', JSON.stringify(smsConfig)); }, [smsConfig]);
-  useEffect(() => { localStorage.setItem('gym_leads', JSON.stringify(leads)); }, [leads]);
-  useEffect(() => { localStorage.setItem('gym_logs', JSON.stringify(activityLogs)); }, [activityLogs]);
-  useEffect(() => { localStorage.setItem('gym_expenses', JSON.stringify(expenses)); }, [expenses]);
-  useEffect(() => { localStorage.setItem('gym_payments', JSON.stringify(payments)); }, [payments]);
+  // Save theme to localStorage (UI Preference only)
   useEffect(() => { 
     localStorage.setItem('gym_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Migrate existing data to have valid UUIDs and share keys
-  useEffect(() => {
-    if (!user) return;
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let changedC = false;
-    let changedQ = false;
-    let changedI = false;
-
-    // 1. Migrate Customers first
-    const customerIdMap = {}; // Map old string IDs to new UUIDs
-    const updatedCustomers = customers.map(c => {
-      if (!uuidRegex.test(c.id)) {
-        const newId = uuidv4();
-        customerIdMap[c.id] = newId;
-        changedC = true;
-        return { ...c, id: newId };
+  const resetToSeynexDefaults = async () => {
+    if (window.confirm("This will permanently remove your cloud account data. Proceed?")) {
+      if (!user) return;
+      try {
+          await Promise.all([
+            supabase.from('customers').delete().eq('user_id', user.id),
+            supabase.from('inventory').delete().eq('user_id', user.id),
+            supabase.from('quotations').delete().eq('user_id', user.id),
+            supabase.from('invoices').delete().eq('user_id', user.id),
+            supabase.from('leads').delete().eq('user_id', user.id),
+            supabase.from('expenses').delete().eq('user_id', user.id),
+            supabase.from('payments').delete().eq('user_id', user.id),
+            supabase.from('activity_logs').delete().eq('user_id', user.id),
+            supabase.from('user_profiles').delete().eq('user_id', user.id)
+          ]);
+          localStorage.clear();
+          window.location.reload();
+      } catch (err) {
+          console.error('Reset error:', err);
       }
-      return c;
-    });
-
-    // 2. Migrate Quotes
-    const updatedQuotes = quotes.map(q => {
-      let updated = { ...q };
-      let needsSync = false;
-      
-      if (!uuidRegex.test(q.id)) {
-        updated.id = uuidv4();
-        changedQ = true;
-        needsSync = true;
-      }
-      if (!q.shareKey || q.shareKey.length > 20) {
-        updated.shareKey = generateShareKey();
-        changedQ = true;
-        needsSync = true;
-      }
-
-      if (needsSync) syncQuoteToSupabase(updated);
-      return updated;
-    });
-
-    // 3. Migrate Invoices
-    const updatedInvoices = invoices.map(inv => {
-      let updated = { ...inv };
-      let needsSync = false;
-
-      if (!uuidRegex.test(inv.id)) {
-        updated.id = uuidv4();
-        changedI = true;
-        needsSync = true;
-      }
-      
-      // Update linked customer ID if it was migrated
-      if (customerIdMap[inv.customerId]) {
-        updated.customerId = customerIdMap[inv.customerId];
-        changedI = true;
-        needsSync = true;
-      } else if (!uuidRegex.test(inv.customerId) && inv.customerId !== 'unknown') {
-        // Fallback for dangling IDs
-        updated.customerId = 'unknown';
-        changedI = true;
-        needsSync = true;
-      }
-
-      if (!inv.shareKey || inv.shareKey.length > 20) {
-        updated.shareKey = generateShareKey();
-        changedI = true;
-        needsSync = true;
-      }
-
-      if (needsSync) syncInvoiceToSupabase(updated);
-      return updated;
-    });
-
-    if (changedC) setCustomers(updatedCustomers);
-    if (changedQ) setQuotes(updatedQuotes);
-    if (changedI) setInvoices(updatedInvoices);
-
-    // 4. Initial Global Cloud Sync (Upload anything that's only local)
-    const pushLocalToCloud = async () => {
-      console.log('[Supabase Sync] Migrating local data to cloud...');
-      for (const c of updatedCustomers) syncCustomerToSupabase(c);
-      for (const i of updatedInvoices) syncInvoiceToSupabase(i);
-      for (const q of updatedQuotes) syncQuoteToSupabase(q);
-      for (const itm of inventory) syncInventoryToSupabase(itm);
-      for (const l of leads) syncLeadToSupabase(l);
-      for (const e of expenses) syncExpenseToSupabase(e);
-      for (const p of payments) syncPaymentToSupabase(p);
-      syncConfigToSupabase(smsConfig);
-      console.log('[Supabase Sync] Migration complete.');
-    };
-    
-    // Run migration if it looks like we have local data but haven't synced it yet
-    const migrationFlag = localStorage.getItem('gym_sync_migrated');
-    if (!migrationFlag && (updatedCustomers.length > 2 || updatedInvoices.length > 1)) {
-        pushLocalToCloud();
-        localStorage.setItem('gym_sync_migrated', 'true');
-    }
-
-  }, [user]);
-  
-  const resetToSeynexDefaults = () => {
-    if (window.confirm("This will permanently remove your current data and load the Seynex Technology business defaults. Proceed?")) {
-      localStorage.clear();
-      window.location.reload();
     }
   };
 
@@ -486,9 +302,14 @@ export default function StoreContextProvider({ children }) {
   };
 
   const fetchCloudData = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsStoreLoading(false);
+      return;
+    }
+    
     try {
       console.log('[Supabase Sync] Fetching all business data...');
+      setIsStoreLoading(true);
       
       const [
         { data: cData }, { data: invData }, { data: qData }, { data: iData },
@@ -553,6 +374,8 @@ export default function StoreContextProvider({ children }) {
       console.log('[Supabase Sync] Load complete.');
     } catch (err) {
       console.error('[Supabase Sync] Global Fetch Exception:', err);
+    } finally {
+      setIsStoreLoading(false);
     }
   };
 
@@ -1096,7 +919,8 @@ export default function StoreContextProvider({ children }) {
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
       theme, toggleTheme,
       notification, showNotification,
-      resetToSeynexDefaults
+      resetToSeynexDefaults,
+      isStoreLoading
     }}>
       {children}
     </StoreContext.Provider>
