@@ -310,64 +310,76 @@ export default function StoreContextProvider({ children }) {
     try {
       console.log('[Supabase Sync] Fetching all business data...');
       setIsStoreLoading(true);
+
+      const safeFetch = async (table, query) => {
+        try {
+          const { data, error } = await query;
+          if (error) {
+            console.error(`[Supabase Sync] Error fetching ${table}:`, error);
+            return null;
+          }
+          return data;
+        } catch (e) {
+          console.error(`[Supabase Sync] Exception fetching ${table}:`, e);
+          return null;
+        }
+      };
       
-      const [
-        { data: cData }, { data: invData }, { data: qData }, { data: iData },
-        { data: lData }, { data: eData }, { data: pData }, { data: logData },
-        { data: profData }
-      ] = await Promise.all([
-        supabase.from('customers').select('*').eq('user_id', user.id),
-        supabase.from('inventory').select('*').eq('user_id', user.id),
-        supabase.from('quotations').select('*').eq('user_id', user.id),
-        supabase.from('invoices').select('*').eq('user_id', user.id),
-        supabase.from('leads').select('*').eq('user_id', user.id),
-        supabase.from('expenses').select('*').eq('user_id', user.id),
-        supabase.from('payments').select('*').eq('user_id', user.id),
-        supabase.from('activity_logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(500),
-        supabase.from('user_profiles').select('config').eq('user_id', user.id).single()
+      const fetchResults = await Promise.all([
+        safeFetch('customers', supabase.from('customers').select('*').eq('user_id', user.id)),
+        safeFetch('inventory', supabase.from('inventory').select('*').eq('user_id', user.id)),
+        safeFetch('quotations', supabase.from('quotations').select('*').eq('user_id', user.id)),
+        safeFetch('invoices', supabase.from('invoices').select('*').eq('user_id', user.id)),
+        safeFetch('leads', supabase.from('leads').select('*').eq('user_id', user.id)),
+        safeFetch('expenses', supabase.from('expenses').select('*').eq('user_id', user.id)),
+        safeFetch('payments', supabase.from('payments').select('*').eq('user_id', user.id)),
+        safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(500)),
+        safeFetch('user_profiles', supabase.from('user_profiles').select('config').eq('user_id', user.id).single())
       ]);
+
+      const [cData, invData, qData, iData, lData, eData, pData, logData, profData] = fetchResults;
 
       if (profData?.config) {
         setSmsConfig(prev => ({ ...prev, ...profData.config }));
       }
 
-      if (cData?.length) setCustomers(cData.map(c => ({
+      if (cData) setCustomers(cData.map(c => ({
         id: c.id, gymName: c.gym_name, name: c.name, email: c.email, phone: c.phone,
         dob: c.dob, purchaseDate: c.purchase_date, renewalDate: c.renewal_date, 
         annualFee: Number(c.annual_fee), status: c.status, notes: c.notes || []
       })));
 
-      if (invData?.length) setInventory(invData.map(i => ({
+      if (invData) setInventory(invData.map(i => ({
         id: i.id, name: i.name, type: i.type, price: Number(i.price), stock: Number(i.stock), desc: i.desc
       })));
 
-      if (qData?.length) setQuotes(qData.map(q => ({
+      if (qData) setQuotes(qData.map(q => ({
         id: q.id, shareKey: q.share_key, quoteNumber: q.quote_number, date: q.date,
         prospectName: q.prospect_name, prospectPhone: q.prospect_phone, amount: Number(q.amount),
         status: q.status, items: q.items || []
       })));
 
-      if (iData?.length) setInvoices(iData.map(inv => ({
+      if (iData) setInvoices(iData.map(inv => ({
         id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
         dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
         status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent
       })));
 
-      if (lData?.length) setLeads(lData.map(l => ({
+      if (lData) setLeads(lData.map(l => ({
         id: l.id, gymName: l.gym_name, prospectName: l.prospect_name, phone: l.phone,
         status: l.status, date: l.date, notes: l.notes
       })));
 
-      if (eData?.length) setExpenses(eData.map(e => ({
+      if (eData) setExpenses(eData.map(e => ({
         id: e.id, category: e.category, amount: Number(e.amount), date: e.date, description: e.description
       })));
 
-      if (pData?.length) setPayments(pData.map(p => ({
+      if (pData) setPayments(pData.map(p => ({
         id: p.id, customerId: p.customer_id, documentId: p.document_id, amount: Number(p.amount),
         type: p.type, timestamp: p.timestamp
       })));
 
-      if (logData?.length) setActivityLogs(logData.map(l => ({
+      if (logData) setActivityLogs(logData.map(l => ({
         id: l.id, type: l.type, message: l.message, details: l.details, timestamp: l.timestamp
       })));
 
