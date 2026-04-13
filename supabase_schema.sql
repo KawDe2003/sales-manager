@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS leads (
     user_id UUID REFERENCES auth.users(id),
     gym_name TEXT NOT NULL,
     prospect_name TEXT,
+    address TEXT,
     phone TEXT,
     status TEXT DEFAULT 'New',
     date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
