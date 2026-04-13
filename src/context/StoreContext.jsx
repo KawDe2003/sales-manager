@@ -372,11 +372,37 @@ export default function StoreContextProvider({ children }) {
         status: q.status, items: q.items || []
       })));
 
-      if (iData) setInvoices(iData.map(inv => ({
-        id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
-        dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
-        status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent
-      })));
+      if (iData) {
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+
+        const loadedInvoices = iData.map(inv => {
+          let parsed = {
+            id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
+            dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
+            status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent
+          };
+
+          // TIER 1 FEATURE: Overdue Invoice Auto-Flag
+          if (parsed.status !== 'Paid' && parsed.status !== 'Overdue' && parsed.dueDate) {
+            const due = new Date(parsed.dueDate);
+            due.setHours(0, 0, 0, 0);
+            if (due < todayDate) {
+              parsed.status = 'Overdue';
+              // Sync updated status to Supabase asynchronously
+              supabase.from('invoices').update({ status: 'Overdue' }).eq('id', parsed.id).then(({ error }) => {
+                if (error) console.error('[Auto-Flag] Invoice Sync Error:', error);
+                else {
+                  console.log(`[Auto-Flag] Marked ${parsed.invoiceNumber} as Overdue.`);
+                }
+              });
+            }
+          }
+          return parsed;
+        });
+
+        setInvoices(loadedInvoices);
+      }
 
       if (lData) setLeads(lData.map(l => ({
         id: l.id, gymName: l.gym_name, prospectName: l.prospect_name, phone: l.phone,
@@ -622,8 +648,15 @@ export default function StoreContextProvider({ children }) {
     if (paymentType === 'Invoice') {
       const invoice = invoices.find(inv => inv.id === documentId);
       if (invoice) {
-        if (amount >= invoice.amount) {
+        const historicalPayments = payments
+          .filter(p => p.documentId === documentId)
+          .reduce((sum, p) => sum + p.amount, 0);
+        const totalPaid = historicalPayments + amount;
+
+        if (totalPaid >= invoice.amount) {
            updateInvoiceStatus(documentId, 'Paid');
+        } else if (totalPaid > 0 && totalPaid < invoice.amount) {
+           updateInvoiceStatus(documentId, 'Partially Paid');
         }
       }
     }

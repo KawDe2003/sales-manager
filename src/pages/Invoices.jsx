@@ -3,17 +3,57 @@ import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
+import { exportToCSV } from '../utils/export';
 
 const Invoices = () => {
-  const { invoices = [], customers = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification } = useContext(StoreContext) || {};
+  const { invoices = [], customers = [], payments = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification } = useContext(StoreContext) || {};
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState('All');
 
   const getCustomerName = (customerId) => {
     const customer = customers.find(c => c.id === customerId);
     return customer ? customer.gymName : 'Unknown Gym';
+  };
+
+  const handleExport = () => {
+    // We export the *filtered* invoices
+    const filteredInvoices = getFilteredInvoices();
+    const exportData = filteredInvoices.map(inv => ({
+      InvoiceNumber: inv.invoiceNumber,
+      Client: getCustomerName(inv.customerId),
+      Date: inv.date,
+      DueDate: inv.dueDate,
+      Amount: inv.amount,
+      Status: inv.status
+    }));
+    exportToCSV('Invoices_Export', exportData);
+  };
+
+  const getFilteredInvoices = () => {
+    return invoices.filter(inv => {
+      const gymName = getCustomerName(inv.customerId).toLowerCase();
+      const searchMatch = gymName.includes(searchTerm.toLowerCase()) ||
+                          (inv.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
+      
+      let dateMatch = true;
+      if (dateFilter === 'Last30') {
+        const d = new Date(inv.date);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        dateMatch = d >= thirtyDaysAgo;
+      } else if (dateFilter === 'ThisYear') {
+        const d = new Date(inv.date);
+        dateMatch = d.getFullYear() === new Date().getFullYear();
+      }
+
+      return searchMatch && statusMatch && dateMatch;
+    });
   };
 
   return (
@@ -23,14 +63,20 @@ const Invoices = () => {
           <h1 className="h1 mb-2">Invoice Ledger</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Full record of software licenses, service fees, and gym billing status.</p>
         </div>
-        <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
-          <Plus size={18} /> Create Invoice
-        </button>
+        <div className="btn-group flex gap-3">
+          <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
+            <Download size={18} className="text-success" />
+            <span className="sm-hidden">Export CSV</span>
+          </button>
+          <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
+            <Plus size={18} /> Create Invoice
+          </button>
+        </div>
       </div>
 
-      {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+      {/* Styled Search & Filter Toolbar */}
+      <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -41,15 +87,36 @@ const Invoices = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <div className="flex gap-4 w-full md:w-auto">
+          <select 
+            className="form-input"
+            style={{ height: '42px', width: '130px', background: 'var(--subtle-bg)' }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Status</option>
+            <option value="Draft">Draft</option>
+            <option value="Sent">Sent</option>
+            <option value="Partially Paid">Partially Paid</option>
+            <option value="Paid">Paid</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <select 
+            className="form-input"
+            style={{ height: '42px', width: '140px', background: 'var(--subtle-bg)' }}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="All">All Time</option>
+            <option value="Last30">Last 30 Days</option>
+            <option value="ThisYear">This Year</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
         {(() => {
-          const filteredInvoices = invoices.filter(inv => {
-            const gymName = getCustomerName(inv.customerId).toLowerCase();
-            return gymName.includes(searchTerm.toLowerCase()) ||
-                   (inv.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
-          });
+          const filteredInvoices = getFilteredInvoices();
 
           if (filteredInvoices.length === 0) {
             return (
@@ -68,6 +135,7 @@ const Invoices = () => {
               key={invoice.id} 
               invoice={invoice} 
               customers={customers}
+              payments={payments}
               updateInvoiceStatus={updateInvoiceStatus} 
               onEdit={() => { setEditingInvoice(invoice); setShowModal(true); }}
               onRecordPayment={() => navigate('/payments')}
@@ -104,14 +172,19 @@ const Invoices = () => {
   );
 };
 
-const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecordPayment, onSendSms, onDownload }) => {
+const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onSendSms, onDownload }) => {
   const customer = customers.find(c => c.id === invoice.customerId) || {};
-  const isPaid = invoice.status === 'Paid';
+  
+  const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + p.amount, 0);
+  const amountDue = invoice.amount - historicalPayments;
+
+  const isPaid = invoice.status === 'Paid' || amountDue <= 0;
   const isOverdue = invoice.status === 'Overdue' || (new Date(invoice.dueDate) < new Date() && !isPaid);
 
   let borderLeftColor = 'var(--panel-border)';
   if (isPaid) borderLeftColor = 'var(--success)';
   else if (isOverdue) borderLeftColor = 'var(--danger)';
+  else if (invoice.status === 'Partially Paid') borderLeftColor = '#0284c7'; // info
   else if (invoice.status === 'Sent') borderLeftColor = 'var(--warning)';
 
   return (
@@ -149,13 +222,14 @@ const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecord
 
         <div style={{ flexShrink: 0 }}>
           <select 
-            className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
-            style={{ width: '100px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
+            className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Partially Paid' ? 'info' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
+            style={{ width: '110px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
             value={invoice.status}
             onChange={(e) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, e.target.value)}
           >
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
+            <option value="Partially Paid">Partially Paid</option>
             <option value="Paid">Paid</option>
             <option value="Overdue">Overdue</option>
           </select>
@@ -168,8 +242,13 @@ const InvoiceCard = ({ invoice, customers, updateInvoiceStatus, onEdit, onRecord
           <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Outstanding Balance</div>
           <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>
             <span style={{ color: 'var(--accent-primary)', fontSize: '0.8rem', marginRight: '4px' }}>LKR</span>
-            {invoice.amount?.toLocaleString() || 0}
+            {Math.max(0, amountDue).toLocaleString() || 0}
           </div>
+          {historicalPayments > 0 && amountDue > 0 && (
+             <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 600, marginTop: '2px' }}>
+                Paid so far: LKR {historicalPayments.toLocaleString()}
+             </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-end w-full">

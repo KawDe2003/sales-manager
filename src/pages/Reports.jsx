@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download, Printer } from 'lucide-react';
+import { exportToCSV } from '../utils/export';
 
 const Reports = () => {
   const { 
@@ -78,6 +79,38 @@ const Reports = () => {
     if (diffMonths <= 12 && diffMonths >= 0) forecast['12 Months'] += Number(c.annualFee || 0);
   });
 
+  const handleExportCSV = () => {
+    // Generate Accounting Export Data
+    const exportData = [];
+    
+    // Add all paid invoices as Revenue
+    invoices.filter(i => i.status === 'Paid').forEach(inv => {
+       const clientName = customers.find(c => c.id === inv.customerId)?.gymName || 'Unknown';
+       exportData.push({
+         Date: inv.date,
+         Type: 'Revenue',
+         Category: 'Invoice Payment',
+         Description: `Invoice #${inv.invoiceNumber} - ${clientName}`,
+         Amount: inv.amount
+       });
+    });
+
+    // Add all expenses
+    expenses.forEach(exp => {
+       exportData.push({
+         Date: exp.date || new Date().toISOString().split('T')[0],
+         Type: 'Expense',
+         Category: exp.category,
+         Description: exp.description,
+         Amount: -Math.abs(exp.amount) // Negative for expenses
+       });
+    });
+
+    // Sort by Date
+    exportData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+    exportToCSV('Accounting_Summary', exportData);
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
@@ -85,9 +118,14 @@ const Reports = () => {
           <h1 className="h1 mb-1">Reports & Analytics</h1>
           <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Real-time overview of your gym software sales performance.</p>
         </div>
-        <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
-          <Download size={16} /> Export Report
-        </button>
+        <div className="btn-group flex gap-3">
+          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={handleExportCSV}>
+            <Download size={16} className="text-success" /> Export Accounting CSV
+          </button>
+          <button className="btn btn-primary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
+            <Printer size={16} /> Print Report
+          </button>
+        </div>
       </div>
 
       {/* Metric Cards */}

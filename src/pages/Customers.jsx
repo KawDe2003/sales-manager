@@ -1,19 +1,53 @@
 import React, { useContext, useState } from 'react';
-import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake } from 'lucide-react';
+import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake, Download } from 'lucide-react';
+import { StoreContext } from '../context/StoreContext';
+import { exportToCSV } from '../utils/export';
 import { StoreContext } from '../context/StoreContext';
 
 const Customers = () => {
   const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification } = useContext(StoreContext) || {};
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [monthFilter, setMonthFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [activeNotesCustomer, setActiveNotesCustomer] = useState(null);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
-  const filteredCustomers = customers.filter(c =>
-    (c.gymName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCustomers = customers.filter(c => {
+    // Search match
+    const searchMatch = (c.gymName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status match
+    const statusMatch = statusFilter === 'All' || c.status === statusFilter;
+    
+    // Month match
+    let monthMatch = true;
+    if (monthFilter !== 'All' && c.renewalDate) {
+      const d = new Date(c.renewalDate);
+      // monthFilter will be 0-11 index as string
+      monthMatch = d.getMonth().toString() === monthFilter;
+    } else if (monthFilter !== 'All') {
+      monthMatch = false;
+    }
+
+    return searchMatch && statusMatch && monthMatch;
+  });
+
+  const handleExport = () => {
+    const exportData = filteredCustomers.map(c => ({
+      ID: c.id,
+      GymName: c.gymName,
+      OwnerName: c.name,
+      Phone: c.phone,
+      Email: c.email,
+      Status: c.status,
+      AnnualFee: c.annualFee,
+      RenewalDate: c.renewalDate
+    }));
+    exportToCSV('Customers_Export', exportData);
+  };
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -30,15 +64,19 @@ const Customers = () => {
             <MessageSquareText size={18} className="text-warning" /> 
             <span className="sm-hidden">Broadcast SMS</span>
           </button>
+          <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
+            <Download size={18} className="text-success" />
+            <span className="sm-hidden">Export CSV</span>
+          </button>
           <button className="btn btn-primary" onClick={() => { setEditingCustomer(null); setShowModal(true); }}>
             <Plus size={18} /> Add New Client
           </button>
         </div>
       </div>
 
-      {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+      {/* Styled Search & Filter Toolbar */}
+      <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -48,6 +86,31 @@ const Customers = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex gap-4 w-full md:w-auto">
+          <select 
+            className="form-input"
+            style={{ height: '42px', width: '130px', background: 'var(--subtle-bg)' }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <select 
+            className="form-input"
+            style={{ height: '42px', width: '140px', background: 'var(--subtle-bg)' }}
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+          >
+            <option value="All">Any Month</option>
+            {Array.from({length: 12}).map((_, i) => (
+              <option key={i} value={i.toString()}>
+                {new Date(0, i).toLocaleString('default', { month: 'long' })}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
