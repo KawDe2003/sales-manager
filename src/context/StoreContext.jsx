@@ -162,7 +162,10 @@ export default function StoreContextProvider({ children }) {
   };
 
   const syncCustomerToSupabase = async (customer) => {
-    if (!user) return;
+    if (!user) {
+      console.error('[Supabase Sync] No user session - cannot save customer');
+      return;
+    }
     try {
       const { error } = await supabase
         .from('customers')
@@ -180,9 +183,15 @@ export default function StoreContextProvider({ children }) {
           status: customer.status,
           notes: customer.notes || []
         });
-      if (error) console.error('[Supabase Sync] Customer Error:', error);
+      if (error) {
+        console.error('[Supabase Sync] Customer Error:', error);
+        showNotification(`Cloud save failed: ${error.message}`, 'error');
+      } else {
+        console.log('[Supabase Sync] Customer saved OK:', customer.gymName);
+      }
     } catch (err) {
       console.error('[Supabase Sync] Customer Exception:', err);
+      showNotification(`Cloud save error: ${err.message}`, 'error');
     }
   };
 
@@ -338,6 +347,10 @@ export default function StoreContextProvider({ children }) {
       ]);
 
       const [cData, invData, qData, iData, lData, eData, pData, logData, profData] = fetchResults;
+
+      console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'ERROR', '| Invoices:', iData?.length ?? 'ERROR');
+
+      if (cData === null) showNotification('Could not load clients from cloud. Check console for details.', 'error');
 
       if (profData?.config) {
         setSmsConfig(prev => ({ ...prev, ...profData.config }));
