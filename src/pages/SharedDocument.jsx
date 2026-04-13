@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, Mail, Phone, MapPin, Building2 } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, Mail, Phone, MapPin, Building2, ShieldCheck } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();

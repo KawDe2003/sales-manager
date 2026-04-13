@@ -209,9 +209,13 @@ export default function StoreContextProvider({ children }) {
           stock: item.stock,
           description: item.desc
         });
-      if (error) console.error('[Supabase Sync] Inventory Error:', error);
+      if (error) {
+        console.error('[Supabase Sync] Inventory Error:', error);
+        showNotification(`Inventory sync failed: ${error.message}`, 'error');
+      }
     } catch (err) {
       console.error('[Supabase Sync] Inventory Exception:', err);
+      showNotification(`Inventory exception: ${err.message}`, 'error');
     }
   };
 
@@ -223,6 +227,7 @@ export default function StoreContextProvider({ children }) {
         .upsert({
           id: lead.id,
           user_id: user.id,
+          address: lead.address,
           gym_name: lead.gymName,
           prospect_name: lead.prospectName,
           phone: lead.phone,
@@ -230,9 +235,13 @@ export default function StoreContextProvider({ children }) {
           date: lead.date,
           notes: lead.notes
         });
-      if (error) console.error('[Supabase Sync] Lead Error:', error);
+      if (error) {
+        console.error('[Supabase Sync] Lead Error:', error);
+        showNotification(`Lead sync failed: ${error.message}`, 'error');
+      }
     } catch (err) {
       console.error('[Supabase Sync] Lead Exception:', err);
+      showNotification(`Lead exception: ${err.message}`, 'error');
     }
   };
 
@@ -249,9 +258,13 @@ export default function StoreContextProvider({ children }) {
           date: expense.date,
           description: expense.description
         });
-      if (error) console.error('[Supabase Sync] Expense Error:', error);
+      if (error) {
+        console.error('[Supabase Sync] Expense Error:', error);
+        showNotification(`Expense sync failed: ${error.message}`, 'error');
+      }
     } catch (err) {
       console.error('[Supabase Sync] Expense Exception:', err);
+      showNotification(`Expense exception: ${err.message}`, 'error');
     }
   };
 
@@ -353,7 +366,12 @@ export default function StoreContextProvider({ children }) {
       if (cData === null) showNotification('Could not load clients from cloud. Check console for details.', 'error');
 
       if (profData?.config) {
-        setSmsConfig(prev => ({ ...prev, ...profData.config }));
+        setSmsConfig(prev => {
+          const merged = { ...prev, ...profData.config };
+          // IMPORTANT: Mirror cloud config to local storage for the PDF generator
+          localStorage.setItem('gym_sms_config', JSON.stringify(merged));
+          return merged;
+        });
       }
 
       if (cData) setCustomers(cData.map(c => ({
