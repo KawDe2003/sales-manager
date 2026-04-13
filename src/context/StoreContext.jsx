@@ -448,6 +448,38 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
+  // REALTIME SUBSCRIPTION FOR QUOTES
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'quotations', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.log('[Realtime] Quotation Changed:', payload);
+          if (payload.eventType === 'UPDATE') {
+            const oldItem = quotes.find(q => q.id === payload.new.id);
+            if (oldItem && oldItem.status !== payload.new.status) {
+              if (payload.new.status === 'Accepted') {
+                showNotification(`🎉 Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
+              } else if (payload.new.status === 'Rejected') {
+                showNotification(`Quotation #${payload.new.quote_number} was Declined.`, 'info');
+              }
+              // Refresh local state to reflect change
+              fetchCloudData();
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, quotes]);
+
   // Fetch from cloud on login
   useEffect(() => {
     if (user) fetchCloudData();
@@ -606,16 +638,29 @@ export default function StoreContextProvider({ children }) {
     }));
   };
 
-  const updateQuoteStatus = (id, status) => {
-    setQuotes(quotes.map(q => {
-      if (q.id === id) {
-        const updated = { ...q, status };
-        addLog('Status', `Quotation ${q.quoteNumber} marked as ${status}`);
-        syncQuoteToSupabase(updated);
-        return updated;
+  const updateQuoteStatus = async (id, status) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, status } : q));
+    
+    // Cloud Sync
+    const { error } = await supabase.from('quotations').update({ status }).eq('id', id);
+    if (error) {
+      console.error('[Supabase Sync] Quote Status Error:', error);
+      showNotification('Could not update status in cloud.', 'error');
+      return;
+    }
+
+    // MANAGER NOTIFICATION ON ACCEPTANCE
+    if (status === 'Accepted') {
+      const quote = quotes.find(q => q.id === id);
+      if (quote) {
+        addLog('System', `Quote #${quote.quoteNumber} accepted by customer.`);
+        if (smsConfig.companyPhone) {
+          triggerSMS('Internal-Alert', { 
+            message: `URGENT: Customer ${quote.prospectName} has ACCEPTED Quotation #${quote.quoteNumber}. Total: LKR ${quote.amount.toLocaleString()}` 
+          }, quote);
+        }
       }
-      return q;
-    }));
+    }
   };
 
   const convertQuoteToInvoice = (quoteId) => {

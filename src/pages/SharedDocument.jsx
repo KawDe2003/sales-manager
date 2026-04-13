@@ -12,6 +12,7 @@ const SharedDocument = () => {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [showGratitude, setShowGratitude] = useState(false);
 
   useEffect(() => {
     const loadDocument = async () => {
@@ -289,7 +290,7 @@ const SharedDocument = () => {
                 <div style={{ display: 'flex', padding: '10px 12px', borderBottom: '1px solid var(--subtle-border)', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                    <div style={{ flex: 1, minWidth: '80px' }}>Description</div>
                    <div style={{ width: '50px', textAlign: 'center' }}>Qty</div>
-                   <div style={{ width: '90px', textAlign: 'right' }}>Unit Price</div>
+                   <div style={{ width: '90px', textAlign: 'right' }}>Offer Price</div>
                    <div style={{ width: '110px', textAlign: 'right' }}>Total</div>
                 </div>
 
@@ -402,12 +403,20 @@ const SharedDocument = () => {
                <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
                <div className="action-button-group">
                   <button 
-                    onClick={() => { updateQuoteStatus(id, 'Accepted'); showNotification('Quotation successfully accepted.'); }}
+                    onClick={async () => { 
+                      setDocData(prev => ({ ...prev, status: 'Accepted' }));
+                      await updateQuoteStatus(id, 'Accepted'); 
+                      setShowGratitude(true);
+                    }}
                     className="btn btn-primary action-btn-large" style={{ background: 'var(--accent-primary)' }}>
                     <CheckCircle size={20} /> Approve & Accept Proposal
                   </button>
                   <button 
-                    onClick={() => { updateQuoteStatus(id, 'Rejected'); showNotification('Proposal declined.'); }}
+                    onClick={async () => { 
+                      setDocData(prev => ({ ...prev, status: 'Rejected' }));
+                      await updateQuoteStatus(id, 'Rejected'); 
+                      showNotification('Proposal declined.'); 
+                    }}
                     className="btn btn-secondary action-btn-large" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
                     <XCircle size={20} /> Decline
                   </button>
@@ -444,6 +453,38 @@ const SharedDocument = () => {
           </div>
         </div>
       </div>
+
+      {showGratitude && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px'
+        }}>
+          <div className="glass-panel" style={{ 
+            maxWidth: '450px', width: '100%', textAlign: 'center', padding: '48px 32px',
+            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
+            animation: 'fadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1)'
+          }}>
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '50%', background: 'var(--success-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto'
+            }}>
+              <CheckCircle size={48} color="var(--success)" />
+            </div>
+            <h2 className="h1" style={{ fontSize: '2rem', marginBottom: '16px', color: 'var(--text-primary)' }}>Thank You!</h2>
+            <p className="text-secondary" style={{ fontSize: '1.1rem', lineHeight: 1.6, marginBottom: '32px' }}>
+              Your approval for <strong>{customerName}</strong> has been received successfully. We are excited to begin our partnership!
+            </p>
+            <button 
+              className="btn btn-primary" 
+              style={{ padding: '0 32px', height: '52px', width: '100%' }}
+              onClick={() => setShowGratitude(false)}
+            >
+              Continue to Document
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media print {

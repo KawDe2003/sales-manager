@@ -181,7 +181,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end w-full">
+        <div className="action-bar md:justify-end w-full">
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
@@ -207,7 +207,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           {isAccepted && (
              <button 
                className="btn btn-primary" 
-               style={{ height: '40px', padding: '0 12px', background: 'var(--success)', border: 'none' }} 
+               style={{ height: '40px', padding: '0 12px', background: 'var(--success)', border: 'none', flex: '1 0 auto' }} 
                onClick={() => convertQuoteToInvoice && convertQuoteToInvoice(quote.id)}
              >
                <Receipt size={16} /> <span style={{ fontSize: '0.8rem' }}>Issue Invoice</span>
@@ -251,6 +251,12 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
 
   const handleRemoveItem = (idx) => {
     const newItems = formData.items.filter((_, i) => i !== idx);
+    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems) });
+  };
+
+  const handleUpdateItemPrice = (idx, newPrice) => {
+    const newItems = [...formData.items];
+    newItems[idx].price = Number(newPrice);
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems) });
   };
 
@@ -337,7 +343,15 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
                       <tr key={idx} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0' }}>{it.name}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
-                        <td style={{ color: 'var(--text-muted)' }}>{it.price.toLocaleString()}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          <input 
+                            type="number" 
+                            className="form-input" 
+                            style={{ height: '32px', width: '100px', fontSize: '0.8rem', padding: '4px 8px' }} 
+                            value={it.price} 
+                            onChange={(e) => handleUpdateItemPrice(idx, e.target.value)} 
+                          />
+                        </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{(it.price * it.quantity).toLocaleString()}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button type="button" className="btn btn-danger" style={{ padding: '6px', borderRadius: '8px', background: 'var(--danger-20)', border: 'none' }} onClick={() => handleRemoveItem(idx)}>
