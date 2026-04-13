@@ -43,15 +43,22 @@ export const generateDocumentPDF = (type, documentData, items) => {
       ? itemsList.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
       : Number(documentData?.amount || 0);
 
-    // Add receipt logo if available
-    if (isReceipt && savedConfig.receiptLogo) {
-      // Assuming the logo is a base64 PNG data URL
-      doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 14, 30, 30);
+    // Add company logo if available (priority logic)
+    if (savedConfig.receiptLogo) {
+      try {
+        // We use receiptLogo as the general company logo for all documents
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
+      } catch (e) {
+        console.warn('Logo rendering failed:', e);
+        doc.setFontSize(22);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(companyName, 14, 22);
+      }
+    } else {
+      doc.setFontSize(22);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(companyName, 14, 22);
     }
-    
-    doc.setFontSize(22);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(companyName, 14, 22);
 
 
     doc.setFontSize(10);
@@ -204,9 +211,19 @@ export const generateStockReportPDF = (inventoryItems) => {
     const dateStr = new Date().toLocaleDateString();
 
     // Header
-    doc.setFontSize(22);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(companyName, 14, 22);
+    if (savedConfig.receiptLogo) {
+      try {
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
+      } catch (e) {
+        doc.setFontSize(22);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(companyName, 14, 22);
+      }
+    } else {
+      doc.setFontSize(22);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(companyName, 14, 22);
+    }
 
     doc.setFontSize(18);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -227,7 +244,7 @@ export const generateStockReportPDF = (inventoryItems) => {
     const totalValuation = inventoryItems.reduce((sum, item) => sum + (Number(item.price || 0) * (Number(item.stock || 0))), 0);
 
     autoTable(doc, {
-      startY: 40,
+      startY: 48,
       head: [['Item Description', 'Category', 'Unit Price', 'In Stock', 'Total Value']],
       body: tableBody,
       theme: 'grid',
@@ -261,6 +278,87 @@ export const generateStockReportPDF = (inventoryItems) => {
   } catch (err) {
     console.error('Stock Report error:', err);
     alert('Failed to generate report. Check console.');
+  }
+};
+
+// Accounting Summary Report Generator
+export const generateAccountingReportPDF = (data) => {
+  try {
+    const doc = new jsPDF();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'GymSales Pro';
+    
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [59, 130, 246];
+    };
+
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
+    const textColor = [40, 40, 40];
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const dateStr = new Date().toLocaleDateString();
+
+    // Header
+    if (savedConfig.receiptLogo) {
+      try {
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
+      } catch (e) {
+        doc.setFontSize(22);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(companyName, 14, 22);
+      }
+    } else {
+      doc.setFontSize(22);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(companyName, 14, 22);
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text('ACCOUNTING SUMMARY REPORT', 196, 22, { align: 'right' });
+
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${dateStr}`, 196, 30, { align: 'right' });
+
+    // Table Data
+    const tableBody = data.map(row => [
+      row.Date,
+      row.Type,
+      row.Category,
+      row.Description,
+      `LKR ${Number(row.Amount).toLocaleString()}`
+    ]);
+
+    const totalRevenue = data.filter(r => r.Type === 'Revenue').reduce((s, r) => s + Number(r.Amount), 0);
+    const totalExpenses = data.filter(r => r.Type === 'Expense').reduce((s, r) => s + Math.abs(Number(r.Amount)), 0);
+    const netProfit = totalRevenue - totalExpenses;
+
+    autoTable(doc, {
+      startY: 48,
+      head: [['Date', 'Type', 'Category', 'Description', 'Amount']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: 255 },
+      columnStyles: { 4: { halign: 'right' } },
+      styles: { fontSize: 8 }
+    });
+
+    const finalY = (doc.lastAutoTable?.finalY || 120) + 10;
+    
+    // Financial Summary
+    doc.setFontSize(10);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text(`Total Revenue: LKR ${totalRevenue.toLocaleString()}`, 196, finalY + 5, { align: 'right' });
+    doc.text(`Total Expenses: LKR ${totalExpenses.toLocaleString()}`, 196, finalY + 11, { align: 'right' });
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(netProfit >= 0 ? 34 : 244, netProfit >= 0 ? 197 : 63, netProfit >= 0 ? 94 : 94);
+    doc.text(`Net Profit: LKR ${netProfit.toLocaleString()}`, 196, finalY + 20, { align: 'right' });
+
+    doc.save(`Accounting_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Accounting Report error:', err);
   }
 };
 

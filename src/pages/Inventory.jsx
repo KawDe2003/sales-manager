@@ -3,9 +3,10 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   Package, Plus, Trash2, Edit2, X, Monitor, Server, 
   Wrench, ChevronRight, Search, Download, TrendingUp, 
-  AlertTriangle, Check
+  AlertTriangle, Check, FileSpreadsheet
 } from 'lucide-react';
 import { generateStockReportPDF } from '../utils/pdfGenerator';
+import { exportToExcel } from '../utils/export';
 
 const Inventory = () => {
   const { inventory = [], addInventoryItem, deleteInventoryItem, updateInventoryItem } = useContext(StoreContext) || {};
@@ -13,6 +14,17 @@ const Inventory = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'stock'
+
+  const handleExportStockExcel = () => {
+    const data = inventory.map(item => ({
+      'Item Description': item.name,
+      'Category': item.type,
+      'Unit Price (LKR)': item.price,
+      'In Stock': item.stock,
+      'Total Value (LKR)': (item.price || 0) * (item.stock || 0)
+    }));
+    exportToExcel('Stock_Valuation_Report', data);
+  };
 
   const getTypeIcon = (type) => {
     switch (type) {
@@ -51,13 +63,22 @@ const Inventory = () => {
         </div>
         <div className="flex gap-3">
           {activeTab === 'stock' && (
-            <button 
-              className="btn btn-secondary" 
-              style={{ padding: '12px 24px', height: '44px' }}
-              onClick={() => generateStockReportPDF(inventory)}
-            >
-              <Download size={18} /> Export Stock Report
-            </button>
+            <>
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '12px 20px', height: '44px', color: 'var(--success)' }}
+                onClick={handleExportStockExcel}
+              >
+                <FileSpreadsheet size={18} /> Excel
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '12px 20px', height: '44px' }}
+                onClick={() => generateStockReportPDF(inventory)}
+              >
+                <Download size={18} /> PDF Report
+              </button>
+            </>
           )}
           <button 
             className="btn btn-primary" 

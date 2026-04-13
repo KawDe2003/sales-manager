@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx';
+
 export const exportToCSV = (filename, rows) => {
   if (!rows || !rows.length) return;
   
@@ -30,4 +32,18 @@ export const exportToCSV = (filename, rows) => {
     link.click();
     document.body.removeChild(link);
   }
+};
+
+export const exportToExcel = (filename, rows) => {
+  if (!rows || !rows.length) return;
+
+  // Create worksheet from JSON
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  
+  // Create workbook and add the worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  
+  // Write to file
+  XLSX.writeFile(workbook, `${filename}.xlsx`);
 };

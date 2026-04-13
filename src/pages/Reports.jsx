@@ -1,7 +1,8 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download, Printer } from 'lucide-react';
-import { exportToCSV } from '../utils/export';
+import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download, Printer, FileSpreadsheet } from 'lucide-react';
+import { exportToCSV, exportToExcel } from '../utils/export';
+import { generateAccountingReportPDF } from '../utils/pdfGenerator';
 
 const Reports = () => {
   const { 
@@ -79,11 +80,8 @@ const Reports = () => {
     if (diffMonths <= 12 && diffMonths >= 0) forecast['12 Months'] += Number(c.annualFee || 0);
   });
 
-  const handleExportCSV = () => {
-    // Generate Accounting Export Data
+  const getAccountingData = () => {
     const exportData = [];
-    
-    // Add all paid invoices as Revenue
     invoices.filter(i => i.status === 'Paid').forEach(inv => {
        const clientName = customers.find(c => c.id === inv.customerId)?.gymName || 'Unknown';
        exportData.push({
@@ -94,21 +92,28 @@ const Reports = () => {
          Amount: inv.amount
        });
     });
-
-    // Add all expenses
     expenses.forEach(exp => {
        exportData.push({
          Date: exp.date || new Date().toISOString().split('T')[0],
          Type: 'Expense',
          Category: exp.category,
          Description: exp.description,
-         Amount: -Math.abs(exp.amount) // Negative for expenses
+         Amount: -Math.abs(exp.amount) 
        });
     });
+    return exportData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+  };
 
-    // Sort by Date
-    exportData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-    exportToCSV('Accounting_Summary', exportData);
+  const handleExportCSV = () => {
+    exportToCSV('Accounting_Summary', getAccountingData());
+  };
+
+  const handleExportExcel = () => {
+    exportToExcel('Accounting_Summary', getAccountingData());
+  };
+
+  const handleExportPDF = () => {
+    generateAccountingReportPDF(getAccountingData());
   };
 
   return (
@@ -119,11 +124,14 @@ const Reports = () => {
           <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Real-time overview of your gym software sales performance.</p>
         </div>
         <div className="btn-group flex gap-3">
-          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={handleExportCSV}>
-            <Download size={16} className="text-success" /> Export Accounting CSV
+          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px', color: 'var(--success)' }} onClick={handleExportExcel}>
+            <FileSpreadsheet size={16} /> Excel Download
+          </button>
+          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={handleExportPDF}>
+            <Download size={16} className="text-accent-primary" /> PDF Report
           </button>
           <button className="btn btn-primary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
-            <Printer size={16} /> Print Report
+            <Printer size={16} /> Print View
           </button>
         </div>
       </div>
