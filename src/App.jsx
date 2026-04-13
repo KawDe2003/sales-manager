@@ -111,6 +111,11 @@ const AppContent = () => {
     }
   }, [smsConfig.appFavicon]);
 
+  // Sync browser tab title with Dashboard Name
+  useEffect(() => {
+    document.title = `${smsConfig.dashboardName || 'GymSales Pro'} | Sales Management`;
+  }, [smsConfig.dashboardName]);
+
   // If on public share view, render without layout
   if (isPublicShareView) {
     return (

@@ -28,7 +28,7 @@ export default function StoreContextProvider({ children }) {
     email: 'seynextech@gmail.com',
     senderID: 'QKSendDemo',
     companyName: 'Seynex Technology',
-    dashboardName: 'GymSales',
+    dashboardName: 'GymSales Pro',
     receiptLogo: '',
     companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
     companyPhone: '072 840 8880',
