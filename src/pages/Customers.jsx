@@ -2,7 +2,6 @@ import React, { useContext, useState } from 'react';
 import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake, Download } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
-import { StoreContext } from '../context/StoreContext';
 
 const Customers = () => {
   const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification } = useContext(StoreContext) || {};
