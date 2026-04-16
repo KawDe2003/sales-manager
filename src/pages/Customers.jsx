@@ -49,27 +49,30 @@ const Customers = () => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="responsive-header mb-8">
-        <div>
-          <h1 className="h1 mb-2">Active Gyms</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage and automate billing for your active gym software clients.</p>
-        </div>
-        <div className="btn-group flex gap-3">
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowBroadcastModal(true)}
-          >
-            <MessageSquareText size={18} className="text-warning" /> 
-            <span className="sm-hidden">Broadcast SMS</span>
-          </button>
-          <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
-            <Download size={18} className="text-success" />
-            <span className="sm-hidden">Export CSV</span>
-          </button>
-          <button className="btn btn-primary" onClick={() => { setEditingCustomer(null); setShowModal(true); }}>
-            <Plus size={18} /> Add New Client
-          </button>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
+      <div className="page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="h1 mb-2">Active Gyms</h1>
+            <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage and automate billing for your active gym software clients.</p>
+          </div>
+          <div className="btn-group flex gap-3">
+            <button
+              className="btn btn-secondary"
+              onClick={handleExport}
+              title="Export CSV"
+            >
+              <Download size={18} className="text-success" />
+              <span className="sm-hidden">Export CSV</span>
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ padding: '12px 24px' }} 
+              onClick={() => { setEditingCustomer(null); setShowModal(true); }}
+            >
+              <Plus size={18} /> New Account
+            </button>
+          </div>
         </div>
       </div>
 

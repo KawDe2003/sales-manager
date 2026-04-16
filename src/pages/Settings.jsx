@@ -179,6 +179,52 @@ const Settings = () => {
             </div>
           </div>
 
+          {/* Document Numbering & Sequence */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <Settings2 size={22} color="var(--accent-primary)" />
+              </div>
+              <h2 className="h2" style={{ margin: 0 }}>Document Sequencing</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Invoice Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. INV-" />
+                </label>
+                <input type="text" className="form-input" 
+                  value={smsConfig.invoicePrefix || ''}
+                  placeholder="INV-"
+                  onChange={e => updateSmsConfig({...smsConfig, invoicePrefix: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Starting Invoice #</label>
+                <input type="number" className="form-input" 
+                  value={smsConfig.nextInvoiceNumber || 1001}
+                  onChange={e => updateSmsConfig({...smsConfig, nextInvoiceNumber: Number(e.target.value)})} />
+              </div>
+              
+              <div style={{ height: '1px', background: 'var(--panel-border)', gridColumn: 'span 2' }}></div>
+              
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Quotation Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. QT-" />
+                </label>
+                <input type="text" className="form-input" 
+                  value={smsConfig.quotePrefix || ''}
+                  placeholder="QT-"
+                  onChange={e => updateSmsConfig({...smsConfig, quotePrefix: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Starting Quotation #</label>
+                <input type="number" className="form-input" 
+                  value={smsConfig.nextQuoteNumber || 1001}
+                  onChange={e => updateSmsConfig({...smsConfig, nextQuoteNumber: Number(e.target.value)})} />
+              </div>
+            </div>
+          </div>
+
           {/* SMS Gateway */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
@@ -453,6 +499,20 @@ const Settings = () => {
                   style={{ minHeight: '80px' }}
                   value={smsConfig.birthdayTemplate || ''} 
                   onChange={e => updateSmsConfig({...smsConfig, birthdayTemplate: e.target.value})} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Debtor Collection Nudge</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{smsConfig.debtorNudgeTemplate?.length || 0}/160</span>
+                </label>
+                <textarea 
+                  className="form-input" 
+                  style={{ minHeight: '80px', borderColor: 'var(--danger)20' }}
+                  placeholder="e.g. Hi {name}, you have an outstanding balance of LKR {remainingBalance} for {invoiceNumber}..."
+                  value={smsConfig.debtorNudgeTemplate || ''} 
+                  onChange={e => updateSmsConfig({...smsConfig, debtorNudgeTemplate: e.target.value})} 
                 />
               </div>
             </div>

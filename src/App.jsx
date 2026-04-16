@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } fr
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
-  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign, LogIn
+  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign, LogIn,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -18,6 +19,7 @@ const SharedDocument = lazy(() => import('./pages/SharedDocument'));
 const Leads = lazy(() => import('./pages/Leads'));
 const Logs = lazy(() => import('./pages/Logs'));
 const Payments = lazy(() => import('./pages/Payments'));
+const Debtors = lazy(() => import('./pages/Debtors'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
@@ -54,14 +56,21 @@ const ProtectedRoute = ({ children }) => {
 const AppContent = () => {
   const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading } = useContext(StoreContext);
   const { user, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const toggleSidebarCollapse = () => setIsSidebarCollapsed(prev => !prev);
+  const closeSidebar = () => setSidebarOpen(false);
+
   const isPublicShareView = location.pathname.startsWith('/share');
+  const isLoginPage = location.pathname === '/login';
 
   // Inactivity Timer
   useEffect(() => {
-    if (!user) return; // Only track for logged in users
+    if (!user) return;
 
     let timeoutId;
     const timeoutMinutes = smsConfig.sessionTimeout || 5;
@@ -75,29 +84,15 @@ const AppContent = () => {
       }, timeoutMs);
     };
 
-    // Events to listen for
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    
-    // Add event listeners
-    events.forEach(event => {
-      document.addEventListener(event, resetTimer);
-    });
-
-    // Initial start
+    events.forEach(event => document.addEventListener(event, resetTimer));
     resetTimer();
 
-    // Cleanup
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      events.forEach(event => {
-        document.removeEventListener(event, resetTimer);
-      });
+      events.forEach(event => document.removeEventListener(event, resetTimer));
     };
   }, [user, smsConfig.sessionTimeout, signOut, showNotification]);
-  const isLoginPage = location.pathname === '/login';
-
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-  const closeSidebar = () => setSidebarOpen(false);
 
   useEffect(() => {
     if (smsConfig.appFavicon) {
@@ -154,7 +149,6 @@ const AppContent = () => {
       flexDirection: 'column',
       minHeight: '100vh', 
       position: 'relative',
-      overflowX: 'hidden',
       width: '100%'
     }}>
       {/* Global Notification Toast */}
@@ -177,12 +171,29 @@ const AppContent = () => {
       {/* Header */}
       <header className="layout-header flex items-center justify-between">
         <div className="flex items-center gap-6">
+          {/* Mobile Toggle */}
           <button 
-            className="btn btn-secondary md-hidden" 
+            className="btn btn-secondary hidden-desktop" 
             onClick={toggleSidebar}
-            style={{ padding: '8px', border: 'none', background: 'rgba(255,255,255,0.05)' }}
+            style={{ padding: '8px', border: '1px solid var(--panel-border)', background: 'var(--subtle-bg)', borderRadius: '10px' }}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          {/* Desktop Collapse Toggle */}
+          <button 
+            className="btn btn-secondary hidden-mobile" 
+            onClick={toggleSidebarCollapse}
+            style={{ 
+              padding: '8px', 
+              border: '1px solid var(--panel-border)', 
+              background: 'rgba(99, 102, 241, 0.08)', 
+              borderRadius: '10px',
+              color: 'var(--accent-primary)',
+              boxShadow: '0 0 15px rgba(99, 102, 241, 0.1)'
+            }}
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
           
           <Link to="/" className="flex items-center gap-4" onClick={closeSidebar}>
@@ -196,7 +207,7 @@ const AppContent = () => {
                 {(smsConfig.dashboardName || 'GymSales').charAt(0).toUpperCase()}
               </span>
             </div>
-            <div className="sm-hidden">
+            <div className="hidden-mobile">
               <h1 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
                 {smsConfig.dashboardName || 'GymSales'}<span style={{ color: 'var(--accent-primary)' }}>.</span>
               </h1>
@@ -221,7 +232,7 @@ const AppContent = () => {
             onClick={closeSidebar}
           >
             <SettingsIcon size={18} className="text-secondary" />
-            <span className="sm-hidden" style={{ fontWeight: '600' }}>Settings</span>
+            <span className="hidden-mobile" style={{ fontWeight: '600' }}>Settings</span>
           </Link>
 
           {user && (
@@ -234,7 +245,7 @@ const AppContent = () => {
               }}
             >
               <LogIn size={18} style={{ transform: 'rotate(180deg)' }} />
-              <span className="sm-hidden">Logout</span>
+              <span className="hidden-mobile">Logout</span>
             </button>
           )}
         </div>
@@ -245,37 +256,42 @@ const AppContent = () => {
         <div className="sidebar-overlay" onClick={closeSidebar}></div>
 
         {/* Sidebar */}
-        <aside className="app-sidebar" style={{ 
+        <aside className={`app-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{ 
           background: 'var(--bg-secondary)',
           opacity: 0.98,
           display: 'flex',
           flexDirection: 'column',
-          padding: '32px 0'
+          padding: isSidebarCollapsed ? '32px 8px' : '32px 0'
         }}>
-          <div style={{ padding: '0 24px', marginBottom: '24px' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Navigation</span>
+          <div style={{ padding: isSidebarCollapsed ? '0' : '0 24px', marginBottom: '24px', textAlign: isSidebarCollapsed ? 'center' : 'left' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+              {isSidebarCollapsed ? '•' : 'Navigation'}
+            </span>
           </div>
-          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', flex: 1, gap: '4px' }}>
-            <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} />
-            <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} />
-            <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} />
-            <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} />
-            <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} />
-            <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} />
-            <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payment Portal" onClick={closeSidebar} />
-            <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Insights" onClick={closeSidebar} />
-            <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} />
+          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', flex: 1, gap: '4px' }}>
+            <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payment Portal" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtor Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Insights" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
           
           <div style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
-              v3.2.0 Enterprise
-            </div>
+             {!isSidebarCollapsed && (
+               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
+                 v3.2.0 Enterprise
+               </div>
+             )}
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="main-content" style={{ flex: 1, minWidth: 0 }}>
+        <main className={`main-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
@@ -286,6 +302,7 @@ const AppContent = () => {
                 <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
                 <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+                <Route path="/debtors" element={<ProtectedRoute><Debtors /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -299,7 +316,7 @@ const AppContent = () => {
 };
 
 // NavItem Component
-const NavItem = ({ to, icon, label, onClick }) => {
+const NavItem = ({ to, icon, label, onClick, collapsed }) => {
   return (
     <NavLink
       to={to}
@@ -307,23 +324,26 @@ const NavItem = ({ to, icon, label, onClick }) => {
       style={({ isActive }) => ({
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        padding: '12px 16px',
-        borderRadius: '12px',
-        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-        background: isActive ? 'var(--bg-primary)' : 'transparent',
-        fontWeight: isActive ? '700' : '500',
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        fontSize: '0.9rem',
-        borderLeft: isActive ? '3px solid var(--accent-primary)' : '3px solid transparent',
-        paddingLeft: isActive ? '13px' : '16px'
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: collapsed ? '0' : '12px',
+        padding: collapsed ? '14px 0' : '14px 18px',
+        borderRadius: '14px',
+        color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
+        background: isActive ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+        fontWeight: isActive ? '700' : '600',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        fontSize: '0.88rem',
+        borderLeft: (isActive && !collapsed) ? '4px solid var(--accent-primary)' : '4px solid transparent',
+        boxShadow: isActive ? '0 4px 12px rgba(99, 102, 241, 0.05)' : 'none',
+        position: 'relative'
       })}
-      className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
+      className={({ isActive }) => `${isActive ? "nav-item active" : "nav-item"} ${collapsed ? "collapsed" : ""}`}
+      title={collapsed ? label : ""}
     >
       {({ isActive }) => (
         <>
           <span style={{ color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex' }}>{icon}</span>
-          <span>{label}</span>
+          {!collapsed && <span>{label}</span>}
         </>
       )}
     </NavLink>

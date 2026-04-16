@@ -29,15 +29,17 @@ const Quotations = () => {
   }, [searchParams, leads, setSearchParams]);
 
   return (
-    <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="responsive-header mb-8">
-        <div>
-          <h1 className="h1 mb-2">Proposals & Quotes</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Generate and track professional software offers for new prospects.</p>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
+      <div className="page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="h1 mb-2">Proposals & Quotes</h1>
+            <p className="text-secondary" style={{ fontSize: '1rem' }}>Generate and track professional software offers for new prospects.</p>
+          </div>
+          <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setEditingQuote(null); setShowModal(true); }}>
+            <Plus size={18} /> New Quotation
+          </button>
         </div>
-        <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setEditingQuote(null); setShowModal(true); }}>
-          <Plus size={18} /> New Quotation
-        </button>
       </div>
 
       {/* Styled Search Toolbar */}
@@ -231,8 +233,9 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
 };
 
 const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] }) => {
+  const { smsConfig = {} } = useContext(StoreContext) || {};
   const [formData, setFormData] = useState(initialData || {
-    quoteNumber: initialData?.quoteNumber || `QT-${Math.floor(Math.random() * 10000)}`, 
+    quoteNumber: initialData?.quoteNumber || `${smsConfig.quotePrefix || 'QT-'}${smsConfig.nextQuoteNumber || 1001}`, 
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     prospectName: initialData?.prospectName || '', 
     prospectPhone: initialData?.prospectPhone || '',

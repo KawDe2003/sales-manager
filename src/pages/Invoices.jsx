@@ -57,20 +57,22 @@ const Invoices = () => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-        <div>
-          <h1 className="h1 mb-2">Invoice Ledger</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Full record of software licenses, service fees, and gym billing status.</p>
-        </div>
-        <div className="btn-group flex gap-3">
-          <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
-            <Download size={18} className="text-success" />
-            <span className="sm-hidden">Export CSV</span>
-          </button>
-          <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
-            <Plus size={18} /> Create Invoice
-          </button>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
+      <div className="page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="h1 mb-2">Invoice Ledger</h1>
+            <p className="text-secondary" style={{ fontSize: '1rem' }}>Full record of software licenses, service fees, and gym billing status.</p>
+          </div>
+          <div className="btn-group flex gap-3">
+            <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
+              <Download size={18} className="text-success" />
+              <span className="sm-hidden">Export CSV</span>
+            </button>
+            <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
+              <Plus size={18} /> Create Invoice
+            </button>
+          </div>
         </div>
       </div>
 
@@ -305,8 +307,9 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
 };
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
+  const { smsConfig = {} } = useContext(StoreContext) || {};
   const [formData, setFormData] = useState(initialData || {
-    invoiceNumber: initialData?.invoiceNumber || `INV-${Math.floor(Math.random() * 10000)}`, 
+    invoiceNumber: initialData?.invoiceNumber || `${smsConfig.invoicePrefix || 'INV-'}${smsConfig.nextInvoiceNumber || 1001}`, 
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     dueDate: initialData?.dueDate || '',
     customerId: initialData?.customerId || (customers[0]?.id || ''),

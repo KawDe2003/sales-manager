@@ -33,15 +33,17 @@ const Leads = () => {
   });
 
   return (
-    <div className="page-container" style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-        <div>
-          <h1 className="h1 mb-2">Leads Pipeline</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Track and convert your fitness prospects</p>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
+      <div className="page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="h1 mb-2">Leads Pipeline</h1>
+            <p className="text-secondary" style={{ fontSize: '1rem' }}>Track and convert your fitness prospects</p>
+          </div>
+          <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingLead(null); setShowModal(true); }}>
+            <Plus size={20} /> Add New Lead
+          </button>
         </div>
-        <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingLead(null); setShowModal(true); }}>
-          <Plus size={20} /> Add New Lead
-        </button>
       </div>
 
       <div className="flex gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hide">

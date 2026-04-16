@@ -75,35 +75,37 @@ const Dashboard = () => {
   ];
 
   return (
-    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px', animation: 'fadeIn 0.6s ease-out' }}>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
       
       {/* HEADER WITH QUICK BUTTONS */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-        <div>
-          <h1 className="h1" style={{ 
-            background: 'var(--accent-primary)',
-            backgroundImage: 'linear-gradient(to right, #0ea5e9, #6366f1, #8b5cf6)', 
-            WebkitBackgroundClip: 'text', 
-            WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(0 0 10px rgba(99, 102, 241, 0.1))' 
-          }}>
-            Nexus Command
-          </h1>
-          <p className="text-secondary" style={{ marginTop: '5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ 
-              width: '8px', height: '8px', borderRadius: '50%', background: '#22d3ee', 
-              boxShadow: '0 0 10px #22d3ee'
-            }}></span>
-            SYSTEMS ONLINE & SYNCHRONIZED
-          </p>
-        </div>
-        <div className="btn-group">
-          <Link to="/invoices" className="btn btn-secondary">
-             <CreditCard size={16} /> Issue Invoice
-          </Link>
-          <Link to="/customers" className="btn btn-primary">
-             <Users size={16} /> New Deployment
-          </Link>
+      <div className="page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="h1" style={{ 
+              background: 'var(--accent-primary)',
+              backgroundImage: 'linear-gradient(to right, #0ea5e9, #6366f1, #8b5cf6)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 10px rgba(99, 102, 241, 0.1))' 
+            }}>
+              Nexus Command
+            </h1>
+            <p className="text-secondary" style={{ marginTop: '5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ 
+                width: '8px', height: '8px', borderRadius: '50%', background: '#22d3ee', 
+                boxShadow: '0 0 10px #22d3ee'
+              }}></span>
+              SYSTEMS ONLINE & SYNCHRONIZED
+            </p>
+          </div>
+          <div className="btn-group">
+            <Link to="/invoices" className="btn btn-secondary">
+               <CreditCard size={16} /> Issue Invoice
+            </Link>
+            <Link to="/customers" className="btn btn-primary">
+               <Users size={16} /> New Deployment
+            </Link>
+          </div>
         </div>
       </div>
 
