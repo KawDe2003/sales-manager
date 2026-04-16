@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt } from 'lucide-react';
+import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 
 const Quotations = () => {
@@ -112,6 +112,8 @@ const Quotations = () => {
 };
 
 const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, onSendSms, onDownload }) => {
+  const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
+  const previewLink = `${shareLink}?preview=true`;
   const isAccepted = quote.status === 'Accepted';
   const isRejected = quote.status === 'Rejected';
   
@@ -157,7 +159,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           <select 
             className={`badge badge-${isAccepted ? 'success' : isRejected ? 'danger' : 'warning'}`}
             style={{ 
-              width: '100px', cursor: 'pointer', outline: 'none', padding: '6px 8px', 
+              minWidth: '110px', cursor: 'pointer', outline: 'none', padding: '6px 8px', 
               fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', 
               appearance: 'none', border: '1px solid currentColor' 
             }}
@@ -182,12 +184,21 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
         </div>
 
         <div className="action-bar md:justify-end w-full">
+          <a 
+            href={previewLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            title="View Shared Quotation"
+          >
+            <Eye size={16} className="text-accent" />
+          </a>
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
             onClick={() => {
-              const link = `${window.location.origin}/share/quote/${quote.id}`;
-              navigator.clipboard.writeText(link);
+              navigator.clipboard.writeText(shareLink);
               showNotification && showNotification('Link copied!', 'success');
             }}
             title="Share Link"

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
@@ -7,6 +7,8 @@ import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, Mail
 
 const SharedDocument = () => {
   const { type, id } = useParams();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true';
   const { quotes = [], invoices = [], customers = [], updateQuoteStatus, showNotification, smsConfig = {}, theme } = useContext(StoreContext) || {};
   const [docData, setDocData] = useState(null);
   const [customerName, setCustomerName] = useState('');
@@ -390,7 +392,7 @@ const SharedDocument = () => {
           </div>
 
           {/* Bottom Call to Action for Quotes */}
-          {isQuote && docData.status === 'Pending' && (
+          {isQuote && docData.status === 'Pending' && !isPreview && (
             <div className="cta-container no-print" style={{ 
               marginTop: '60px', 
               padding: 'clamp(24px, 5vw, 48px)', 
@@ -425,7 +427,7 @@ const SharedDocument = () => {
           )}
 
           {/* Bottom Call to Action for Invoices */}
-          {!isQuote && !isApproved && (
+          {!isQuote && !isApproved && !isPreview && (
             <div style={{ marginTop: '60px', padding: '48px', background: 'var(--subtle-bg)', borderRadius: '32px', border: '1px solid var(--subtle-border)', textAlign: 'center' }} className="no-print">
                <h3 style={{ margin: '0 0 12px 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Outstanding Balance</h3>
                <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Please complete your payment to ensure your service remains uninterrupted.</p>

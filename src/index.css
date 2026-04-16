@@ -45,19 +45,19 @@
 }
 
 [data-theme='light'] {
-  --bg-primary: #f9fafb; /* Premium Off-White */
+  --bg-primary: #f1f5f9; /* Slightly deeper slate for contrast */
   --bg-secondary: #ffffff;
-  --panel-bg: rgba(255, 255, 255, 0.85);
-  --panel-border: rgba(15, 23, 42, 0.06);
+  --panel-bg: rgba(255, 255, 255, 1); /* Solid white for distinct widgets */
+  --panel-border: rgba(15, 23, 42, 0.12); /* Stronger borders */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
-  --card-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.08);
+  --card-shadow: 0 4px 15px -3px rgba(15, 23, 42, 0.1); /* Sharper shadows */
   --input-bg: #ffffff;
-  --input-border: rgba(15, 23, 42, 0.1);
-  --subtle-bg: rgba(15, 23, 42, 0.02);
-  --subtle-border: rgba(15, 23, 42, 0.04);
-  --header-bg: rgba(249, 250, 251, 0.85);
+  --input-border: rgba(15, 23, 42, 0.15);
+  --subtle-bg: rgba(15, 23, 42, 0.04);
+  --subtle-border: rgba(15, 23, 42, 0.08);
+  --header-bg: rgba(255, 255, 255, 0.95);
 }
 
 * {
@@ -172,11 +172,6 @@ a {
   .btn-group .btn {
     width: 100%;
   }
-  .action-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-    width: 100%;
-  }
 }
 
 .btn-primary {
@@ -192,14 +187,14 @@ a {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--input-bg);
   color: var(--text-primary);
-  border-color: var(--panel-border);
+  border-color: var(--input-border);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--subtle-bg);
+  border-color: var(--accent-primary);
 }
 
 /* Forms */
@@ -353,9 +348,14 @@ tr:hover td {
     height: 100vh;
     z-index: 1000;
     transform: translateX(-100%);
-    box-shadow: 20px 0 60px rgba(0,0,0,0.8);
+    /* Shadow only applies when open or use a hidden shadow */
+    box-shadow: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-  .sidebar-open .app-sidebar { transform: translateX(0); }
+  .sidebar-open .app-sidebar { 
+    transform: translateX(0); 
+    box-shadow: 20px 0 60px rgba(0,0,0,0.3);
+  }
   .sidebar-overlay { 
     position: fixed;
     inset: 0;

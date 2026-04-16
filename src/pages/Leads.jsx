@@ -65,8 +65,8 @@ const Leads = () => {
       </div>
 
       {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '480px', flex: '1 1 auto' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -167,7 +167,7 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
       </div>
 
       {/* Action Footer */}
-      <div className="flex justify-end items-center gap-3" style={{ marginTop: 'auto', paddingTop: '4px' }}>
+      <div className="action-bar md:justify-end" style={{ marginTop: 'auto', paddingTop: '4px' }}>
         <div className="flex gap-2">
           <button className="btn btn-secondary" style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)' }} onClick={onEdit} title="Edit Lead">
             <Edit2 size={14} />
@@ -178,7 +178,7 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
         </div>
         <button 
           className="btn btn-primary" 
-          style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+          style={{ padding: '6px 14px', fontSize: '0.8rem', flex: '1 0 auto' }}
           onClick={onQuote}
         >
           <FileText size={14} /> Quote

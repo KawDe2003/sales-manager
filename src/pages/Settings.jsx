@@ -22,9 +22,14 @@ const Settings = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="mb-10">
-        <h1 className="h1 mb-2">System Configuration</h1>
-        <p className="text-secondary" style={{ fontSize: '1rem' }}>Global settings for branding, API connectivity, and automated communication workflows.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div>
+          <h1 className="h1 mb-2">System Configuration</h1>
+          <p className="text-secondary" style={{ fontSize: '1rem' }}>Global settings for branding, API connectivity, and automated communication workflows.</p>
+        </div>
+        <button className="btn btn-primary" style={{ height: '48px', padding: '0 32px', boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.4)' }} onClick={handleSave}>
+          <Save size={20} /> Save All Changes
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -74,6 +79,18 @@ const Settings = () => {
                   <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
                   <input type="text" className="form-input" style={{ paddingLeft: '40px' }} value={smsConfig.companyPhone || ''}
                     onChange={e => updateSmsConfig({...smsConfig, companyPhone: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Owner / Admin Phone <Info size={12} className="text-secondary" title="Receives internal alerts for quote acceptances" />
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <ShieldCheck size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: 'var(--accent-primary)' }} />
+                  <input type="text" className="form-input" style={{ paddingLeft: '40px', borderColor: 'rgba(59, 130, 246, 0.2)' }} 
+                    placeholder="For Internal Alerts"
+                    value={smsConfig.adminPhone || ''}
+                    onChange={e => updateSmsConfig({...smsConfig, adminPhone: e.target.value})} />
                 </div>
               </div>
               <div className="form-group">
@@ -160,9 +177,6 @@ const Settings = () => {
                 </div>
               )}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '12px' }} onClick={handleSave}>
-              <Save size={18} /> Push Branding Changes
-            </button>
           </div>
 
           {/* SMS Gateway */}
@@ -450,10 +464,6 @@ const Settings = () => {
               </div>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Changes are automatically staged and persisted.</p>
             </div>
-
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: '32px', height: '50px' }} onClick={handleSave}>
-              <Save size={20} /> Update Configuration
-            </button>
           </div>
 
           {/* Advanced SMS Protocols */}

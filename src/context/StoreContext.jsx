@@ -32,6 +32,7 @@ export default function StoreContextProvider({ children }) {
     receiptLogo: '',
     companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
     companyPhone: '072 840 8880',
+    adminPhone: '072 840 8880',
     companyEmail: 'seynextech@gmail.com',
     bankDetails: {
       accountName: 'B M A P K DE SILVA',
@@ -654,10 +655,12 @@ export default function StoreContextProvider({ children }) {
       const quote = quotes.find(q => q.id === id);
       if (quote) {
         addLog('System', `Quote #${quote.quoteNumber} accepted by customer.`);
-        if (smsConfig.companyPhone) {
-          triggerSMS('Internal-Alert', { 
-            message: `URGENT: Customer ${quote.prospectName} has ACCEPTED Quotation #${quote.quoteNumber}. Total: LKR ${quote.amount.toLocaleString()}` 
-          }, quote);
+        
+        // Final Alert Logic: Target Admin/Owner Phone specifically
+        const alertPhone = smsConfig.adminPhone || smsConfig.companyPhone;
+        if (alertPhone) {
+          const alertMsg = `🚀 BUSINESS WIN: Quotation #${quote.quoteNumber} has been ACCEPTED by ${quote.prospectName}. Value: LKR ${quote.amount.toLocaleString()}. Please process next steps.`;
+          sendDirectSMS(alertPhone, alertMsg);
         }
       }
     }

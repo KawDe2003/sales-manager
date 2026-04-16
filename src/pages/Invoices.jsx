@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 
@@ -90,7 +90,7 @@ const Invoices = () => {
         <div className="flex gap-4 w-full md:w-auto">
           <select 
             className="form-input"
-            style={{ height: '42px', width: '130px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', width: '100%', mdWidth: '130px', background: 'var(--subtle-bg)' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -103,7 +103,7 @@ const Invoices = () => {
           </select>
           <select 
             className="form-input"
-            style={{ height: '42px', width: '140px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', width: '100%', mdWidth: '140px', background: 'var(--subtle-bg)' }}
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
           >
@@ -147,6 +147,10 @@ const Invoices = () => {
                  }
                  if(triggerSMS) triggerSMS('InvoiceReminder', customer, invoice);
               }}
+              onSendEmail={() => {
+                 // Placeholder for email trigger
+                 showNotification('Email functionality pending SMTP setup.', 'info');
+              }}
               onDownload={() => {
                 const docData = { ...invoice, gymName: getCustomerName(invoice.customerId) };
                 generateDocumentPDF('Invoice', docData, invoice.items || []);
@@ -173,6 +177,8 @@ const Invoices = () => {
 };
 
 const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onSendSms, onDownload }) => {
+  const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
+  const previewLink = `${shareLink}?preview=true`;
   const customer = customers.find(c => c.id === invoice.customerId) || {};
   
   const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + p.amount, 0);
@@ -223,7 +229,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
         <div style={{ flexShrink: 0 }}>
           <select 
             className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Partially Paid' ? 'info' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
-            style={{ width: '110px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
+            style={{ minWidth: '125px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
             value={invoice.status}
             onChange={(e) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, e.target.value)}
           >
@@ -251,13 +257,22 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end w-full">
+        <div className="action-bar md:justify-end w-full">
+          <a 
+            href={previewLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            title="View Shared Document"
+          >
+            <Eye size={16} className="text-accent" />
+          </a>
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
             onClick={() => {
-              const link = `${window.location.origin}/share/invoice/${invoice.id}`;
-              navigator.clipboard.writeText(link);
+              navigator.clipboard.writeText(shareLink);
               showNotification && showNotification('Link copied!', 'success');
             }}
             title="Share Link"
@@ -277,7 +292,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           {!isPaid && (
              <button 
                className="btn btn-primary" 
-               style={{ height: '40px', padding: '0 12px', background: 'var(--accent-primary)', border: 'none' }} 
+               style={{ height: '40px', padding: '0 12px', background: 'var(--accent-primary)', border: 'none', flex: '1 0 auto' }} 
                onClick={onRecordPayment}
              >
                <BadgeDollarSign size={16} /> <span style={{ fontSize: '0.8rem' }}>Record Payment</span>

@@ -89,7 +89,7 @@ const Customers = () => {
         <div className="flex gap-4 w-full md:w-auto">
           <select 
             className="form-input"
-            style={{ height: '42px', width: '130px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', width: '100%', mdWidth: '130px', background: 'var(--subtle-bg)' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -99,7 +99,7 @@ const Customers = () => {
           </select>
           <select 
             className="form-input"
-            style={{ height: '42px', width: '140px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', width: '100%', mdWidth: '140px', background: 'var(--subtle-bg)' }}
             value={monthFilter}
             onChange={(e) => setMonthFilter(e.target.value)}
           >
@@ -268,7 +268,7 @@ const CustomerCard = ({ gym, onEdit, onDelete, onSendReminder, onViewNotes }) =>
         </div>
 
         {/* Improved Action Buttons Group */}
-        <div className="flex items-center gap-2 justify-end w-full">
+        <div className="action-bar md:justify-end w-full">
           <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0, position: 'relative' }} 
@@ -285,7 +285,7 @@ const CustomerCard = ({ gym, onEdit, onDelete, onSendReminder, onViewNotes }) =>
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendReminder} title="Direct SMS">
             <MessageSquareText size={16} className="text-secondary" />
           </button>
-          <div style={{ width: '1px', height: '24px', background: 'var(--panel-border)', margin: '0 4px' }}></div>
+          <div className="sm-hidden" style={{ width: '1px', height: '24px', background: 'var(--panel-border)', margin: '0 4px' }}></div>
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Card">
             <Edit2 size={16} />
           </button>
