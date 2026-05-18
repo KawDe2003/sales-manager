@@ -167,6 +167,31 @@ export const generateDocumentPDF = (type, documentData, items) => {
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.text(`LKR ${totalAmount.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
 
+    // ── Agreement Terms ───────────────────────────────────────────────────────
+    let currentY = finalY + 25;
+
+    if (documentData?.agreementTerms) {
+      const splitTerms = doc.splitTextToSize(documentData.agreementTerms, 180);
+      const requiredSpace = 6 + (splitTerms.length * 4);
+      
+      if (currentY + requiredSpace > pageHeight - 50) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.text('Service Agreement & Terms:', 14, currentY);
+      
+      currentY += 6;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(100, 100, 100);
+      
+      doc.text(splitTerms, 14, currentY);
+    }
+
     // ── Footer ────────────────────────────────────────────────────────────────
     // ── Bank Account / Verification ──────────────────────────────────────────
     if (isInvoice && savedConfig.bankDetails) {

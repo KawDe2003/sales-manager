@@ -246,7 +246,8 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
     status: initialData?.status || 'Pending',
     items: initialItems,
     discount: initialDiscount,
-    amount: initialData?.amount || 0
+    amount: initialData?.amount || 0,
+    agreementTerms: initialData?.agreementTerms || ''
   });
 
   const [selectedInventoryId, setSelectedInventoryId] = useState('');
@@ -414,6 +415,18 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(129, 140, 248, 0.2)' }}>
               LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
             </div>
+          </div>
+
+          <div style={{ marginTop: '24px' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Service Agreement & Terms (Optional)</label>
+            <textarea 
+              className="form-input" 
+              style={{ minHeight: '120px', resize: 'vertical', width: '100%', padding: '12px' }}
+              placeholder="Enter agreement terms, SLA, or conditions the client must agree to..."
+              value={formData.agreementTerms}
+              onChange={e => setFormData({ ...formData, agreementTerms: e.target.value })}
+            ></textarea>
+            <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '6px' }}>This agreement will be shown on the client portal and printed on the PDF.</p>
           </div>
 
           <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>

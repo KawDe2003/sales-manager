@@ -408,6 +408,16 @@ const SharedDocument = () => {
              )}
           </div>
 
+          {/* Agreement & Terms Section */}
+          {docData.agreementTerms && (
+             <div style={{ marginTop: '40px', padding: '32px', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Service Agreement & Terms</h4>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                   {docData.agreementTerms}
+                </div>
+             </div>
+          )}
+
           {/* Bottom Call to Action for Quotes */}
           {isQuote && docData.status === 'Pending' && !isPreview && (
             <div className="cta-container no-print" style={{ 
