@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } fr
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
-  X, Target, ClipboardList, Menu, Sun, Moon, BadgeDollarSign, LogIn,
-  PanelLeftClose, PanelLeftOpen
+  X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
+  PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -54,12 +54,31 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading } = useContext(StoreContext);
+  const { notification, theme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [] } = useContext(StoreContext);
   const { user, signOut } = useAuth();
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false);
+        setNotificationsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
   const toggleSidebarCollapse = () => setIsSidebarCollapsed(prev => !prev);
@@ -216,23 +235,74 @@ const AppContent = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '42px', color: 'var(--success)' }}>
+            <CreditCard size={18} /> Issue Invoice
+          </Link>
+          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '42px' }}>
+            <PlusCircle size={18} /> New Deployment
+          </Link>
+
           <button 
             className="btn btn-secondary" 
             style={{ width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            onClick={() => setSearchOpen(true)}
+            title="Search (Cmd+K)"
           >
-            {theme === 'dark' ? <Sun size={18} className="text-warning" /> : <Moon size={18} className="text-accent-primary" />}
+            <Search size={18} className="text-secondary" />
           </button>
+
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="btn btn-secondary" 
+              style={{ width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+            >
+              <Bell size={18} className="text-secondary" />
+              {systemNotifications?.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-4px', right: '-4px',
+                  background: 'var(--danger)', color: 'white', fontSize: '0.65rem',
+                  fontWeight: 800, width: '18px', height: '18px', borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-primary)'
+                }}>{systemNotifications.length}</span>
+              )}
+            </button>
+            
+            {notificationsOpen && (
+              <div className="glass-panel" style={{
+                position: 'absolute', top: '54px', right: '0', width: '320px', padding: '16px',
+                zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px', 
+                boxShadow: '0 20px 50px rgba(0,0,0,0.8)', border: '1px solid var(--panel-border)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '12px', marginBottom: '8px' }}>
+                   <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>System Alerts</span>
+                   {systemNotifications?.length > 0 && (
+                     <button onClick={markNotificationsRead} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
+                   )}
+                </div>
+                {systemNotifications?.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No new notifications</div>
+                ) : (
+                  systemNotifications.slice(0, 5).map(n => (
+                    <div key={n.id} style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--subtle-bg)', borderRadius: '8px', borderLeft: `3px solid ${n.type === 'success' ? 'var(--success)' : 'var(--danger)'}` }}>
+                       <div style={{ flex: 1 }}>
+                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{n.message}</div>
+                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{new Date(n.time).toLocaleTimeString()}</div>
+                       </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           <Link 
             to="/settings" 
-            className="btn btn-secondary" 
-            style={{ height: '42px' }}
+            className="btn btn-secondary hidden-mobile" 
+            style={{ height: '42px', width: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={closeSidebar}
           >
             <SettingsIcon size={18} className="text-secondary" />
-            <span className="hidden-mobile" style={{ fontWeight: '600' }}>Settings</span>
           </Link>
 
           {user && (
@@ -245,11 +315,80 @@ const AppContent = () => {
               }}
             >
               <LogIn size={18} style={{ transform: 'rotate(180deg)' }} />
-              <span className="hidden-mobile">Logout</span>
+              <span className="hidden-mobile" style={{ marginLeft: '6px' }}>Logout</span>
             </button>
           )}
         </div>
       </header>
+
+      {/* Global Search Modal */}
+      {searchOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: 'rgba(2, 6, 23, 0.8)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px'
+        }} onClick={() => setSearchOpen(false)}>
+           <div className="glass-panel" style={{ 
+             width: '100%', maxWidth: '600px', padding: 0, overflow: 'hidden', 
+             border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' 
+           }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--bg-secondary)' }}>
+                 <Search size={24} className="text-muted" style={{ marginRight: '16px' }} />
+                 <input 
+                   autoFocus
+                   type="text" 
+                   placeholder="Search gyms, leads, or invoices..." 
+                   value={searchQuery}
+                   onChange={e => setSearchQuery(e.target.value)}
+                   style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.2rem', outline: 'none' }}
+                 />
+                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>ESC</div>
+              </div>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '12px' }}>
+                 {searchQuery.length < 2 ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Type at least 2 characters to search...</div>
+                 ) : (
+                   (() => {
+                     const q = searchQuery.toLowerCase();
+                     const foundCustomers = customers.filter(c => c.gymName?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q)).slice(0, 3);
+                     const foundLeads = leads.filter(l => l.gymName?.toLowerCase().includes(q)).slice(0, 3);
+                     const foundInvoices = invoices.filter(i => i.invoiceNumber?.toLowerCase().includes(q) || i.prospectName?.toLowerCase().includes(q)).slice(0, 3);
+                     
+                     const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0;
+                     
+                     return !hasResults ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No results found for "{searchQuery}"</div>
+                     ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                           {foundCustomers.map(c => (
+                             <Link key={c.id} to="/customers" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Users size={16} className="text-accent-primary" /> <span style={{ fontWeight: 600 }}>{c.gymName}</span></div>
+                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Active Gym</span>
+                             </Link>
+                           ))}
+                           {foundLeads.map(l => (
+                             <Link key={l.id} to="/leads" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Target size={16} className="text-warning" /> <span style={{ fontWeight: 600 }}>{l.gymName}</span></div>
+                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Lead</span>
+                             </Link>
+                           ))}
+                           {foundInvoices.map(i => (
+                             <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Receipt size={16} className="text-success" /> <span style={{ fontWeight: 600 }}>{i.invoiceNumber} - {i.prospectName}</span></div>
+                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Invoice</span>
+                             </Link>
+                           ))}
+                        </div>
+                     )
+                   })()
+                 )}
+              </div>
+           </div>
+           <style>{`
+             .search-item:hover { background: var(--subtle-bg); }
+           `}</style>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         {/* Sidebar Overlay (Mobile) */}

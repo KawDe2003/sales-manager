@@ -74,6 +74,11 @@ export default function StoreContextProvider({ children }) {
   });
 
   const [notification, setNotification] = useState(null);
+  
+  // Realtime System Notifications (for Bell)
+  const [systemNotifications, setSystemNotifications] = useState([]);
+  
+  const markNotificationsRead = () => setSystemNotifications([]);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -470,8 +475,21 @@ export default function StoreContextProvider({ children }) {
             if (oldItem && oldItem.status !== payload.new.status) {
               if (payload.new.status === 'Accepted') {
                 showNotification(`🎉 Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
+                // Push to bell notifications
+                setSystemNotifications(prev => [{
+                  id: crypto.randomUUID(),
+                  message: `Quote #${payload.new.quote_number} accepted by ${payload.new.prospect_name}`,
+                  time: new Date().toISOString(),
+                  type: 'success'
+                }, ...prev]);
               } else if (payload.new.status === 'Rejected') {
                 showNotification(`Quotation #${payload.new.quote_number} was Declined.`, 'info');
+                setSystemNotifications(prev => [{
+                  id: crypto.randomUUID(),
+                  message: `Quote #${payload.new.quote_number} declined by ${payload.new.prospect_name}`,
+                  time: new Date().toISOString(),
+                  type: 'error'
+                }, ...prev]);
               }
               // Refresh local state to reflect change
               fetchCloudData();
@@ -1064,6 +1082,7 @@ export default function StoreContextProvider({ children }) {
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
       theme, toggleTheme,
       notification, showNotification,
+      systemNotifications, markNotificationsRead,
       resetToSeynexDefaults,
       isStoreLoading
     }}>

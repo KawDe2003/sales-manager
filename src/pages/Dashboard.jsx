@@ -107,29 +107,14 @@ const Dashboard = () => {
               SYSTEMS ONLINE & SYNCHRONIZED
             </p>
           </div>
-          <div className="btn-group">
-            <Link to="/invoices" className="btn btn-secondary">
-               <CreditCard size={18} /> Issue Invoice
-            </Link>
-            <Link to="/customers" className="btn btn-primary">
-               <Users size={18} /> New Deployment
-            </Link>
-          </div>
         </div>
       </div>
 
-      {/* ACTION MATRIX (QUICK BUTTONS) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-         <ActionBtn icon={<FileText />} label="Draft Quote" link="/quotations" mainColor="#06b6d4" />
-         <ActionBtn icon={<PlusCircle />} label="Add Lead" link="/customers" mainColor="#8b5cf6" />
-         <ActionBtn icon={<CreditCard />} label="Log Payment" link="/invoices" mainColor="#10b981" />
-         <ActionBtn icon={<BarChart3 />} label="Analytics Tab" link="/reports" mainColor="#f59e0b" />
-      </div>
-
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-6">
         <KPIBox 
           title="Capital Realized" 
+          subtitle="Total collected revenue"
           value={`LKR ${stats.revenue.val.toLocaleString()}`} 
           icon={<IndianRupee color="#34d399" />} 
           trend={stats.revenue.growth}
@@ -137,18 +122,21 @@ const Dashboard = () => {
         />
         <KPIBox 
           title="Capital Pipeline" 
+          subtitle="Unpaid & overdue invoices"
           value={`LKR ${stats.outstanding.toLocaleString()}`} 
           icon={<Activity color="#fbbf24" />} 
           glowColor="#fbbf24"
         />
         <KPIBox 
           title="Deployments" 
+          subtitle="Active Gym Clients"
           value={stats.customers} 
           icon={<Globe color="#818cf8" />} 
           glowColor="#818cf8"
         />
         <KPIBox 
           title="Market Vectors" 
+          subtitle="Warm Leads in Pipeline"
           value={stats.leads} 
           icon={<Zap color="#f472b6" />} 
           glowColor="#f472b6"
@@ -323,6 +311,60 @@ const Dashboard = () => {
 
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* OVERDUE ACCOUNTS LIST */}
+        <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="flex items-center gap-3">
+               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertCircle color="#ef4444" size={20} />
+               </div>
+               <div>
+                  <h3 className="h3">Action Required</h3>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Overdue & Pending Accounts</p>
+               </div>
+            </div>
+            <Link to="/invoices" className="btn btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '0.8rem' }}>View Ledger</Link>
+          </div>
+          
+          <div className="table-container" style={{ margin: 0, background: 'transparent' }}>
+            <table style={{ margin: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: '24px' }}>Client / Invoice</th>
+                  <th>Status</th>
+                  <th>Amount Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.filter(i => i.status !== 'Paid').slice(0, 5).map(inv => (
+                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                    <td style={{ paddingLeft: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div>{inv.prospectName}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{inv.invoiceNumber}</div>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${inv.status === 'Overdue' ? 'danger' : 'warning'}`}>
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.85rem' }}>
+                      LKR {inv.amount.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                {invoices.filter(i => i.status !== 'Paid').length === 0 && (
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>
+                      <p className="text-secondary" style={{ fontSize: '0.9rem' }}>All accounts are settled and up to date.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       {/* RECENT ACCESS (IP TRACKING) */}
       <div className="glass-panel mb-8" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -371,51 +413,13 @@ const Dashboard = () => {
           </table>
         </div>
       </div>
-
+      </div>
     </div>
   );
 };
-
 // Subcomponents
 
-const ActionBtn = ({ icon, label, link, mainColor }) => {
-  return (
-    <Link to={link} className="glass-panel" style={{ 
-       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-       gap: '12px', padding: '24px 12px',
-       textDecoration: 'none', position: 'relative'
-    }}
-    onMouseEnter={(e) => {
-       e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
-       e.currentTarget.style.borderColor = mainColor;
-       e.currentTarget.style.boxShadow = `0 15px 35px -5px ${mainColor}40, inset 0 1px 1px rgba(255,255,255,0.1)`;
-       const iconWrapper = e.currentTarget.querySelector('.icon-wrap');
-       if(iconWrapper) iconWrapper.style.transform = 'scale(1.1)';
-    }}
-    onMouseLeave={(e) => {
-       e.currentTarget.style.transform = 'translateY(0) scale(1)';
-       e.currentTarget.style.borderColor = 'var(--panel-border)';
-       e.currentTarget.style.boxShadow = 'inset 0 1px 1px rgba(255, 255, 255, 0.05), var(--card-shadow)';
-       const iconWrapper = e.currentTarget.querySelector('.icon-wrap');
-       if(iconWrapper) iconWrapper.style.transform = 'scale(1)';
-    }}
-    >
-       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: mainColor, opacity: 0.8 }}></div>
-       <div className="icon-wrap" style={{ 
-         width: '44px', height: '44px', borderRadius: '14px', background: 'var(--bg-primary)', 
-         border: '1px solid var(--subtle-border)',
-         display: 'flex', alignItems: 'center', justifyContent: 'center', color: mainColor,
-         boxShadow: `0 8px 16px ${mainColor}20`,
-         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-       }}>
-          {React.cloneElement(icon, { size: 22 })}
-       </div>
-       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.04em', textAlign: 'center' }}>{label}</span>
-    </Link>
-  );
-}
-
-const KPIBox = ({ title, value, icon, trend, glowColor }) => {
+const KPIBox = ({ title, subtitle, value, icon, trend, glowColor }) => {
   return (
     <div className="glass-panel" style={{ position: 'relative', padding: '32px 28px' }}>
       <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '150px', background: `radial-gradient(circle at top right, ${glowColor}15, transparent 70%)`, pointerEvents: 'none' }}></div>
@@ -442,7 +446,8 @@ const KPIBox = ({ title, value, icon, trend, glowColor }) => {
         )}
       </div>
       <div style={{ position: 'relative', zIndex: 2 }}>
-        <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-secondary)', marginBottom: '8px' }}>{title}</p>
+        <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-secondary)', marginBottom: '4px' }}>{title}</p>
+        {subtitle && <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '8px' }}>{subtitle}</p>}
         <div style={{ 
           fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1,
           fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(0,0,0,0.5)'
