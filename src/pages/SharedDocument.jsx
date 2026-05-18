@@ -290,7 +290,7 @@ const SharedDocument = () => {
           </div>
 
           {/* Line Items Container */}
-          <div style={{ background: 'var(--subtle-bg)', borderRadius: '20px', padding: 'clamp(16px, 3vw, 32px)', border: '1px solid var(--subtle-border)', marginBottom: '40px', overflowX: 'auto' }}>
+          <div style={{ background: 'var(--bg-secondary)', borderRadius: '24px', padding: 'clamp(16px, 3vw, 32px)', border: '1px solid var(--panel-border)', marginBottom: '40px', overflowX: 'auto', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '20px' }}>Billing Items</h4>
              
              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 'min(400px, 100%)' }}>
@@ -352,7 +352,7 @@ const SharedDocument = () => {
              </div>
 
              <div className="w-full md:w-auto" style={{ textAlign: 'right', minWidth: 'min(320px, 100%)' }}>
-                <div style={{ background: 'var(--subtle-bg)', padding: '32px', borderRadius: '24px', border: '1px solid var(--subtle-border)' }}>
+                <div style={{ background: 'linear-gradient(135deg, var(--bg-secondary), var(--subtle-bg))', padding: '32px', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
                    <div className="flex justify-between items-center mb-6">
                       <div style={{ textAlign: 'left' }}>
                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Account Status</div>
@@ -445,7 +445,7 @@ const SharedDocument = () => {
 
           {/* Bottom Call to Action for Invoices */}
           {!isQuote && !isApproved && !isPreview && (
-            <div style={{ marginTop: '60px', padding: '48px', background: 'var(--subtle-bg)', borderRadius: '32px', border: '1px solid var(--subtle-border)', textAlign: 'center' }} className="no-print">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)', textAlign: 'center' }} className="no-print">
                <h3 style={{ margin: '0 0 12px 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Outstanding Balance</h3>
                <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Please complete your payment to ensure your service remains uninterrupted.</p>
                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
@@ -458,16 +458,18 @@ const SharedDocument = () => {
             </div>
           )}
 
-          {/* Footer Branding */}
-          <div style={{ marginTop: '80px', borderTop: '1px solid var(--subtle-border)', paddingTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <div className="flex items-center gap-3">
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
-                   Authenticated Computer-Generated Document
-                </p>
-             </div>
-             <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
-                Powered by <strong style={{ color: 'var(--text-primary)' }}>GymSales Pro</strong>
+          <div style={{ padding: '40px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--panel-border)', position: 'relative', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px' }}>
+             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #0ea5e9, #8b5cf6, #ec4899)' }}></div>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
+                   <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
+                      Authenticated Computer-Generated Document
+                   </p>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
+                   Powered by <strong style={{ color: 'var(--text-primary)' }}>GymSales Pro</strong>
+                </div>
              </div>
           </div>
         </div>

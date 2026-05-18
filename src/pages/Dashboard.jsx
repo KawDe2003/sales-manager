@@ -78,32 +78,33 @@ const Dashboard = () => {
     <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
       
       {/* HEADER WITH QUICK BUTTONS */}
-      <div className="page-hero">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="page-hero" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '-50%', left: '-10%', width: '120%', height: '200%', background: 'radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.15), transparent 50%)', pointerEvents: 'none' }}></div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
             <h1 className="h1" style={{ 
-              background: 'var(--accent-primary)',
-              backgroundImage: 'linear-gradient(to right, #0ea5e9, #6366f1, #8b5cf6)', 
+              background: 'linear-gradient(to right, #0ea5e9, #8b5cf6, #ec4899)', 
               WebkitBackgroundClip: 'text', 
               WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 0 10px rgba(99, 102, 241, 0.1))' 
+              filter: 'drop-shadow(0 4px 15px rgba(139, 92, 246, 0.3))',
+              marginBottom: '4px'
             }}>
               Nexus Command
             </h1>
-            <p className="text-secondary" style={{ marginTop: '5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', letterSpacing: '0.1em' }}>
               <span style={{ 
-                width: '8px', height: '8px', borderRadius: '50%', background: '#22d3ee', 
-                boxShadow: '0 0 10px #22d3ee'
+                width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', 
+                boxShadow: '0 0 12px #10b981, 0 0 4px #10b981'
               }}></span>
               SYSTEMS ONLINE & SYNCHRONIZED
             </p>
           </div>
           <div className="btn-group">
             <Link to="/invoices" className="btn btn-secondary">
-               <CreditCard size={16} /> Issue Invoice
+               <CreditCard size={18} /> Issue Invoice
             </Link>
             <Link to="/customers" className="btn btn-primary">
-               <Users size={16} /> New Deployment
+               <Users size={18} /> New Deployment
             </Link>
           </div>
         </div>
@@ -323,63 +324,70 @@ const ActionBtn = ({ icon, label, link, mainColor }) => {
   return (
     <Link to={link} className="glass-panel" style={{ 
        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-       gap: '12px', padding: '24px 12px', borderBottom: `2px solid ${mainColor}`,
-       textDecoration: 'none'
+       gap: '12px', padding: '24px 12px',
+       textDecoration: 'none', position: 'relative'
     }}
     onMouseEnter={(e) => {
-       e.currentTarget.style.transform = 'translateY(-4px)';
+       e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
        e.currentTarget.style.borderColor = mainColor;
-       e.currentTarget.style.boxShadow = `0 10px 25px ${mainColor}30`;
+       e.currentTarget.style.boxShadow = `0 15px 35px -5px ${mainColor}40, inset 0 1px 1px rgba(255,255,255,0.1)`;
+       const iconWrapper = e.currentTarget.querySelector('.icon-wrap');
+       if(iconWrapper) iconWrapper.style.transform = 'scale(1.1)';
     }}
     onMouseLeave={(e) => {
-       e.currentTarget.style.transform = 'translateY(0)';
+       e.currentTarget.style.transform = 'translateY(0) scale(1)';
        e.currentTarget.style.borderColor = 'var(--panel-border)';
-       e.currentTarget.style.borderBottomColor = mainColor;
-       e.currentTarget.style.boxShadow = 'var(--card-shadow)';
+       e.currentTarget.style.boxShadow = 'inset 0 1px 1px rgba(255, 255, 255, 0.05), var(--card-shadow)';
+       const iconWrapper = e.currentTarget.querySelector('.icon-wrap');
+       if(iconWrapper) iconWrapper.style.transform = 'scale(1)';
     }}
     >
-       <div style={{ 
-         width: '40px', height: '40px', borderRadius: '12px', background: 'var(--subtle-bg)', 
+       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: mainColor, opacity: 0.8 }}></div>
+       <div className="icon-wrap" style={{ 
+         width: '44px', height: '44px', borderRadius: '14px', background: 'var(--bg-primary)', 
          border: '1px solid var(--subtle-border)',
          display: 'flex', alignItems: 'center', justifyContent: 'center', color: mainColor,
-         boxShadow: `0 4px 10px ${mainColor}20`
+         boxShadow: `0 8px 16px ${mainColor}20`,
+         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
        }}>
-          {React.cloneElement(icon, { size: 20 })}
+          {React.cloneElement(icon, { size: 22 })}
        </div>
-       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em', textAlign: 'center' }}>{label}</span>
+       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.04em', textAlign: 'center' }}>{label}</span>
     </Link>
   );
 }
 
 const KPIBox = ({ title, value, icon, trend, glowColor }) => {
   return (
-    <div className="glass-panel" style={{ position: 'relative', padding: '28px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+    <div className="glass-panel" style={{ position: 'relative', padding: '32px 28px' }}>
+      <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '150px', background: `radial-gradient(circle at top right, ${glowColor}15, transparent 70%)`, pointerEvents: 'none' }}></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', position: 'relative', zIndex: 2 }}>
         <div style={{ 
-           width: '50px', height: '50px', borderRadius: '16px', background: 'var(--subtle-bg)', 
+           width: '56px', height: '56px', borderRadius: '16px', background: 'var(--bg-primary)', 
            border: '1px solid var(--subtle-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-           boxShadow: `0 4px 15px ${glowColor}20`
+           boxShadow: `0 8px 20px ${glowColor}25, inset 0 2px 4px rgba(255,255,255,0.05)`
         }}>
-          {React.cloneElement(icon, { size: 24 })}
+          {React.cloneElement(icon, { size: 28 })}
         </div>
         {trend !== undefined && (
           <div style={{ 
-             display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800, 
-             padding: '4px 8px', borderRadius: '20px', 
-             background: trend >= 0 ? 'rgba(52, 211, 153, 0.1)' : 'rgba(244, 63, 94, 0.1)',
-             color: trend >= 0 ? '#10b981' : '#f43f5e',
-             border: `1px solid ${trend >= 0 ? 'rgba(52, 211, 153, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`
+             display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 800, 
+             padding: '6px 12px', borderRadius: '20px', 
+             background: trend >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+             color: trend >= 0 ? '#10b981' : '#ef4444',
+             border: `1px solid ${trend >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+             boxShadow: trend >= 0 ? '0 4px 10px rgba(16, 185, 129, 0.1)' : '0 4px 10px rgba(239, 68, 68, 0.1)'
           }}>
-            {trend >= 0 ? <ArrowUpRight size={12} strokeWidth={3} /> : <ArrowDownRight size={12} strokeWidth={3} />}
+            {trend >= 0 ? <ArrowUpRight size={14} strokeWidth={3} /> : <ArrowDownRight size={14} strokeWidth={3} />}
             {Math.abs(trend)}%
           </div>
         )}
       </div>
-      <div>
-        <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-secondary)', marginBottom: '8px' }}>{title}</p>
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-secondary)', marginBottom: '8px' }}>{title}</p>
         <div style={{ 
-          fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1,
-          fontFamily: 'var(--font-display)' 
+          fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1,
+          fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(0,0,0,0.5)'
         }}>
           {value}
         </div>

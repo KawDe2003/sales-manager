@@ -328,13 +328,13 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
         gap: collapsed ? '0' : '12px',
         padding: collapsed ? '14px 0' : '14px 18px',
         borderRadius: '14px',
-        color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-        background: isActive ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+        color: isActive ? '#ffffff' : 'var(--text-secondary)',
+        background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05))' : 'transparent',
         fontWeight: isActive ? '700' : '600',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         fontSize: '0.88rem',
         borderLeft: (isActive && !collapsed) ? '4px solid var(--accent-primary)' : '4px solid transparent',
-        boxShadow: isActive ? '0 4px 12px rgba(99, 102, 241, 0.05)' : 'none',
+        boxShadow: isActive ? 'inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 15px var(--accent-glow)' : 'none',
         position: 'relative'
       })}
       className={({ isActive }) => `${isActive ? "nav-item active" : "nav-item"} ${collapsed ? "collapsed" : ""}`}
