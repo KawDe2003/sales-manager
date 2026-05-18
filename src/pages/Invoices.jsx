@@ -308,18 +308,24 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
   const { smsConfig = {} } = useContext(StoreContext) || {};
-  const [formData, setFormData] = useState(initialData || {
+  const initialDiscountItem = initialData?.items?.find(i => i.isDiscount);
+  const initialDiscount = initialDiscountItem ? Math.abs(initialDiscountItem.price) : 0;
+  const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
+
+  const [formData, setFormData] = useState({
     invoiceNumber: initialData?.invoiceNumber || `${smsConfig.invoicePrefix || 'INV-'}${smsConfig.nextInvoiceNumber || 1001}`, 
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     dueDate: initialData?.dueDate || '',
     customerId: initialData?.customerId || (customers[0]?.id || ''),
-    items: initialData?.items || [],
+    items: initialItems,
+    discount: initialDiscount,
     amount: initialData?.amount || 0
   });
 
   const [selectedInventoryId, setSelectedInventoryId] = useState('');
 
-  const calculateTotal = (items) => items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const calculateSubtotal = (items) => items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const calculateTotal = (items, discount = 0) => calculateSubtotal(items) - Number(discount || 0);
 
   const handleAddItem = () => {
     if (!selectedInventoryId) return;
@@ -332,13 +338,13 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     if (existingIndex >= 0) newItems[existingIndex].quantity += 1;
     else newItems.push({ ...invItem, quantity: 1 });
     
-    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems) });
+    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
     setSelectedInventoryId('');
   };
 
   const handleRemoveItem = (idx) => {
     const newItems = formData.items.filter((_, i) => i !== idx);
-    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems) });
+    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
   };
 
   return (
@@ -356,7 +362,15 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
            </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          const finalItems = [...formData.items];
+          if (Number(formData.discount) > 0) {
+            finalItems.push({ name: 'Discount', price: -Number(formData.discount), quantity: 1, isDiscount: true });
+          }
+          onSave({ ...formData, items: finalItems }); 
+          onClose(); 
+        }} className="modal-body">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Serial #</label>
@@ -421,13 +435,25 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             )}
           </div>
 
-          <div className="flex justify-between items-center" style={{ marginTop: '40px', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <div className="flex justify-end items-center gap-4" style={{ marginTop: '24px', padding: '0 24px' }}>
+            <label className="form-label mb-0" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Discount Amount (LKR):</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              style={{ width: '150px', height: '44px', textAlign: 'right' }} 
+              value={formData.discount === 0 ? '' : formData.discount} 
+              onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
+              placeholder="0"
+            />
+          </div>
+
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '24px', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
             <div className="flex items-center gap-3">
               <ShoppingBag size={24} className="text-secondary" />
               <span className="text-secondary" style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>NET TOTAL AMOUNT</span>
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(34, 197, 94, 0.2)' }}>
-              LKR {calculateTotal(formData.items).toLocaleString()}
+              LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
             </div>
           </div>
 

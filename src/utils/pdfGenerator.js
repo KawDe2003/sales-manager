@@ -39,9 +39,15 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const dueDateStr = documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '—';
 
     const itemsList = Array.isArray(items) && items.length > 0 ? items : (documentData?.items || []);
-    const totalAmount = itemsList.length > 0
-      ? itemsList.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
-      : Number(documentData?.amount || 0);
+    const standardItems = itemsList.filter(i => !i.isDiscount);
+    const discountItem = itemsList.find(i => i.isDiscount);
+    const discountAmount = discountItem ? Math.abs(discountItem.price) : 0;
+
+    const subTotal = standardItems.length > 0
+      ? standardItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
+      : Number(documentData?.amount || 0) + discountAmount;
+
+    const totalAmount = subTotal - discountAmount;
 
     // Add company logo if available (priority logic)
     if (savedConfig.receiptLogo) {
@@ -103,8 +109,8 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // ── Line Items Table ──────────────────────────────────────────────────────
     let tableBody = [];
-    if (itemsList.length > 0) {
-      tableBody = itemsList.map(item => [
+    if (standardItems.length > 0) {
+      tableBody = standardItems.map(item => [
         item.name || 'Item',
         item.type || 'Service',
         `LKR ${Number(item.price || 0).toLocaleString()}`,
@@ -113,7 +119,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
       ]);
     } else {
       tableBody = [
-        ['Software Package / Services', 'Package', `LKR ${totalAmount.toLocaleString()}`, '1', `LKR ${totalAmount.toLocaleString()}`]
+        ['Software Package / Services', 'Package', `LKR ${subTotal.toLocaleString()}`, '1', `LKR ${subTotal.toLocaleString()}`]
       ];
     }
 
@@ -136,12 +142,26 @@ export const generateDocumentPDF = (type, documentData, items) => {
     });
 
     // ── Totals ────────────────────────────────────────────────────────────────
-    const finalY = (doc.lastAutoTable?.finalY || 120) + 10;
+    let finalY = (doc.lastAutoTable?.finalY || 120) + 10;
+
+    if (discountAmount > 0) {
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.text('Subtotal:', 140, finalY + 8, { align: 'right' });
+      doc.text(`LKR ${subTotal.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
+      
+      finalY += 6;
+      doc.setTextColor(220, 38, 38);
+      doc.text('Discount:', 140, finalY + 8, { align: 'right' });
+      doc.text(`- LKR ${discountAmount.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
+      finalY += 6;
+    }
 
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text('Total Amount:', 130, finalY + 8);
+    doc.text('Total Amount:', 140, finalY + 8, { align: 'right' });
 
     doc.setFontSize(14);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -261,7 +281,7 @@ export const generateStockReportPDF = (inventoryItems) => {
     const finalY = (doc.lastAutoTable?.finalY || 120) + 15;
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('TOTAL INVENTORY VALUATION:', 120, finalY);
+    doc.text('TOTAL INVENTORY VALUATION:', 140, finalY, { align: 'right' });
     
     doc.setFontSize(14);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);

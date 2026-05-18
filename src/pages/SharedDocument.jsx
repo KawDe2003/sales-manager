@@ -165,10 +165,15 @@ const SharedDocument = () => {
   }
 
   const docNumber = isQuote ? docData.quoteNumber : docData.invoiceNumber;
-  const theItems = docData.items || [];
-  const totalAmount = theItems.length > 0
-    ? theItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
-    : Number(docData.amount || 0);
+  const standardItems = (docData.items || []).filter(i => !i.isDiscount);
+  const discountItem = (docData.items || []).find(i => i.isDiscount);
+  const discountAmount = discountItem ? Math.abs(discountItem.price) : 0;
+
+  const subTotal = standardItems.length > 0
+    ? standardItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
+    : Number(docData.amount || 0) + discountAmount;
+    
+  const totalAmount = subTotal - discountAmount;
 
   const isApproved = docData.status === 'Paid' || docData.status === 'Accepted';
 
@@ -291,19 +296,19 @@ const SharedDocument = () => {
              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 'min(400px, 100%)' }}>
                 <div style={{ display: 'flex', padding: '10px 12px', borderBottom: '1px solid var(--subtle-border)', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                    <div style={{ flex: 1, minWidth: '80px' }}>Description</div>
-                   <div style={{ width: '50px', textAlign: 'center' }}>Qty</div>
-                   <div style={{ width: '90px', textAlign: 'right' }}>Offer Price</div>
-                   <div style={{ width: '110px', textAlign: 'right' }}>Total</div>
+                   <div style={{ width: '60px', flexShrink: 0, textAlign: 'center' }}>Qty</div>
+                   <div style={{ width: '120px', flexShrink: 0, textAlign: 'right' }}>Offer Price</div>
+                   <div style={{ width: '140px', flexShrink: 0, textAlign: 'right' }}>Total</div>
                 </div>
 
-                {theItems.map((item, idx) => (
-                   <div key={idx} style={{ display: 'flex', padding: '12px 10px', borderBottom: idx === theItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
+                {standardItems.map((item, idx) => (
+                   <div key={idx} style={{ display: 'flex', padding: '12px 10px', borderBottom: idx === standardItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
                       <div style={{ flex: 1, minWidth: '80px', wordBreak: 'break-word' }}>
                         <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{item.name}</div>
                       </div>
-                      <div style={{ width: '50px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{item.quantity || 1}</div>
-                      <div style={{ width: '90px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
-                      <div style={{ width: '110px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
+                      <div style={{ width: '60px', flexShrink: 0, textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{item.quantity || 1}</div>
+                      <div style={{ width: '120px', flexShrink: 0, textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
+                      <div style={{ width: '140px', flexShrink: 0, textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
                    </div>
                 ))}
              </div>
@@ -368,6 +373,18 @@ const SharedDocument = () => {
                    <div style={{ height: '1px', background: 'var(--subtle-border)', margin: '0 0 24px 0' }}></div>
 
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      {discountAmount > 0 && (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '8px', fontSize: '0.85rem' }}>
+                             <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                             <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>LKR {subTotal.toLocaleString()}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                             <span style={{ color: 'var(--danger)' }}>Discount</span>
+                             <span style={{ color: 'var(--danger)', fontWeight: 700 }}>- LKR {discountAmount.toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
                       <div style={{ color: 'var(--accent-primary)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
                          {isQuote ? 'Projected Investment' : 'Current Balance Due'}
                       </div>
