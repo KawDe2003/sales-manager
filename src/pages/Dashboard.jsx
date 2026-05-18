@@ -17,7 +17,8 @@ const Dashboard = () => {
     customers = [], 
     invoices = [], 
     quotes = [], 
-    leads = [], 
+    leads = [],
+    activityLogs = []
   } = useContext(StoreContext) || {};
 
   // --- CORE ANALYTICS ENGINE ---
@@ -73,6 +74,13 @@ const Dashboard = () => {
     { name: 'Collected', value: stats.revenue.val, color: '#06b6d4' },
     { name: 'Outstanding', value: stats.outstanding, color: '#f59e0b' }
   ];
+
+  const recentAccessLogs = useMemo(() => {
+    return activityLogs
+      .filter(log => log.type === 'Access')
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 5);
+  }, [activityLogs]);
 
   return (
     <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
@@ -314,6 +322,56 @@ const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* RECENT ACCESS (IP TRACKING) */}
+      <div className="glass-panel mb-8" style={{ padding: '0', overflow: 'hidden' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="flex items-center gap-3">
+             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Globe color="#3b82f6" size={20} />
+             </div>
+             <div>
+                <h3 className="h3">Recent Client Views</h3>
+                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>IP Address & Location Tracking</p>
+             </div>
+          </div>
+          <Link to="/logs" className="btn btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '0.8rem' }}>View All Logs</Link>
+        </div>
+        
+        <div className="table-container" style={{ margin: 0, background: 'transparent' }}>
+          <table style={{ margin: 0 }}>
+            <thead>
+              <tr>
+                <th style={{ paddingLeft: '24px' }}>Document Viewed</th>
+                <th>Timestamp</th>
+                <th>IP Address & Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentAccessLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>
+                    <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No recent client views tracked yet.</p>
+                  </td>
+                </tr>
+              ) : (
+                recentAccessLogs.map(log => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                    <td style={{ paddingLeft: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>{log.message}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {new Date(log.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </td>
+                    <td style={{ fontFamily: 'monospace', color: 'var(--accent-primary)', fontSize: '0.85rem' }}>
+                      {log.details}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 };

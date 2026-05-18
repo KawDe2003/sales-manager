@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { ClipboardList, Smartphone, Info, AlertCircle, Calendar, Trash2, Clock, Activity } from 'lucide-react';
+import { ClipboardList, Smartphone, Info, AlertCircle, Calendar, Trash2, Clock, Activity, ShieldCheck } from 'lucide-react';
 
 const Logs = () => {
   const { activityLogs = [] } = useContext(StoreContext) || {};
@@ -16,6 +16,7 @@ const Logs = () => {
       case 'Status': return <Info size={16} style={{ color: 'var(--warning)' }} />;
       case 'System': return <Activity size={16} style={{ color: 'var(--success)' }} />;
       case 'Error': return <AlertCircle size={16} style={{ color: 'var(--danger)' }} />;
+      case 'Access': return <ShieldCheck size={16} style={{ color: 'var(--accent-primary)' }} />;
       default: return <ClipboardList size={16} />;
     }
   };
@@ -44,7 +45,7 @@ const Logs = () => {
           padding: '20px 24px', background: 'var(--subtle-bg)', 
           borderBottom: '1px solid var(--panel-border)', display: 'flex', gap: '8px', flexWrap: 'wrap' 
         }}>
-          {['All', 'SMS', 'Status', 'System', 'Error'].map(type => (
+          {['All', 'SMS', 'Status', 'System', 'Access', 'Error'].map(type => (
             <button 
               key={type}
               onClick={() => setFilterType(type)}
@@ -95,6 +96,7 @@ const Logs = () => {
                         <span style={{ 
                           color: log.type === 'Error' ? 'var(--danger)' : 
                                  log.type === 'SMS' ? 'var(--accent-primary)' : 
+                                 log.type === 'Access' ? '#0ea5e9' : 
                                  log.type === 'Status' ? 'var(--warning)' : 'var(--success)'
                         }}>
                           {log.type.toUpperCase()}
@@ -128,6 +130,7 @@ const Logs = () => {
                     marginBottom: '12px', borderLeft: `4px solid ${
                       log.type === 'Error' ? 'var(--danger)' : 
                       log.type === 'SMS' ? 'var(--accent-primary)' : 
+                      log.type === 'Access' ? '#0ea5e9' : 
                       log.type === 'Status' ? 'var(--warning)' : 'var(--success)'
                     }`
                   }}>

@@ -112,6 +112,46 @@ const SharedDocument = () => {
     loadDocument();
   }, [type, id, quotes, invoices, customers]);
 
+  // IP Tracking
+  useEffect(() => {
+    if (!docData || isPreview) return;
+    
+    // Prevent double-logging
+    if (window.sessionStorage.getItem(`tracked_${docData.id}`)) return;
+    window.sessionStorage.setItem(`tracked_${docData.id}`, 'true');
+
+    const trackAccess = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const ipData = await response.json();
+        
+        const ip = ipData.ip || 'Unknown IP';
+        const location = ipData.city ? `${ipData.city}, ${ipData.country_name}` : 'Unknown Location';
+        
+        const docName = isQuote ? `Quote #${docData.quoteNumber}` : `Invoice #${docData.invoiceNumber}`;
+        const message = `Client viewed ${docName}`;
+        const details = `IP: ${ip} | Location: ${location}`;
+
+        const userId = docData.user_id || docData.userId;
+
+        if (userId) {
+          await supabase.from('activity_logs').insert({
+            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+            user_id: userId,
+            log_type: 'Access',
+            message: message,
+            details: details,
+            log_timestamp: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.error('[Tracking] Failed to track IP access:', e);
+      }
+    };
+
+    trackAccess();
+  }, [docData, isPreview, isQuote]);
+
   const isQuote = type === 'quote';
   const isReceipt = type === 'receipt';
   const docTitle = isReceipt ? 'Payment Receipt' : isQuote ? 'Quotation' : 'Invoice';
