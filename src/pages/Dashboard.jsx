@@ -3,7 +3,7 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   IndianRupee, Users, Target, Activity, 
   TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight, Globe,
-  FileText, PlusCircle, CreditCard, Award
+  FileText, PlusCircle, CreditCard, Award, AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
