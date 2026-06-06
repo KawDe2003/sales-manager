@@ -16,6 +16,10 @@ const SharedDocument = () => {
   const [fetchError, setFetchError] = useState(null);
   const [showGratitude, setShowGratitude] = useState(false);
 
+  const isQuote = type === 'quote';
+  const isReceipt = type === 'receipt';
+  const docTitle = isReceipt ? 'Payment Receipt' : isQuote ? 'Quotation' : 'Invoice';
+
   useEffect(() => {
     const loadDocument = async () => {
       try {
@@ -151,10 +155,6 @@ const SharedDocument = () => {
 
     trackAccess();
   }, [docData, isPreview, isQuote]);
-
-  const isQuote = type === 'quote';
-  const isReceipt = type === 'receipt';
-  const docTitle = isReceipt ? 'Payment Receipt' : isQuote ? 'Quotation' : 'Invoice';
 
   const handleDownloadPDF = () => {
     if (!docData) return;
