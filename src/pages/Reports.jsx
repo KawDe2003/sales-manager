@@ -144,7 +144,7 @@ const Reports = () => {
           { title: 'Total Expenses', value: `LKR ${totalExpenses.toLocaleString()}`, icon: <AlertCircle />, color: 'var(--warning)', sub: `${expenses.length} Records` },
           { title: 'Active Gyms', value: activeGyms, icon: <Users />, color: 'var(--accent-primary)', sub: 'Live Clients' },
         ].map(card => (
-          <div key={card.title} className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px' }}>
+          <div key={card.title} className="glass-panel hover-lift" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px' }}>
             <div style={{ 
               width: '42px', height: '42px', borderRadius: '12px', 
               background: `${card.color}10`, display: 'flex', 

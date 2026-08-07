@@ -307,7 +307,7 @@ const Debtors = () => {
 };
 
 const AgingBucket = ({ label, amount, color, desc, percent }) => (
-    <div className="glass-panel" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
+    <div className="glass-panel hover-lift" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.05 }}>
             <TrendingDown size={120} color={color} />
         </div>
