@@ -421,7 +421,7 @@ const Dashboard = () => {
 
 const KPIBox = ({ title, subtitle, value, icon, trend, glowColor }) => {
   return (
-    <div className="glass-panel" style={{ position: 'relative', padding: '32px 28px' }}>
+    <div className="glass-panel hover-lift" style={{ position: 'relative', padding: '32px 28px' }}>
       <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '150px', background: `radial-gradient(circle at top right, ${glowColor}15, transparent 70%)`, pointerEvents: 'none' }}></div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', position: 'relative', zIndex: 2 }}>
         <div style={{ 
