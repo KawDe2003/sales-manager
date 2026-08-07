@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
-  PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight
+  PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
+  Sun, Moon
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -25,8 +26,19 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
 
 const LoadingFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#020617' }}>
-    <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%' }}></div>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: 'var(--bg-primary)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      <div style={{ 
+        width: '48px', height: '48px', borderRadius: '14px', 
+        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 12px 24px rgba(99, 102, 241, 0.3)',
+        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+      }}>
+        <span style={{ color: 'white', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>S</span>
+      </div>
+      <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid rgba(99, 102, 241, 0.15)', borderTopColor: '#6366f1', borderRadius: '50%' }}></div>
+    </div>
   </div>
 );
 
@@ -54,7 +66,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-  const { notification, theme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [] } = useContext(StoreContext);
+  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [] } = useContext(StoreContext);
   const { user, signOut } = useAuth();
   const location = useLocation();
 
@@ -133,7 +145,7 @@ const AppContent = () => {
   // If on public share view, render without layout
   if (isPublicShareView) {
     return (
-      <div style={{ minHeight: '100vh', background: '#020617' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/share/:type/:id" element={<SharedDocument />} />
@@ -170,99 +182,118 @@ const AppContent = () => {
       position: 'relative',
       width: '100%'
     }}>
-      {/* Global Notification Toast */}
+      {/* ===== GLOBAL TOAST NOTIFICATION ===== */}
       {notification && (
         <div style={{
-          position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
-          padding: '16px 24px', borderRadius: '12px', minWidth: '300px',
-          background: notification.type === 'success' ? 'var(--success)' : 'var(--danger)',
-          backdropFilter: 'blur(10px)', color: 'white',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+          position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
+          padding: '14px 20px', borderRadius: 'var(--radius-md)', minWidth: '320px', maxWidth: '420px',
+          background: notification.type === 'success' 
+            ? 'linear-gradient(135deg, #059669, #10b981)' 
+            : 'linear-gradient(135deg, #dc2626, #f43f5e)',
+          color: 'white',
+          boxShadow: notification.type === 'success' 
+            ? '0 12px 40px rgba(16, 185, 129, 0.4)' 
+            : '0 12px 40px rgba(244, 63, 94, 0.4)',
           display: 'flex', alignItems: 'center', gap: '12px',
-          animation: 'fadeIn 0.3s ease-out',
-          border: '1px solid rgba(255,255,255,0.1)'
+          animation: 'slideInRight 0.35s ease-out',
+          border: '1px solid rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(10px)'
         }}>
           {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-          <span style={{ flex: 1, fontWeight: '600', fontSize: '0.9rem' }}>{notification.message}</span>
+          <span style={{ flex: 1, fontWeight: '600', fontSize: '0.88rem', lineHeight: 1.4 }}>{notification.message}</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="layout-header flex items-center justify-between">
-        <div className="flex items-center gap-6">
+      {/* ===== HEADER ===== */}
+      <header className="layout-header">
+        <div className="flex items-center gap-4">
           {/* Mobile Toggle */}
           <button 
-            className="btn btn-secondary hidden-desktop" 
+            className="hidden-desktop" 
             onClick={toggleSidebar}
-            style={{ padding: '8px', border: '1px solid var(--panel-border)', background: 'var(--subtle-bg)', borderRadius: '10px' }}
+            style={{ padding: '8px', border: '1px solid var(--panel-border)', background: 'var(--subtle-bg)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
           {/* Desktop Collapse Toggle */}
           <button 
-            className="btn btn-secondary hidden-mobile" 
+            className="hidden-mobile" 
             onClick={toggleSidebarCollapse}
             style={{ 
               padding: '8px', 
               border: '1px solid var(--panel-border)', 
-              background: 'rgba(99, 102, 241, 0.08)', 
+              background: 'rgba(99, 102, 241, 0.06)', 
               borderRadius: '10px',
               color: 'var(--accent-primary)',
-              boxShadow: '0 0 15px rgba(99, 102, 241, 0.1)'
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
           >
             {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
           
-          <Link to="/" className="flex items-center gap-4" onClick={closeSidebar}>
+          <Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
             <div style={{ 
-              width: '38px', height: '38px', borderRadius: '12px', 
+              width: '36px', height: '36px', borderRadius: '11px', 
               background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)'
+              boxShadow: '0 6px 16px rgba(99, 102, 241, 0.25)'
             }}>
-              <span style={{ color: 'white', fontWeight: '900', fontSize: '20px', fontFamily: 'var(--font-display)' }}>
+              <span style={{ color: 'white', fontWeight: '900', fontSize: '18px', fontFamily: 'var(--font-display)' }}>
                 {(smsConfig.dashboardName || 'GymSales').charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="hidden-mobile">
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
                 {smsConfig.dashboardName || 'GymSales'}<span style={{ color: 'var(--accent-primary)' }}>.</span>
               </h1>
             </div>
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '42px', color: 'var(--success)' }}>
-            <CreditCard size={18} /> Issue Invoice
+        <div className="flex items-center gap-2">
+          {/* Quick Actions */}
+          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '38px', padding: '0 14px', fontSize: '0.82rem', color: 'var(--success)' }}>
+            <CreditCard size={16} /> Invoice
           </Link>
-          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '42px' }}>
-            <PlusCircle size={18} /> New Deployment
+          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '38px', padding: '0 14px', fontSize: '0.82rem' }}>
+            <PlusCircle size={16} /> New Client
           </Link>
 
+          {/* Search */}
           <button 
             className="btn btn-secondary" 
-            style={{ width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setSearchOpen(true)}
-            title="Search (Cmd+K)"
+            title="Search (Ctrl+K)"
           >
-            <Search size={18} className="text-secondary" />
+            <Search size={17} className="text-secondary" />
           </button>
 
+          {/* Theme Toggle */}
+          <button
+            className="btn btn-secondary hidden-mobile"
+            style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+          >
+            {theme === 'dark' ? <Sun size={17} className="text-secondary" /> : <Moon size={17} className="text-secondary" />}
+          </button>
+
+          {/* Notifications */}
           <div style={{ position: 'relative' }}>
             <button 
               className="btn btn-secondary" 
-              style={{ width: '42px', height: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+              style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
             >
-              <Bell size={18} className="text-secondary" />
+              <Bell size={17} className="text-secondary" />
               {systemNotifications?.length > 0 && (
                 <span style={{
-                  position: 'absolute', top: '-4px', right: '-4px',
-                  background: 'var(--danger)', color: 'white', fontSize: '0.65rem',
-                  fontWeight: 800, width: '18px', height: '18px', borderRadius: '50%',
+                  position: 'absolute', top: '-3px', right: '-3px',
+                  background: 'var(--danger)', color: 'white', fontSize: '0.6rem',
+                  fontWeight: 800, width: '16px', height: '16px', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-primary)'
                 }}>{systemNotifications.length}</span>
               )}
@@ -270,83 +301,90 @@ const AppContent = () => {
             
             {notificationsOpen && (
               <div className="glass-panel" style={{
-                position: 'absolute', top: '54px', right: '0', width: '320px', padding: '16px',
-                zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px', 
-                boxShadow: '0 20px 50px rgba(0,0,0,0.8)', border: '1px solid var(--panel-border)'
+                position: 'absolute', top: '50px', right: '0', width: '340px', padding: '0',
+                zIndex: 1000, boxShadow: '0 25px 60px rgba(0,0,0,0.6)', border: '1px solid var(--panel-border)',
+                borderRadius: 'var(--radius-lg)', overflow: 'hidden'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '12px', marginBottom: '8px' }}>
-                   <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>System Alerts</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
+                   <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Notifications</span>
                    {systemNotifications?.length > 0 && (
-                     <button onClick={markNotificationsRead} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
+                     <button onClick={markNotificationsRead} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Clear all</button>
                    )}
                 </div>
-                {systemNotifications?.length === 0 ? (
-                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No new notifications</div>
-                ) : (
-                  systemNotifications.slice(0, 5).map(n => (
-                    <div key={n.id} style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--subtle-bg)', borderRadius: '8px', borderLeft: `3px solid ${n.type === 'success' ? 'var(--success)' : 'var(--danger)'}` }}>
-                       <div style={{ flex: 1 }}>
-                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{n.message}</div>
-                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{new Date(n.time).toLocaleTimeString()}</div>
-                       </div>
-                    </div>
-                  ))
-                )}
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {systemNotifications?.length === 0 ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>All caught up — no new alerts</div>
+                  ) : (
+                    systemNotifications.slice(0, 5).map(n => (
+                      <div key={n.id} style={{ display: 'flex', gap: '12px', padding: '14px 20px', borderBottom: '1px solid var(--subtle-border)' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', marginTop: '6px', flexShrink: 0, background: n.type === 'success' ? 'var(--success)' : 'var(--danger)' }}></div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>{n.message}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{new Date(n.time).toLocaleTimeString()}</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
 
+          {/* Settings */}
           <Link 
             to="/settings" 
             className="btn btn-secondary hidden-mobile" 
-            style={{ height: '42px', width: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ height: '38px', width: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={closeSidebar}
           >
-            <SettingsIcon size={18} className="text-secondary" />
+            <SettingsIcon size={17} className="text-secondary" />
           </Link>
 
+          {/* Logout */}
           {user && (
             <button 
               className="btn btn-secondary" 
-              style={{ color: 'var(--danger)', height: '42px' }}
+              style={{ color: 'var(--danger)', height: '38px', padding: '0 12px', fontSize: '0.82rem' }}
               onClick={() => {
                 signOut();
                 closeSidebar();
               }}
             >
-              <LogIn size={18} style={{ transform: 'rotate(180deg)' }} />
-              <span className="hidden-mobile" style={{ marginLeft: '6px' }}>Logout</span>
+              <LogIn size={16} style={{ transform: 'rotate(180deg)' }} />
+              <span className="hidden-mobile">Logout</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Global Search Modal */}
+      {/* ===== GLOBAL SEARCH MODAL ===== */}
       {searchOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-          background: 'rgba(2, 6, 23, 0.8)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px'
+          background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 20px'
         }} onClick={() => setSearchOpen(false)}>
-           <div className="glass-panel" style={{ 
-             width: '100%', maxWidth: '600px', padding: 0, overflow: 'hidden', 
-             border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' 
+           <div style={{ 
+             width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
+             border: '1px solid var(--panel-border)', borderRadius: 'var(--radius-lg)',
+             boxShadow: '0 25px 60px rgba(0,0,0,0.6)', overflow: 'hidden',
+             animation: 'fadeIn 0.2s ease-out'
            }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--bg-secondary)' }}>
-                 <Search size={24} className="text-muted" style={{ marginRight: '16px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--subtle-border)', gap: '12px' }}>
+                 <Search size={20} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                  <input 
                    autoFocus
                    type="text" 
-                   placeholder="Search gyms, leads, or invoices..." 
+                   placeholder="Search clients, leads, invoices..." 
                    value={searchQuery}
                    onChange={e => setSearchQuery(e.target.value)}
-                   style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.2rem', outline: 'none' }}
+                   style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.05rem', outline: 'none', fontFamily: 'var(--font-family)' }}
                  />
-                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>ESC</div>
+                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--panel-border)' }}>ESC</div>
               </div>
-              <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '12px' }}>
+              <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px' }}>
                  {searchQuery.length < 2 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Type at least 2 characters to search...</div>
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Type to search across your data...</div>
                  ) : (
                    (() => {
                      const q = searchQuery.toLowerCase();
@@ -357,25 +395,28 @@ const AppContent = () => {
                      const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0;
                      
                      return !hasResults ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No results found for "{searchQuery}"</div>
+                        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>No results for "{searchQuery}"</div>
                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                           {foundCustomers.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Clients</div>}
                            {foundCustomers.map(c => (
-                             <Link key={c.id} to="/customers" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Users size={16} className="text-accent-primary" /> <span style={{ fontWeight: 600 }}>{c.gymName}</span></div>
-                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Active Gym</span>
+                             <Link key={c.id} to="/customers" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={15} style={{ color: 'var(--accent-primary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{c.gymName}</span></div>
+                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                              </Link>
                            ))}
+                           {foundLeads.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Leads</div>}
                            {foundLeads.map(l => (
-                             <Link key={l.id} to="/leads" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Target size={16} className="text-warning" /> <span style={{ fontWeight: 600 }}>{l.gymName}</span></div>
-                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Lead</span>
+                             <Link key={l.id} to="/leads" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Target size={15} style={{ color: 'var(--warning)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{l.gymName}</span></div>
+                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                              </Link>
                            ))}
+                           {foundInvoices.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Invoices</div>}
                            {foundInvoices.map(i => (
-                             <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)' }} className="search-item">
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Receipt size={16} className="text-success" /> <span style={{ fontWeight: 600 }}>{i.invoiceNumber} - {i.prospectName}</span></div>
-                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Invoice</span>
+                             <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Receipt size={15} style={{ color: 'var(--success)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{i.invoiceNumber} — {i.prospectName}</span></div>
+                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                              </Link>
                            ))}
                         </div>
@@ -384,52 +425,62 @@ const AppContent = () => {
                  )}
               </div>
            </div>
-           <style>{`
-             .search-item:hover { background: var(--subtle-bg); }
-           `}</style>
         </div>
       )}
 
+      {/* ===== MAIN LAYOUT ===== */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         {/* Sidebar Overlay (Mobile) */}
         <div className="sidebar-overlay" onClick={closeSidebar}></div>
 
-        {/* Sidebar */}
+        {/* ===== SIDEBAR ===== */}
         <aside className={`app-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{ 
-          background: 'var(--bg-secondary)',
-          opacity: 0.98,
           display: 'flex',
           flexDirection: 'column',
-          padding: isSidebarCollapsed ? '32px 8px' : '32px 0'
+          padding: isSidebarCollapsed ? '20px 8px' : '20px 0'
         }}>
-          <div style={{ padding: isSidebarCollapsed ? '0' : '0 24px', marginBottom: '24px', textAlign: isSidebarCollapsed ? 'center' : 'left' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-              {isSidebarCollapsed ? '•' : 'Navigation'}
-            </span>
-          </div>
-          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', flex: 1, gap: '4px' }}>
+          {/* Section: CORE */}
+          <SidebarSection label="CORE" collapsed={isSidebarCollapsed} />
+          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+          </nav>
+
+          {/* Section: SALES */}
+          <SidebarSection label="SALES" collapsed={isSidebarCollapsed} />
+          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payment Portal" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtor Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Insights" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+          </nav>
+
+          {/* Section: FINANCE */}
+          <SidebarSection label="FINANCE" collapsed={isSidebarCollapsed} />
+          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+            <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+          </nav>
+
+          {/* Section: SYSTEM */}
+          <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
+          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
           
-          <div style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
+          {/* Footer */}
+          <div style={{ marginTop: 'auto', padding: '20px 24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
              {!isSidebarCollapsed && (
-               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
+               <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
                  v3.2.0 Enterprise
                </div>
              )}
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* ===== MAIN CONTENT ===== */}
         <main className={`main-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <Suspense fallback={<LoadingFallback />}>
@@ -454,34 +505,50 @@ const AppContent = () => {
   );
 };
 
+// Sidebar Section Header
+const SidebarSection = ({ label, collapsed }) => (
+  <div style={{ 
+    padding: collapsed ? '16px 0 4px' : '16px 24px 4px', 
+    textAlign: collapsed ? 'center' : 'left' 
+  }}>
+    <span style={{ 
+      fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', 
+      textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7
+    }}>
+      {collapsed ? '·' : label}
+    </span>
+  </div>
+);
+
 // NavItem Component
 const NavItem = ({ to, icon, label, onClick, collapsed }) => {
   return (
     <NavLink
       to={to}
       onClick={onClick}
+      end={to === '/'}
       style={({ isActive }) => ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'flex-start',
-        gap: collapsed ? '0' : '12px',
-        padding: collapsed ? '14px 0' : '14px 18px',
-        borderRadius: '14px',
-        color: isActive ? '#ffffff' : 'var(--text-secondary)',
-        background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05))' : 'transparent',
-        fontWeight: isActive ? '700' : '600',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        fontSize: '0.88rem',
-        borderLeft: (isActive && !collapsed) ? '4px solid var(--accent-primary)' : '4px solid transparent',
-        boxShadow: isActive ? 'inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 15px var(--accent-glow)' : 'none',
-        position: 'relative'
+        gap: collapsed ? '0' : '10px',
+        padding: collapsed ? '12px 0' : '10px 16px',
+        borderRadius: '10px',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+        fontWeight: isActive ? '700' : '500',
+        transition: 'all 0.2s ease',
+        fontSize: '0.85rem',
+        borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : '3px solid transparent',
+        position: 'relative',
+        textDecoration: 'none'
       })}
-      className={({ isActive }) => `${isActive ? "nav-item active" : "nav-item"} ${collapsed ? "collapsed" : ""}`}
+      className={({ isActive }) => `nav-item ${isActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
       title={collapsed ? label : ""}
     >
       {({ isActive }) => (
         <>
-          <span style={{ color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex' }}>{icon}</span>
+          <span style={{ color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex', flexShrink: 0 }}>{icon}</span>
           {!collapsed && <span>{label}</span>}
         </>
       )}
@@ -490,5 +557,3 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
 };
 
 export default App;
-
-

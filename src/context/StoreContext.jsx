@@ -73,6 +73,8 @@ export default function StoreContextProvider({ children }) {
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
 
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
   const [notification, setNotification] = useState(null);
   
   // Realtime System Notifications (for Bell)
