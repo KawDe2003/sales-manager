@@ -32,11 +32,11 @@ const Logs = () => {
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
-          <h1 className="h1 mb-2">Audit Trail</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Comprehensive system logs tracking communications, status updates, and automated tasks.</p>
+          <h1 className="h1 mb-2">Activity Logs</h1>
+          <p className="text-secondary" style={{ fontSize: '1rem' }}>Track system notifications, automated SMS reminders, and user activity history.</p>
         </div>
         <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.1)', height: '44px' }} onClick={clearLogs}>
-          <Trash2 size={18} /> Purge Records
+          <Trash2 size={18} /> Clear All Logs
         </button>
       </div>
 

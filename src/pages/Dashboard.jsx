@@ -97,14 +97,14 @@ const Dashboard = () => {
               filter: 'drop-shadow(0 4px 15px rgba(139, 92, 246, 0.3))',
               marginBottom: '4px'
             }}>
-              Nexus Command
+              Dashboard Overview
             </h1>
-            <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', letterSpacing: '0.1em' }}>
+            <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ 
                 width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', 
                 boxShadow: '0 0 12px #10b981, 0 0 4px #10b981'
               }}></span>
-              SYSTEMS ONLINE & SYNCHRONIZED
+              All systems active & updated
             </p>
           </div>
         </div>
@@ -113,30 +113,30 @@ const Dashboard = () => {
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-6">
         <KPIBox 
-          title="Capital Realized" 
-          subtitle="Total collected revenue"
+          title="Total Revenue" 
+          subtitle="Collected payments"
           value={`LKR ${stats.revenue.val.toLocaleString()}`} 
           icon={<IndianRupee color="#34d399" />} 
           trend={stats.revenue.growth}
           glowColor="#34d399"
         />
         <KPIBox 
-          title="Capital Pipeline" 
-          subtitle="Unpaid & overdue invoices"
+          title="Pending Invoices" 
+          subtitle="Unpaid balances"
           value={`LKR ${stats.outstanding.toLocaleString()}`} 
           icon={<Activity color="#fbbf24" />} 
           glowColor="#fbbf24"
         />
         <KPIBox 
-          title="Deployments" 
-          subtitle="Active Gym Clients"
+          title="Active Gyms" 
+          subtitle="Registered gym clients"
           value={stats.customers} 
           icon={<Globe color="#818cf8" />} 
           glowColor="#818cf8"
         />
         <KPIBox 
-          title="Market Vectors" 
-          subtitle="Warm Leads in Pipeline"
+          title="Sales Leads" 
+          subtitle="Prospects in pipeline"
           value={stats.leads} 
           icon={<Zap color="#f472b6" />} 
           glowColor="#f472b6"
@@ -154,13 +154,13 @@ const Dashboard = () => {
                   <BarChart3 color="#22d3ee" size={20} />
                </div>
                <div>
-                  <h3 className="h3">Velocity Matrix</h3>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Revenue vs Pipeline</p>
+                  <h3 className="h3">Revenue & Pipeline Trend</h3>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Collected vs Pending</p>
                </div>
             </div>
             <div className="flex items-center gap-4">
               <LegendItem color="#22d3ee" label="Collected" />
-              <LegendItem color="#8b5cf6" label="Pipeline" />
+              <LegendItem color="#8b5cf6" label="Pending" />
             </div>
           </div>
           <div style={{ flex: 1, minHeight: '320px' }}>
@@ -196,8 +196,8 @@ const Dashboard = () => {
                 <Target color="#8b5cf6" size={20} />
              </div>
              <div>
-                <h3 className="h3">Conversion Rings</h3>
-                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Lead Topology</p>
+                <h3 className="h3">Lead Conversion</h3>
+                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Leads to Deals Ratio</p>
              </div>
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -241,7 +241,7 @@ const Dashboard = () => {
                  <Globe color="#f59e0b" size={20} />
               </div>
               <div>
-                 <h3 className="h3">Distribution</h3>
+                 <h3 className="h3">Payment Status</h3>
                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Revenue Split</p>
               </div>
            </div>
@@ -291,10 +291,10 @@ const Dashboard = () => {
                     </div>
                  </div>
                  <div>
-                    <h4 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px' }}>Intelligence Protocol</h4>
-                    <h2 className="h2" style={{ color: 'var(--text-primary)' }}>System Optimized</h2>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px' }}>Business Summary</h4>
+                    <h2 className="h2" style={{ color: 'var(--text-primary)' }}>Sales Performing Well</h2>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '8px', maxWidth: '400px', lineHeight: '1.5' }}>
-                      Your fiscal architecture is demonstrating positive flow. Customer acquisition loops and invoice generation nodes remain fully functional.
+                      Your accounts and collections are performing smoothly. Invoices and client records are fully synchronized.
                     </p>
                  </div>
               </div>
@@ -303,7 +303,7 @@ const Dashboard = () => {
                     background: 'rgba(34, 211, 238, 0.1)', color: '#0ea5e9', 
                     border: '1px solid rgba(34, 211, 238, 0.2)', padding: '12px 24px' 
                  }}>
-                    <BarChart3 size={18} /> Deep Scan
+                    <BarChart3 size={18} /> View Reports
                  </Link>
               </div>
            </div>
