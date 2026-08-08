@@ -217,7 +217,7 @@ const Payments = () => {
                     <div style={{ marginTop: '24px', padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                        <AlertCircle size={18} color="var(--accent-primary)" style={{ marginTop: '2px', flexShrink: 0 }} />
                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Confirming this deposit will update the {selectedDoc.type} status and send a <strong>"Cash Received"</strong> SMS to <strong>{selectedCustomer.phone}</strong>.
+                          Confirming this deposit will update the {selectedDoc.type} status and send a <strong>"Cash Received"</strong> SMS to <strong>{selectedCustomer?.phone || 'registered customer phone'}</strong>.
                        </div>
                     </div>
                   </form>
@@ -249,7 +249,7 @@ const DocItem = ({ doc, selected, onSelect }) => (
   >
     <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>{doc.number}</div>
-      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>LKR {doc.amount.toLocaleString()}</div>
+      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>LKR {(Number(doc.amount) || 0).toLocaleString()}</div>
     </div>
     <div style={{ 
       width: '24px', height: '24px', borderRadius: '50%', border: '2px solid',
