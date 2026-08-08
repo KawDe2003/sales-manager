@@ -466,6 +466,7 @@ const AppContent = () => {
           {/* Section: SYSTEM */}
           <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+            <NavItem to="/settings" icon={<Users size={18} />} label="User Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>

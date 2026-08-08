@@ -14,6 +14,7 @@ const Settings = () => {
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
 
   const handleRefreshBalance = async () => {
     setBalanceLoading(true);
@@ -31,16 +32,134 @@ const Settings = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
         <div>
-          <h1 className="h1 mb-2">System Configuration</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Global settings for branding, API connectivity, and automated communication workflows.</p>
+          <h1 className="h1 mb-2">System Settings</h1>
+          <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage team member accounts, corporate branding, SMS API integrations, and payment details.</p>
         </div>
-        <button className="btn btn-primary" style={{ height: '48px', padding: '0 32px', boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.4)' }} onClick={handleSave}>
-          <Save size={20} /> Save All Changes
+        <button className="btn btn-primary" style={{ height: '44px', padding: '0 24px' }} onClick={handleSave}>
+          <Save size={18} /> Save All Changes
         </button>
       </div>
 
+      {/* TOP TAB NAVIGATION BAR */}
+      <div className="glass-panel flex flex-wrap gap-2 mb-8" style={{ padding: '8px 12px' }}>
+        {[
+          { id: 'users', label: 'Team & User Roles', icon: <Users size={16} /> },
+          { id: 'company', label: 'Corporate Identity', icon: <Building2 size={16} /> },
+          { id: 'sms', label: 'SMS & Messaging API', icon: <MessageSquare size={16} /> },
+          { id: 'bank', label: 'Bank & Payments', icon: <CreditCard size={16} /> }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSettingsTab(tab.id)}
+            className={`btn ${activeSettingsTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              padding: '10px 18px',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              borderRadius: '10px',
+              border: activeSettingsTab === tab.id ? 'none' : '1px solid transparent'
+            }}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB 1: TEAM & USER ROLES (PRIMARY DEFAULT VIEW) */}
+      {activeSettingsTab === 'users' && (
+        <div className="flex flex-col gap-8 mb-8">
+          <div className="glass-panel" style={{ padding: '28px' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4" style={{ borderBottom: '1px solid var(--panel-border)' }}>
+              <div className="flex items-center gap-3">
+                <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '14px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                  <Users size={24} color="var(--accent-primary)" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Access Control</div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Team & User Role Management</h2>
+                </div>
+              </div>
+              <button className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem' }} onClick={() => setShowAddUserModal(true)}>
+                <UserPlus size={18} /> + Create User Account
+              </button>
+            </div>
+
+            <p className="text-secondary" style={{ fontSize: '0.9rem', marginBottom: '24px' }}>
+              Create system logins for your sales team, managers, and accountants. Define role-based permissions to control access across client data and financial P&L statements.
+            </p>
+
+            <div className="table-container" style={{ background: 'transparent' }}>
+              <table style={{ fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Team Member</th>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>System Role</th>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Account Status</th>
+                    <th style={{ padding: '12px 0', textAlign: 'right', opacity: 0.7 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamMembers.map(member => (
+                    <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                      <td style={{ padding: '16px 0' }}>
+                        <div className="flex items-center gap-3">
+                          <div style={{
+                            width: '40px', height: '40px', borderRadius: '12px',
+                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.1))',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)'
+                          }}>
+                            {(member.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{member.name}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{member.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <select 
+                          className="form-input" 
+                          style={{ height: '38px', fontSize: '0.82rem', padding: '4px 12px', width: '190px', background: 'var(--subtle-bg)', fontWeight: 700 }}
+                          value={member.role}
+                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
+                        >
+                          <option value="Admin">👑 Admin (Full Access)</option>
+                          <option value="Sales Representative">💼 Sales Representative</option>
+                          <option value="Accountant">📊 Accountant (Read-Only)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
+                          <Check size={12} /> Active Account
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '8px 12px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to remove access for ${member.name}?`)) {
+                              deleteTeamMember && deleteTeamMember(member.id);
+                            }
+                          }}
+                          title="Revoke User Access"
+                        >
+                          <Trash2 size={14} /> Remove Account
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSettingsTab !== 'users' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Company & API */}
@@ -688,6 +807,7 @@ const Settings = () => {
         </div>
 
       </div>
+      )}
 
       {showAddUserModal && (
         <AddUserModal onClose={() => setShowAddUserModal(false)} onSave={(user) => addTeamMember && addTeamMember(user)} />
