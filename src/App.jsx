@@ -43,15 +43,75 @@ const LoadingFallback = () => (
   </div>
 );
 
+class GlobalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught application error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#090d16', color: '#f8fafc', padding: '24px', textAlign: 'center'
+        }}>
+          <div style={{
+            maxWidth: '500px', width: '100%', padding: '36px 28px', background: 'rgba(30, 41, 59, 0.8)',
+            borderRadius: '20px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+              <span style={{ fontSize: '32px' }}>⚠️</span>
+            </div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px' }}>Application Error</h2>
+            <p style={{ fontSize: '0.88rem', color: '#94a3b8', marginBottom: '24px', wordBreak: 'break-word' }}>
+              {this.state.error?.message || 'An unexpected error occurred while loading this page.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => window.location.reload()} 
+                style={{ padding: '10px 20px', borderRadius: '10px', background: '#6366f1', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+              >
+                Reload Page
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = '/';
+                }} 
+                style={{ padding: '10px 20px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: '#f8fafc', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}
+              >
+                Reset Local Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App = () => {
   return (
-    <AuthProvider>
-      <StoreContextProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </StoreContextProvider>
-    </AuthProvider>
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <StoreContextProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </StoreContextProvider>
+      </AuthProvider>
+    </GlobalErrorBoundary>
   );
 };
 
