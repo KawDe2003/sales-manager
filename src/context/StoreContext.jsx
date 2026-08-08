@@ -244,7 +244,8 @@ export default function StoreContextProvider({ children }) {
           amount: invoice.amount,
           status: invoice.status,
           items: invoice.items,
-          reminder_sent: invoice.reminderSent || false
+          reminder_sent: invoice.reminderSent || false,
+          installment_plan: invoice.installmentPlan || {}
         });
       if (error) console.error('[Supabase Sync] Invoice Error:', error);
     } catch (err) {
@@ -496,7 +497,8 @@ export default function StoreContextProvider({ children }) {
           let parsed = {
             id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
             dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
-            status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent
+            status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent,
+            installmentPlan: (inv.installment_plan && inv.installment_plan.enabled) ? inv.installment_plan : null
           };
 
           // TIER 1 FEATURE: Overdue Invoice Auto-Flag
@@ -746,6 +748,75 @@ export default function StoreContextProvider({ children }) {
     if (user) {
       await supabase.from('invoices').delete().eq('id', id);
     }
+  };
+
+  const generateInstallmentSchedule = (totalAmount, count = 3, downPayment = 0, startDate = new Date().toISOString().split('T')[0], frequency = 'Monthly') => {
+    const total = Number(totalAmount) || 0;
+    const down = Math.min(total, Math.max(0, Number(downPayment) || 0));
+    const numInstallments = Math.max(1, Number(count) || 1);
+    const remaining = Math.max(0, total - down);
+    const baseInstallment = Math.round((remaining / numInstallments) * 100) / 100;
+
+    const schedule = [];
+
+    if (down > 0) {
+      schedule.push({
+        number: 0,
+        title: 'Upfront Down Payment',
+        dueDate: startDate,
+        amount: down,
+        status: 'Pending',
+        paidDate: null,
+        paidAmount: 0
+      });
+    }
+
+    const baseDateObj = new Date(startDate);
+
+    for (let i = 1; i <= numInstallments; i++) {
+      const instDate = new Date(baseDateObj);
+      if (frequency === 'Weekly') {
+        instDate.setDate(instDate.getDate() + (i * 7));
+      } else {
+        instDate.setMonth(instDate.getMonth() + i);
+      }
+
+      let currentAmount = (i === numInstallments)
+        ? Math.round((remaining - (baseInstallment * (numInstallments - 1))) * 100) / 100
+        : baseInstallment;
+
+      schedule.push({
+        number: i,
+        title: `Installment #${i} of ${numInstallments}`,
+        dueDate: instDate.toISOString().split('T')[0],
+        amount: currentAmount,
+        status: 'Pending',
+        paidDate: null,
+        paidAmount: 0
+      });
+    }
+
+    return {
+      enabled: true,
+      count: numInstallments,
+      downPayment: down,
+      frequency: frequency,
+      totalAmount: total,
+      remainingBalance: remaining,
+      installments: schedule
+    };
+  };
+
+  const updateInvoiceInstallmentPlan = (id, plan) => {
+    setInvoices(prev => prev.map(i => {
+      if (i.id === id) {
+        const updated = { ...i, installmentPlan: plan };
+        syncInvoiceToSupabase(updated);
+        addLog('Invoice', `Updated Installment Plan for ${i.invoiceNumber}`);
+        return updated;
+      }
+      return i;
+    }));
   };
 
   const updateInvoice = (id, data) => {
@@ -1238,7 +1309,7 @@ export default function StoreContextProvider({ children }) {
     <StoreContext.Provider value={{
       customers, addCustomer, deleteCustomer, updateCustomer,
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
-      invoices, addInvoice, updateInvoice, updateInvoiceStatus,
+      invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan,
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice,
       leads, addLead, updateLead, deleteLead,
       expenses, addExpense, deleteExpense,

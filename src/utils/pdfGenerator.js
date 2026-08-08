@@ -192,6 +192,50 @@ export const generateDocumentPDF = (type, documentData, items) => {
       doc.text(splitTerms, 14, currentY);
     }
 
+    // ── Installment Schedule Table ──────────────────────────────────────────
+    if (isInvoice && documentData?.installmentPlan?.enabled && Array.isArray(documentData.installmentPlan.installments)) {
+      currentY += 10;
+      if (currentY + 50 > pageHeight - 50) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`INSTALLMENT PAYMENT SCHEDULE (${documentData.installmentPlan.count} ${documentData.installmentPlan.frequency || 'Monthly'} PAYMENTS)`, 14, currentY);
+
+      const instRows = documentData.installmentPlan.installments.map(inst => [
+        inst.title,
+        inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : 'N/A',
+        `LKR ${(inst.amount || 0).toLocaleString()}`,
+        inst.status || 'Pending'
+      ]);
+
+      autoTable(doc, {
+        startY: currentY + 4,
+        head: [['Installment', 'Due Date', 'Amount Due', 'Status']],
+        body: instRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: primaryColor,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: textColor
+        },
+        alternateRowStyles: {
+          fillColor: lightGray
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 6;
+    }
+
     // ── Footer ────────────────────────────────────────────────────────────────
     // ── Bank Account / Verification ──────────────────────────────────────────
     if (isInvoice && savedConfig.bankDetails) {

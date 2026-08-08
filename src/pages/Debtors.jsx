@@ -233,8 +233,13 @@ const Debtors = () => {
                             
                             <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <div className="flex items-center gap-3 mb-2">
+                                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'var(--accent-primary)15', padding: '4px 10px', borderRadius: '6px' }}>{inv.invoiceNumber}</span>
+                                        {inv.installmentPlan?.enabled && (
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                                                📅 {inv.installmentPlan.count} Installments ({inv.installmentPlan.frequency})
+                                            </span>
+                                        )}
                                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: inv.ageDays > 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
                                             {inv.ageDays > 0 ? `${inv.ageDays} Days Overdue` : 'Payment Current'}
                                         </span>

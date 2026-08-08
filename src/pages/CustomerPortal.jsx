@@ -528,75 +528,149 @@ const CustomerPortal = () => {
                 <p style={{ fontSize: '0.88rem' }}>There are currently no billing invoices registered for your account.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="app-table" style={{ fontSize: '0.88rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Invoice #</th>
-                      <th>Issue Date</th>
-                      <th>Due Date</th>
-                      <th>Total Amount</th>
-                      <th>Paid Amount</th>
-                      <th>Balance Due</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerInvoices.map(inv => {
-                      const paidSum = payments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
-                      const dueAmount = Math.max(0, inv.amount - paidSum);
-                      const isPaid = inv.status === 'Paid' || dueAmount <= 0;
+              <div className="flex flex-col gap-6">
+                {customerInvoices.map(inv => {
+                  const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+                  const dueAmount = Math.max(0, inv.amount - paidSum);
+                  const isPaid = inv.status === 'Paid' || dueAmount <= 0;
+                  const plan = inv.installmentPlan;
 
-                      return (
-                        <tr key={inv.id}>
-                          <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>#{inv.invoiceNumber}</td>
-                          <td>{new Date(inv.date).toLocaleDateString()}</td>
-                          <td style={{ color: !isPaid && new Date(inv.dueDate) < new Date() ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: 600 }}>
-                            {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td style={{ fontWeight: 700 }}>LKR {(inv.amount || 0).toLocaleString()}</td>
-                          <td style={{ color: 'var(--success)', fontWeight: 700 }}>LKR {paidSum.toLocaleString()}</td>
-                          <td style={{ fontWeight: 850, color: isPaid ? 'var(--success)' : 'var(--warning)', fontSize: '0.95rem' }}>
-                            LKR {dueAmount.toLocaleString()}
-                          </td>
-                          <td>
+                  return (
+                    <div key={inv.id} style={{ background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--panel-border)', padding: '20px' }}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-panel">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <span style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Invoice #{inv.invoiceNumber}</span>
                             <span className={`badge ${isPaid ? 'badge-success' : 'badge-warning'}`}>
                               {isPaid ? 'Settled' : inv.status}
                             </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="flex justify-end gap-2">
-                              <button 
-                                className="btn btn-secondary" 
-                                style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                                onClick={() => {
-                                  generateDocumentPDF('Invoice', { ...inv, gymName: authenticatedCustomer.gymName }, inv.items || []);
-                                }}
-                                title="Download PDF"
-                              >
-                                <Download size={14} /> PDF
-                              </button>
+                            {plan?.enabled && (
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                                📅 {plan.count} {plan.frequency} Installments
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Issued: {new Date(inv.date).toLocaleDateString()} • Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </div>
 
-                              {!isPaid && (
-                                <button 
-                                  className="btn btn-primary" 
-                                  style={{ padding: '6px 16px', fontSize: '0.78rem', background: 'var(--accent-primary)' }}
-                                  onClick={() => {
-                                    setSelectedInvoice(inv);
-                                    setPaymentAmount(dueAmount.toString());
-                                  }}
-                                >
-                                  <CreditCard size={14} /> Pay Now
-                                </button>
-                              )}
+                        <div className="flex items-center gap-3">
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+                            onClick={() => {
+                              generateDocumentPDF('Invoice', { ...inv, gymName: authenticatedCustomer.gymName }, inv.items || []);
+                            }}
+                          >
+                            <Download size={15} /> PDF
+                          </button>
+
+                          {!isPaid && (
+                            <button 
+                              className="btn btn-primary" 
+                              style={{ padding: '8px 18px', fontSize: '0.85rem', background: 'var(--accent-primary)' }}
+                              onClick={() => {
+                                setSelectedInvoice(inv);
+                                setPaymentAmount(dueAmount.toString());
+                              }}
+                            >
+                              <CreditCard size={15} /> Pay Balance (LKR {dueAmount.toLocaleString()})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* INSTALLMENT PLAN SCHEDULE BREAKDOWN */}
+                      {plan?.enabled && plan?.installments && (
+                        <div style={{ background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                          <div className="flex justify-between items-center mb-3">
+                            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              Installment Schedule Progress
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              Total Paid: <strong style={{ color: 'var(--success)' }}>LKR {paidSum.toLocaleString()}</strong> of LKR {inv.amount.toLocaleString()}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            {plan.installments.map((inst, idx) => {
+                              const isPastDue = new Date(inst.dueDate) < new Date() && paidSum < (inst.amount * (idx + 1));
+                              const isPaidInst = paidSum >= ((plan.downPayment || 0) + (inst.amount * (inst.number || 1)));
+
+                              return (
+                                <div key={idx} style={{ 
+                                  background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)', 
+                                  padding: '12px', borderRadius: '10px', 
+                                  border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}` 
+                                }}>
+                                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
+                                  <div className="flex justify-between items-center mt-2" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                    <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
+                                    <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
+                                      {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : 'Pending'}
+                                    </span>
+                                  </div>
+
+                                  {!isPaidInst && (
+                                    <button 
+                                      className="btn btn-secondary" 
+                                      style={{ width: '100%', marginTop: '8px', padding: '4px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                                      onClick={() => {
+                                        setSelectedInvoice(inv);
+                                        setPaymentAmount(inst.amount.toString());
+                                      }}
+                                    >
+                                      Pay {inst.title}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* OPTION TO REQUEST INSTALLMENT PLAN IF NOT ENABLED */}
+                      {!plan?.enabled && !isPaid && (
+                        <div style={{ background: 'var(--subtle-bg)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            💡 Want to pay this invoice in monthly installments?
+                          </div>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.25)' }}
+                            onClick={async () => {
+                              const newPlan = {
+                                enabled: true,
+                                count: 3,
+                                downPayment: 0,
+                                frequency: 'Monthly',
+                                totalAmount: inv.amount,
+                                remainingBalance: dueAmount,
+                                installments: [
+                                  { number: 1, title: 'Installment #1 of 3', dueDate: new Date().toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' },
+                                  { number: 2, title: 'Installment #2 of 3', dueDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' },
+                                  { number: 3, title: 'Installment #3 of 3', dueDate: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' }
+                                ]
+                              };
+                              try {
+                                await supabase.from('invoices').update({ installment_plan: newPlan }).eq('id', inv.id);
+                                showNotification('3-Month Installment Plan requested and activated!', 'success');
+                                window.location.reload();
+                              } catch (e) {
+                                showNotification('Failed to request installment plan.', 'error');
+                              }
+                            }}
+                          >
+                            Request 3-Month Installment Plan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

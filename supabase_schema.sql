@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     items JSONB DEFAULT '[]'::jsonb,
     prospect_name TEXT,
     reminder_sent BOOLEAN DEFAULT false,
+    installment_plan JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
