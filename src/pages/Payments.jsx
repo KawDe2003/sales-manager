@@ -1,12 +1,12 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { BadgeDollarSign, Search, User, FileText, CheckCircle2, AlertCircle, ShoppingBag, Send } from 'lucide-react';
+import { BadgeDollarSign, Search, User, FileText, CheckCircle2, AlertCircle, ShoppingBag, Send, CalendarDays } from 'lucide-react';
 
 const Payments = () => {
-  const { customers = [], invoices = [], quotes = [], recordCashDeposit } = useContext(StoreContext) || {};
+  const { customers = [], invoices = [], quotes = [], payments = [], recordCashDeposit } = useContext(StoreContext) || {};
   
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedDoc, setSelectedDoc] = useState(null); // { id, type, amount, number }
+  const [selectedDoc, setSelectedDoc] = useState(null); // { id, type, amount, remaining, number, rawInv }
   const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +19,16 @@ const Payments = () => {
     return gymStr.includes(searchStr) || nameStr.includes(searchStr);
   });
 
-  const customerInvoices = invoices.filter(inv => inv && selectedCustomer && inv.customerId === selectedCustomer.id && inv.status !== 'Paid');
+  const customerInvoices = invoices.filter(inv => {
+    if (!inv || !selectedCustomer) return false;
+    const isCustMatch = inv.customerId === selectedCustomer.id || (inv.prospectName && inv.prospectName === selectedCustomer.gymName);
+    if (!isCustMatch) return false;
+    const invPayments = payments.filter(p => p.documentId === inv.id);
+    const paidSum = invPayments.reduce((s, p) => s + p.amount, 0);
+    const remaining = Math.max(0, inv.amount - paidSum);
+    return inv.status !== 'Paid' && remaining > 0;
+  });
+
   const customerQuotes = quotes.filter(q => q && selectedCustomer && ((q.prospectName && q.prospectName === selectedCustomer.gymName) || (q.prospectPhone && selectedCustomer.phone && q.prospectPhone === selectedCustomer.phone)) && q.status === 'Accepted');
 
   const handleRecordPayment = async (e) => {
@@ -38,8 +47,6 @@ const Payments = () => {
       // Reset
       setSelectedDoc(null);
       setAmount('');
-      // Keep customer selected for multiple payments if needed, or reset:
-      // setSelectedCustomer(null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -51,7 +58,7 @@ const Payments = () => {
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="mb-8">
         <h1 className="h1 mb-2">Payment Portal</h1>
-        <p className="text-secondary">Record cash deposits and send instant payment confirmations to your clients.</p>
+        <p className="text-secondary">Record cash deposits, track installment schedules, and send instant payment confirmations to your clients.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -133,17 +140,22 @@ const Payments = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2">
-                        {customerInvoices.map(inv => (
-                          <DocItem 
-                            key={inv.id} 
-                            doc={{ ...inv, type: 'Invoice', number: inv.invoiceNumber }} 
-                            selected={selectedDoc?.id === inv.id}
-                            onSelect={() => {
-                                setSelectedDoc({ id: inv.id, type: 'Invoice', amount: inv.amount, number: inv.invoiceNumber });
-                                setAmount(inv.amount.toString());
-                            }}
-                          />
-                        ))}
+                        {customerInvoices.map(inv => {
+                          const paidSum = payments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+                          const remaining = Math.max(0, inv.amount - paidSum);
+
+                          return (
+                            <DocItem 
+                              key={inv.id} 
+                              doc={{ ...inv, type: 'Invoice', number: inv.invoiceNumber, remaining }} 
+                              selected={selectedDoc?.id === inv.id}
+                              onSelect={() => {
+                                  setSelectedDoc({ id: inv.id, type: 'Invoice', amount: inv.amount, remaining, number: inv.invoiceNumber, rawInv: inv });
+                                  setAmount(remaining.toString());
+                              }}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -159,10 +171,10 @@ const Payments = () => {
                          {customerQuotes.map(q => (
                           <DocItem 
                             key={q.id} 
-                            doc={{ ...q, type: 'Quotation', number: q.quoteNumber }} 
+                            doc={{ ...q, type: 'Quotation', number: q.quoteNumber, remaining: q.amount }} 
                             selected={selectedDoc?.id === q.id}
                             onSelect={() => {
-                                setSelectedDoc({ id: q.id, type: 'Quotation', amount: q.amount, number: q.quoteNumber });
+                                setSelectedDoc({ id: q.id, type: 'Quotation', amount: q.amount, remaining: q.amount, number: q.quoteNumber, rawInv: q });
                                 setAmount(q.amount.toString());
                             }}
                           />
@@ -173,54 +185,114 @@ const Payments = () => {
                 </div>
               </div>
 
-              {/* Payment Entry */}
+              {/* Payment Entry & Installment Schedule Card */}
               {selectedDoc && (
-                <div className="glass-panel" style={{ animation: 'fadeIn 0.4s ease-out', border: '1px solid var(--accent-primary)40' }}>
-                   <div className="flex items-center gap-3 mb-6">
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--success)20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={18} color="var(--success)" />
-                    </div>
-                    <h2 className="h3">3. Record Cash Amount</h2>
-                  </div>
-
-                  <form onSubmit={handleRecordPayment}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                      <div className="form-group mb-0">
-                        <label className="form-label">Payment Amount (LKR)</label>
-                        <div style={{ position: 'relative' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>LKR</span>
-                          <input 
-                            required 
-                            type="number" 
-                            className="form-input" 
-                            style={{ paddingLeft: '56px', fontSize: '1.25rem', fontWeight: 800, height: '52px' }}
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
-                          />
+                <div className="flex flex-col gap-6">
+                  {/* INSTALLMENT PLAN SCHEDULE BREAKDOWN */}
+                  {selectedDoc.type === 'Invoice' && selectedDoc.rawInv?.installmentPlan?.enabled && (
+                    <div className="glass-panel" style={{ border: '1px solid rgba(99, 102, 241, 0.3)', background: 'rgba(99, 102, 241, 0.05)' }}>
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            Active Installment Plan Schedule
+                          </div>
+                          <h3 className="h3" style={{ fontSize: '1.1rem', margin: '2px 0 0 0' }}>
+                            Invoice #{selectedDoc.number} Breakdown ({selectedDoc.rawInv.installmentPlan.count} {selectedDoc.rawInv.installmentPlan.frequency || 'Monthly'} Payments)
+                          </h3>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Remaining Due: <strong style={{ color: 'var(--warning)' }}>LKR {selectedDoc.remaining.toLocaleString()}</strong>
                         </div>
                       </div>
-                      
-                      <button 
-                        type="submit" 
-                        disabled={isSubmitting}
-                        className="btn btn-primary" 
-                        style={{ height: '52px', fontSize: '1rem', width: '100%' }}
-                      >
-                        {isSubmitting ? 'Processing...' : (
-                          <>
-                            <Send size={18} /> Confirm Deposit & Notify
-                          </>
-                        )}
-                      </button>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        {selectedDoc.rawInv.installmentPlan.installments?.map((inst, idx) => {
+                          const paidSum = payments.filter(p => p.documentId === selectedDoc.id).reduce((s, p) => s + p.amount, 0);
+                          const isPaidInst = inst.status === 'Paid' || paidSum >= ((selectedDoc.rawInv.installmentPlan.downPayment || 0) + (inst.amount * (inst.number || 1)));
+                          const isPastDue = !isPaidInst && new Date(inst.dueDate) < new Date();
+
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                padding: '12px', borderRadius: '10px',
+                                background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
+                                border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}`
+                              }}
+                            >
+                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
+                              <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
+                              <div className="flex justify-between items-center mt-1" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
+                                <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
+                                  {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : 'Pending'}
+                                </span>
+                              </div>
+
+                              {!isPaidInst && (
+                                <button 
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ width: '100%', marginTop: '8px', padding: '5px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                                  onClick={() => setAmount(inst.amount.toString())}
+                                >
+                                  Fill LKR {inst.amount.toLocaleString()}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="glass-panel" style={{ border: '1px solid var(--accent-primary)40' }}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--success)20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CheckCircle2 size={18} color="var(--success)" />
+                      </div>
+                      <h2 className="h3">3. Record Cash Amount</h2>
                     </div>
 
-                    <div style={{ marginTop: '24px', padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                       <AlertCircle size={18} color="var(--accent-primary)" style={{ marginTop: '2px', flexShrink: 0 }} />
-                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Confirming this deposit will update the {selectedDoc.type} status and send a <strong>"Cash Received"</strong> SMS to <strong>{selectedCustomer?.phone || 'registered customer phone'}</strong>.
-                       </div>
-                    </div>
-                  </form>
+                    <form onSubmit={handleRecordPayment}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                        <div className="form-group mb-0">
+                          <label className="form-label">Payment Amount (LKR)</label>
+                          <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>LKR</span>
+                            <input 
+                              required 
+                              type="number" 
+                              className="form-input" 
+                              style={{ paddingLeft: '56px', fontSize: '1.25rem', fontWeight: 800, height: '52px' }}
+                              value={amount}
+                              onChange={e => setAmount(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        <button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="btn btn-primary" 
+                          style={{ height: '52px', fontSize: '1rem', width: '100%' }}
+                        >
+                          {isSubmitting ? 'Processing...' : (
+                            <>
+                              <Send size={18} /> Confirm Deposit & Notify
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: '24px', padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                         <AlertCircle size={18} color="var(--accent-primary)" style={{ marginTop: '2px', flexShrink: 0 }} />
+                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Confirming this deposit will update the {selectedDoc.type} status and send a <strong>"Cash Received"</strong> SMS to <strong>{selectedCustomer?.phone || 'registered customer phone'}</strong>.
+                         </div>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               )}
             </div>
@@ -248,8 +320,17 @@ const DocItem = ({ doc, selected, onSelect }) => (
     }}
   >
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>{doc.number}</div>
-      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>LKR {(Number(doc.amount) || 0).toLocaleString()}</div>
+      <div className="flex items-center gap-2 mb-1">
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{doc.number}</span>
+        {doc.installmentPlan?.enabled && (
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '1px 6px', borderRadius: '4px' }}>
+            📅 {doc.installmentPlan.count} Plan
+          </span>
+        )}
+      </div>
+      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+        LKR {(Number(doc.remaining || doc.amount) || 0).toLocaleString()} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>of LKR {(Number(doc.amount) || 0).toLocaleString()}</span>
+      </div>
     </div>
     <div style={{ 
       width: '24px', height: '24px', borderRadius: '50%', border: '2px solid',
