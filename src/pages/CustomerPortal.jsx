@@ -210,6 +210,22 @@ const CustomerPortal = () => {
 
       // Fetch matching invoices & payments from Supabase
       try {
+        let dbCustomersList = [];
+        try {
+          const { data: dbCust } = await supabase.from('customers').select('*');
+          if (dbCust) dbCustomersList = dbCust;
+        } catch (e) {}
+
+        const allKnownCustomers = [...customers, ...dbCustomersList];
+        allKnownCustomers.forEach(c => {
+          if (c && (c.phone || c.phone_number)) {
+            const cClean = getCleanDigits(c.phone || c.phone_number);
+            if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) {
+              if (!matchedCustomerIds.includes(c.id)) matchedCustomerIds.push(c.id);
+            }
+          }
+        });
+
         const { data: dbInvoices } = await supabase.from('invoices').select('*');
         let matchedInvoices = [];
         if (dbInvoices) {
@@ -219,6 +235,13 @@ const CustomerPortal = () => {
             if (inv.prospect_phone) {
               const pClean = getCleanDigits(inv.prospect_phone);
               if (pClean.endsWith(searchLast9) || cleanPhone.endsWith(pClean.slice(-9))) return true;
+            }
+            if (inv.customer_id) {
+              const custObj = allKnownCustomers.find(c => c.id === inv.customer_id);
+              if (custObj && (custObj.phone || custObj.phone_number)) {
+                const cClean = getCleanDigits(custObj.phone || custObj.phone_number);
+                if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) return true;
+              }
             }
             return false;
           }).map(i => ({
@@ -422,19 +445,38 @@ const CustomerPortal = () => {
   // Combine invoices & payments from StoreContext state AND fetched portal data
   const allInvoices = [...invoices, ...portalInvoices];
   const customerInvoicesMap = new Map();
+  const matchedCustomerIds = new Set();
 
   if (authenticatedCustomer) {
     const cleanAuthPhone = getCleanDigits(authenticatedCustomer.phone || phoneNumber);
     const searchLast9 = cleanAuthPhone.slice(-9);
 
+    if (authenticatedCustomer.id) matchedCustomerIds.add(authenticatedCustomer.id);
+    
+    customers.forEach(c => {
+      if (c && c.phone) {
+        const cClean = getCleanDigits(c.phone);
+        if (cClean.endsWith(searchLast9) || cleanAuthPhone.endsWith(cClean.slice(-9))) {
+          matchedCustomerIds.add(c.id);
+        }
+      }
+    });
+
     allInvoices.forEach(inv => {
       let isMatch = false;
-      if (inv.customerId === authenticatedCustomer.id) isMatch = true;
+      if (inv.customerId && matchedCustomerIds.has(inv.customerId)) isMatch = true;
       else if (inv.prospectName && inv.prospectName.toLowerCase() === (authenticatedCustomer.gymName || '').toLowerCase()) isMatch = true;
       else if (inv.prospectPhone) {
         const pClean = getCleanDigits(inv.prospectPhone);
         if (pClean.endsWith(searchLast9) || cleanAuthPhone.endsWith(pClean.slice(-9))) isMatch = true;
+      } else if (inv.customerId) {
+        const custObj = customers.find(c => c.id === inv.customerId);
+        if (custObj && custObj.phone) {
+          const cClean = getCleanDigits(custObj.phone);
+          if (cClean.endsWith(searchLast9) || cleanAuthPhone.endsWith(cClean.slice(-9))) isMatch = true;
+        }
       }
+
       if (isMatch && !customerInvoicesMap.has(inv.id)) {
         customerInvoicesMap.set(inv.id, inv);
       }
@@ -442,11 +484,20 @@ const CustomerPortal = () => {
   }
 
   const customerInvoices = Array.from(customerInvoicesMap.values());
-  const allPaymentsMap = new Map();
+  const customerInvoiceIds = new Set(customerInvoices.map(i => i.id));
+
+  const matchedPaymentsMap = new Map();
   [...payments, ...portalPayments].forEach(p => {
-    if (!allPaymentsMap.has(p.id)) allPaymentsMap.set(p.id, p);
+    if (!p) return;
+    let isPayMatch = false;
+    if (p.customerId && matchedCustomerIds.has(p.customerId)) isPayMatch = true;
+    if (p.documentId && customerInvoiceIds.has(p.documentId)) isPayMatch = true;
+    if (isPayMatch && !matchedPaymentsMap.has(p.id)) {
+      matchedPaymentsMap.set(p.id, p);
+    }
   });
-  const allPayments = Array.from(allPaymentsMap.values());
+
+  const allPayments = Array.from(matchedPaymentsMap.values());
 
   const activeInvoices = customerInvoices.filter(inv => {
     const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
