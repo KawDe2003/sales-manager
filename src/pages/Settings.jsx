@@ -1,10 +1,19 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, Settings2, Info, Layout } from 'lucide-react';
+import { 
+  Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, 
+  Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
+  Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check
+} from 'lucide-react';
 
 const Settings = () => {
-  const { smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, handleTestSms, resetToSeynexDefaults } = useContext(StoreContext) || {};
+  const { 
+    smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
+    handleTestSms, resetToSeynexDefaults,
+    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember
+  } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
 
   const handleRefreshBalance = async () => {
     setBalanceLoading(true);
@@ -585,6 +594,78 @@ const Settings = () => {
             </div>
           </div>
 
+          {/* TEAM & USER ROLES MANAGEMENT PANEL */}
+          <div className="glass-panel">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                  <Users size={22} color="var(--accent-primary)" />
+                </div>
+                <div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Team & User Role Management</h2>
+                  <p className="text-secondary" style={{ fontSize: '0.8rem', margin: 0 }}>Create system accounts and define access privileges.</p>
+                </div>
+              </div>
+              <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }} onClick={() => setShowAddUserModal(true)}>
+                <UserPlus size={16} /> Create User
+              </button>
+            </div>
+
+            <div className="table-container" style={{ background: 'transparent' }}>
+              <table style={{ fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Team Member</th>
+                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Assigned Role</th>
+                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Status</th>
+                    <th style={{ padding: '10px 0', textAlign: 'right', opacity: 0.7 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamMembers.map(member => (
+                    <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                      <td style={{ padding: '12px 0' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{member.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{member.email}</div>
+                      </td>
+                      <td>
+                        <select 
+                          className="form-input" 
+                          style={{ height: '34px', fontSize: '0.78rem', padding: '2px 8px', width: '160px', background: 'var(--subtle-bg)' }}
+                          value={member.role}
+                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
+                        >
+                          <option value="Admin">Admin (Full Access)</option>
+                          <option value="Sales Representative">Sales Representative</option>
+                          <option value="Accountant">Accountant (Read-Only)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                          <Check size={10} /> Active
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '6px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)', border: 'none' }}
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
+                              deleteTeamMember && deleteTeamMember(member.id);
+                            }
+                          }}
+                          title="Revoke User Access"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Dynamic Variable Glossary */}
           <div className="glass-panel" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05), transparent)' }}>
             <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
@@ -606,6 +687,67 @@ const Settings = () => {
           </div>
         </div>
 
+      </div>
+
+      {showAddUserModal && (
+        <AddUserModal onClose={() => setShowAddUserModal(false)} onSave={(user) => addTeamMember && addTeamMember(user)} />
+      )}
+    </div>
+  );
+};
+
+const AddUserModal = ({ onClose, onSave }) => {
+  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'Sales Representative', password: '' });
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      padding: '24px'
+    }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="modal-header">
+           <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Create User Account</h2>
+           <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          onSave(userForm);
+          onClose();
+        }} className="modal-body">
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Full Name</label>
+            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Kasun Perera" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} />
+          </div>
+
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Email Address (Login Username)</label>
+            <input required type="email" className="form-input" style={{ height: '42px' }} placeholder="kasun@seynex.com" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} />
+          </div>
+
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Assign User Role</label>
+            <select className="form-input" style={{ height: '42px' }} value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}>
+              <option value="Admin">Admin (Full Access & Settings)</option>
+              <option value="Sales Representative">Sales Representative (Sales & Inventory)</option>
+              <option value="Accountant">Accountant (Read-Only Financials)</option>
+            </select>
+          </div>
+
+          <div className="form-group mb-6">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Initial Temporary Password</label>
+            <input required type="password" className="form-input" style={{ height: '42px' }} placeholder="••••••••" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} />
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '24px 0' }}></div>
+
+          <div className="flex justify-end gap-4 responsive-form-actions">
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>Discard</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem' }}>Create Account</button>
+          </div>
+        </form>
       </div>
     </div>
   );

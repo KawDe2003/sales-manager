@@ -82,6 +82,45 @@ export default function StoreContextProvider({ children }) {
   
   const markNotificationsRead = () => setSystemNotifications([]);
 
+  const [teamMembers, setTeamMembers] = useState(() => {
+    const saved = localStorage.getItem('gym_team_members');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: '1', name: 'System Administrator', email: user?.email || 'admin@company.com', role: 'Admin', status: 'Active', addedAt: new Date().toISOString() },
+      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', addedAt: new Date().toISOString() },
+      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', addedAt: new Date().toISOString() }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
+  }, [teamMembers]);
+
+  const addTeamMember = (data) => {
+    const newMember = {
+      id: Date.now().toString(),
+      name: data.name,
+      email: data.email,
+      role: data.role || 'Sales Representative',
+      status: 'Active',
+      addedAt: new Date().toISOString()
+    };
+    setTeamMembers(prev => [newMember, ...prev]);
+    showNotification(`Added team member ${data.name} as ${newMember.role}`);
+  };
+
+  const updateTeamMemberRole = (id, newRole) => {
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, role: newRole } : m));
+    showNotification(`Updated user role to ${newRole}`);
+  };
+
+  const deleteTeamMember = (id) => {
+    setTeamMembers(prev => prev.filter(m => m.id !== id));
+    showNotification(`Removed team member`, 'warning');
+  };
+
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
@@ -1089,6 +1128,7 @@ export default function StoreContextProvider({ children }) {
       addCustomerNote,
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
+      teamMembers, addTeamMember, updateTeamMemberRole, deleteTeamMember,
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, markNotificationsRead,
