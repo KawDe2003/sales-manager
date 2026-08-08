@@ -69,11 +69,10 @@ const Invoices = () => {
               <Download size={18} className="text-success" />
               <span className="sm-hidden">Export CSV</span>
             </button>
-            <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
-              <Plus size={18} /> Create Invoice
-            </button>
           </div>
         </div>
+      </div>
+
       {/* TOP INVOICE METRICS BAR */}
       {(() => {
         const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
