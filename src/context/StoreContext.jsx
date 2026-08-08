@@ -558,7 +558,6 @@ export default function StoreContextProvider({ children }) {
   }, [user]);
 
   // Actions
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const addCustomer = (customer) => {
     const newCustomer = { 
       ...customer, 
