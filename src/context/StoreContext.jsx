@@ -98,6 +98,39 @@ export default function StoreContextProvider({ children }) {
     localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
   }, [teamMembers]);
 
+  const [customRoles, setCustomRoles] = useState(() => {
+    const saved = localStorage.getItem('gym_custom_roles');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 'role-1', title: 'Admin', permissions: ['all'], isSystem: true },
+      { id: 'role-2', title: 'Sales Representative', permissions: ['manage_clients', 'manage_quotes', 'manage_invoices', 'view_inventory'], isSystem: true },
+      { id: 'role-3', title: 'Accountant', permissions: ['view_financials', 'view_invoices', 'view_debtors'], isSystem: true },
+      { id: 'role-4', title: 'Inventory Manager', permissions: ['manage_inventory', 'view_reports'], isSystem: false }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gym_custom_roles', JSON.stringify(customRoles));
+  }, [customRoles]);
+
+  const addCustomRole = (roleData) => {
+    const newRole = {
+      id: `role-${Date.now()}`,
+      title: roleData.title,
+      permissions: roleData.permissions || [],
+      isSystem: false
+    };
+    setCustomRoles(prev => [...prev, newRole]);
+    showNotification(`Created custom user role: ${roleData.title}`);
+  };
+
+  const deleteCustomRole = (roleId) => {
+    setCustomRoles(prev => prev.filter(r => r.id !== roleId));
+    showNotification(`Deleted custom role`, 'warning');
+  };
+
   const addTeamMember = (data) => {
     const newMember = {
       id: Date.now().toString(),
@@ -1128,6 +1161,7 @@ export default function StoreContextProvider({ children }) {
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
       teamMembers, addTeamMember, updateTeamMemberRole, deleteTeamMember,
+      customRoles, addCustomRole, deleteCustomRole,
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, markNotificationsRead,

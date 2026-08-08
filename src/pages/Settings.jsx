@@ -10,10 +10,12 @@ const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     handleTestSms, resetToSeynexDefaults,
-    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember
+    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember,
+    customRoles = [], addCustomRole, deleteCustomRole
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
 
   const handleRefreshBalance = async () => {
@@ -129,6 +131,9 @@ const Settings = () => {
                           <option value="Admin">👑 Admin (Full Access)</option>
                           <option value="Sales Representative">💼 Sales Representative</option>
                           <option value="Accountant">📊 Accountant (Read-Only)</option>
+                          {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
+                            <option key={r.id} value={r.title}>🛡️ {r.title}</option>
+                          ))}
                         </select>
                       </td>
                       <td>
@@ -156,6 +161,62 @@ const Settings = () => {
               </table>
             </div>
           </div>
+
+          {/* CUSTOM USER ROLES & PERMISSIONS PANEL */}
+          <div className="glass-panel" style={{ padding: '28px' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4" style={{ borderBottom: '1px solid var(--panel-border)' }}>
+              <div className="flex items-center gap-3">
+                <div style={{ padding: '12px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '14px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                  <Shield size={24} color="#a855f7" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Role Definitions</div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Defined System & Custom Roles</h2>
+                </div>
+              </div>
+              <button className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.88rem', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#a855f7' }} onClick={() => setShowCreateRoleModal(true)}>
+                <Shield size={16} /> + Create Custom Role
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customRoles.map(role => (
+                <div key={role.id} style={{
+                  background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '14px',
+                  border: '1px solid var(--subtle-border)', display: 'flex', flexDirection: 'column', justifyBetween: 'space-between'
+                }}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span style={{ fontWeight: 850, fontSize: '1rem', color: 'var(--text-primary)' }}>{role.title}</span>
+                    {role.isSystem ? (
+                      <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>System Built-in</span>
+                    ) : (
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '4px 8px', fontSize: '0.7rem', color: 'var(--danger)', background: 'transparent' }}
+                        onClick={() => deleteCustomRole && deleteCustomRole(role.id)}
+                      >
+                        Delete Role
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {role.permissions.includes('all') ? (
+                      <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>Full System Access</span>
+                    ) : (
+                      role.permissions.map(p => (
+                        <span key={p} className="badge badge-secondary" style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)' }}>
+                          {p.replace(/_/g, ' ')}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
         </div>
       )}
 
@@ -810,13 +871,24 @@ const Settings = () => {
       )}
 
       {showAddUserModal && (
-        <AddUserModal onClose={() => setShowAddUserModal(false)} onSave={(user) => addTeamMember && addTeamMember(user)} />
+        <AddUserModal 
+          onClose={() => setShowAddUserModal(false)} 
+          onSave={(user) => addTeamMember && addTeamMember(user)} 
+          customRoles={customRoles}
+        />
+      )}
+
+      {showCreateRoleModal && (
+        <CreateRoleModal 
+          onClose={() => setShowCreateRoleModal(false)} 
+          onSave={(roleData) => addCustomRole && addCustomRole(roleData)} 
+        />
       )}
     </div>
   );
 };
 
-const AddUserModal = ({ onClose, onSave }) => {
+const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
   const [userForm, setUserForm] = useState({ name: '', email: '', role: 'Sales Representative', password: '' });
 
   return (
@@ -853,6 +925,9 @@ const AddUserModal = ({ onClose, onSave }) => {
               <option value="Admin">Admin (Full Access & Settings)</option>
               <option value="Sales Representative">Sales Representative (Sales & Inventory)</option>
               <option value="Accountant">Accountant (Read-Only Financials)</option>
+              {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
+                <option key={r.id} value={r.title}>{r.title}</option>
+              ))}
             </select>
           </div>
 
@@ -866,6 +941,86 @@ const AddUserModal = ({ onClose, onSave }) => {
           <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>Discard</button>
             <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem' }}>Create Account</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const CreateRoleModal = ({ onClose, onSave }) => {
+  const [roleTitle, setRoleTitle] = useState('');
+  const [permissions, setPermissions] = useState(['manage_clients', 'manage_invoices']);
+
+  const availablePermissions = [
+    { id: 'all', label: '👑 Full System Administrative Access' },
+    { id: 'manage_clients', label: '👥 Manage Gym Clients & Leads' },
+    { id: 'manage_quotes', label: '📄 Manage Quotations' },
+    { id: 'manage_invoices', label: '🧾 Manage Invoices & Payments' },
+    { id: 'manage_inventory', label: '📦 Manage Inventory Stock & Pricing' },
+    { id: 'view_financials', label: '📊 View Profit & Loss (P&L) Reports' },
+    { id: 'manage_users', label: '🔑 Manage Team Accounts & User Roles' },
+  ];
+
+  const togglePerm = (permId) => {
+    if (permissions.includes(permId)) {
+      setPermissions(permissions.filter(p => p !== permId));
+    } else {
+      setPermissions([...permissions, permId]);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      padding: '24px'
+    }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+        <div className="modal-header">
+           <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Create Custom User Role</h2>
+           <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!roleTitle.trim()) return;
+          onSave({ title: roleTitle, permissions });
+          onClose();
+        }} className="modal-body">
+          <div className="form-group mb-6">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Role Title Name</label>
+            <input required type="text" className="form-input" style={{ height: '44px' }} placeholder="e.g. Regional Support Manager" value={roleTitle} onChange={e => setRoleTitle(e.target.value)} />
+          </div>
+
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px' }}>
+            Select Access Rights & Privileges:
+          </div>
+
+          <div className="flex flex-col gap-3 mb-6" style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '6px' }}>
+            {availablePermissions.map(p => (
+              <label key={p.id} className="flex items-center gap-3 hover-lift" style={{
+                padding: '10px 14px', background: 'var(--subtle-bg)', borderRadius: '10px',
+                border: `1px solid ${permissions.includes(p.id) ? 'rgba(168, 85, 247, 0.4)' : 'var(--subtle-border)'}`,
+                cursor: 'pointer'
+              }}>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '18px', height: '18px', accentColor: '#a855f7' }}
+                  checked={permissions.includes(p.id)}
+                  onChange={() => togglePerm(p.id)}
+                />
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{p.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '24px 0' }}></div>
+
+          <div className="flex justify-end gap-4 responsive-form-actions">
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>Discard</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem', background: '#a855f7', borderColor: '#a855f7' }}>Save Role Definition</button>
           </div>
         </form>
       </div>
