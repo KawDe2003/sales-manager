@@ -217,8 +217,6 @@ const Settings = () => {
           </div>
         </div>
       )}
-        </div>
-      )}
 
       {activeSettingsTab !== 'users' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
