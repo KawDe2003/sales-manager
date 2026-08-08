@@ -350,7 +350,11 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             <div className="flex gap-4">
               <select className="form-input flex-1" style={{ height: '44px' }} value={selectedInventoryId} onChange={e => setSelectedInventoryId(e.target.value)}>
                 <option value="">+ Browse inventory...</option>
-                {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} • Selling Price: LKR {(inv.price || 0).toLocaleString()}</option>)}
+                {inventory.map(inv => (
+                  <option key={inv.id} value={inv.id}>
+                    {inv.name} • LKR {(inv.price || 0).toLocaleString()} {inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}
+                  </option>
+                ))}
               </select>
               <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
             </div>

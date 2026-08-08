@@ -9,18 +9,40 @@ import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
 
 const Inventory = () => {
-  const { inventory = [], addInventoryItem, deleteInventoryItem, updateInventoryItem } = useContext(StoreContext) || {};
+  const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem } = useContext(StoreContext) || {};
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'stock'
 
+  // --- SALES & UNITS SOLD LINKAGE CALCULATIONS ---
+  const itemSalesMap = React.useMemo(() => {
+    const map = {}; // itemID/Name -> { unitsSold, salesRevenue }
+    invoices.forEach(inv => {
+      if (inv.status === 'Paid' || inv.status === 'Sent' || inv.status === 'Partially Paid') {
+        (inv.items || []).forEach(lineItem => {
+          if (!lineItem || lineItem.isDiscount) return;
+          const key = lineItem.id || lineItem.name;
+          const qty = Number(lineItem.quantity || 1);
+          const price = Number(lineItem.price || 0);
+          
+          if (!map[key]) map[key] = { unitsSold: 0, salesRevenue: 0 };
+          map[key].unitsSold += qty;
+          map[key].salesRevenue += price * qty;
+        });
+      }
+    });
+    return map;
+  }, [invoices]);
+
   // --- VALUATION METRICS CALCULATIONS ---
   const stockMetrics = React.useMemo(() => {
     let totalRetail = 0;
     let totalCost = 0;
     let lowStockCount = 0;
+    let totalUnitsSold = 0;
+    let totalSalesRevenue = 0;
 
     inventory.forEach(item => {
       const qty = item.stock || 0;
@@ -34,13 +56,17 @@ const Inventory = () => {
       if (item.type === 'Hardware' && qty <= reorder) {
         lowStockCount++;
       }
+
+      const salesData = itemSalesMap[item.id] || itemSalesMap[item.name] || { unitsSold: 0, salesRevenue: 0 };
+      totalUnitsSold += salesData.unitsSold;
+      totalSalesRevenue += salesData.salesRevenue;
     });
 
     const potentialProfit = totalRetail - totalCost;
     const overallMarginPct = totalRetail > 0 ? Math.round((potentialProfit / totalRetail) * 100) : 0;
 
-    return { totalRetail, totalCost, potentialProfit, overallMarginPct, lowStockCount };
-  }, [inventory]);
+    return { totalRetail, totalCost, potentialProfit, overallMarginPct, lowStockCount, totalUnitsSold, totalSalesRevenue };
+  }, [inventory, itemSalesMap]);
 
   const handleExportStockExcel = () => {
     const data = inventory.map(item => {
@@ -126,53 +152,65 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* VALUATION SUMMARY METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+      {/* VALUATION & SALES SUMMARY METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Stock Retail Value
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
             LKR {stockMetrics.totalRetail.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            At selling price
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Available catalog
           </div>
         </div>
 
-        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+        <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Stock Cost Value
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>
             LKR {stockMetrics.totalCost.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
             At acquisition cost
           </div>
         </div>
 
-        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+        <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
-            Potential Stock Profit
+            Total Sales Units
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>
+            {stockMetrics.totalUnitsSold} Units
+          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', marginTop: '4px', fontWeight: 700 }}>
+            LKR {stockMetrics.totalSalesRevenue.toLocaleString()} Revenue
+          </div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Potential Profit
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>
             LKR {stockMetrics.potentialProfit.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--success)', marginTop: '4px', fontWeight: 700 }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--success)', marginTop: '4px', fontWeight: 700 }}>
             {stockMetrics.overallMarginPct}% Margin
           </div>
         </div>
 
-        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+        <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Reorder Alerts
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
             {stockMetrics.lowStockCount} Items
           </div>
-          <div style={{ fontSize: '0.72rem', color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
-            {stockMetrics.lowStockCount > 0 ? 'Requires stock reorder' : 'All stock levels healthy'}
+          <div style={{ fontSize: '0.7rem', color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
+            {stockMetrics.lowStockCount > 0 ? 'Requires stock reorder' : 'All stock healthy'}
           </div>
         </div>
       </div>
@@ -286,6 +324,7 @@ const Inventory = () => {
                   <th>Cost Price</th>
                   <th>Selling Price</th>
                   <th>Unit Profit</th>
+                  <th>Units Sold (Sales)</th>
                   <th>In Stock</th>
                   <th>Stock Cost</th>
                   <th>Retail Value</th>
@@ -305,6 +344,7 @@ const Inventory = () => {
                     <StockRow 
                       key={item.id} 
                       item={item} 
+                      salesData={itemSalesMap[item.id] || itemSalesMap[item.name] || { unitsSold: 0, salesRevenue: 0 }}
                       onUpdateStock={handleUpdateStock}
                       getTypeIcon={getTypeIcon}
                     />
@@ -402,7 +442,7 @@ const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass 
   );
 };
 
-const StockRow = ({ item, onUpdateStock, getTypeIcon }) => {
+const StockRow = ({ item, salesData = { unitsSold: 0, salesRevenue: 0 }, onUpdateStock, getTypeIcon }) => {
   const sellingPrice = Number(item.price) || 0;
   const costPrice = Number(item.costPrice) || 0;
   const unitProfit = sellingPrice - costPrice;
@@ -439,6 +479,16 @@ const StockRow = ({ item, onUpdateStock, getTypeIcon }) => {
       <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {sellingPrice.toLocaleString()}</td>
       <td style={{ fontWeight: 800, color: unitProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
         LKR {unitProfit.toLocaleString()}
+      </td>
+      <td style={{ fontWeight: 800 }}>
+        {salesData.unitsSold > 0 ? (
+          <div>
+            <div style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>{salesData.unitsSold} Units</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 700 }}>LKR {salesData.salesRevenue.toLocaleString()}</div>
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>0 Sold</span>
+        )}
       </td>
       <td>
         {isService ? (

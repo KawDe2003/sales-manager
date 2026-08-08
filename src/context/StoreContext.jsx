@@ -675,10 +675,53 @@ export default function StoreContextProvider({ children }) {
     }));
   };
   
+  // Helper to deduct stock quantities from inventory upon sales
+  const deductStockForInvoice = (items = []) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    setInventory(prevInventory => {
+      return prevInventory.map(invItem => {
+        const lineMatch = items.find(it => !it.isDiscount && ((it.id && it.id === invItem.id) || (it.name && it.name.toLowerCase() === invItem.name.toLowerCase())));
+        if (lineMatch && invItem.type === 'Hardware') {
+          const lineQty = Number(lineMatch.quantity || 1);
+          const newStock = Math.max(0, (Number(invItem.stock) || 0) - lineQty);
+          const updated = { ...invItem, stock: newStock };
+          syncInventoryToSupabase(updated);
+          addLog('Inventory', `Stock deducted: ${invItem.name} (-${lineQty} units). New Stock: ${newStock}`);
+          return updated;
+        }
+        return invItem;
+      });
+    });
+  };
+
+  // Helper to restore stock quantities if invoice is cancelled or deleted
+  const restoreStockForInvoice = (items = []) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    setInventory(prevInventory => {
+      return prevInventory.map(invItem => {
+        const lineMatch = items.find(it => !it.isDiscount && ((it.id && it.id === invItem.id) || (it.name && it.name.toLowerCase() === invItem.name.toLowerCase())));
+        if (lineMatch && invItem.type === 'Hardware') {
+          const lineQty = Number(lineMatch.quantity || 1);
+          const newStock = (Number(invItem.stock) || 0) + lineQty;
+          const updated = { ...invItem, stock: newStock };
+          syncInventoryToSupabase(updated);
+          addLog('Inventory', `Stock restored: ${invItem.name} (+${lineQty} units). New Stock: ${newStock}`);
+          return updated;
+        }
+        return invItem;
+      });
+    });
+  };
+
   const addInvoice = (invoice) => {
     const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' };
     setInvoices([...invoices, newInvoice]);
     syncInvoiceToSupabase(newInvoice);
+
+    // Auto-deduct stock if invoice contains items
+    if (invoice.items && invoice.items.length > 0) {
+      deductStockForInvoice(invoice.items);
+    }
 
     // Auto-increment Next Invoice Number if it matches the current sequence
     const currentPrefix = smsConfig.invoicePrefix || 'INV-';
@@ -689,6 +732,10 @@ export default function StoreContextProvider({ children }) {
   };
 
   const deleteInvoice = async (id) => {
+    const inv = invoices.find(i => i.id === id);
+    if (inv && inv.items && inv.items.length > 0) {
+      restoreStockForInvoice(inv.items);
+    }
     setInvoices(invoices.filter(i => i.id !== id));
     if (user) {
       await supabase.from('invoices').delete().eq('id', id);
@@ -713,6 +760,14 @@ export default function StoreContextProvider({ children }) {
         const updated = { ...i, status };
         addLog('Status', `Invoice ${i.invoiceNumber} status changed to ${status}`);
         syncInvoiceToSupabase(updated);
+
+        // Deduct stock when paid or sent, restore if reset to draft
+        if ((status === 'Paid' || status === 'Sent') && (i.status !== 'Paid' && i.status !== 'Sent')) {
+          if (i.items && i.items.length > 0) deductStockForInvoice(i.items);
+        } else if (status === 'Draft' && (i.status === 'Paid' || i.status === 'Sent')) {
+          if (i.items && i.items.length > 0) restoreStockForInvoice(i.items);
+        }
+
         if (status === 'Paid' && i.status !== 'Paid') {
           const customer = customers.find(c => c.id === i.customerId);
           if(customer && customer.phone) {
@@ -805,7 +860,11 @@ export default function StoreContextProvider({ children }) {
       status: 'Draft'
     };
 
-    setInvoices(prev => [...prev, newInvoice]);
+    if (quote.items && quote.items.length > 0) {
+      deductStockForInvoice(quote.items);
+    }
+
+    setInvoices(prev => [newInvoice, ...prev]);
     syncInvoiceToSupabase(newInvoice);
     updateQuoteStatus(quoteId, 'Accepted');
     addLog('System', `Converted Quote ${quote.quoteNumber} to Invoice ${newInvoice.invoiceNumber}`);
