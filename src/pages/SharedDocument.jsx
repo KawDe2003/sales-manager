@@ -500,9 +500,11 @@ const SharedDocument = () => {
                <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Please complete your payment to ensure your service remains uninterrupted.</p>
                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
                   <button 
-                    onClick={() => { showNotification('Redirecting to secure payment gateway...', 'success'); }}
-                    className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--accent-primary)', border: 'none' }}>
-                    <CheckCircle size={20} /> Pay Now Securely
+                    onClick={() => { 
+                      window.location.href = '/portal';
+                    }}
+                    className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--accent-primary)', border: 'none', cursor: 'pointer' }}>
+                    <CheckCircle size={20} /> Pay Now via Customer Portal
                   </button>
                </div>
             </div>

@@ -21,6 +21,7 @@ const Leads = lazy(() => import('./pages/Leads'));
 const Logs = lazy(() => import('./pages/Logs'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Debtors = lazy(() => import('./pages/Debtors'));
+const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
@@ -141,6 +142,21 @@ const AppContent = () => {
   useEffect(() => {
     document.title = `${smsConfig.dashboardName || 'GymSales Pro'} | Sales Management`;
   }, [smsConfig.dashboardName]);
+
+  // If on public customer portal, render without admin layout
+  if (isCustomerPortal) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/pay" element={<CustomerPortal />} />
+            <Route path="/pay/:phone" element={<CustomerPortal />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
 
   // If on public share view, render without layout
   if (isPublicShareView) {
