@@ -3,7 +3,7 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   Package, Plus, Trash2, Edit2, X, Monitor, Server, 
   Wrench, ChevronRight, Search, Download, TrendingUp, 
-  AlertTriangle, Check, FileSpreadsheet
+  AlertTriangle, Check, FileSpreadsheet, DollarSign, Layers, Tag
 } from 'lucide-react';
 import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
@@ -15,14 +15,51 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'stock'
 
+  // --- VALUATION METRICS CALCULATIONS ---
+  const stockMetrics = React.useMemo(() => {
+    let totalRetail = 0;
+    let totalCost = 0;
+    let lowStockCount = 0;
+
+    inventory.forEach(item => {
+      const qty = item.stock || 0;
+      const price = item.price || 0;
+      const cost = item.costPrice || 0;
+      const reorder = item.reorderLevel || 5;
+
+      totalRetail += price * qty;
+      totalCost += cost * qty;
+
+      if (item.type === 'Hardware' && qty <= reorder) {
+        lowStockCount++;
+      }
+    });
+
+    const potentialProfit = totalRetail - totalCost;
+    const overallMarginPct = totalRetail > 0 ? Math.round((potentialProfit / totalRetail) * 100) : 0;
+
+    return { totalRetail, totalCost, potentialProfit, overallMarginPct, lowStockCount };
+  }, [inventory]);
+
   const handleExportStockExcel = () => {
-    const data = inventory.map(item => ({
-      'Item Description': item.name,
-      'Category': item.type,
-      'Unit Price (LKR)': item.price,
-      'In Stock': item.stock,
-      'Total Value (LKR)': (item.price || 0) * (item.stock || 0)
-    }));
+    const data = inventory.map(item => {
+      const qty = item.stock || 0;
+      const price = item.price || 0;
+      const cost = item.costPrice || 0;
+      const margin = price - cost;
+      return {
+        'Item Description': item.name,
+        'Category': item.type,
+        'Selling Price (LKR)': price,
+        'Cost Price (LKR)': cost,
+        'Unit Margin (LKR)': margin,
+        'In Stock': qty,
+        'Reorder Level': item.reorderLevel || 5,
+        'Total Cost Value (LKR)': cost * qty,
+        'Total Retail Value (LKR)': price * qty,
+        'Potential Stock Profit (LKR)': margin * qty
+      };
+    });
     exportToExcel('Stock_Valuation_Report', data);
   };
 
@@ -40,7 +77,7 @@ const Inventory = () => {
       case 'Software': return 'badge-primary';
       case 'Hardware': return 'badge-warning';
       case 'Service': return 'badge-success';
-      default: return 'badge-secondary';
+      default: return 'badge-neutral';
     }
   };
 
@@ -58,28 +95,24 @@ const Inventory = () => {
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
-          <h1 className="h1 mb-2">Inventory Management</h1>
-          <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage your product catalog and monitor real-time stock balances.</p>
+          <h1 className="h1 mb-2">Inventory & Stock Management</h1>
+          <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage product catalog, cost prices, selling margins, and real-time stock balance valuation.</p>
         </div>
         <div className="flex gap-3">
-          {activeTab === 'stock' && (
-            <>
-              <button 
-                className="btn btn-secondary" 
-                style={{ padding: '12px 20px', height: '44px', color: 'var(--success)' }}
-                onClick={handleExportStockExcel}
-              >
-                <FileSpreadsheet size={18} /> Excel
-              </button>
-              <button 
-                className="btn btn-secondary" 
-                style={{ padding: '12px 20px', height: '44px' }}
-                onClick={() => generateStockReportPDF(inventory)}
-              >
-                <Download size={18} /> PDF Report
-              </button>
-            </>
-          )}
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '12px 20px', height: '44px', color: 'var(--success)' }}
+            onClick={handleExportStockExcel}
+          >
+            <FileSpreadsheet size={18} /> Excel Report
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '12px 20px', height: '44px' }}
+            onClick={() => generateStockReportPDF(inventory)}
+          >
+            <Download size={18} /> PDF Report
+          </button>
           <button 
             className="btn btn-primary" 
             style={{ padding: '12px 24px', height: '44px' }} 
@@ -90,11 +123,62 @@ const Inventory = () => {
         </div>
       </div>
 
+      {/* VALUATION SUMMARY METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Stock Retail Value
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+            LKR {stockMetrics.totalRetail.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            At selling price
+          </div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Stock Cost Value
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>
+            LKR {stockMetrics.totalCost.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            At acquisition cost
+          </div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Potential Stock Profit
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>
+            LKR {stockMetrics.potentialProfit.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--success)', marginTop: '4px', fontWeight: 700 }}>
+            {stockMetrics.overallMarginPct}% Margin
+          </div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Reorder Alerts
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
+            {stockMetrics.lowStockCount} Items
+          </div>
+          <div style={{ fontSize: '0.72rem', color: stockMetrics.lowStockCount > 0 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
+            {stockMetrics.lowStockCount > 0 ? 'Requires stock reorder' : 'All stock levels healthy'}
+          </div>
+        </div>
+      </div>
+
       {/* Tabs Sub-Navigation */}
       <div style={{ 
         display: 'flex', 
         gap: '8px', 
-        marginBottom: '32px', 
+        marginBottom: '24px', 
         background: 'rgba(255,255,255,0.02)', 
         padding: '6px', 
         borderRadius: '14px',
@@ -137,18 +221,18 @@ const Inventory = () => {
             gap: '8px'
           }}
         >
-          <TrendingUp size={16} /> Stock Balances
+          <TrendingUp size={16} /> Stock & Valuation Table
         </button>
       </div>
 
-      {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '32px', display: 'flex', alignItems: 'center' }}>
+      {/* Search Toolbar */}
+      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input"
-            placeholder={`Filter ${activeTab === 'catalog' ? 'catalog' : 'stock list'}...`}
+            placeholder={`Search ${activeTab === 'catalog' ? 'catalog items' : 'stock balance'}...`}
             style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -159,7 +243,7 @@ const Inventory = () => {
       {activeTab === 'catalog' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredInventory.length === 0 ? (
-            <EmptyState message="No products matching your search." />
+            <EmptyState message="No products matching your search criteria." />
           ) : (
             filteredInventory.map(item => (
               <InventoryCard 
@@ -179,18 +263,23 @@ const Inventory = () => {
             <table className="app-table">
               <thead>
                 <tr>
-                  <th>Product Details</th>
+                  <th>Product Item</th>
                   <th>Category</th>
-                  <th>Unit Price</th>
+                  <th>Cost Price</th>
+                  <th>Selling Price</th>
+                  <th>Unit Profit</th>
                   <th>In Stock</th>
+                  <th>Stock Cost</th>
+                  <th>Retail Value</th>
+                  <th>Potential Profit</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredInventory.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '100px 0' }}>
-                      <EmptyState message="No stock data found." />
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '80px 0' }}>
+                      <EmptyState message="No stock items registered." />
                     </td>
                   </tr>
                 ) : (
@@ -223,57 +312,91 @@ const Inventory = () => {
   );
 };
 
-const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass }) => (
-  <div className="glass-panel hover-lift" style={{ display: 'flex', flexDirection: 'column', padding: '24px', gap: '16px' }}>
-    <div className="flex justify-between items-start">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-         <div style={{
-           width: '44px', height: '44px', borderRadius: '12px',
-           background: 'var(--subtle-bg)', border: '1px solid var(--subtle-border)',
-           display: 'flex', alignItems: 'center', justifyContent: 'center'
-         }}>
-           {getTypeIcon(item.type)}
-         </div>
+const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass }) => {
+  const sellingPrice = Number(item.price) || 0;
+  const costPrice = Number(item.costPrice) || 0;
+  const margin = sellingPrice - costPrice;
+  const marginPct = sellingPrice > 0 ? Math.round((margin / sellingPrice) * 100) : 0;
+  const isLowStock = item.type === 'Hardware' && (item.stock || 0) <= (item.reorderLevel || 5);
+
+  return (
+    <div className="glass-panel hover-lift" style={{ display: 'flex', flexDirection: 'column', padding: '24px', gap: '16px' }}>
+      <div className="flex justify-between items-start">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+           <div style={{
+             width: '44px', height: '44px', borderRadius: '12px',
+             background: 'var(--subtle-bg)', border: '1px solid var(--subtle-border)',
+             display: 'flex', alignItems: 'center', justifyContent: 'center'
+           }}>
+             {getTypeIcon(item.type)}
+           </div>
+           <div>
+             <h3 className="h3" style={{ fontSize: '1.05rem', marginBottom: '4px', lineHeight: '1.2' }}>{item.name}</h3>
+             <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-muted)', opacity: 0.7 }}>PID-{item.id.slice(0, 6).toUpperCase()}</span>
+           </div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1 }}>
+         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0, minHeight: '36px' }}>
+           {item.desc ? (item.desc.length > 90 ? item.desc.substring(0, 90) + '...' : item.desc) : 'No description provided.'}
+         </p>
+      </div>
+
+      {/* Pricing & Margins Card Box */}
+      <div style={{ background: 'var(--subtle-bg)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem' }}>
+          <span style={{ color: 'var(--text-muted)' }}>Selling Price:</span>
+          <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>LKR {sellingPrice.toLocaleString()}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem' }}>
+          <span style={{ color: 'var(--text-muted)' }}>Cost Price:</span>
+          <span style={{ fontWeight: 700, color: 'var(--warning)' }}>LKR {costPrice.toLocaleString()}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', borderTop: '1px solid var(--subtle-border)', paddingTop: '6px', marginTop: '4px' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Unit Margin:</span>
+          <span style={{ fontWeight: 800, color: margin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+            LKR {margin.toLocaleString()} ({marginPct}%)
+          </span>
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--panel-border)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
          <div>
-           <h3 className="h3" style={{ fontSize: '1.1rem', marginBottom: '4px', lineHeight: '1.2' }}>{item.name}</h3>
-           <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)', opacity: 0.7 }}>PID-{item.id.slice(0, 6).toUpperCase()}</span>
+           <span className={`badge ${getTypeBadgeClass(item.type)}`} style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+             {item.type}
+           </span>
+           {isLowStock && (
+             <span className="badge badge-danger" style={{ marginLeft: '6px', fontSize: '0.65rem' }}>Low Stock</span>
+           )}
+         </div>
+         
+         <div className="flex gap-2">
+            <button className="btn btn-secondary" style={{ padding: '8px', background: 'var(--subtle-bg)' }} onClick={onEdit} title="Edit Item">
+              <Edit2 size={15} />
+            </button>
+            <button className="btn btn-secondary" style={{ padding: '8px', background: 'var(--subtle-bg)', color: 'var(--danger)' }} onClick={onDelete} title="Delete Item">
+              <Trash2 size={15} />
+            </button>
          </div>
       </div>
     </div>
-
-    <div style={{ flex: 1 }}>
-       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0, minHeight: '40px' }}>
-         {item.desc ? (item.desc.length > 90 ? item.desc.substring(0, 90) + '...' : item.desc) : 'No description provided.'}
-       </p>
-    </div>
-
-    <div style={{ borderTop: '1px solid var(--panel-border)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-       <div>
-         <span className={`badge ${getTypeBadgeClass(item.type)}`} style={{ fontSize: '0.7rem', padding: '4px 10px', marginBottom: '12px', display: 'inline-block' }}>
-           {item.type}
-         </span>
-         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>LKR</span>
-           <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-             {Number(item.price).toLocaleString()}
-           </span>
-         </div>
-       </div>
-       
-       <div className="flex gap-2">
-          <button className="btn btn-secondary" style={{ padding: '8px', background: 'var(--subtle-bg)' }} onClick={onEdit}>
-            <Edit2 size={16} />
-          </button>
-          <button className="btn btn-secondary" style={{ padding: '8px', background: 'var(--subtle-bg)', color: 'var(--danger)' }} onClick={onDelete}>
-            <Trash2 size={16} />
-          </button>
-       </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const StockRow = ({ item, onUpdateStock, getTypeIcon }) => {
-  const isOutOfStock = item.type === 'Hardware' && (item.stock === 0 || !item.stock);
+  const sellingPrice = Number(item.price) || 0;
+  const costPrice = Number(item.costPrice) || 0;
+  const unitProfit = sellingPrice - costPrice;
+  const qty = Number(item.stock) || 0;
+  const reorderLevel = Number(item.reorderLevel) || 5;
+
+  const totalCost = costPrice * qty;
+  const totalRetail = sellingPrice * qty;
+  const totalProfit = unitProfit * qty;
+
+  const isOutOfStock = item.type === 'Hardware' && qty === 0;
+  const isLowStock = item.type === 'Hardware' && qty > 0 && qty <= reorderLevel;
   const isService = item.type === 'Service' || item.type === 'Software';
 
   return (
@@ -283,7 +406,7 @@ const StockRow = ({ item, onUpdateStock, getTypeIcon }) => {
           <div style={{ padding: '8px', background: 'var(--subtle-bg)', borderRadius: '10px' }}>
             {getTypeIcon(item.type)}
           </div>
-          <span style={{ fontWeight: 700 }}>{item.name}</span>
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
         </div>
       </td>
       <td>
@@ -294,55 +417,58 @@ const StockRow = ({ item, onUpdateStock, getTypeIcon }) => {
           {item.type}
         </span>
       </td>
-      <td style={{ fontWeight: 600 }}>LKR {Number(item.price).toLocaleString()}</td>
+      <td style={{ fontWeight: 600, color: 'var(--warning)' }}>LKR {costPrice.toLocaleString()}</td>
+      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {sellingPrice.toLocaleString()}</td>
+      <td style={{ fontWeight: 800, color: unitProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+        LKR {unitProfit.toLocaleString()}
+      </td>
       <td>
         {isService ? (
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>N/A (Variable)</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>N/A (Virtual)</span>
         ) : (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button 
               className="btn-icon" 
-              style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--subtle-bg)', fontSize: '1.2rem' }}
-              onClick={() => onUpdateStock(item.id, (item.stock || 0) - 1)}
+              style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--subtle-bg)', fontSize: '1.1rem', cursor: 'pointer', border: '1px solid var(--panel-border)', color: 'var(--text-primary)' }}
+              onClick={() => onUpdateStock(item.id, qty - 1)}
             >-</button>
             <input 
               type="number" 
               className="form-input" 
-              style={{ width: '70px', height: '32px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', padding: 0 }}
-              value={item.stock || 0}
+              style={{ width: '60px', height: '30px', textAlign: 'center', fontWeight: 800, fontSize: '0.88rem', padding: 0 }}
+              value={qty}
               onChange={(e) => onUpdateStock(item.id, e.target.value)}
             />
             <button 
               className="btn-icon" 
-              style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--subtle-bg)', fontSize: '1.2rem' }}
-              onClick={() => onUpdateStock(item.id, (item.stock || 0) + 1)}
+              style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--subtle-bg)', fontSize: '1.1rem', cursor: 'pointer', border: '1px solid var(--panel-border)', color: 'var(--text-primary)' }}
+              onClick={() => onUpdateStock(item.id, qty + 1)}
             >+</button>
             
             {isOutOfStock && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--danger)', fontSize: '0.7rem', fontWeight: 800, marginLeft: '8px' }}>
-                <AlertTriangle size={12} /> OUT OF STOCK
-              </div>
+              <span className="badge badge-danger" style={{ fontSize: '0.62rem', marginLeft: '6px' }}>
+                <AlertTriangle size={10} /> OUT OF STOCK
+              </span>
             )}
-            {!isOutOfStock && item.stock < 5 && (
-              <div style={{ color: 'var(--warning)', fontSize: '0.7rem', fontWeight: 800, marginLeft: '8px' }}>
-                LOW STOCK
-              </div>
-            )}
-            {!isOutOfStock && item.stock >= 5 && (
-               <div style={{ color: 'var(--success)', fontSize: '0.7rem', fontWeight: 800, marginLeft: '8px' }}>
-                <Check size={12} /> IN STOCK
-              </div>
+            {isLowStock && (
+              <span className="badge badge-warning" style={{ fontSize: '0.62rem', marginLeft: '6px' }}>
+                LOW STOCK (≤{reorderLevel})
+              </span>
             )}
           </div>
         )}
       </td>
+      <td style={{ fontWeight: 700, color: 'var(--warning)' }}>
+        {isService ? '-' : `LKR ${totalCost.toLocaleString()}`}
+      </td>
+      <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+        {isService ? '-' : `LKR ${totalRetail.toLocaleString()}`}
+      </td>
+      <td style={{ fontWeight: 800, color: 'var(--success)' }}>
+        {isService ? '-' : `LKR ${totalProfit.toLocaleString()}`}
+      </td>
       <td style={{ textAlign: 'right' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Current Value</span>
-          <span style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>
-            LKR {((item.price || 0) * (item.stock || 0)).toLocaleString()}
-          </span>
-        </div>
+        <button className="btn btn-secondary btn-sm" onClick={() => onUpdateStock(item.id, qty)}>Save</button>
       </td>
     </tr>
   );
@@ -353,81 +479,110 @@ const EmptyState = ({ message }) => (
     <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--subtle-bg)', display: 'flex', alignItems: 'center', marginBottom: '24px', justifyContent: 'center' }}>
       <Search size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
     </div>
-    <h3 className="h2" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>No Results</h3>
+    <h3 className="h2" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>No Items Found</h3>
     <p className="text-secondary" style={{ fontSize: '0.95rem' }}>{message}</p>
   </div>
 );
 
 const InventoryModal = ({ onClose, onSave, initialData }) => {
-  const [formData, setFormData] = useState(initialData || { name: '', type: 'Hardware', price: 0, stock: 0, desc: '' });
+  const [formData, setFormData] = useState(initialData || { 
+    name: '', 
+    type: 'Hardware', 
+    price: 0, 
+    costPrice: 0,
+    reorderLevel: 5,
+    stock: 0, 
+    desc: '' 
+  });
+
+  const sellingPrice = Number(formData.price) || 0;
+  const costPrice = Number(formData.costPrice) || 0;
+  const calculatedMargin = sellingPrice - costPrice;
+  const calculatedMarginPct = sellingPrice > 0 ? Math.round((calculatedMargin / sellingPrice) * 100) : 0;
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', padding: 0, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-        <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid var(--panel-border)' }}>
-           <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>{initialData ? 'Update Specifications' : 'Add to Master Catalog'}</h2>
-             <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-           </div>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" style={{ maxWidth: '580px' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+           <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>{initialData ? 'Update Specifications' : 'Register Product Item'}</h2>
+           <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body" style={{ padding: '24px' }}>
-          <div className="form-group mb-6">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Commercial Name</label>
-            <input required type="text" className="form-input" style={{ height: '44px' }} placeholder="e.g. Premium Gym POS License" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+          <div className="form-group mb-4">
+            <label className="form-label">Product Commercial Name</label>
+            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Turnstile Gate Reader / Gym POS Software" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Classification</label>
-              <select className="form-input" style={{ height: '44px', width: '100%' }} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-                <option value="Software">Software Solution</option>
-                <option value="Hardware">Hardware / Terminal</option>
-                <option value="Service">Professional Service</option>
-              </select>
+          <div className="form-group mb-4">
+            <label className="form-label">Classification Category</label>
+            <select className="form-input" style={{ height: '42px', width: '100%' }} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+              <option value="Hardware">Hardware / Terminal</option>
+              <option value="Software">Software Solution</option>
+              <option value="Service">Professional Service</option>
+            </select>
+          </div>
+
+          {/* Pricing & Cost Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="form-group mb-0">
+              <label className="form-label">Cost Price (LKR)</label>
+              <input required type="number" className="form-input" style={{ height: '42px' }} placeholder="Unit acquisition cost" value={formData.costPrice || ''} onChange={e => setFormData({...formData, costPrice: Number(e.target.value)})} />
             </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Base Price (LKR)</label>
-              <input required type="number" className="form-input" style={{ height: '44px' }} value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+            <div className="form-group mb-0">
+              <label className="form-label">Selling Price (LKR)</label>
+              <input required type="number" className="form-input" style={{ height: '42px' }} placeholder="Unit selling price" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+            </div>
+          </div>
+
+          {/* Calculated Margin Live Indicator */}
+          <div style={{ background: 'var(--subtle-bg)', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Calculated Unit Profit Margin:</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: calculatedMargin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+              LKR {calculatedMargin.toLocaleString()} ({calculatedMarginPct}%)
+            </span>
+          </div>
+
+          {/* Stock & Reorder Level Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="form-group mb-0">
+              <label className="form-label">Initial Stock Quantity</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ height: '42px' }} 
+                disabled={formData.type === 'Service' || formData.type === 'Software'}
+                value={formData.stock || 0} 
+                onChange={e => setFormData({...formData, stock: Number(e.target.value)})} 
+              />
+            </div>
+            <div className="form-group mb-0">
+              <label className="form-label">Low Stock Alert Level</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                style={{ height: '42px' }} 
+                disabled={formData.type === 'Service' || formData.type === 'Software'}
+                value={formData.reorderLevel || 5} 
+                onChange={e => setFormData({...formData, reorderLevel: Number(e.target.value)})} 
+              />
             </div>
           </div>
 
           <div className="form-group mb-6">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Initial Stock Balance</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              style={{ height: '44px' }} 
-              disabled={formData.type === 'Service' || formData.type === 'Software'}
-              value={formData.stock || 0} 
-              onChange={e => setFormData({...formData, stock: Number(e.target.value)})} 
-            />
-            {(formData.type === 'Service' || formData.type === 'Software') && (
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Stock tracking disabled for services and virtual software.</span>
-            )}
-          </div>
-
-          <div className="form-group mb-8">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Full Technical Description</label>
+            <label className="form-label">Product Description</label>
             <textarea 
               className="form-input" 
-              style={{ minHeight: '100px', resize: 'vertical', padding: '16px' }}
-              placeholder="Detail the features or services included..."
-              value={formData.desc} 
+              style={{ minHeight: '90px', resize: 'vertical', padding: '12px' }}
+              placeholder="Specify product details or warranty info..."
+              value={formData.desc || ''} 
               onChange={e => setFormData({...formData, desc: e.target.value})} 
             />
           </div>
 
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '0 0 24px 0' }}></div>
-
-          <div className="flex justify-end gap-4">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px' }}>Save Item</button>
+          <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--panel-border)' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Save Product</button>
           </div>
         </form>
       </div>

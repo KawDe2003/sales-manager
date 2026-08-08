@@ -10,17 +10,26 @@ const Reports = () => {
     customers = [], 
     quotes = [], 
     leads = [], 
+    inventory = [],
     expenses = [],
     addExpense, deleteExpense 
   } = useContext(StoreContext) || {};
+
   const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + Number(i.amount || 0), 0);
   const projectedRenewals = customers.filter(c => c.status === 'Active').reduce((acc, c) => acc + Number(c.annualFee || 0), 0);
   const activeGyms = customers.filter(c => c.status === 'Active').length;
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
   const overdueTotal = overdueInvoices.reduce((acc, i) => acc + Number(i.amount || 0), 0);
 
+  // Stock Cost & Valuation Calculations
+  const totalStockCost = inventory.reduce((acc, item) => acc + (Number(item.costPrice || 0) * Number(item.stock || 0)), 0);
+  const totalStockRetail = inventory.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.stock || 0)), 0);
+  
+  // Calculate COGS (Estimated at 40% of revenue or calculated stock cost)
+  const estimatedCOGS = Math.round(totalRevenue * 0.3) + totalStockCost;
+  const grossProfit = totalRevenue - estimatedCOGS;
   const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
+  const netProfit = grossProfit - totalExpenses;
 
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: 'Operational' });
@@ -136,27 +145,28 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* P&L Financial Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {[
           { title: 'Total Revenue', value: `LKR ${totalRevenue.toLocaleString()}`, icon: <TrendingUp />, color: 'var(--success)', sub: 'Paid Invoices' },
-          { title: 'Net Profit', value: `LKR ${netProfit.toLocaleString()}`, icon: <Wallet />, color: netProfit >= 0 ? "var(--success)" : "var(--danger)", sub: 'Rev - Exp' },
-          { title: 'Total Expenses', value: `LKR ${totalExpenses.toLocaleString()}`, icon: <AlertCircle />, color: 'var(--warning)', sub: `${expenses.length} Records` },
-          { title: 'Active Gyms', value: activeGyms, icon: <Users />, color: 'var(--accent-primary)', sub: 'Live Clients' },
+          { title: 'Stock Cost (COGS)', value: `LKR ${estimatedCOGS.toLocaleString()}`, icon: <BarChart3 />, color: 'var(--warning)', sub: 'Stock + Acquisition' },
+          { title: 'Gross Profit', value: `LKR ${grossProfit.toLocaleString()}`, icon: <Wallet />, color: grossProfit >= 0 ? "var(--success)" : "var(--danger)", sub: 'Revenue - COGS' },
+          { title: 'Expenses', value: `LKR ${totalExpenses.toLocaleString()}`, icon: <AlertCircle />, color: 'var(--danger)', sub: `${expenses.length} Records` },
+          { title: 'Net Profit (P&L)', value: `LKR ${netProfit.toLocaleString()}`, icon: <Wallet />, color: netProfit >= 0 ? "var(--success)" : "var(--danger)", sub: 'Gross - Expenses' },
         ].map(card => (
-          <div key={card.title} className="glass-panel hover-lift" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px' }}>
+          <div key={card.title} className="glass-panel hover-lift" style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px' }}>
             <div style={{ 
-              width: '42px', height: '42px', borderRadius: '12px', 
+              width: '40px', height: '40px', borderRadius: '10px', 
               background: `${card.color}10`, display: 'flex', 
               alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               border: `1px solid ${card.color}15`
             }}>
-              {React.cloneElement(card.icon, { size: 20, color: card.color })}
+              {React.cloneElement(card.icon, { size: 18, color: card.color })}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p className="text-secondary mb-1" style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</p>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 850, margin: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.value}</h3>
-              <p className="text-muted" style={{ fontSize: '0.65rem', marginTop: '4px', fontWeight: 600, opacity: 0.6 }}>{card.sub}</p>
+              <p className="text-secondary mb-1" style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.value}</h3>
+              <p className="text-muted" style={{ fontSize: '0.62rem', marginTop: '3px', fontWeight: 600, opacity: 0.7 }}>{card.sub}</p>
             </div>
           </div>
         ))}

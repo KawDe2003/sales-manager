@@ -219,6 +219,8 @@ export default function StoreContextProvider({ children }) {
           name: item.name,
           item_type: item.type,
           price: item.price,
+          cost_price: item.costPrice || 0,
+          reorder_level: item.reorderLevel || 5,
           stock: item.stock,
           description: item.desc
         });
@@ -394,7 +396,12 @@ export default function StoreContextProvider({ children }) {
       })));
 
       if (invData) setInventory(invData.map(i => ({
-        id: i.id, name: i.name, type: i.item_type, price: Number(i.price), stock: Number(i.stock), desc: i.description
+        id: i.id, name: i.name, type: i.item_type, 
+        price: Number(i.price) || 0, 
+        costPrice: Number(i.cost_price ?? Math.round((Number(i.price) || 0) * 0.7)),
+        reorderLevel: Number(i.reorder_level ?? 5),
+        stock: Number(i.stock) || 0, 
+        desc: i.description
       })));
 
       if (qData) setQuotes(qData.map(q => ({
