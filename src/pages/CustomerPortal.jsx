@@ -1,24 +1,30 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
+import { supabase } from '../lib/supabase';
 import { 
   ShieldCheck, Phone, KeyRound, CreditCard, Download, FileText, 
-  CheckCircle, ArrowRight, Clock, Building2, Upload, Lock, AlertCircle, RefreshCw, LogOut
+  CheckCircle, ArrowRight, Clock, Building2, Upload, Lock, AlertCircle, RefreshCw, LogOut, Loader2
 } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 
 const CustomerPortal = () => {
+  const { phone: urlPhone } = useParams();
   const { 
     customers = [], invoices = [], payments = [], addPayment, 
     updateInvoiceStatus, smsConfig = {}, sendDirectSMS, showNotification 
   } = useContext(StoreContext) || {};
 
   // Auth State for Customer Portal
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(urlPhone || '');
   const [otpInput, setOtpInput] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [authenticatedCustomer, setAuthenticatedCustomer] = useState(null);
+  const [portalInvoices, setPortalInvoices] = useState([]);
+  const [portalPayments, setPortalPayments] = useState([]);
 
   // Payment Modal State
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -28,25 +34,101 @@ const CustomerPortal = () => {
   const [slipFile, setSlipFile] = useState(null);
   const [isProcessingPay, setIsProcessingPay] = useState(false);
 
+  useEffect(() => {
+    if (urlPhone) {
+      setPhoneNumber(urlPhone);
+    }
+  }, [urlPhone]);
+
+  const getCleanDigits = (num) => {
+    if (!num) return '';
+    return num.replace(/[^0-9]/g, '');
+  };
+
   // --- STEP 1: SEND OTP SMS ---
-  const handleSendOTP = (e) => {
-    e.preventDefault();
-    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const handleSendOTP = async (e) => {
+    if (e) e.preventDefault();
+    const cleanPhone = getCleanDigits(phoneNumber);
     if (cleanPhone.length < 9) {
       showNotification('Please enter a valid mobile phone number.', 'error');
       return;
     }
 
-    // Match customer by phone number (last 9 digits)
-    const foundCustomer = customers.find(c => {
+    setIsSendingOtp(true);
+    let foundCustomer = null;
+
+    const searchLast9 = cleanPhone.slice(-9);
+
+    // 1. Try matching in local state first
+    foundCustomer = customers.find(c => {
       if (!c.phone) return false;
-      const cClean = c.phone.replace(/[^0-9]/g, '');
-      return cClean.endsWith(cleanPhone.slice(-9)) || cleanPhone.endsWith(cClean.slice(-9));
+      const cClean = getCleanDigits(c.phone);
+      return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
     });
 
+    // 2. If not found in local state (unauthenticated portal visitor), fetch from Supabase
     if (!foundCustomer) {
-      showNotification(`No registered gym customer account found for number: ${phoneNumber}`, 'error');
-      return;
+      try {
+        const { data: dbCustomers } = await supabase.from('customers').select('*');
+        if (dbCustomers && dbCustomers.length > 0) {
+          const match = dbCustomers.find(c => {
+            if (!c.phone) return false;
+            const cClean = getCleanDigits(c.phone);
+            return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
+          });
+          if (match) {
+            foundCustomer = {
+              id: match.id,
+              gymName: match.gym_name,
+              name: match.name,
+              email: match.email,
+              phone: match.phone,
+              dob: match.dob,
+              purchaseDate: match.purchase_date,
+              renewalDate: match.renewal_date,
+              annualFee: Number(match.annual_fee),
+              status: match.status,
+              notes: match.notes || []
+            };
+          }
+        }
+      } catch (err) {
+        console.error('Supabase customer lookup exception:', err);
+      }
+    }
+
+    // 3. Search invoices table in Supabase if still not found in customers table
+    if (!foundCustomer) {
+      try {
+        const { data: dbInvoices } = await supabase.from('invoices').select('*');
+        if (dbInvoices && dbInvoices.length > 0) {
+          const matchInv = dbInvoices.find(inv => {
+            if (!inv.prospect_phone && !inv.customer_id) return false;
+            const pClean = getCleanDigits(inv.prospect_phone || '');
+            return pClean.endsWith(searchLast9) || cleanPhone.endsWith(pClean.slice(-9));
+          });
+          if (matchInv) {
+            foundCustomer = {
+              id: matchInv.customer_id || `prospect-${searchLast9}`,
+              gymName: matchInv.prospect_name || `Client (${phoneNumber})`,
+              phone: matchInv.prospect_phone || phoneNumber,
+              ownerName: matchInv.prospect_name
+            };
+          }
+        }
+      } catch (err) {
+        console.error('Supabase invoice lookup exception:', err);
+      }
+    }
+
+    // 4. Guest portal fallback so OTP is ALWAYS sent and customer is not blocked
+    if (!foundCustomer) {
+      foundCustomer = {
+        id: `client-${searchLast9}`,
+        gymName: `Client Account (${phoneNumber})`,
+        phone: phoneNumber,
+        ownerName: 'Valued Client'
+      };
     }
 
     // Generate random 4-digit OTP
@@ -54,30 +136,112 @@ const CustomerPortal = () => {
     setGeneratedOtp(code);
     setOtpSent(true);
 
-    // Send SMS via Gateway if phone & SMS API active
-    if (foundCustomer.phone && sendDirectSMS) {
-      const msg = `[${smsConfig.companyName || 'GymSales'}] Your portal login verification OTP code is: ${code}. Valid for 10 minutes.`;
-      sendDirectSMS(foundCustomer.phone, msg);
+    const targetPhone = foundCustomer.phone || phoneNumber;
+    const msg = `[${smsConfig.companyName || 'GymSales'}] Your portal login verification OTP code is: ${code}. Valid for 10 minutes.`;
+
+    if (sendDirectSMS) {
+      await sendDirectSMS(targetPhone, msg);
     }
 
-    showNotification(`Verification OTP code sent to ${foundCustomer.phone || phoneNumber}`, 'success');
+    showNotification(`Verification OTP code sent to ${targetPhone}`, 'success');
+    setIsSendingOtp(false);
   };
 
   // --- STEP 2: VERIFY OTP ---
-  const handleVerifyOTP = (e) => {
-    e.preventDefault();
+  const handleVerifyOTP = async (e) => {
+    if (e) e.preventDefault();
     setIsVerifying(true);
 
     if (otpInput.trim() === generatedOtp || otpInput.trim() === '1234') {
-      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-      const foundCustomer = customers.find(c => {
+      const cleanPhone = getCleanDigits(phoneNumber);
+      const searchLast9 = cleanPhone.slice(-9);
+
+      let foundCustomer = customers.find(c => {
         if (!c.phone) return false;
-        const cClean = c.phone.replace(/[^0-9]/g, '');
-        return cClean.endsWith(cleanPhone.slice(-9)) || cleanPhone.endsWith(cClean.slice(-9));
+        const cClean = getCleanDigits(c.phone);
+        return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
       });
+
+      if (!foundCustomer) {
+        try {
+          const { data: dbCustomers } = await supabase.from('customers').select('*');
+          if (dbCustomers && dbCustomers.length > 0) {
+            const match = dbCustomers.find(c => {
+              if (!c.phone) return false;
+              const cClean = getCleanDigits(c.phone);
+              return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
+            });
+            if (match) {
+              foundCustomer = {
+                id: match.id,
+                gymName: match.gym_name,
+                name: match.name,
+                email: match.email,
+                phone: match.phone,
+                dob: match.dob,
+                purchaseDate: match.purchase_date,
+                renewalDate: match.renewal_date,
+                annualFee: Number(match.annual_fee),
+                status: match.status,
+                notes: match.notes || []
+              };
+            }
+          }
+        } catch (err) {}
+      }
+
+      if (!foundCustomer) {
+        foundCustomer = {
+          id: `client-${searchLast9}`,
+          gymName: `Client Account (${phoneNumber})`,
+          phone: phoneNumber,
+          ownerName: 'Valued Client'
+        };
+      }
 
       setAuthenticatedCustomer(foundCustomer);
       showNotification(`Welcome back, ${foundCustomer.gymName}!`, 'success');
+
+      // Fetch matching invoices & payments from Supabase
+      try {
+        const { data: dbInvoices } = await supabase.from('invoices').select('*');
+        if (dbInvoices) {
+          const matched = dbInvoices.filter(inv => {
+            if (inv.customer_id === foundCustomer.id) return true;
+            if (inv.prospect_name && inv.prospect_name.toLowerCase() === (foundCustomer.gymName || '').toLowerCase()) return true;
+            if (inv.prospect_phone) {
+              const pClean = getCleanDigits(inv.prospect_phone);
+              if (pClean.endsWith(searchLast9) || cleanPhone.endsWith(pClean.slice(-9))) return true;
+            }
+            return false;
+          }).map(i => ({
+            id: i.id,
+            shareKey: i.share_key,
+            invoiceNumber: i.invoice_number,
+            date: i.date,
+            dueDate: i.due_date,
+            customerId: i.customer_id,
+            amount: Number(i.amount) || 0,
+            status: i.status,
+            items: i.items || [],
+            prospectName: i.prospect_name,
+            prospectPhone: i.prospect_phone
+          }));
+          setPortalInvoices(matched);
+        }
+
+        const { data: dbPayments } = await supabase.from('payments').select('*');
+        if (dbPayments) {
+          setPortalPayments(dbPayments.map(p => ({
+            id: p.id,
+            documentId: p.document_id,
+            amount: Number(p.amount) || 0
+          })));
+        }
+      } catch (err) {
+        console.error('Error fetching portal invoices:', err);
+      }
+
     } else {
       showNotification('Invalid OTP verification code. Please check and retry.', 'error');
     }
@@ -97,61 +261,96 @@ const CustomerPortal = () => {
 
     setIsProcessingPay(true);
 
-    // Simulate Payment Gateway Delay
-    setTimeout(() => {
-      const newPayment = {
-        id: `pay-${Date.now()}`,
-        documentId: selectedInvoice.id,
-        invoiceNumber: selectedInvoice.invoiceNumber,
-        customerId: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
-        amount: amount,
-        paymentDate: new Date().toISOString().split('T')[0],
-        method: paymentMethod === 'card' ? 'Credit/Debit Card Online' : paymentMethod === 'bank' ? 'Bank Transfer Deposit' : 'Koko Online',
-        referenceNumber: referenceNo || `ONLINE-${Math.floor(100000 + Math.random() * 900000)}`,
-        notes: `Customer Online Portal Payment via ${paymentMethod.toUpperCase()}`
-      };
+    const newPayment = {
+      id: `pay-${Date.now()}`,
+      documentId: selectedInvoice.id,
+      invoiceNumber: selectedInvoice.invoiceNumber,
+      customerId: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
+      amount: amount,
+      paymentDate: new Date().toISOString().split('T')[0],
+      method: paymentMethod === 'card' ? 'Credit/Debit Card Online' : paymentMethod === 'bank' ? 'Bank Transfer Deposit' : 'Koko Online',
+      referenceNumber: referenceNo || `ONLINE-${Math.floor(100000 + Math.random() * 900000)}`,
+      notes: `Customer Online Portal Payment via ${paymentMethod.toUpperCase()}`
+    };
 
-      if (addPayment) addPayment(newPayment);
+    if (addPayment) addPayment(newPayment);
 
-      // Check if invoice is fully settled
-      const invoicePayments = payments.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0) + amount;
-      if (invoicePayments >= selectedInvoice.amount) {
-        if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, 'Paid');
-      } else {
-        if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, 'Partially Paid');
+    // Sync to Supabase directly for unauthenticated session
+    if (supabase) {
+      try {
+        await supabase.from('payments').insert({
+          customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
+          document_id: selectedInvoice.id,
+          amount: amount,
+          payment_type: paymentMethod,
+          created_at: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error('Supabase payment sync error:', e);
       }
+    }
 
-      // Send SMS Receipt
-      if (authenticatedCustomer && authenticatedCustomer.phone && sendDirectSMS) {
-        const smsMsg = `✅ PAYMENT RECEIVED! Thank you ${authenticatedCustomer.gymName}. Received LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber}. Ref: ${newPayment.referenceNumber}`;
-        sendDirectSMS(authenticatedCustomer.phone, smsMsg);
-      }
+    const allCurrentPays = [...payments, ...portalPayments];
+    const invoicePayments = allCurrentPays.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0) + amount;
+    const newStatus = invoicePayments >= selectedInvoice.amount ? 'Paid' : 'Partially Paid';
 
-      showNotification(`Payment of LKR ${amount.toLocaleString()} processed successfully!`, 'success');
+    if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, newStatus);
 
-      // Generate Receipt PDF download automatically
-      const receiptData = {
-        ...selectedInvoice,
-        amountPaidNow: amount,
-        receiptNumber: newPayment.referenceNumber,
-        gymName: authenticatedCustomer ? authenticatedCustomer.gymName : 'Client Account'
-      };
-      generateDocumentPDF('Receipt', receiptData, selectedInvoice.items || []);
+    try {
+      await supabase.from('invoices').update({ status: newStatus }).eq('id', selectedInvoice.id);
+    } catch (e) {}
 
-      setIsProcessingPay(false);
-      setSelectedInvoice(null);
-      setSlipFile(null);
-    }, 1200);
+    // Send SMS Receipt
+    if (authenticatedCustomer && (authenticatedCustomer.phone || phoneNumber) && sendDirectSMS) {
+      const targetPhone = authenticatedCustomer.phone || phoneNumber;
+      const smsMsg = `✅ PAYMENT RECEIVED! Thank you ${authenticatedCustomer.gymName}. Received LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber}. Ref: ${newPayment.referenceNumber}`;
+      sendDirectSMS(targetPhone, smsMsg);
+    }
+
+    showNotification(`Payment of LKR ${amount.toLocaleString()} processed successfully!`, 'success');
+
+    // Generate Receipt PDF download automatically
+    const receiptData = {
+      ...selectedInvoice,
+      amountPaidNow: amount,
+      receiptNumber: newPayment.referenceNumber,
+      gymName: authenticatedCustomer ? authenticatedCustomer.gymName : 'Client Account'
+    };
+    generateDocumentPDF('Receipt', receiptData, selectedInvoice.items || []);
+
+    setIsProcessingPay(false);
+    setSelectedInvoice(null);
+    setSlipFile(null);
   };
 
-  // Filter Customer Invoices
-  const customerInvoices = authenticatedCustomer 
-    ? invoices.filter(inv => inv.customerId === authenticatedCustomer.id || inv.prospectName === authenticatedCustomer.gymName)
-    : [];
+  // Combine invoices from StoreContext state AND fetched portalInvoices
+  const allInvoices = [...invoices, ...portalInvoices];
+  const customerInvoicesMap = new Map();
+
+  if (authenticatedCustomer) {
+    const cleanAuthPhone = getCleanDigits(authenticatedCustomer.phone || phoneNumber);
+    const searchLast9 = cleanAuthPhone.slice(-9);
+
+    allInvoices.forEach(inv => {
+      let isMatch = false;
+      if (inv.customerId === authenticatedCustomer.id) isMatch = true;
+      else if (inv.prospectName && inv.prospectName.toLowerCase() === (authenticatedCustomer.gymName || '').toLowerCase()) isMatch = true;
+      else if (inv.prospectPhone) {
+        const pClean = getCleanDigits(inv.prospectPhone);
+        if (pClean.endsWith(searchLast9) || cleanAuthPhone.endsWith(pClean.slice(-9))) isMatch = true;
+      }
+      if (isMatch && !customerInvoicesMap.has(inv.id)) {
+        customerInvoicesMap.set(inv.id, inv);
+      }
+    });
+  }
+
+  const customerInvoices = Array.from(customerInvoicesMap.values());
+  const allPayments = [...payments, ...portalPayments];
 
   const unpaidInvoices = customerInvoices.filter(inv => inv.status !== 'Paid');
   const totalOutstanding = unpaidInvoices.reduce((sum, inv) => {
-    const historicalPays = payments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const historicalPays = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
     return sum + Math.max(0, inv.amount - historicalPays);
   }, 0);
 
@@ -231,8 +430,12 @@ const CustomerPortal = () => {
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '48px', fontSize: '0.98rem', fontWeight: 700 }}>
-                  Send Verification OTP <ArrowRight size={18} />
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '48px', fontSize: '0.98rem', fontWeight: 700 }} disabled={isSendingOtp}>
+                  {isSendingOtp ? (
+                    <>Sending OTP... <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /></>
+                  ) : (
+                    <>Send Verification OTP <ArrowRight size={18} /></>
+                  )}
                 </button>
               </form>
             ) : (

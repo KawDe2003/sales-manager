@@ -3,15 +3,21 @@ export default async function handler(request, response) {
   const targetUrl = `https://quicksend.lk/Client/api.php?FUN=${FUN}`;
   
   try {
-    const authHeader = request.headers['authorization'];
-    
+    const defaultAuth = 'Basic ' + Buffer.from('seynextech@gmail.com:2179165276941c4e5eb994053957585').toString('base64');
+    const authHeader = request.headers['authorization'] || defaultAuth;
+
+    // Prevent double stringifying if body is already a string
+    const bodyData = typeof request.body === 'string'
+      ? request.body
+      : JSON.stringify(request.body || {});
+
     const res = await fetch(targetUrl, {
       method: 'POST',
       headers: {
-        'Authorization': authHeader || '',
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(request.body)
+      body: bodyData
     });
 
     const contentType = res.headers.get('content-type');
