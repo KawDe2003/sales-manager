@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download, Printer, FileSpreadsheet } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '../utils/export';
-import { generateAccountingReportPDF } from '../utils/pdfGenerator';
+import { generateAccountingReportPDF, generatePnLReportPDF } from '../utils/pdfGenerator';
 
 const Reports = () => {
   const { 
@@ -30,6 +30,8 @@ const Reports = () => {
   const grossProfit = totalRevenue - estimatedCOGS;
   const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
   const netProfit = grossProfit - totalExpenses;
+  const grossMarginPct = totalRevenue > 0 ? Math.round((grossProfit / totalRevenue) * 100) : 0;
+  const netMarginPct = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: 'Operational' });
@@ -125,22 +127,36 @@ const Reports = () => {
     generateAccountingReportPDF(getAccountingData());
   };
 
+  const handleExportPnLPDF = () => {
+    generatePnLReportPDF({
+      totalRevenue,
+      projectedRenewals,
+      totalStockCost,
+      totalStockRetail,
+      estimatedCOGS,
+      grossProfit,
+      totalExpenses,
+      netProfit,
+      expenseByCategory
+    });
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
         <div>
-          <h1 className="h1 mb-1">Reports & Analytics</h1>
-          <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Real-time overview of your gym software sales performance.</p>
+          <h1 className="h1 mb-1">Profit & Loss Reports</h1>
+          <p className="text-secondary" style={{ fontSize: '0.9rem' }}>Financial P&L statements, stock cost of goods sold, and operational analytics.</p>
         </div>
         <div className="btn-group flex gap-3">
+          <button className="btn btn-primary" style={{ padding: '10px 20px', height: '44px' }} onClick={handleExportPnLPDF}>
+            <Download size={16} /> Download P&L Statement (PDF)
+          </button>
           <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px', color: 'var(--success)' }} onClick={handleExportExcel}>
             <FileSpreadsheet size={16} /> Excel Download
           </button>
-          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={handleExportPDF}>
-            <Download size={16} className="text-accent-primary" /> PDF Report
-          </button>
-          <button className="btn btn-primary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
-            <Printer size={16} /> Print View
+          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
+            <Printer size={16} /> Print P&L
           </button>
         </div>
       </div>
@@ -170,6 +186,129 @@ const Reports = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* FORMAL PROFIT & LOSS STATEMENT (P&L) CARD */}
+      <div className="glass-panel mb-8" style={{ padding: '28px' }}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4" style={{ borderBottom: '1px solid var(--panel-border)' }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+              Financial Performance
+            </div>
+            <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Profit & Loss Statement (P&L)</h2>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={handleExportPnLPDF}>
+            <Download size={14} /> Download P&L PDF
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* 1. REVENUE */}
+          <div style={{ background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+              1. Revenue (Income)
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Collected Invoice Revenue (Paid)</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {totalRevenue.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Projected Annual Client Renewals</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>LKR {projectedRenewals.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid var(--subtle-border)', fontSize: '0.95rem', fontWeight: 800 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Total Net Revenue:</span>
+              <span style={{ color: 'var(--success)' }}>LKR {totalRevenue.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* 2. COST OF GOODS SOLD (COGS) */}
+          <div style={{ background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+              2. Cost of Goods Sold (COGS)
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Inventory Hardware & Stock Cost</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {totalStockCost.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Direct Stock & Delivery COGS</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {estimatedCOGS.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid var(--subtle-border)', fontSize: '0.95rem', fontWeight: 800 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Total Cost of Goods Sold:</span>
+              <span style={{ color: 'var(--warning)' }}>(LKR {estimatedCOGS.toLocaleString()})</span>
+            </div>
+          </div>
+
+          {/* GROSS PROFIT HIGHLIGHT */}
+          <div style={{ 
+            background: grossProfit >= 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)', 
+            padding: '16px 20px', borderRadius: '12px', 
+            border: `1px solid ${grossProfit >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: grossProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>Gross Profit</span>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Total Revenue minus COGS</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: grossProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontFamily: 'var(--font-display)' }}>
+                LKR {grossProfit.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: grossProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {grossMarginPct}% Gross Margin
+              </div>
+            </div>
+          </div>
+
+          {/* 3. OPERATING EXPENSES */}
+          <div style={{ background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+              3. Operating Expenses (OPEX)
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Operational & Hosting (Server/SMS)</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {(expenseByCategory?.Operational || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Marketing & Acquisition</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {(expenseByCategory?.Marketing || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '0.9rem' }}>
+              <span className="text-secondary">Staff & Admin</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {((expenseByCategory?.Staff || 0) + (expenseByCategory?.Taxes || 0) + (expenseByCategory?.Other || 0)).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid var(--subtle-border)', fontSize: '0.95rem', fontWeight: 800 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Total Operating Expenses:</span>
+              <span style={{ color: 'var(--danger)' }}>(LKR {totalExpenses.toLocaleString()})</span>
+            </div>
+          </div>
+
+          {/* NET PROFIT (FINAL P&L BOTTOM LINE) */}
+          <div style={{ 
+            background: netProfit >= 0 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.05))' : 'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(245, 158, 11, 0.05))', 
+            padding: '20px 24px', borderRadius: '14px', 
+            border: `1px solid ${netProfit >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            boxShadow: netProfit >= 0 ? '0 10px 30px rgba(16, 185, 129, 0.1)' : '0 10px 30px rgba(244, 63, 94, 0.1)'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.95rem', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                Net Profit Before Tax (EBITDA)
+              </span>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Final Profit & Loss Bottom Line</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '1.8rem', fontWeight: 850, color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                LKR {netProfit.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {netMarginPct}% Net Profit Margin
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ marginBottom: '32px' }}>
