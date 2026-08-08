@@ -272,6 +272,57 @@ const CustomerPortal = () => {
     setIsVerifying(false);
   };
 
+  const calculateUpdatedInstallmentPlan = (plan, totalPaid, totalInvoiceAmount) => {
+    if (!plan || !plan.enabled || !Array.isArray(plan.installments)) return null;
+
+    const remaining = Math.max(0, totalInvoiceAmount - totalPaid);
+    let pool = totalPaid;
+    const downPayment = Number(plan.downPayment) || 0;
+
+    const updatedInstallments = plan.installments.map(inst => {
+      const instAmt = Number(inst.amount) || 0;
+      if (inst.number === 0) {
+        const paidDown = Math.min(downPayment, pool);
+        pool = Math.max(0, pool - downPayment);
+        return {
+          ...inst,
+          paidAmount: paidDown,
+          status: paidDown >= downPayment ? 'Paid' : (paidDown > 0 ? 'Partially Paid' : 'Pending')
+        };
+      } else {
+        if (pool >= instAmt) {
+          pool -= instAmt;
+          return {
+            ...inst,
+            paidAmount: instAmt,
+            status: 'Paid'
+          };
+        } else if (pool > 0) {
+          const currentAlloc = pool;
+          pool = 0;
+          return {
+            ...inst,
+            paidAmount: currentAlloc,
+            status: 'Partially Paid'
+          };
+        } else {
+          return {
+            ...inst,
+            paidAmount: 0,
+            status: 'Pending'
+          };
+        }
+      }
+    });
+
+    return {
+      ...plan,
+      remainingBalance: remaining,
+      totalPaid: totalPaid,
+      installments: updatedInstallments
+    };
+  };
+
   // --- STEP 3: SUBMIT ONLINE PAYMENT ---
   const handleCompletePayment = async (e) => {
     e.preventDefault();
@@ -322,12 +373,28 @@ const CustomerPortal = () => {
     const allCurrentPays = [...payments, ...portalPayments, newPayment];
     const invoicePayments = allCurrentPays.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0);
     const newStatus = invoicePayments >= selectedInvoice.amount ? 'Paid' : 'Partially Paid';
+    const updatedPlan = calculateUpdatedInstallmentPlan(selectedInvoice.installmentPlan, invoicePayments, selectedInvoice.amount);
 
     if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, newStatus);
+    if (recalculateInvoiceBalanceAndInstallments) recalculateInvoiceBalanceAndInstallments(selectedInvoice.id, 0);
 
     try {
-      await supabase.from('invoices').update({ status: newStatus }).eq('id', selectedInvoice.id);
+      const updateObj = { status: newStatus };
+      if (updatedPlan) updateObj.installment_plan = updatedPlan;
+      await supabase.from('invoices').update(updateObj).eq('id', selectedInvoice.id);
     } catch (e) {}
+
+    // Update portalInvoices state immediately
+    setPortalInvoices(prev => prev.map(inv => {
+      if (inv.id === selectedInvoice.id) {
+        return {
+          ...inv,
+          status: newStatus,
+          installmentPlan: updatedPlan || inv.installmentPlan
+        };
+      }
+      return inv;
+    }));
 
     // Send SMS Receipt
     if (authenticatedCustomer && (authenticatedCustomer.phone || phoneNumber) && sendDirectSMS) {
@@ -668,55 +735,101 @@ const CustomerPortal = () => {
                         </div>
 
                         {/* INSTALLMENT PLAN SCHEDULE BREAKDOWN */}
-                        {plan?.enabled && plan?.installments && (
-                          <div style={{ background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                            <div className="flex justify-between items-center mb-3">
-                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Installment Schedule Progress
+                        {(() => {
+                          const livePlan = calculateUpdatedInstallmentPlan(plan, paidSum, inv.amount) || plan;
+                          if (!livePlan?.enabled || !Array.isArray(livePlan?.installments)) {
+                            return (
+                              <div style={{ background: 'var(--subtle-bg)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                  💡 Need flexibility? You can pay this invoice in monthly installments.
+                                </div>
+                                <button 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.25)' }}
+                                  onClick={async () => {
+                                    const reqPlan = {
+                                      enabled: true,
+                                      count: 3,
+                                      downPayment: 0,
+                                      frequency: 'Monthly',
+                                      totalAmount: inv.amount,
+                                      remainingBalance: dueAmount,
+                                      installments: [
+                                        { number: 1, title: 'Installment #1 of 3', dueDate: new Date().toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending', paidAmount: 0 },
+                                        { number: 2, title: 'Installment #2 of 3', dueDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending', paidAmount: 0 },
+                                        { number: 3, title: 'Installment #3 of 3', dueDate: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending', paidAmount: 0 }
+                                      ]
+                                    };
+                                    try {
+                                      await supabase.from('invoices').update({ installment_plan: reqPlan }).eq('id', inv.id);
+                                      setPortalInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, installmentPlan: reqPlan } : i));
+                                      showNotification('3-Month Installment Plan activated for Invoice #' + inv.invoiceNumber, 'success');
+                                    } catch (e) {
+                                      showNotification('Failed to activate installment plan.', 'error');
+                                    }
+                                  }}
+                                >
+                                  Request 3-Month Installment Plan
+                                </button>
                               </div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                Total Paid: <strong style={{ color: 'var(--success)' }}>LKR {paidSum.toLocaleString()}</strong> of LKR {inv.amount.toLocaleString()}
+                            );
+                          }
+
+                          return (
+                            <div style={{ background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99, 102, 241, 0.2)', marginTop: '12px' }}>
+                              <div className="flex justify-between items-center mb-3">
+                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  Installment Payment Schedule ({livePlan.count || 3} Payments)
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                  Total Paid: <strong style={{ color: 'var(--success)' }}>LKR {paidSum.toLocaleString()}</strong> of LKR {inv.amount.toLocaleString()}
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                              {plan.installments.map((inst, idx) => {
-                                const isPastDue = new Date(inst.dueDate) < new Date() && paidSum < (inst.amount * (idx + 1));
-                                const isPaidInst = paidSum >= ((plan.downPayment || 0) + (inst.amount * (inst.number || 1)));
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                                {livePlan.installments.map((inst, idx) => {
+                                  const isPaidInst = inst.status === 'Paid';
+                                  const isPartiallyPaid = inst.status === 'Partially Paid';
+                                  const isPastDue = !isPaidInst && new Date(inst.dueDate) < new Date();
+                                  const instDueAmount = Math.max(0, inst.amount - (inst.paidAmount || 0));
 
-                                return (
-                                  <div key={idx} style={{ 
-                                    background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)', 
-                                    padding: '12px', borderRadius: '10px', 
-                                    border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}` 
-                                  }}>
-                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
-                                    <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
-                                    <div className="flex justify-between items-center mt-2" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                      <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
-                                      <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
-                                        {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : 'Pending'}
-                                      </span>
+                                  return (
+                                    <div key={idx} style={{ 
+                                      background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)', 
+                                      padding: '12px', borderRadius: '10px', 
+                                      border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}` 
+                                    }}>
+                                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>
+                                        LKR {inst.amount.toLocaleString()}
+                                        {isPartiallyPaid && <span style={{ fontSize: '0.7rem', color: 'var(--warning)', display: 'block' }}>Paid: LKR {(inst.paidAmount || 0).toLocaleString()}</span>}
+                                      </div>
+                                      <div className="flex justify-between items-center mt-2" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                        <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
+                                        <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : isPartiallyPaid ? 'badge-warning' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
+                                          {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : isPartiallyPaid ? 'Partial' : 'Pending'}
+                                        </span>
+                                      </div>
+
+                                      {!isPaidInst && (
+                                        <button 
+                                          className="btn btn-secondary" 
+                                          style={{ width: '100%', marginTop: '8px', padding: '6px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                                          onClick={() => {
+                                            setSelectedInvoice(inv);
+                                            setPaymentAmount(instDueAmount.toString());
+                                          }}
+                                        >
+                                          Pay {inst.title} (LKR {instDueAmount.toLocaleString()})
+                                        </button>
+                                      )}
                                     </div>
-
-                                    {!isPaidInst && (
-                                      <button 
-                                        className="btn btn-secondary" 
-                                        style={{ width: '100%', marginTop: '8px', padding: '4px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
-                                        onClick={() => {
-                                          setSelectedInvoice(inv);
-                                          setPaymentAmount(inst.amount.toString());
-                                        }}
-                                      >
-                                        Pay {inst.title}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })}

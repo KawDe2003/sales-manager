@@ -949,6 +949,83 @@ export default function StoreContextProvider({ children }) {
     return newInvoice;
   };
 
+  const recalculateInvoiceBalanceAndInstallments = (invoiceId, addedPaymentAmount = 0) => {
+    if (!invoiceId) return;
+
+    setInvoices(prevInvoices => {
+      return prevInvoices.map(inv => {
+        if (inv.id !== invoiceId) return inv;
+
+        const invPayments = payments.filter(p => p.documentId === invoiceId);
+        const totalPaid = invPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + Number(addedPaymentAmount);
+        const invAmount = Number(inv.amount) || 0;
+        const remainingBalance = Math.max(0, invAmount - totalPaid);
+
+        let newStatus = inv.status;
+        if (totalPaid >= invAmount) {
+          newStatus = 'Paid';
+        } else if (totalPaid > 0) {
+          newStatus = 'Partially Paid';
+        }
+
+        let updatedPlan = inv.installmentPlan ? { ...inv.installmentPlan } : null;
+
+        if (updatedPlan && updatedPlan.enabled && Array.isArray(updatedPlan.installments)) {
+          updatedPlan.remainingBalance = remainingBalance;
+          updatedPlan.totalPaid = totalPaid;
+
+          let availablePool = totalPaid;
+          const downPayment = Number(updatedPlan.downPayment) || 0;
+
+          updatedPlan.installments = updatedPlan.installments.map((inst) => {
+            const instAmt = Number(inst.amount) || 0;
+            if (inst.number === 0) {
+              const paidDown = Math.min(downPayment, availablePool);
+              availablePool = Math.max(0, availablePool - downPayment);
+              return {
+                ...inst,
+                paidAmount: paidDown,
+                status: paidDown >= downPayment ? 'Paid' : (paidDown > 0 ? 'Partially Paid' : 'Pending')
+              };
+            } else {
+              if (availablePool >= instAmt) {
+                availablePool -= instAmt;
+                return {
+                  ...inst,
+                  paidAmount: instAmt,
+                  status: 'Paid'
+                };
+              } else if (availablePool > 0) {
+                const currentAlloc = availablePool;
+                availablePool = 0;
+                return {
+                  ...inst,
+                  paidAmount: currentAlloc,
+                  status: 'Partially Paid'
+                };
+              } else {
+                return {
+                  ...inst,
+                  paidAmount: 0,
+                  status: 'Pending'
+                };
+              }
+            }
+          });
+        }
+
+        const updatedInvoice = {
+          ...inv,
+          status: newStatus,
+          installmentPlan: updatedPlan
+        };
+
+        syncInvoiceToSupabase(updatedInvoice);
+        return updatedInvoice;
+      });
+    });
+  };
+
   const recordCashDeposit = (data) => {
     const { customerId, documentId, amount, paymentType } = data; 
     
@@ -964,20 +1041,8 @@ export default function StoreContextProvider({ children }) {
     setPayments(prev => [...prev, newPayment]);
     syncPaymentToSupabase(newPayment);
 
-    if (paymentType === 'Invoice') {
-      const invoice = invoices.find(inv => inv.id === documentId);
-      if (invoice) {
-        const historicalPayments = payments
-          .filter(p => p.documentId === documentId)
-          .reduce((sum, p) => sum + p.amount, 0);
-        const totalPaid = historicalPayments + amount;
-
-        if (totalPaid >= invoice.amount) {
-           updateInvoiceStatus(documentId, 'Paid');
-        } else if (totalPaid > 0 && totalPaid < invoice.amount) {
-           updateInvoiceStatus(documentId, 'Partially Paid');
-        }
-      }
+    if (paymentType === 'Invoice' || paymentType === 'invoice' || documentId) {
+      recalculateInvoiceBalanceAndInstallments(documentId, amount);
     }
 
     const customer = customers.find(c => c.id === customerId);
@@ -1309,7 +1374,7 @@ export default function StoreContextProvider({ children }) {
     <StoreContext.Provider value={{
       customers, addCustomer, deleteCustomer, updateCustomer,
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
-      invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan,
+      invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice,
       leads, addLead, updateLead, deleteLead,
       expenses, addExpense, deleteExpense,
