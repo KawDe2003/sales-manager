@@ -145,6 +145,9 @@ CREATE POLICY "Manage own payments" ON payments FOR ALL USING (auth.uid() = user
 CREATE POLICY "Manage own activity_logs" ON activity_logs FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Manage own user_profiles" ON user_profiles FOR ALL USING (auth.uid() = user_id);
 
--- PUBLIC READ ACCESS FOR SHARED DOCUMENTS
+-- PUBLIC READ ACCESS FOR SHARED DOCUMENTS & PORTAL
 CREATE POLICY "View quotations by share_key" ON quotations FOR SELECT USING (true);
 CREATE POLICY "View invoices by share_key" ON invoices FOR SELECT USING (true);
+CREATE POLICY "View customers for portal" ON customers FOR SELECT USING (true);
+CREATE POLICY "View payments for portal" ON payments FOR SELECT USING (true);
+CREATE POLICY "Insert payments from portal" ON payments FOR INSERT WITH CHECK (true);

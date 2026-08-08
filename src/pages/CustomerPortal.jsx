@@ -34,6 +34,9 @@ const CustomerPortal = () => {
   const [slipFile, setSlipFile] = useState(null);
   const [isProcessingPay, setIsProcessingPay] = useState(false);
 
+  // Tab navigation for authenticated customer: 'active' | 'paid' | 'receipts'
+  const [activeTab, setActiveTab] = useState('active');
+
   useEffect(() => {
     if (urlPhone) {
       setPhoneNumber(urlPhone);
@@ -109,10 +112,10 @@ const CustomerPortal = () => {
           });
           if (matchInv) {
             foundCustomer = {
-              id: matchInv.customer_id || `prospect-${searchLast9}`,
-              gymName: matchInv.prospect_name || `Client (${phoneNumber})`,
-              phone: matchInv.prospect_phone || phoneNumber,
-              ownerName: matchInv.prospect_name
+              id: inv.customer_id || `prospect-${searchLast9}`,
+              gymName: inv.prospect_name || `Client (${phoneNumber})`,
+              phone: inv.prospect_phone || phoneNumber,
+              ownerName: inv.prospect_name
             };
           }
         }
@@ -162,33 +165,35 @@ const CustomerPortal = () => {
         return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
       });
 
-      if (!foundCustomer) {
-        try {
-          const { data: dbCustomers } = await supabase.from('customers').select('*');
-          if (dbCustomers && dbCustomers.length > 0) {
-            const match = dbCustomers.find(c => {
-              if (!c.phone) return false;
-              const cClean = getCleanDigits(c.phone);
-              return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
-            });
-            if (match) {
-              foundCustomer = {
-                id: match.id,
-                gymName: match.gym_name,
-                name: match.name,
-                email: match.email,
-                phone: match.phone,
-                dob: match.dob,
-                purchaseDate: match.purchase_date,
-                renewalDate: match.renewal_date,
-                annualFee: Number(match.annual_fee),
-                status: match.status,
-                notes: match.notes || []
-              };
+      let matchedCustomerIds = [];
+      if (foundCustomer) matchedCustomerIds.push(foundCustomer.id);
+
+      try {
+        const { data: dbCustomers } = await supabase.from('customers').select('*');
+        if (dbCustomers && dbCustomers.length > 0) {
+          dbCustomers.forEach(c => {
+            const cClean = getCleanDigits(c.phone);
+            if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) {
+              matchedCustomerIds.push(c.id);
+              if (!foundCustomer) {
+                foundCustomer = {
+                  id: c.id,
+                  gymName: c.gym_name,
+                  name: c.name,
+                  email: c.email,
+                  phone: c.phone,
+                  dob: c.dob,
+                  purchaseDate: c.purchase_date,
+                  renewalDate: c.renewal_date,
+                  annualFee: Number(c.annual_fee),
+                  status: c.status,
+                  notes: c.notes || []
+                };
+              }
             }
-          }
-        } catch (err) {}
-      }
+          });
+        }
+      } catch (err) {}
 
       if (!foundCustomer) {
         foundCustomer = {
@@ -197,6 +202,7 @@ const CustomerPortal = () => {
           phone: phoneNumber,
           ownerName: 'Valued Client'
         };
+        matchedCustomerIds.push(foundCustomer.id);
       }
 
       setAuthenticatedCustomer(foundCustomer);
@@ -205,9 +211,10 @@ const CustomerPortal = () => {
       // Fetch matching invoices & payments from Supabase
       try {
         const { data: dbInvoices } = await supabase.from('invoices').select('*');
+        let matchedInvoices = [];
         if (dbInvoices) {
-          const matched = dbInvoices.filter(inv => {
-            if (inv.customer_id === foundCustomer.id) return true;
+          matchedInvoices = dbInvoices.filter(inv => {
+            if (matchedCustomerIds.includes(inv.customer_id)) return true;
             if (inv.prospect_name && inv.prospect_name.toLowerCase() === (foundCustomer.gymName || '').toLowerCase()) return true;
             if (inv.prospect_phone) {
               const pClean = getCleanDigits(inv.prospect_phone);
@@ -225,18 +232,35 @@ const CustomerPortal = () => {
             status: i.status,
             items: i.items || [],
             prospectName: i.prospect_name,
-            prospectPhone: i.prospect_phone
+            prospectPhone: i.prospect_phone,
+            installmentPlan: (i.installment_plan && i.installment_plan.enabled) ? i.installment_plan : null
           }));
-          setPortalInvoices(matched);
+          setPortalInvoices(matchedInvoices);
         }
+
+        const matchedInvIds = matchedInvoices.map(m => m.id);
 
         const { data: dbPayments } = await supabase.from('payments').select('*');
         if (dbPayments) {
-          setPortalPayments(dbPayments.map(p => ({
-            id: p.id,
-            documentId: p.document_id,
-            amount: Number(p.amount) || 0
-          })));
+          const matchedPays = dbPayments.filter(p => {
+            if (matchedCustomerIds.includes(p.customer_id)) return true;
+            if (matchedInvIds.includes(p.document_id)) return true;
+            return false;
+          }).map(p => {
+            const invMatch = matchedInvoices.find(i => i.id === p.document_id);
+            return {
+              id: p.id,
+              customerId: p.customer_id,
+              documentId: p.document_id,
+              invoiceNumber: invMatch ? invMatch.invoiceNumber : `INV-${p.document_id?.substring(0,6) || 'PAY'}`,
+              amount: Number(p.amount) || 0,
+              method: p.payment_type || 'Online Portal Payment',
+              referenceNumber: p.reference_number || `REF-${p.id.substring(0,8)}`,
+              paymentDate: p.payment_timestamp ? p.payment_timestamp.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+              timestamp: p.payment_timestamp || p.created_at || new Date().toISOString()
+            };
+          });
+          setPortalPayments(matchedPays);
         }
       } catch (err) {
         console.error('Error fetching portal invoices:', err);
@@ -261,6 +285,9 @@ const CustomerPortal = () => {
 
     setIsProcessingPay(true);
 
+    const refNo = referenceNo || `ONLINE-${Math.floor(100000 + Math.random() * 900000)}`;
+    const payMethodStr = paymentMethod === 'card' ? 'Credit/Debit Card Online' : paymentMethod === 'bank' ? 'Bank Transfer Deposit' : 'Koko Online';
+
     const newPayment = {
       id: `pay-${Date.now()}`,
       documentId: selectedInvoice.id,
@@ -268,12 +295,14 @@ const CustomerPortal = () => {
       customerId: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
       amount: amount,
       paymentDate: new Date().toISOString().split('T')[0],
-      method: paymentMethod === 'card' ? 'Credit/Debit Card Online' : paymentMethod === 'bank' ? 'Bank Transfer Deposit' : 'Koko Online',
-      referenceNumber: referenceNo || `ONLINE-${Math.floor(100000 + Math.random() * 900000)}`,
+      timestamp: new Date().toISOString(),
+      method: payMethodStr,
+      referenceNumber: refNo,
       notes: `Customer Online Portal Payment via ${paymentMethod.toUpperCase()}`
     };
 
     if (addPayment) addPayment(newPayment);
+    setPortalPayments(prev => [newPayment, ...prev]);
 
     // Sync to Supabase directly for unauthenticated session
     if (supabase) {
@@ -282,7 +311,7 @@ const CustomerPortal = () => {
           customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
           document_id: selectedInvoice.id,
           amount: amount,
-          payment_type: paymentMethod,
+          payment_type: payMethodStr,
           created_at: new Date().toISOString()
         });
       } catch (e) {
@@ -290,8 +319,8 @@ const CustomerPortal = () => {
       }
     }
 
-    const allCurrentPays = [...payments, ...portalPayments];
-    const invoicePayments = allCurrentPays.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0) + amount;
+    const allCurrentPays = [...payments, ...portalPayments, newPayment];
+    const invoicePayments = allCurrentPays.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0);
     const newStatus = invoicePayments >= selectedInvoice.amount ? 'Paid' : 'Partially Paid';
 
     if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, newStatus);
@@ -323,7 +352,7 @@ const CustomerPortal = () => {
     setSlipFile(null);
   };
 
-  // Combine invoices from StoreContext state AND fetched portalInvoices
+  // Combine invoices & payments from StoreContext state AND fetched portal data
   const allInvoices = [...invoices, ...portalInvoices];
   const customerInvoicesMap = new Map();
 
@@ -346,10 +375,25 @@ const CustomerPortal = () => {
   }
 
   const customerInvoices = Array.from(customerInvoicesMap.values());
-  const allPayments = [...payments, ...portalPayments];
+  const allPaymentsMap = new Map();
+  [...payments, ...portalPayments].forEach(p => {
+    if (!allPaymentsMap.has(p.id)) allPaymentsMap.set(p.id, p);
+  });
+  const allPayments = Array.from(allPaymentsMap.values());
 
-  const unpaidInvoices = customerInvoices.filter(inv => inv.status !== 'Paid');
-  const totalOutstanding = unpaidInvoices.reduce((sum, inv) => {
+  const activeInvoices = customerInvoices.filter(inv => {
+    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const dueAmount = Math.max(0, inv.amount - paidSum);
+    return inv.status !== 'Paid' && dueAmount > 0;
+  });
+
+  const paidInvoices = customerInvoices.filter(inv => {
+    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const dueAmount = Math.max(0, inv.amount - paidSum);
+    return inv.status === 'Paid' || dueAmount <= 0;
+  });
+
+  const totalOutstanding = activeInvoices.reduce((sum, inv) => {
     const historicalPays = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
     return sum + Math.max(0, inv.amount - historicalPays);
   }, 0);
@@ -512,61 +556,104 @@ const CustomerPortal = () => {
             </div>
           </div>
 
-          {/* OUTSTANDING INVOICES LIST */}
-          <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px' }}>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Your Invoices & Billing Records</h2>
-                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '2px 0 0 0' }}>Review your current billing invoices and pay online securely.</p>
+          {/* TAB SELECTION BAR */}
+          <div className="flex gap-2 mb-6 border-b border-panel pb-3 overflow-x-auto">
+            <button 
+              className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-secondary'}`} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem' }}
+              onClick={() => setActiveTab('active')}
+            >
+              <Clock size={16} /> Active Due Invoices ({activeInvoices.length})
+            </button>
+            <button 
+              className={`btn ${activeTab === 'paid' ? 'btn-primary' : 'btn-secondary'}`} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem' }}
+              onClick={() => setActiveTab('paid')}
+            >
+              <CheckCircle size={16} /> Settled Paid Invoices ({paidInvoices.length})
+            </button>
+            <button 
+              className={`btn ${activeTab === 'receipts' ? 'btn-primary' : 'btn-secondary'}`} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem' }}
+              onClick={() => setActiveTab('receipts')}
+            >
+              <FileText size={16} /> Payment Receipts Log ({allPayments.length})
+            </button>
+          </div>
+
+          {/* TAB 1: ACTIVE INVOICES */}
+          {activeTab === 'active' && (
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px' }}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Active Billing Invoices</h2>
+                  <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '2px 0 0 0' }}>Review your open balance and pay online securely.</p>
+                </div>
               </div>
-            </div>
 
-            {customerInvoices.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
-                <CheckCircle size={48} color="var(--success)" style={{ margin: '0 auto 16px auto', opacity: 0.8 }} />
-                <h3 className="h3" style={{ fontSize: '1.1rem', marginBottom: '6px', color: 'var(--text-primary)' }}>All Clear! No Active Invoices</h3>
-                <p style={{ fontSize: '0.88rem' }}>There are currently no billing invoices registered for your account.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-6">
-                {customerInvoices.map(inv => {
-                  const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
-                  const dueAmount = Math.max(0, inv.amount - paidSum);
-                  const isPaid = inv.status === 'Paid' || dueAmount <= 0;
-                  const plan = inv.installmentPlan;
+              {activeInvoices.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  <CheckCircle size={52} color="var(--success)" style={{ margin: '0 auto 16px auto', opacity: 0.9 }} />
+                  <h3 className="h3" style={{ fontSize: '1.2rem', marginBottom: '6px', color: 'var(--text-primary)' }}>All Clear! No Active Unpaid Invoices</h3>
+                  <p style={{ fontSize: '0.9rem', marginBottom: '20px' }}>All your billing invoices are fully settled. You have LKR 0 outstanding balance.</p>
+                  
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    {paidInvoices.length > 0 && (
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+                        onClick={() => setActiveTab('paid')}
+                      >
+                        <CheckCircle size={15} /> View Settled Invoices History ({paidInvoices.length})
+                      </button>
+                    )}
+                    {allPayments.length > 0 && (
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ padding: '8px 18px', fontSize: '0.82rem', background: 'var(--accent-primary)' }}
+                        onClick={() => setActiveTab('receipts')}
+                      >
+                        <FileText size={15} /> View Payment Receipts Log ({allPayments.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {activeInvoices.map(inv => {
+                    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+                    const dueAmount = Math.max(0, inv.amount - paidSum);
+                    const plan = inv.installmentPlan;
 
-                  return (
-                    <div key={inv.id} style={{ background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--panel-border)', padding: '20px' }}>
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-panel">
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                            <span style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Invoice #{inv.invoiceNumber}</span>
-                            <span className={`badge ${isPaid ? 'badge-success' : 'badge-warning'}`}>
-                              {isPaid ? 'Settled' : inv.status}
-                            </span>
-                            {plan?.enabled && (
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                                📅 {plan.count} {plan.frequency} Installments
-                              </span>
-                            )}
+                    return (
+                      <div key={inv.id} style={{ background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--panel-border)', padding: '20px' }}>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-panel">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <span style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Invoice #{inv.invoiceNumber}</span>
+                              <span className="badge badge-warning">{inv.status}</span>
+                              {plan?.enabled && (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                                  📅 {plan.count} {plan.frequency} Installments
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              Issued: {new Date(inv.date).toLocaleDateString()} • Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Issued: {new Date(inv.date).toLocaleDateString()} • Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-3">
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-                            onClick={() => {
-                              generateDocumentPDF('Invoice', { ...inv, gymName: authenticatedCustomer.gymName }, inv.items || []);
-                            }}
-                          >
-                            <Download size={15} /> PDF
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+                              onClick={() => {
+                                generateDocumentPDF('Invoice', { ...inv, gymName: authenticatedCustomer.gymName }, inv.items || []);
+                              }}
+                            >
+                              <Download size={15} /> PDF
+                            </button>
 
-                          {!isPaid && (
                             <button 
                               className="btn btn-primary" 
                               style={{ padding: '8px 18px', fontSize: '0.85rem', background: 'var(--accent-primary)' }}
@@ -577,103 +664,197 @@ const CustomerPortal = () => {
                             >
                               <CreditCard size={15} /> Pay Balance (LKR {dueAmount.toLocaleString()})
                             </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* INSTALLMENT PLAN SCHEDULE BREAKDOWN */}
-                      {plan?.enabled && plan?.installments && (
-                        <div style={{ background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                          <div className="flex justify-between items-center mb-3">
-                            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                              Installment Schedule Progress
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              Total Paid: <strong style={{ color: 'var(--success)' }}>LKR {paidSum.toLocaleString()}</strong> of LKR {inv.amount.toLocaleString()}
-                            </div>
                           </div>
+                        </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            {plan.installments.map((inst, idx) => {
-                              const isPastDue = new Date(inst.dueDate) < new Date() && paidSum < (inst.amount * (idx + 1));
-                              const isPaidInst = paidSum >= ((plan.downPayment || 0) + (inst.amount * (inst.number || 1)));
+                        {/* INSTALLMENT PLAN SCHEDULE BREAKDOWN */}
+                        {plan?.enabled && plan?.installments && (
+                          <div style={{ background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                            <div className="flex justify-between items-center mb-3">
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Installment Schedule Progress
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                Total Paid: <strong style={{ color: 'var(--success)' }}>LKR {paidSum.toLocaleString()}</strong> of LKR {inv.amount.toLocaleString()}
+                              </div>
+                            </div>
 
-                              return (
-                                <div key={idx} style={{ 
-                                  background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)', 
-                                  padding: '12px', borderRadius: '10px', 
-                                  border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}` 
-                                }}>
-                                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
-                                  <div className="flex justify-between items-center mt-2" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                    <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
-                                    <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
-                                      {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : 'Pending'}
-                                    </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                              {plan.installments.map((inst, idx) => {
+                                const isPastDue = new Date(inst.dueDate) < new Date() && paidSum < (inst.amount * (idx + 1));
+                                const isPaidInst = paidSum >= ((plan.downPayment || 0) + (inst.amount * (inst.number || 1)));
+
+                                return (
+                                  <div key={idx} style={{ 
+                                    background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)', 
+                                    padding: '12px', borderRadius: '10px', 
+                                    border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}` 
+                                  }}>
+                                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isPaidInst ? 'var(--success)' : 'var(--accent-primary)' }}>{inst.title}</div>
+                                    <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
+                                    <div className="flex justify-between items-center mt-2" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                      <span>Due: {new Date(inst.dueDate).toLocaleDateString()}</span>
+                                      <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '1px 6px', fontSize: '0.62rem' }}>
+                                        {isPaidInst ? 'Paid' : isPastDue ? 'Overdue' : 'Pending'}
+                                      </span>
+                                    </div>
+
+                                    {!isPaidInst && (
+                                      <button 
+                                        className="btn btn-secondary" 
+                                        style={{ width: '100%', marginTop: '8px', padding: '4px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                                        onClick={() => {
+                                          setSelectedInvoice(inv);
+                                          setPaymentAmount(inst.amount.toString());
+                                        }}
+                                      >
+                                        Pay {inst.title}
+                                      </button>
+                                    )}
                                   </div>
-
-                                  {!isPaidInst && (
-                                    <button 
-                                      className="btn btn-secondary" 
-                                      style={{ width: '100%', marginTop: '8px', padding: '4px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
-                                      onClick={() => {
-                                        setSelectedInvoice(inv);
-                                        setPaymentAmount(inst.amount.toString());
-                                      }}
-                                    >
-                                      Pay {inst.title}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
-                      {/* OPTION TO REQUEST INSTALLMENT PLAN IF NOT ENABLED */}
-                      {!plan?.enabled && !isPaid && (
-                        <div style={{ background: 'var(--subtle-bg)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                            💡 Want to pay this invoice in monthly installments?
-                          </div>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.25)' }}
-                            onClick={async () => {
-                              const newPlan = {
-                                enabled: true,
-                                count: 3,
-                                downPayment: 0,
-                                frequency: 'Monthly',
-                                totalAmount: inv.amount,
-                                remainingBalance: dueAmount,
-                                installments: [
-                                  { number: 1, title: 'Installment #1 of 3', dueDate: new Date().toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' },
-                                  { number: 2, title: 'Installment #2 of 3', dueDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' },
-                                  { number: 3, title: 'Installment #3 of 3', dueDate: new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0], amount: Math.round(dueAmount / 3), status: 'Pending' }
-                                ]
-                              };
-                              try {
-                                await supabase.from('invoices').update({ installment_plan: newPlan }).eq('id', inv.id);
-                                showNotification('3-Month Installment Plan requested and activated!', 'success');
-                                window.location.reload();
-                              } catch (e) {
-                                showNotification('Failed to request installment plan.', 'error');
-                              }
-                            }}
-                          >
-                            Request 3-Month Installment Plan
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+          {/* TAB 2: SETTLED / PAID INVOICES HISTORY */}
+          {activeTab === 'paid' && (
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px' }}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Settled Paid Invoices History</h2>
+                  <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '2px 0 0 0' }}>Complete archive of all fully paid invoices and historical billing statements.</p>
+                </div>
               </div>
-            )}
-          </div>
+
+              {paidInvoices.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  <FileText size={48} style={{ margin: '0 auto 16px auto', opacity: 0.5 }} />
+                  <h3 className="h3" style={{ fontSize: '1.1rem', marginBottom: '6px', color: 'var(--text-primary)' }}>No Settled Invoices Yet</h3>
+                  <p style={{ fontSize: '0.88rem' }}>When your active invoices are settled, they will appear here in your historical archive.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="app-table" style={{ fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Invoice #</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Document</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paidInvoices.map(inv => (
+                        <tr key={inv.id}>
+                          <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>#{inv.invoiceNumber}</td>
+                          <td>{new Date(inv.date).toLocaleDateString()}</td>
+                          <td>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
+                          <td style={{ fontWeight: 800, color: 'var(--success)' }}>LKR {(inv.amount || 0).toLocaleString()}</td>
+                          <td>
+                            <span className="badge badge-success">Settled</span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                              onClick={() => {
+                                generateDocumentPDF('Invoice', { ...inv, gymName: authenticatedCustomer.gymName }, inv.items || []);
+                              }}
+                            >
+                              <Download size={14} /> PDF Invoice
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: PAYMENT RECEIPTS LOG */}
+          {activeTab === 'receipts' && (
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px' }}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Payment Receipts & Audit Log</h2>
+                  <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '2px 0 0 0' }}>Record of online payments, deposits, and downloadable transaction receipts.</p>
+                </div>
+              </div>
+
+              {allPayments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  <CreditCard size={48} style={{ margin: '0 auto 16px auto', opacity: 0.5 }} />
+                  <h3 className="h3" style={{ fontSize: '1.1rem', marginBottom: '6px', color: 'var(--text-primary)' }}>No Payment Receipts Found</h3>
+                  <p style={{ fontSize: '0.88rem' }}>When you complete online payments or deposit slips are verified, your official receipts will log here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="app-table" style={{ fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Invoice #</th>
+                        <th>Payment Method</th>
+                        <th>Reference #</th>
+                        <th>Amount Paid</th>
+                        <th style={{ textAlign: 'right' }}>Receipt PDF</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allPayments.map((pay, idx) => {
+                        const invMatch = customerInvoices.find(i => i.id === pay.documentId);
+                        const invNo = pay.invoiceNumber || (invMatch ? invMatch.invoiceNumber : 'GENERAL');
+                        const pDate = pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : (pay.timestamp ? new Date(pay.timestamp).toLocaleDateString() : 'N/A');
+                        
+                        return (
+                          <tr key={pay.id || idx}>
+                            <td style={{ fontWeight: 600 }}>{pDate}</td>
+                            <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>#{invNo}</td>
+                            <td>{pay.method || pay.paymentType || 'Online Payment'}</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: 0.8 }}>{pay.referenceNumber || pay.id.substring(0,10)}</td>
+                            <td style={{ fontWeight: 850, color: 'var(--success)' }}>LKR {(pay.amount || 0).toLocaleString()}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                                onClick={() => {
+                                  const receiptData = {
+                                    ...(invMatch || {}),
+                                    invoiceNumber: invNo,
+                                    amountPaidNow: pay.amount,
+                                    amount: pay.amount,
+                                    receiptNumber: pay.referenceNumber || `ONLINE-${pay.id.substring(0,6)}`,
+                                    gymName: authenticatedCustomer ? authenticatedCustomer.gymName : 'Client Account',
+                                    date: pDate
+                                  };
+                                  generateDocumentPDF('Receipt', receiptData, invMatch ? invMatch.items : []);
+                                }}
+                              >
+                                <Download size={14} /> Download Receipt
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
