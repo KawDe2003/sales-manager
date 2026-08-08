@@ -13,6 +13,7 @@ const Inventory = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'stock'
 
   // --- VALUATION METRICS CALCULATIONS ---
@@ -86,10 +87,12 @@ const Inventory = () => {
     updateInventoryItem(id, { stock: val });
   };
 
-  const filteredInventory = inventory.filter(item => 
-    (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.type || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.type || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'All' || item.type === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -226,8 +229,8 @@ const Inventory = () => {
       </div>
 
       {/* Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '440px', flex: '1 1 auto' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -237,6 +240,21 @@ const Inventory = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Category:</label>
+          <select 
+            className="form-input" 
+            style={{ height: '42px', width: '160px', background: 'var(--subtle-bg)' }}
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+          >
+            <option value="All">All Categories</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Software">Software</option>
+            <option value="Service">Service</option>
+          </select>
         </div>
       </div>
 

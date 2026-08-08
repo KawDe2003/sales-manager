@@ -74,7 +74,38 @@ const Invoices = () => {
             </button>
           </div>
         </div>
-      </div>
+      {/* TOP INVOICE METRICS BAR */}
+      {(() => {
+        const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const totalCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
+
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Invoiced</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>LKR {totalInvoiced.toLocaleString()}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{invoices.length} Invoices</div>
+            </div>
+            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Collected</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>LKR {totalCollected.toLocaleString()}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--success)', marginTop: '2px', fontWeight: 700 }}>Settled Invoices</div>
+            </div>
+            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Outstanding</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>LKR {totalOutstanding.toLocaleString()}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 700 }}>Unpaid & Pending</div>
+            </div>
+            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Overdue Invoices</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: overdueCount > 0 ? 'var(--danger)' : 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>{overdueCount} Accounts</div>
+              <div style={{ fontSize: '0.7rem', color: overdueCount > 0 ? 'var(--danger)' : 'var(--text-muted)', marginTop: '2px', fontWeight: 700 }}>{overdueCount > 0 ? 'Requires follow-up' : 'All clear'}</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Styled Search & Filter Toolbar */}
       <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
