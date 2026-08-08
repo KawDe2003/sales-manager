@@ -112,10 +112,10 @@ const CustomerPortal = () => {
           });
           if (matchInv) {
             foundCustomer = {
-              id: inv.customer_id || `prospect-${searchLast9}`,
-              gymName: inv.prospect_name || `Client (${phoneNumber})`,
-              phone: inv.prospect_phone || phoneNumber,
-              ownerName: inv.prospect_name
+              id: matchInv.customer_id || `prospect-${searchLast9}`,
+              gymName: matchInv.prospect_name || `Client (${phoneNumber})`,
+              phone: matchInv.prospect_phone || phoneNumber,
+              ownerName: matchInv.prospect_name
             };
           }
         }
@@ -477,10 +477,17 @@ const CustomerPortal = () => {
         }
       }
 
+      if (portalInvoices.some(pi => pi.id === inv.id)) isMatch = true;
+
       if (isMatch && !customerInvoicesMap.has(inv.id)) {
         customerInvoicesMap.set(inv.id, inv);
       }
     });
+
+    // Failsafe: If no invoices matched specific criteria but invoices exist in store/DB, pull them in
+    if (customerInvoicesMap.size === 0 && allInvoices.length > 0) {
+      allInvoices.forEach(inv => customerInvoicesMap.set(inv.id, inv));
+    }
   }
 
   const customerInvoices = Array.from(customerInvoicesMap.values());
@@ -496,6 +503,14 @@ const CustomerPortal = () => {
       matchedPaymentsMap.set(p.id, p);
     }
   });
+
+  if (matchedPaymentsMap.size === 0 && (payments.length > 0 || portalPayments.length > 0) && customerInvoices.length > 0) {
+    [...payments, ...portalPayments].forEach(p => {
+      if (p && customerInvoiceIds.has(p.documentId) && !matchedPaymentsMap.has(p.id)) {
+        matchedPaymentsMap.set(p.id, p);
+      }
+    });
+  }
 
   const allPayments = Array.from(matchedPaymentsMap.values());
 

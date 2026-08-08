@@ -241,6 +241,7 @@ export default function StoreContextProvider({ children }) {
           due_date: invoice.dueDate,
           customer_id: (invoice.customerId && invoice.customerId !== 'unknown') ? invoice.customerId : null,
           prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
+          prospect_phone: invoice.prospectPhone || customers.find(c => c.id === invoice.customerId)?.phone || '',
           amount: invoice.amount,
           status: invoice.status,
           items: invoice.items,
