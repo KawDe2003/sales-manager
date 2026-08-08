@@ -610,15 +610,16 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'flex-start',
-        gap: collapsed ? '0' : '10px',
-        padding: collapsed ? '12px 0' : '10px 16px',
-        borderRadius: '10px',
+        gap: collapsed ? '0' : '12px',
+        padding: collapsed ? '12px 0' : '11px 16px',
+        borderRadius: '12px',
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-        background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+        background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.08) 100%)' : 'transparent',
         fontWeight: isActive ? '700' : '500',
-        transition: 'all 0.2s ease',
-        fontSize: '0.85rem',
+        transition: 'all 0.22s ease',
+        fontSize: '0.86rem',
         borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : '3px solid transparent',
+        boxShadow: isActive ? 'inset 0 0 15px rgba(99, 102, 241, 0.08)' : 'none',
         position: 'relative',
         textDecoration: 'none'
       })}
@@ -627,7 +628,15 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
     >
       {({ isActive }) => (
         <>
-          <span style={{ color: isActive ? 'var(--accent-primary)' : 'inherit', display: 'flex', flexShrink: 0 }}>{icon}</span>
+          <span style={{ 
+            color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)', 
+            display: 'flex', 
+            flexShrink: 0,
+            transition: 'color 0.2s ease, transform 0.2s ease',
+            transform: isActive ? 'scale(1.08)' : 'scale(1)'
+          }}>
+            {icon}
+          </span>
           {!collapsed && <span>{label}</span>}
         </>
       )}
