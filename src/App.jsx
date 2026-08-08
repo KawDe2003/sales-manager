@@ -158,7 +158,7 @@ const AppContent = () => {
   const closeSidebar = () => setSidebarOpen(false);
 
   const isPublicShareView = location.pathname.startsWith('/share');
-  const isCustomerPortal = location.pathname.startsWith('/portal') || location.pathname.startsWith('/pay');
+  const isCustomerPortal = location.pathname.startsWith('/portal') || location.pathname === '/pay' || location.pathname.startsWith('/pay/');
   const isLoginPage = location.pathname === '/login';
 
   // Inactivity Timer
@@ -574,6 +574,7 @@ const AppContent = () => {
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
           </div>
