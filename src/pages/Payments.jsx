@@ -11,13 +11,16 @@ const Payments = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredCustomers = customers.filter(c => 
-    c.gymName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCustomers = customers.filter(c => {
+    if (!c) return false;
+    const gymStr = String(c.gymName || '').toLowerCase();
+    const nameStr = String(c.name || '').toLowerCase();
+    const searchStr = (searchTerm || '').toLowerCase();
+    return gymStr.includes(searchStr) || nameStr.includes(searchStr);
+  });
 
-  const customerInvoices = invoices.filter(inv => inv.customerId === selectedCustomer?.id && inv.status !== 'Paid');
-  const customerQuotes = quotes.filter(q => (q.prospectName === selectedCustomer?.gymName || q.prospectPhone === selectedCustomer?.phone) && q.status === 'Accepted');
+  const customerInvoices = invoices.filter(inv => inv && selectedCustomer && inv.customerId === selectedCustomer.id && inv.status !== 'Paid');
+  const customerQuotes = quotes.filter(q => q && selectedCustomer && ((q.prospectName && q.prospectName === selectedCustomer.gymName) || (q.prospectPhone && selectedCustomer.phone && q.prospectPhone === selectedCustomer.phone)) && q.status === 'Accepted');
 
   const handleRecordPayment = async (e) => {
     e.preventDefault();
