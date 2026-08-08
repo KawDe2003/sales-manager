@@ -128,7 +128,7 @@ const Invoices = () => {
         <div className="flex gap-4 w-full md:w-auto">
           <select 
             className="form-input"
-            style={{ height: '42px', width: '100%', mdWidth: '130px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', flex: '1 1 130px', minWidth: '120px', background: 'var(--subtle-bg)' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -141,7 +141,7 @@ const Invoices = () => {
           </select>
           <select 
             className="form-input"
-            style={{ height: '42px', width: '100%', mdWidth: '140px', background: 'var(--subtle-bg)' }}
+            style={{ height: '42px', flex: '1 1 140px', minWidth: '120px', background: 'var(--subtle-bg)' }}
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
           >

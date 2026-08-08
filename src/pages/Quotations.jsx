@@ -9,6 +9,7 @@ const Quotations = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingQuote, setEditingQuote] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -42,9 +43,9 @@ const Quotations = () => {
         </div>
       </div>
 
-      {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+      {/* Responsive Search & Filter Toolbar */}
+      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '480px' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -55,15 +56,30 @@ const Quotations = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        <div className="flex gap-2 flex-wrap" style={{ width: '100%', mdWidth: 'auto' }}>
+          {['All', 'Pending', 'Accepted', 'Rejected'].map(st => (
+            <button
+              key={st}
+              className={`btn ${statusFilter === st ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '6px 14px', fontSize: '0.8rem', flex: '1 1 auto' }}
+              onClick={() => setStatusFilter(st)}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
         {(() => {
-          const filteredQuotes = quotes.filter(q => 
-            (q.prospectName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (q.quoteNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (q.prospectPhone || '').toLowerCase().includes(searchTerm.toLowerCase())
-          );
+          const filteredQuotes = quotes.filter(q => {
+            const matchesSearch = (q.prospectName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (q.quoteNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (q.prospectPhone || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = statusFilter === 'All' || (q.status || 'Pending') === statusFilter;
+            return matchesSearch && matchesStatus;
+          });
 
           if (filteredQuotes.length === 0) {
             return (

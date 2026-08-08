@@ -252,26 +252,26 @@ const SharedDocument = () => {
       <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', zIndex: 1, animation: 'fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}>
         
         {/* Top Header Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }} className="no-print">
-          <div className="flex items-center gap-4">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }} className="no-print">
+          <div className="flex items-center gap-3">
              <div style={{ 
                 width: '42px', height: '42px', borderRadius: '12px', 
-                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-hover))',
+                background: 'linear-gradient(135deg, var(--accent-primary), #4f46e5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 8px 16px var(--accent-glow)'
               }}>
-                <span style={{ color: 'var(--bg-secondary)', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>G</span>
+                <span style={{ color: '#ffffff', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>G</span>
               </div>
               <div style={{ fontFamily: 'var(--font-display)' }}>
                 <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1 }}>Secure Portal</div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>Client Access</div>
               </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'var(--subtle-bg)', height: '44px' }}>
+          <div className="flex gap-2 w-full sm:w-auto" style={{ flexWrap: 'wrap' }}>
+            <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'var(--subtle-bg)', height: '44px', flex: '1 1 auto' }}>
               <Printer size={18} /> Print
             </button>
-            <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '44px', padding: '0 24px', fontSize: '0.9rem' }}>
+            <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '44px', padding: '0 20px', fontSize: '0.9rem', flex: '1 1 auto' }}>
               <Download size={18} /> Download {isQuote ? 'Quotation' : 'Invoice'}
             </button>
           </div>

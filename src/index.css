@@ -355,6 +355,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 
 .gradient-heading {
   background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 60%, #e0e7ff 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -625,3 +626,27 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 .search-item:hover { background: var(--subtle-bg) !important; }
 .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Responsive Action Bars & Touch-Friendly Mobile Overrides */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .action-bar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .action-bar .btn {
+    flex: 1 1 auto;
+  }
+  .form-input, .form-select, .form-textarea, select.form-input {
+    font-size: 0.94rem;
+  }
+  .glass-panel {
+    padding: 1.15rem;
+  }
+}
