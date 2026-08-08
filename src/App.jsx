@@ -98,6 +98,7 @@ const AppContent = () => {
   const closeSidebar = () => setSidebarOpen(false);
 
   const isPublicShareView = location.pathname.startsWith('/share');
+  const isCustomerPortal = location.pathname.startsWith('/portal') || location.pathname.startsWith('/pay');
   const isLoginPage = location.pathname === '/login';
 
   // Inactivity Timer
