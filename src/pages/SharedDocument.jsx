@@ -182,7 +182,8 @@ const SharedDocument = () => {
         margin: '0 auto', 
         background: '#ffffff', 
         borderRadius: '28px', 
-        overflow: 'hidden', 
+        overflow: 'visible',
+        position: 'relative',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         border: '1px solid rgba(255, 255, 255, 0.1)' 
       }}>
@@ -385,7 +386,14 @@ const SharedDocument = () => {
         </div>
 
         {/* FOOTER BAR */}
-        <div style={{ background: '#0f172a', padding: '20px 32px', position: 'relative' }}>
+        <div style={{ 
+          background: '#0f172a', 
+          padding: '20px 32px', 
+          position: 'relative',
+          borderBottomLeftRadius: '28px',
+          borderBottomRightRadius: '28px',
+          overflow: 'hidden'
+        }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #0ea5e9, #8b5cf6, #ec4899)' }}></div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
