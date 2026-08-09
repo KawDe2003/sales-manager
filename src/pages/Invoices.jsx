@@ -1,7 +1,7 @@
-import React, { useContext, useState } from 'react';
+﻿import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 
@@ -219,7 +219,6 @@ const Invoices = () => {
     </div>
   );
 };
-
 const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendSms, onDownload }) => {
   const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
@@ -400,32 +399,6 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
           </div>
 
           <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '12px' }}>Payment Schedule Breakdown ({plan.count} {plan.frequency} Payments)</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {plan.installments.map((inst, idx) => {
-              const isPastDue = new Date(inst.dueDate) < new Date() && totalPaidSoFar < (inst.amount * (idx + 1));
-              const isPaidInst = totalPaidSoFar >= ((plan.downPayment || 0) + (inst.amount * (inst.number || 1)));
-
-              return (
-                <div key={idx} style={{ 
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '14px 18px', borderRadius: '12px',
-                  background: isPaidInst ? 'rgba(34, 197, 94, 0.08)' : isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-secondary)',
-                  border: `1px solid ${isPaidInst ? 'rgba(34, 197, 94, 0.25)' : isPastDue ? 'rgba(239, 68, 68, 0.25)' : 'var(--panel-border)'}`
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{inst.title}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>Due Date: {new Date(inst.dueDate).toLocaleDateString()}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 850, color: 'var(--text-primary)' }}>LKR {inst.amount.toLocaleString()}</div>
-                    <span className={`badge ${isPaidInst ? 'badge-success' : isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ marginTop: '4px' }}>
-                      {isPaidInst ? 'Settled' : isPastDue ? 'Overdue' : 'Scheduled'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
     </div>
@@ -508,6 +481,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan }); 
           onClose(); 
         }} className="modal-body">
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Serial #</label>
@@ -576,19 +550,68 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             )}
           </div>
 
-          <div className="flex justify-end items-center gap-4" style={{ marginTop: '24px', padding: '0 24px' }}>
-            <label className="form-label mb-0" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Discount Amount (LKR):</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              style={{ width: '150px', height: '44px', textAlign: 'right' }} 
-              value={formData.discount === 0 ? '' : formData.discount} 
-              onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
-              placeholder="0"
-            />
+          {/* DISCOUNT MODULE CONTROL PANEL */}
+          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Tag size={18} color="#f59e0b" />
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount & Coupon Module</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Presets:</span>
+                {[
+                  { label: '5%', calc: (sub) => Math.round(sub * 0.05) },
+                  { label: '10%', calc: (sub) => Math.round(sub * 0.10) },
+                  { label: '15%', calc: (sub) => Math.round(sub * 0.15) },
+                  { label: 'LKR 5k', calc: () => 5000 },
+                  { label: 'LKR 10k', calc: () => 10000 }
+                ].map((preset, pIdx) => {
+                  const sub = calculateSubtotal(formData.items);
+                  const discountVal = preset.calc(sub);
+                  return (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateTotal(formData.items, discountVal) })}
+                      style={{ 
+                        background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        color: Number(formData.discount) === discountVal ? '#ffffff' : '#f59e0b',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Gross Subtotal: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>LKR {calculateSubtotal(formData.items).toLocaleString()}</strong>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="form-label mb-0" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Deduction (LKR):</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }} 
+                  value={formData.discount === 0 ? '' : formData.discount} 
+                  onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '24px', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '20px', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
             <div className="flex items-center gap-3">
               <ShoppingBag size={24} className="text-secondary" />
               <span className="text-secondary" style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>NET TOTAL AMOUNT</span>

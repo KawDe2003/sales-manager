@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye } from 'lucide-react';
+import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 
 const Quotations = () => {
@@ -415,19 +415,68 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             )}
           </div>
 
-          <div className="flex justify-end items-center gap-4" style={{ marginTop: '24px', padding: '0 24px' }}>
-            <label className="form-label mb-0" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Discount Amount (LKR):</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              style={{ width: '150px', height: '44px', textAlign: 'right' }} 
-              value={formData.discount === 0 ? '' : formData.discount} 
-              onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
-              placeholder="0"
-            />
+          {/* DISCOUNT MODULE CONTROL PANEL */}
+          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Tag size={18} color="#f59e0b" />
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount & Coupon Module</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Presets:</span>
+                {[
+                  { label: '5%', calc: (sub) => Math.round(sub * 0.05) },
+                  { label: '10%', calc: (sub) => Math.round(sub * 0.10) },
+                  { label: '15%', calc: (sub) => Math.round(sub * 0.15) },
+                  { label: 'LKR 5k', calc: () => 5000 },
+                  { label: 'LKR 10k', calc: () => 10000 }
+                ].map((preset, pIdx) => {
+                  const sub = calculateSubtotal(formData.items);
+                  const discountVal = preset.calc(sub);
+                  return (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateTotal(formData.items, discountVal) })}
+                      style={{ 
+                        background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        color: Number(formData.discount) === discountVal ? '#ffffff' : '#f59e0b',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Gross Subtotal: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>LKR {calculateSubtotal(formData.items).toLocaleString()}</strong>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="form-label mb-0" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Deduction (LKR):</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }} 
+                  value={formData.discount === 0 ? '' : formData.discount} 
+                  onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '24px', padding: '24px', background: 'rgba(129, 140, 248, 0.05)', borderRadius: '16px', border: '1px solid rgba(129, 140, 248, 0.2)' }}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '20px', padding: '24px', background: 'rgba(129, 140, 248, 0.05)', borderRadius: '16px', border: '1px solid rgba(129, 140, 248, 0.2)' }}>
             <div className="flex items-center gap-3">
               <ShoppingBag size={24} className="text-secondary" />
               <span className="text-secondary" style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>NET QUOTE ESTIMATE</span>

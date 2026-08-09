@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
@@ -138,14 +138,17 @@ const SharedDocument = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
+      maxWidth: '100vw',
+      overflowX: 'hidden',
       background: '#070b14', 
       color: '#f8fafc', 
       padding: '40px 20px', 
       position: 'relative',
+      boxSizing: 'border-box',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Background Radial Glow */}
-      <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }}></div>
+      <div style={{ position: 'absolute', top: 0, right: 0, width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}></div>
 
       {/* TOP BAR / ACTION BUTTONS */}
       <div style={{ maxWidth: '960px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }} className="no-print">
@@ -277,7 +280,7 @@ const SharedDocument = () => {
                   display: 'flex', 
                   alignItems: 'center', 
                   padding: '16px 0', 
-                  borderBottom: idx === standardItems.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)' 
+                  borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.06)' 
                 }}>
                   <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                     {name}
@@ -294,6 +297,31 @@ const SharedDocument = () => {
                 </div>
               );
             })}
+
+            {/* DEDICATED DISCOUNT MODULE LINE ITEM */}
+            {discountAmount > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                padding: '16px 0 0 0', 
+                borderTop: '1px dashed rgba(245, 158, 11, 0.4)',
+                marginTop: '12px'
+              }}>
+                <div style={{ flex: 1, color: '#f59e0b', fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Tag size={16} color="#f59e0b" />
+                  <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
+                </div>
+                <div style={{ width: '60px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
+                  1
+                </div>
+                <div style={{ width: '120px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
+                  - {discountAmount.toLocaleString()}
+                </div>
+                <div style={{ width: '140px', textAlign: 'right', color: '#f59e0b', fontWeight: 900, fontSize: '1.1rem' }}>
+                  - LKR {discountAmount.toLocaleString()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* BOTTOM TWO CARDS ROW (VALIDITY + ACCOUNT STATUS) */}
@@ -334,6 +362,19 @@ const SharedDocument = () => {
                   </div>
                 </div>
               </div>
+
+              {discountAmount > 0 && (
+                <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
+                    <span style={{ color: '#cbd5e1' }}>Gross Subtotal:</span>
+                    <span style={{ color: '#ffffff', fontWeight: 700, fontFamily: 'monospace' }}>LKR {subTotal.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#f59e0b' }}>
+                    <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Tag size={12} /> Special Discount:</span>
+                    <span style={{ fontWeight: 900, fontFamily: 'monospace' }}>- LKR {discountAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
 
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', marginBottom: '20px' }}></div>
 
