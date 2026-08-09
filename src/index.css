@@ -200,9 +200,71 @@ code, pre, .mono {
   background-attachment: fixed;
 }
 
-a { color: inherit; text-decoration: none; }
-
 ::selection { background: rgba(99, 102, 241, 0.35); color: #ffffff; }
+
+/* ===== REMOVE ALL UNUSUAL LINK & BUTTON UNDERLINES ===== */
+a, a:hover, a:focus, a:active, a:visited,
+.btn, .btn:hover, .btn:focus, .btn:active,
+button, button:hover, button:focus,
+.nav-item, .nav-item:hover,
+[role="button"], [role="button"]:hover {
+  text-decoration: none !important;
+}
+
+/* ===== CUSTOM THEME-MATCHED SCROLLBAR SYSTEM ===== */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+}
+
+/* Chrome, Edge, Safari, Opera */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.28);
+  border-radius: 10px;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark Mode explicit scrollbar thumb colors */
+[data-theme='dark'] {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* Light Mode explicit scrollbar thumb colors */
+[data-theme='light'] {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
 
 /* ===== GLASS PANELS & CARDS ===== */
 .glass-panel {
@@ -541,7 +603,14 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
   overflow-x: hidden;
   background: var(--bg-secondary);
   backdrop-filter: blur(16px);
-  scrollbar-width: thin;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.app-sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .app-sidebar.collapsed { width: 78px; }

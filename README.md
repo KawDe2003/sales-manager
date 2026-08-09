@@ -1,137 +1,99 @@
-# Sales Manager Pro (Enterprise Edition) - Design & Architecture Context
+# GymSales Pro Enterprise (SLFRS/LKAS Edition)
 
-This document provides exhaustive detail about the architecture, target audience, and UI structure of **Sales Manager Pro**. 
-**AI Assistant Prompt:** If you are an AI reading this document (like Claude or ChatGPT), your goal is to understand the complete application context so you can generate highly precise, cohesive, and beautiful **Color Palettes (CSS Variables)** for the UI.
-
----
-
-## 1. Application Overview & Target Audience
-
-- **Application Name**: Sales Manager Pro (Gym Management Edition)
-- **Target Audience**: B2B Enterprise Users, Gym Owners, Sales Managers, and Financial Accountants.
-- **Vibe/Aesthetic**: Modern, Trustworthy, Premium SaaS, Professional, Data-Heavy, Eye-Friendly. It needs to look expensive but extremely functional for users looking at screens for 8+ hours a day.
-- **Core Layout**: A persistent left sidebar (collapsible), a top header area with breadcrumbs/titles, and a main content area containing responsive grid layouts of Metric Cards and Data Tables.
+**GymSales Pro Enterprise** is a B2B Sales Management CRM, Billing Engine, and Sri Lanka Accounting Standards (SLFRS/LKAS) Financial Statements Suite engineered for gym software vendors, fitness center franchises, and accountants.
 
 ---
 
-## 2. Core Modules & UI Components
+## 1. System Overview & Technology Stack
 
-The system has several critical modules that rely heavily on semantic color mapping (Success, Warning, Danger, Info).
-
-### CRM & Sales Pipeline (`/customers`, `/leads`, `/quotations`, `/tasks`)
-- **Visuals**: Uses status badges (e.g., Pending, Accepted, Rejected).
-- **Components**: Kanban-style task boards, searchable data tables, multi-step modals.
-
-### Financial Management (`/invoices`, `/payments`, `/expenses`, `/reports`)
-- **Visuals**: Heavy use of positive/negative currency values, profit & loss charts, pie charts.
-- **Components**: Large metric cards (e.g., "Total Revenue", "Net Profit"), intricate PDF generation buttons.
-
-### Component Design Language
-- **Panels/Cards**: We use slightly transparent, glassmorphic panels (`--panel-bg`) resting on top of a deeper background (`--bg-color`).
-- **Inputs**: Form inputs rest inside panels and need a slight contrast (`--input-bg`).
-- **Shadows**: Soft, deep shadows for dark mode, crisp elevated shadows for light mode.
+- **Framework**: React 18 + Vite (ESBuild)
+- **Database & Sync**: Cloud-first Supabase PostgreSQL with local mirror state (`StoreContext.jsx`)
+- **Financial Architecture**: Double-Entry General Ledger (`accounts`, `journalEntries`, `journalLines`)
+- **Accounting Compliance**: Sri Lanka Accounting Standards (**LKAS 1** & **LKAS 7**)
+- **Styling Methodology**: Pure Vanilla CSS using custom CSS Variable design tokens (`index.css`)
+- **Document Export**: PDF document generation via `jsPDF` & `jspdf-autotable`
+- **UI Icons**: `lucide-react`
 
 ---
 
-## 3. The CSS Variable Theming System
+## 2. Financial Statements Suite (SLFRS / LKAS Compliant)
 
-The application is entirely styled using the CSS variables below. To generate a new color palette, you **MUST** provide exact hex codes and rgba values for every single variable in this exact format.
+All financial statement figures are computed **exclusively** from general ledger `journalLines` grouped by account `statement_category` to ensure full general ledger reconcilability:
 
-### Required CSS Variables Template
-
-```css
-:root {
-  /* ===== [YOUR THEME NAME] Dark Mode Palette ===== */
-  
-  /* 1. Base Backgrounds */
-  --bg-color: #...;       /* Deepest background (App Canvas) */
-  --bg-primary: #...;     /* Base primary (often similar to bg-color) */
-  --bg-secondary: #...;   /* Slightly lighter background */
-  --bg-tertiary: #...;    /* Lightest background layer */
-
-  /* 2. Panels and Cards (Glassmorphism / Contrast) */
-  --panel-bg: rgba(...);          /* Background of data cards (must contrast with bg-color) */
-  --panel-border: rgba(...);      /* Border of cards */
-  --panel-border-highlight: rgba(...); /* Hover state border */
-  --panel-glow: rgba(...);        /* Optional neon/soft glow behind panels */
-
-  /* 3. Typography */
-  --text-primary: #...;   /* Main readable text (High contrast) */
-  --text-secondary: #...; /* Subtitles, labels (Medium contrast) */
-  --text-muted: #...;     /* Disabled text, placeholders (Low contrast) */
-
-  /* 4. Inputs & Shadows */
-  --card-shadow: 0 12px 30px -5px rgba(...);
-  --input-bg: rgba(...);          /* Inside of text boxes/selects */
-  --input-border: rgba(...);      /* Border of inputs */
-  --input-focus: #...;            /* Outline color when input is clicked */
-
-  /* 5. Header & Subtle Areas */
-  --subtle-bg: rgba(...);         /* Very faint background for table headers/stripes */
-  --subtle-border: rgba(...);     /* Dividers inside panels */
-  --header-bg: rgba(...);         /* Sticky header background */
-
-  /* 6. Brand Accents */
-  --accent-primary: #...;   /* Main brand color (Buttons, active links) */
-  --accent-secondary: #...; /* Secondary compliment */
-  --accent-pink: #...;      /* For specific charts/icons */
-  --accent-cyan: #...;      
-  --accent-emerald: #...;   
-  --accent-amber: #...;
-  --accent-rose: #...; 
-  --accent-glow: rgba(...); /* Drop shadow for primary buttons */
-  --accent-gradient: #...;  /* Can be a solid color or a linear-gradient */
-
-  /* 7. Semantic Status Colors (Used heavily in CRM/Finance) */
-  --success: #...;          /* Green / Positive */
-  --success-bg: rgba(...);  /* Faint background for success badges */
-  --warning: #...;          /* Yellow/Orange / Pending */
-  --warning-bg: rgba(...);
-  --danger: #...;           /* Red / Overdue / Expense */
-  --danger-bg: rgba(...);
-  --info: #...;             /* Blue / Neutral */
-  --info-bg: rgba(...);
-
-  /* Spacing & Radii (Do not change unless requesting a shape overhaul) */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-}
-
-/* ===== [YOUR THEME NAME] LIGHT THEME ===== */
-[data-theme='light'] {
-  /* You must provide the exact same variables above, but tuned for Light Mode */
-  --bg-color: #...; 
-  --panel-bg: rgba(255, 255, 255, 1); /* Usually pure white or off-white */
-  --text-primary: #...; /* Dark text for readability */
-  /* ... provide ALL variables mapped for light mode ... */
-}
+### 1. Statement of Profit or Loss (per LKAS 1)
 ```
+Revenue                                              LKR xxx
+Cost of Sales                                        (xxx)
+------------------------------------------------------------
+Gross Profit                                          xxx
+
+Other Income                                           xxx
+Distribution Costs                                    (xxx)
+Administrative Expenses                                (xxx)
+Other Expenses                                         (xxx)
+------------------------------------------------------------
+Operating Profit                                       xxx
+
+Finance Income                                          xxx
+Finance Costs                                          (xxx)
+------------------------------------------------------------
+Profit Before Tax                                       xxx
+
+Income Tax Expense                                     (xxx)
+------------------------------------------------------------
+Profit for the Period                                    xxx
+```
+- **Comparatives**: Side-by-side prior comparative period column.
+- **LKAS 1 Rules**: Discloses Depreciation & Amortisation within Administrative Expenses notes; labeled **Profit Before Tax** (not EBITDA).
+
+### 2. Statement of Financial Position / Balance Sheet (per LKAS 1)
+- **Asset & Liability Classification**: Grouped into Current vs Non-Current based on `account.is_current`.
+- **Automatic Retained Earnings Roll-Forward**:
+  $$\text{Retained Earnings}_{\text{End}} = \text{Opening Retained Earnings} + \text{Profit for Period} - \text{Drawings/Dividends}$$
+- **Balance Validation**: Validates $\text{TOTAL ASSETS} = \text{TOTAL EQUITY AND LIABILITIES}$. Renders a prominent error banner if unbalanced.
+
+### 3. Statement of Cash Flows (per LKAS 7 - Indirect Method)
+- **Operating Activities**: Starts from Profit Before Tax, adjusting for non-cash items (Depreciation, Finance Costs) and working capital movements ($\Delta\text{Receivables}$, $\Delta\text{Inventory}$, $\Delta\text{Payables}$).
+- **Investing & Financing Activities**: PPE purchases/sales, loan proceeds/repayments, owner drawings.
+- **Ledger Cash Reconciliation**: Reconciles ending cash against sum of Cash + Bank ledger balances (`1010` & `1020`), flagging any discrepancy.
 
 ---
 
-## 4. Instructions for AI Color Palette Generation
+## 3. Core UI Design & Component System
 
-When generating a new color palette for this application, please ensure:
-1. **Contrast is King**: The `--text-primary` must have a WCAG AA contrast ratio against `--panel-bg` and `--bg-color`.
-2. **Widget Separation**: The `--bg-color` (the main canvas) and the `--panel-bg` (the widget cards) must be distinct enough so that the cards visually "pop" off the background. 
-3. **Data Clarity**: The Semantic colors (`--success`, `--warning`, `--danger`) must be easily distinguishable for financial reports (e.g., distinguishing Revenue from Expenses instantly).
-4. **RGBA is Required**: Variables like `--panel-bg` and `--success-bg` are intentionally `rgba()` to allow for glassmorphic blending or faint badge backgrounds. Always provide valid `rgba(r, g, b, alpha)` values.
-5. **No Missing Variables**: Do not omit any variable from the template above; the UI will break if a variable is missing.
+### Theming System (`index.css`)
+Styled using custom CSS variables supporting Light and Dark modes:
+- `--bg-primary`, `--bg-secondary`, `--panel-bg`, `--panel-border`
+- `--accent-primary` (`#6366f1`), `--success` (`#10b981`), `--warning` (`#f59e0b`), `--danger` (`#ef4444`)
+
+### CustomSelect Component (`src/components/CustomSelect.jsx`)
+- Custom popover dropdown system replacing rectangular native OS popups.
+- Matches theme border-radius (`var(--radius-md)` / `12px`), glassmorphic backdrop, `modalPop` entrance animation, hover translations, and active item green checkmarks (`✓`).
+
+### Brand Dual-Ring Loading System (`index.css` & `App.jsx`)
+- `.brand-loader-logo`: Pulsing 3D glassmorphic brand badge.
+- `.spinner-outer` & `.spinner-inner`: Counter-rotating dual-ring orbit loader.
+- `.loader-track` & `.loader-bar`: Shimmering progress indicator.
 
 ---
 
-## 5. Technology Stack Context
-- **Framework**: React 18 + Vite
-- **Styling Method**: Pure CSS leveraging CSS Variables (NO Tailwind, NO SCSS).
-- **Icons**: `lucide-react` (Inherit `currentColor` from typography variables).
-- **State**: React Context API (`StoreContext.jsx`) synced with Supabase PostgreSQL.
+## 4. SMS Communications Gateway
+
+- Integrated SMS gateway for bulk promotional broadcasts, renewal reminders, payment receipts, and debtor nudges.
+- Dynamic template placeholder replacement: `{name}`, `{gym}`, `{amount}`, `{dueDate}`, `{invoiceNumber}`, `{link}`.
+- Live credit balance tracker with Sender SID branding (`SEYNEX`).
+
+---
+
+## 5. Getting Started & Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Start local development server
+npm run dev
+
+# Run production build validation
+npx vite build
+```

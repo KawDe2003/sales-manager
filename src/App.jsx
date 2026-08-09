@@ -610,7 +610,8 @@ const AppContent = () => {
             }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25))',
+                background: 'rgba(16, 185, 129, 0.14)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontWeight: 800, color: 'var(--accent-primary)', fontSize: '0.82rem', flexShrink: 0
               }}>
@@ -748,15 +749,19 @@ const AppContent = () => {
 // Sidebar Section Header
 const SidebarSection = ({ label, collapsed }) => (
   <div style={{ 
-    padding: collapsed ? '16px 0 4px' : '16px 24px 4px', 
+    padding: collapsed ? '12px 14px 4px 14px' : '16px 24px 4px', 
     textAlign: collapsed ? 'center' : 'left' 
   }}>
-    <span style={{ 
-      fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', 
-      textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7
-    }}>
-      {collapsed ? '·' : label}
-    </span>
+    {collapsed ? (
+      <div style={{ height: '1px', background: 'var(--panel-border)', opacity: 0.5, margin: '4px 0' }} />
+    ) : (
+      <span style={{ 
+        fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', 
+        textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7
+      }}>
+        {label}
+      </span>
+    )}
   </div>
 );
 
@@ -772,15 +777,18 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'flex-start',
         gap: collapsed ? '0' : '12px',
-        padding: collapsed ? '12px 0' : '11px 16px',
+        padding: collapsed ? '10px 0' : '11px 16px',
         borderRadius: '12px',
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-        background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.08) 100%)' : 'transparent',
+        background: isActive 
+          ? 'rgba(16, 185, 129, 0.12)' 
+          : 'transparent',
+        border: isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent',
         fontWeight: isActive ? '700' : '500',
         transition: 'all 0.22s ease',
         fontSize: '0.86rem',
-        borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : '3px solid transparent',
-        boxShadow: isActive ? 'inset 0 0 15px rgba(99, 102, 241, 0.08)' : 'none',
+        borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : (isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent'),
+        boxShadow: isActive ? '0 2px 10px rgba(16, 185, 129, 0.08)' : 'none',
         position: 'relative',
         textDecoration: 'none'
       })}

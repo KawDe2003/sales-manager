@@ -526,6 +526,38 @@ export default function StoreContextProvider({ children }) {
     return `SNX-${code}`;
   };
 
+  // Structured Audit Trail Recorder for Production Readiness
+  const recordAuditLog = async (action, entity, entityId, beforeState = null, afterState = null, details = '') => {
+    const logObj = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      user_id: user?.id || 'system',
+      user_email: user?.email || 'admin@seynex.lk',
+      action,
+      entity,
+      entity_id: entityId,
+      before_state: beforeState,
+      after_state: afterState,
+      details,
+      timestamp: new Date().toISOString()
+    };
+
+    setActivityLogs(prev => [logObj, ...(prev || [])]);
+
+    if (user) {
+      try {
+        await supabase.from('activity_logs').insert({
+          id: logObj.id,
+          user_id: user.id,
+          log_type: action,
+          message: `${action} on ${entity} (${entityId})`,
+          details: JSON.stringify(logObj)
+        });
+      } catch (err) {
+        console.error('Audit log write error:', err);
+      }
+    }
+  };
+
   // --- SUPABASE SYNC LOGIC ---
   const syncQuoteToSupabase = async (quote) => {
     if (!user) return;
@@ -1978,7 +2010,7 @@ export default function StoreContextProvider({ children }) {
       payments, recordCashDeposit,
       accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
       createJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
-      activityLogs, addLog,
+      activityLogs, addLog, recordAuditLog,
       addCustomerNote,
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
