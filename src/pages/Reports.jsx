@@ -12,6 +12,11 @@ const Reports = () => {
     leads = [], 
     inventory = [],
     expenses = [],
+    accounts = [],
+    journalEntries = [],
+    journalLines = [],
+    paymentAllocations = [],
+    getInvoicePaymentSummary,
     addExpense, deleteExpense 
   } = useContext(StoreContext) || {};
 
@@ -89,6 +94,60 @@ const Reports = () => {
     if (diffMonths <= 3 && diffMonths >= 0) forecast['3 Months'] += Number(c.annualFee || 0);
     if (diffMonths <= 6 && diffMonths >= 0) forecast['6 Months'] += Number(c.annualFee || 0);
     if (diffMonths <= 12 && diffMonths >= 0) forecast['12 Months'] += Number(c.annualFee || 0);
+  });
+
+  // --- DOUBLE-ENTRY LEDGER COMPUTATIONS ---
+  // 1. Trial Balance Report from journal_lines
+  const trialBalance = accounts.map(acc => {
+    const accLines = journalLines.filter(l => l.accountId === acc.id);
+    const totalDebit = accLines.reduce((s, l) => s + Number(l.debit || 0), 0);
+    const totalCredit = accLines.reduce((s, l) => s + Number(l.credit || 0), 0);
+    return { ...acc, totalDebit, totalCredit };
+  });
+  const trialBalanceTotalDebit = trialBalance.reduce((s, a) => s + a.totalDebit, 0);
+  const trialBalanceTotalCredit = trialBalance.reduce((s, a) => s + a.totalCredit, 0);
+
+  // 2. Ledger-based P&L from journal_lines
+  const ledgerRevenueTotal = journalLines
+    .filter(l => {
+      const acc = accounts.find(a => a.id === l.accountId);
+      return acc?.type === 'revenue';
+    })
+    .reduce((s, l) => s + (Number(l.credit || 0) - Number(l.debit || 0)), 0);
+
+  const ledgerExpenseTotal = journalLines
+    .filter(l => {
+      const acc = accounts.find(a => a.id === l.accountId);
+      return acc?.type === 'expense';
+    })
+    .reduce((s, l) => s + (Number(l.debit || 0) - Number(l.credit || 0)), 0);
+
+  const ledgerNetProfit = ledgerRevenueTotal - ledgerExpenseTotal;
+
+  // 3. Debtors Aging Report from payment_allocations & due dates
+  const debtorsAging = { '0-30': 0, '31-60': 0, '60+': 0, items: [] };
+  const todayMs = new Date().getTime();
+
+  invoices.forEach(inv => {
+    const summary = getInvoicePaymentSummary ? getInvoicePaymentSummary(inv.id, inv.amount) : { remaining: inv.amount };
+    const remaining = summary.remaining;
+    if (remaining > 0) {
+      const dueDateMs = new Date(inv.dueDate || inv.date).getTime();
+      const daysOverdue = Math.max(0, Math.floor((todayMs - dueDateMs) / (1000 * 60 * 60 * 24)));
+      let category = '0-30';
+      if (daysOverdue > 60) category = '60+';
+      else if (daysOverdue > 30) category = '31-60';
+
+      debtorsAging[category] += remaining;
+      debtorsAging.items.push({
+        invoiceNumber: inv.invoiceNumber,
+        prospectName: inv.prospectName || 'Customer',
+        dueDate: inv.dueDate,
+        daysOverdue,
+        category,
+        remaining
+      });
+    }
   });
 
   const getAccountingData = () => {
@@ -533,6 +592,119 @@ const Reports = () => {
                 LKR {quotes.reduce((s, q) => s + Number(q.amount || 0), 0).toLocaleString()}
               </strong>
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* LEDGER TRIAL BALANCE & DEBTORS AGING */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 mb-8">
+        {/* TRIAL BALANCE */}
+        <div className="glass-panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="h3">Ledger Trial Balance</h2>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'var(--subtle-bg)', color: 'var(--accent-primary)' }}>
+              Reconciled
+            </span>
+          </div>
+          <div className="table-container" style={{ margin: 0 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Account Code & Name</th>
+                  <th>Type</th>
+                  <th className="text-right">Debit (LKR)</th>
+                  <th className="text-right">Credit (LKR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trialBalance.map(acc => (
+                  <tr key={acc.id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{acc.code} - {acc.name}</div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        {acc.type}
+                      </span>
+                    </td>
+                    <td className="text-right numeric" style={{ fontWeight: 700, color: acc.totalDebit > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      {acc.totalDebit > 0 ? acc.totalDebit.toLocaleString() : '-'}
+                    </td>
+                    <td className="text-right numeric" style={{ fontWeight: 700, color: acc.totalCredit > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      {acc.totalCredit > 0 ? acc.totalCredit.toLocaleString() : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--panel-border)', fontWeight: 800 }}>
+                  <td colSpan="2">Total Ledger Balance</td>
+                  <td className="text-right numeric" style={{ color: 'var(--success)' }}>LKR {trialBalanceTotalDebit.toLocaleString()}</td>
+                  <td className="text-right numeric" style={{ color: 'var(--success)' }}>LKR {trialBalanceTotalCredit.toLocaleString()}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* DEBTORS AGING REPORT */}
+        <div className="glass-panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="h3">Debtors Aging Summary</h2>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'var(--warning-bg)', color: 'var(--warning)' }}>
+              Unpaid Invoices
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', textAlign: 'center', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>0 - 30 Days</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--info)' }} className="numeric">LKR {debtorsAging['0-30'].toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', textAlign: 'center', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>31 - 60 Days</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--warning)' }} className="numeric">LKR {debtorsAging['31-60'].toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', textAlign: 'center', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>60+ Days</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--danger)' }} className="numeric">LKR {debtorsAging['60+'].toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div className="table-container" style={{ margin: 0 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Client / Invoice</th>
+                  <th>Age Category</th>
+                  <th className="text-right">Balance Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {debtorsAging.items.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="text-center py-6 text-secondary">No unpaid balances outstanding.</td>
+                  </tr>
+                ) : (
+                  debtorsAging.items.slice(0, 6).map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.prospectName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.invoiceNumber}</div>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${item.category === '60+' ? 'danger' : item.category === '31-60' ? 'warning' : 'info'}`}>
+                          {item.category} ({item.daysOverdue}d)
+                        </span>
+                      </td>
+                      <td className="text-right numeric" style={{ fontWeight: 800, color: 'var(--danger)' }}>
+                        LKR {item.remaining.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

@@ -193,7 +193,39 @@ const Login = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '32px', textAlign: 'center' }}>
+        <div style={{ marginTop: '24px', padding: '14px 16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+            System Roles (Quick Fill)
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+              onClick={() => { setEmail('admin@company.com'); setPassword('adminpassword123'); setError(null); }}
+            >
+              👑 Admin
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              onClick={() => { setEmail('sales@company.com'); setPassword('salespassword123'); setError(null); }}
+            >
+              💼 Sales Rep
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              onClick={() => { setEmail('accounts@company.com'); setPassword('accountspassword123'); setError(null); }}
+            >
+              📊 Accountant
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
           <p className="text-secondary" style={{ fontSize: '0.85rem' }}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button 
@@ -211,7 +243,7 @@ const Login = () => {
 
         {/* Footer info */}
         <div style={{ 
-          marginTop: '40px', paddingTop: '24px', 
+          marginTop: '32px', paddingTop: '20px', 
           borderTop: '1px solid var(--panel-border)',
           display: 'flex', justifyContent: 'center', gap: '24px'
         }}>

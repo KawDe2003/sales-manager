@@ -22,6 +22,114 @@ export default function StoreContextProvider({ children }) {
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
   const [fixedAssets, setFixedAssets] = useState([]);
+  const [tasks, setTasks] = useState([]);
+
+  // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
+  const defaultAccounts = [
+    { id: '1010', code: '1010', name: 'Cash on Hand', type: 'asset', parentId: null },
+    { id: '1020', code: '1020', name: 'Bank Account', type: 'asset', parentId: null },
+    { id: '1100', code: '1100', name: 'Accounts Receivable', type: 'asset', parentId: null },
+    { id: '1500', code: '1500', name: 'Equipment & Fixed Assets', type: 'asset', parentId: null },
+    { id: '1550', code: '1550', name: 'Accumulated Depreciation', type: 'asset', parentId: '1500' },
+    { id: '2010', code: '2010', name: 'Accounts Payable', type: 'liability', parentId: null },
+    { id: '2020', code: '2020', name: 'Tax Payable', type: 'liability', parentId: null },
+    { id: '3010', code: '3010', name: "Owner's Equity", type: 'equity', parentId: null },
+    { id: '3020', code: '3020', name: 'Retained Earnings', type: 'equity', parentId: null },
+    { id: '4010', code: '4010', name: 'Membership Revenue', type: 'revenue', parentId: null },
+    { id: '4020', code: '4020', name: 'Personal Training Revenue', type: 'revenue', parentId: null },
+    { id: '5010', code: '5010', name: 'Rent Expense', type: 'expense', parentId: null },
+    { id: '5020', code: '5020', name: 'Salaries Expense', type: 'expense', parentId: null },
+    { id: '5030', code: '5030', name: 'Utilities Expense', type: 'expense', parentId: null },
+    { id: '5040', code: '5040', name: 'Depreciation Expense', type: 'expense', parentId: null },
+    { id: '5050', code: '5050', name: 'Operational Expense', type: 'expense', parentId: null }
+  ];
+
+  const [accounts, setAccounts] = useState(() => {
+    const saved = localStorage.getItem('gym_chart_of_accounts');
+    return saved ? JSON.parse(saved) : defaultAccounts;
+  });
+
+  const [journalEntries, setJournalEntries] = useState(() => {
+    const saved = localStorage.getItem('gym_journal_entries');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [journalLines, setJournalLines] = useState(() => {
+    const saved = localStorage.getItem('gym_journal_lines');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [paymentAllocations, setPaymentAllocations] = useState(() => {
+    const saved = localStorage.getItem('gym_payment_allocations');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [depreciationSchedule, setDepreciationSchedule] = useState(() => {
+    const saved = localStorage.getItem('gym_depreciation_schedule');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => { localStorage.setItem('gym_chart_of_accounts', JSON.stringify(accounts)); }, [accounts]);
+  useEffect(() => { localStorage.setItem('gym_journal_entries', JSON.stringify(journalEntries)); }, [journalEntries]);
+  useEffect(() => { localStorage.setItem('gym_journal_lines', JSON.stringify(journalLines)); }, [journalLines]);
+  useEffect(() => { localStorage.setItem('gym_payment_allocations', JSON.stringify(paymentAllocations)); }, [paymentAllocations]);
+  useEffect(() => { localStorage.setItem('gym_depreciation_schedule', JSON.stringify(depreciationSchedule)); }, [depreciationSchedule]);
+
+  // CORE JOURNAL ENTRY COMMITTER (ENFORCES sum(debit) === sum(credit))
+  const createJournalEntry = ({ date, reference, description, lines = [], createdBy = 'System' }) => {
+    const totalDebit = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+    const totalCredit = lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
+
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      const err = `Unbalanced Journal Entry (${reference}): Debits (LKR ${totalDebit.toFixed(2)}) != Credits (LKR ${totalCredit.toFixed(2)})`;
+      console.error('[Accounting Engine Error]', err);
+      showNotification(err, 'error');
+      throw new Error(err);
+    }
+
+    const entryId = uuidv4();
+    const newEntry = {
+      id: entryId,
+      date: date || new Date().toISOString().split('T')[0],
+      reference: reference || 'GEN-000',
+      description: description || '',
+      createdBy,
+      timestamp: new Date().toISOString()
+    };
+
+    const newLines = lines.map(line => ({
+      id: uuidv4(),
+      journalEntryId: entryId,
+      accountId: line.accountId,
+      debit: Number(line.debit) || 0,
+      credit: Number(line.credit) || 0
+    }));
+
+    setJournalEntries(prev => [newEntry, ...prev]);
+    setJournalLines(prev => [...newLines, ...prev]);
+
+    return { entry: newEntry, lines: newLines };
+  };
+
+  const getInvoicePaymentSummary = (invoiceId, invoiceAmount = 0) => {
+    const allocations = paymentAllocations.filter(a => a.invoiceId === invoiceId);
+    const allocatedPaid = allocations.reduce((sum, a) => sum + (Number(a.amountApplied) || 0), 0);
+    
+    const legacyPayments = payments.filter(p => p.documentId === invoiceId);
+    const legacyPaid = legacyPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    const totalPaid = Math.max(allocatedPaid, legacyPaid);
+    const remaining = Math.max(0, Number(invoiceAmount) - totalPaid);
+
+    let derivedStatus = 'Sent';
+    if (totalPaid >= Number(invoiceAmount) && Number(invoiceAmount) > 0) {
+      derivedStatus = 'Paid';
+    } else if (totalPaid > 0) {
+      derivedStatus = 'Partially Paid';
+    }
+
+    return { totalPaid, remaining, derivedStatus, allocations };
+  };
 
   // SMS Configuration (Base Defaults with localStorage mirror)
   const [smsConfig, setSmsConfig] = useState(() => {
@@ -145,6 +253,7 @@ export default function StoreContextProvider({ children }) {
       email: data.email,
       role: data.role || 'Sales Representative',
       status: 'Active',
+      password: data.password || 'password123',
       addedAt: new Date().toISOString()
     };
     setTeamMembers(prev => [newMember, ...prev]);
@@ -159,6 +268,25 @@ export default function StoreContextProvider({ children }) {
   const deleteTeamMember = (id) => {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
     showNotification(`Removed team member`, 'warning');
+  };
+
+  const resetUserPassword = (id, newPassword) => {
+    let targetName = 'User';
+    setTeamMembers(prev => prev.map(m => {
+      if (m.id === id) {
+        targetName = m.name;
+        return { 
+          ...m, 
+          password: newPassword, 
+          passwordResetAt: new Date().toISOString() 
+        };
+      }
+      return m;
+    }));
+    showNotification(`Password updated successfully for ${targetName}`);
+    if (typeof addLog === 'function') {
+      addLog('Security', `Admin reset password for user: ${targetName}`);
+    }
   };
 
   const showNotification = (message, type = 'success') => {
@@ -450,7 +578,51 @@ export default function StoreContextProvider({ children }) {
     const newAsset = { ...asset, id: asset.id || uuidv4() };
     setFixedAssets(prev => [newAsset, ...prev]);
     syncFixedAssetToSupabase(newAsset);
+
+    try {
+      createJournalEntry({
+        date: newAsset.purchaseDate || new Date().toISOString().split('T')[0],
+        reference: newAsset.assetCode || `FA-${newAsset.id.substring(0, 4)}`,
+        description: `Fixed Asset Acquired: ${newAsset.name}`,
+        lines: [
+          { accountId: '1500', debit: Number(newAsset.purchaseCost) || 0, credit: 0 },
+          { accountId: '1010', debit: 0, credit: Number(newAsset.purchaseCost) || 0 }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for Fixed Asset]', err);
+    }
+
     addLog('FixedAsset', `Registered fixed asset: ${newAsset.name} (${newAsset.assetCode})`);
+  };
+
+  const processMonthlyDepreciation = (assetId) => {
+    const asset = fixedAssets.find(a => a.id === assetId);
+    if (!asset || !asset.purchaseCost || !asset.usefulLifeYears) return;
+
+    const monthlyAmount = Math.round((Number(asset.purchaseCost) / (Number(asset.usefulLifeYears) * 12)) * 100) / 100;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const { entry } = createJournalEntry({
+      date: todayStr,
+      reference: `DEP-${asset.assetCode || 'FA'}`,
+      description: `Monthly Depreciation for ${asset.name}`,
+      lines: [
+        { accountId: '5040', debit: monthlyAmount, credit: 0 },
+        { accountId: '1550', debit: 0, credit: monthlyAmount }
+      ]
+    });
+
+    const schedRow = {
+      id: uuidv4(),
+      fixedAssetId: asset.id,
+      periodDate: todayStr,
+      amount: monthlyAmount,
+      journalEntryId: entry.id
+    };
+    setDepreciationSchedule(prev => [schedRow, ...prev]);
+    addLog('FixedAsset', `Auto-posted monthly depreciation for ${asset.name}: LKR ${monthlyAmount}`);
+    return schedRow;
   };
 
   const updateFixedAsset = (id, data) => {
@@ -467,6 +639,97 @@ export default function StoreContextProvider({ children }) {
       await supabase.from('fixed_assets').delete().eq('id', id);
     }
     if (asset) addLog('FixedAsset', `Deleted fixed asset: ${asset.name}`);
+  };
+
+  // --- Expenses CRUD ---
+  const addExpense = (expense) => {
+    const newExpense = { ...expense, id: expense.id || uuidv4() };
+    setExpenses(prev => [newExpense, ...prev]);
+    syncExpenseToSupabase(newExpense);
+
+    let categoryAccountId = '5050'; // Operational Expense
+    if (expense.category === 'Rent') categoryAccountId = '5010';
+    else if (expense.category === 'Salaries') categoryAccountId = '5020';
+    else if (expense.category === 'Utilities') categoryAccountId = '5030';
+    else if (expense.categoryAccountId) categoryAccountId = expense.categoryAccountId;
+
+    try {
+      createJournalEntry({
+        date: newExpense.date || new Date().toISOString().split('T')[0],
+        reference: `EXP-${newExpense.id.substring(0, 6)}`,
+        description: `Expense: ${newExpense.category} - ${newExpense.description || ''}`,
+        lines: [
+          { accountId: categoryAccountId, debit: Number(newExpense.amount) || 0, credit: 0 },
+          { accountId: '1010', debit: 0, credit: Number(newExpense.amount) || 0 }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for Expense]', err);
+    }
+
+    addLog('Expense', `Added new expense: ${newExpense.category} - LKR ${newExpense.amount}`);
+  };
+
+  const updateExpense = (id, data) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+    const updated = { ...expenses.find(e => e.id === id), ...data, id };
+    syncExpenseToSupabase(updated);
+    addLog('Expense', `Updated expense: ${updated.category}`);
+  };
+
+  const deleteExpense = async (id) => {
+    const expense = expenses.find(e => e.id === id);
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    if (user) {
+      await supabase.from('expenses').delete().eq('id', id);
+    }
+    if (expense) addLog('Expense', `Deleted expense: ${expense.category}`);
+  };
+
+  // --- Tasks CRUD ---
+  const syncTaskToSupabase = async (task) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .upsert({
+          id: task.id,
+          user_id: user.id,
+          title: task.title,
+          description: task.description,
+          due_date: task.dueDate,
+          status: task.status,
+          priority: task.priority,
+          related_to: task.relatedTo,
+          related_id: task.relatedId
+        });
+      if (error) console.error('[Supabase Sync] Task Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Task Exception:', err);
+    }
+  };
+
+  const addTask = (task) => {
+    const newTask = { ...task, id: task.id || uuidv4() };
+    setTasks(prev => [newTask, ...prev]);
+    syncTaskToSupabase(newTask);
+    addLog('Task', `Created task: ${newTask.title}`);
+  };
+
+  const updateTask = (id, data) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+    const updated = { ...tasks.find(t => t.id === id), ...data, id };
+    syncTaskToSupabase(updated);
+    addLog('Task', `Updated task: ${updated.title}`);
+  };
+
+  const deleteTask = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    setTasks(prev => prev.filter(t => t.id !== id));
+    if (user) {
+      await supabase.from('tasks').delete().eq('id', id);
+    }
+    if (task) addLog('Task', `Deleted task: ${task.title}`);
   };
 
   const syncLogToSupabase = async (log) => {
@@ -536,12 +799,13 @@ export default function StoreContextProvider({ children }) {
         safeFetch('leads', supabase.from('leads').select('*').eq('user_id', user.id)),
         safeFetch('expenses', supabase.from('expenses').select('*').eq('user_id', user.id)),
         safeFetch('payments', supabase.from('payments').select('*').eq('user_id', user.id)),
+        safeFetch('tasks', supabase.from('tasks').select('*').eq('user_id', user.id)),
         safeFetch('fixed_assets', supabase.from('fixed_assets').select('*').eq('user_id', user.id)),
         safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('log_timestamp', { ascending: false }).limit(500)),
         safeFetch('user_profiles', supabase.from('user_profiles').select('config').eq('user_id', user.id).single())
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, faData, logData, profData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'ERROR', '| Invoices:', iData?.length ?? 'ERROR');
 
@@ -637,6 +901,11 @@ export default function StoreContextProvider({ children }) {
       if (pData) setPayments(pData.map(p => ({
         id: p.id, customerId: p.customer_id, documentId: p.document_id, amount: Number(p.amount),
         type: p.payment_type, timestamp: p.payment_timestamp
+      })));
+
+      if (tData) setTasks(tData.map(t => ({
+        id: t.id, title: t.title, description: t.description, dueDate: t.due_date,
+        status: t.status, priority: t.priority, relatedTo: t.related_to, relatedId: t.related_id
       })));
 
       if (logData) setActivityLogs(logData.map(l => ({
@@ -825,9 +1094,23 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addInvoice = (invoice) => {
-    const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Draft' };
+    const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Sent' };
     setInvoices([...invoices, newInvoice]);
     syncInvoiceToSupabase(newInvoice);
+
+    try {
+      createJournalEntry({
+        date: newInvoice.date,
+        reference: newInvoice.invoiceNumber,
+        description: `Invoice issued to ${newInvoice.prospectName || 'Customer'}`,
+        lines: [
+          { accountId: '1100', debit: Number(newInvoice.amount) || 0, credit: 0 },
+          { accountId: '4010', debit: 0, credit: Number(newInvoice.amount) || 0 }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for Invoice]', err);
+    }
 
     // Auto-deduct stock if invoice contains items
     if (invoice.items && invoice.items.length > 0) {
@@ -1130,22 +1413,47 @@ export default function StoreContextProvider({ children }) {
   };
 
   const recordCashDeposit = (data) => {
-    const { customerId, documentId, amount, paymentType } = data; 
+    const { customerId, documentId, amount, paymentType, bankOrCash = '1010' } = data; 
+    const paymentId = uuidv4();
     
     const newPayment = {
-      id: uuidv4(),
+      id: paymentId,
       timestamp: new Date().toISOString(),
       customerId,
       documentId,
-      amount,
+      amount: Number(amount) || 0,
       type: 'Cash'
     };
 
     setPayments(prev => [...prev, newPayment]);
     syncPaymentToSupabase(newPayment);
 
-    if (paymentType === 'Invoice' || paymentType === 'invoice' || documentId) {
+    if (documentId) {
+      const newAllocation = {
+        id: uuidv4(),
+        paymentId: paymentId,
+        invoiceId: documentId,
+        amountApplied: Number(amount) || 0,
+        createdAt: new Date().toISOString()
+      };
+      setPaymentAllocations(prev => [newAllocation, ...prev]);
+
       recalculateInvoiceBalanceAndInstallments(documentId, amount);
+    }
+
+    try {
+      const targetAccount = bankOrCash === '1020' ? '1020' : '1010';
+      createJournalEntry({
+        date: new Date().toISOString().split('T')[0],
+        reference: `PAY-${documentId || 'CASH'}`,
+        description: `Payment received for ${paymentType || 'Invoice'}`,
+        lines: [
+          { accountId: targetAccount, debit: Number(amount) || 0, credit: 0 },
+          { accountId: '1100', debit: 0, credit: Number(amount) || 0 }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for Payment]', err);
     }
 
     const customer = customers.find(c => c.id === customerId);
@@ -1180,17 +1488,7 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
-  const addExpense = (exp) => {
-    const newExpense = { ...exp, id: uuidv4(), date: new Date().toISOString() };
-    setExpenses([...expenses, newExpense]);
-    syncExpenseToSupabase(newExpense);
-  };
-  const deleteExpense = async (id) => {
-    setExpenses(expenses.filter(e => e.id !== id));
-    if (user) {
-        await supabase.from('expenses').delete().eq('id', id);
-    }
-  };
+
 
   // Automated Scheduler for Renewals and Invoices
   useEffect(() => {
@@ -1480,14 +1778,17 @@ export default function StoreContextProvider({ children }) {
       invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice,
       leads, addLead, updateLead, deleteLead,
-      expenses, addExpense, deleteExpense,
+      expenses, addExpense, updateExpense, deleteExpense,
+      tasks, addTask, updateTask, deleteTask,
       fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset,
       payments, recordCashDeposit,
+      accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
+      createJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
       activityLogs, addLog,
       addCustomerNote,
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
-      teamMembers, addTeamMember, updateTeamMemberRole, deleteTeamMember,
+      teamMembers, addTeamMember, updateTeamMemberRole, deleteTeamMember, resetUserPassword,
       customRoles, addCustomRole, deleteCustomRole,
       theme, toggleTheme,
       notification, showNotification,

@@ -3,19 +3,21 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, 
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
-  Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check
+  Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
+  Key, Eye, EyeOff, Copy
 } from 'lucide-react';
 
 const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     handleTestSms, resetToSeynexDefaults,
-    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember,
+    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember, resetUserPassword,
     customRoles = [], addCustomRole, deleteCustomRole
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
   const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
 
   const handleRefreshBalance = async () => {
@@ -142,18 +144,34 @@ const Settings = () => {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '8px 12px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to remove access for ${member.name}?`)) {
-                              deleteTeamMember && deleteTeamMember(member.id);
-                            }
-                          }}
-                          title="Revoke User Access"
-                        >
-                          <Trash2 size={14} /> Remove Account
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ 
+                              padding: '8px 12px', 
+                              fontSize: '0.82rem',
+                              color: 'var(--accent-primary)', 
+                              background: 'rgba(99, 102, 241, 0.1)', 
+                              border: '1px solid rgba(99, 102, 241, 0.25)' 
+                            }}
+                            onClick={() => setResetPasswordUser(member)}
+                            title="Reset User Password"
+                          >
+                            <Key size={14} /> Reset Password
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to remove access for ${member.name}?`)) {
+                                deleteTeamMember && deleteTeamMember(member.id);
+                              }
+                            }}
+                            title="Revoke User Access"
+                          >
+                            <Trash2 size={14} /> Remove Account
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -824,18 +842,28 @@ const Settings = () => {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '6px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)', border: 'none' }}
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
-                              deleteTeamMember && deleteTeamMember(member.id);
-                            }
-                          }}
-                          title="Revoke User Access"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '6px 10px', fontSize: '0.78rem', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+                            onClick={() => setResetPasswordUser(member)}
+                            title="Reset Password"
+                          >
+                            <Key size={12} /> Reset Password
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '6px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)', border: 'none' }}
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
+                                deleteTeamMember && deleteTeamMember(member.id);
+                              }
+                            }}
+                            title="Revoke User Access"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -880,6 +908,14 @@ const Settings = () => {
         <CreateRoleModal 
           onClose={() => setShowCreateRoleModal(false)} 
           onSave={(roleData) => addCustomRole && addCustomRole(roleData)} 
+        />
+      )}
+
+      {resetPasswordUser && (
+        <ResetPasswordModal 
+          member={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
+          onReset={(id, pass) => resetUserPassword && resetUserPassword(id, pass)}
         />
       )}
     </div>
@@ -1040,5 +1076,167 @@ const VariableTag = ({ tag, desc }) => (
     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>{desc}</span>
   </div>
 );
+
+const ResetPasswordModal = ({ member, onClose, onReset }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+    let generated = 'Sec#';
+    for (let i = 0; i < 8; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(generated);
+    setConfirmPassword(generated);
+    setError('');
+  };
+
+  const handleCopy = () => {
+    if (newPassword) {
+      navigator.clipboard.writeText(newPassword);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    onReset(member.id, newPassword);
+    onClose();
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      padding: '24px'
+    }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+          <div className="flex items-center gap-3">
+            <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '10px' }}>
+              <Key size={20} color="var(--accent-primary)" />
+            </div>
+            <div>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.2rem' }}>Reset User Password</h2>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Admin credentials override</p>
+            </div>
+          </div>
+          <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-body" style={{ padding: '24px' }}>
+          <div style={{
+            padding: '14px 16px', background: 'var(--subtle-bg)', borderRadius: '12px',
+            border: '1px solid var(--subtle-border)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px'
+          }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.2))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, color: 'var(--accent-primary)', fontSize: '0.9rem'
+            }}>
+              {(member?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{member?.name}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{member?.email} &bull; <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{member?.role}</span></div>
+            </div>
+          </div>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', background: 'rgba(244, 63, 94, 0.12)', border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: '10px', color: '#fb7185', fontSize: '0.82rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'
+            }}>
+              <X size={14} /> {error}
+            </div>
+          )}
+
+          <div className="form-group mb-4">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label className="form-label" style={{ fontSize: '0.85rem', margin: 0 }}>New Password</label>
+              <button 
+                type="button" 
+                onClick={generatePassword}
+                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} /> Auto-Generate
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input 
+                required 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                style={{ height: '42px', paddingRight: '76px' }} 
+                placeholder="Enter new password (min 6 chars)" 
+                value={newPassword} 
+                onChange={e => { setNewPassword(e.target.value); setError(''); }} 
+              />
+              <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '4px' }}>
+                {newPassword && (
+                  <button 
+                    type="button" 
+                    onClick={handleCopy}
+                    style={{ background: 'transparent', border: 'none', padding: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    title="Copy Password"
+                  >
+                    {copied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ background: 'transparent', border: 'none', padding: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group mb-6">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Confirm New Password</label>
+            <input 
+              required 
+              type={showPassword ? "text" : "password"} 
+              className="form-input" 
+              style={{ height: '42px' }} 
+              placeholder="Re-enter new password" 
+              value={confirmPassword} 
+              onChange={e => { setConfirmPassword(e.target.value); setError(''); }} 
+            />
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '20px 0' }}></div>
+
+          <div className="flex justify-end gap-3 responsive-form-actions">
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 18px', fontSize: '0.88rem' }} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.88rem' }}>
+              <Key size={16} /> Save New Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export default Settings;

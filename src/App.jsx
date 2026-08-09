@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2
+  Sun, Moon, Building2, CalendarDays, Wallet
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -22,6 +22,8 @@ const Logs = lazy(() => import('./pages/Logs'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Debtors = lazy(() => import('./pages/Debtors'));
 const FixedAssets = lazy(() => import('./pages/FixedAssets'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Expenses = lazy(() => import('./pages/Expenses'));
 const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -521,6 +523,7 @@ const AppContent = () => {
           <SidebarSection label="CORE" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/tasks" icon={<CalendarDays size={18} />} label="Tasks & Calendar" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
@@ -538,6 +541,7 @@ const AppContent = () => {
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/expenses" icon={<Wallet size={18} />} label="Expenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/assets" icon={<Building2 size={18} />} label="Fixed Assets" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
@@ -567,12 +571,14 @@ const AppContent = () => {
               <Routes>
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
                 <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
                 <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
                 <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
                 <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
                 <Route path="/debtors" element={<ProtectedRoute><Debtors /></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
                 <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />

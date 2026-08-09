@@ -13,6 +13,7 @@ const FixedAssets = () => {
     addFixedAsset, 
     updateFixedAsset, 
     deleteFixedAsset,
+    processMonthlyDepreciation,
     showNotification 
   } = useContext(StoreContext) || {};
 
