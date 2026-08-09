@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare
+  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -14,6 +14,7 @@ const Customers = lazy(() => import('./pages/Customers'));
 const Quotations = lazy(() => import('./pages/Quotations'));
 const Invoices = lazy(() => import('./pages/Invoices'));
 const Reports = lazy(() => import('./pages/Reports'));
+const Ledger = lazy(() => import('./pages/Ledger'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Settings = lazy(() => import('./pages/Settings'));
 const SharedDocument = lazy(() => import('./pages/SharedDocument'));
@@ -683,6 +684,9 @@ const AppContent = () => {
                 {checkPerm(['view_reports', 'view_financials']) && (
                   <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 )}
+                {checkPerm(['view_reports', 'view_financials']) && (
+                  <NavItem to="/ledger" icon={<Scale size={18} />} label="Ledger Accounts" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
               </nav>
             </>
           )}
@@ -733,6 +737,7 @@ const AppContent = () => {
                 <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
                 <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
+                <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
                 <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />

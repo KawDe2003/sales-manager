@@ -236,6 +236,53 @@ export default function StoreContextProvider({ children }) {
     return { entry: newEntry, lines: newLines };
   };
 
+  const addAccount = (accountData) => {
+    const exists = accounts.some(a => String(a.code).trim() === String(accountData.code).trim());
+    if (exists) {
+      const err = `Account code "${accountData.code}" already exists in Chart of Accounts`;
+      showNotification(err, 'error');
+      throw new Error(err);
+    }
+
+    const newAcc = {
+      id: accountData.code || uuidv4(),
+      code: String(accountData.code).trim(),
+      name: String(accountData.name).trim(),
+      type: accountData.type || 'asset',
+      statement_category: accountData.statement_category || 'cash_and_equivalents',
+      is_current: accountData.is_current !== undefined ? accountData.is_current : true,
+      parentId: accountData.parentId || null,
+      status: accountData.status || 'Active'
+    };
+
+    setAccounts(prev => [...prev, newAcc]);
+    showNotification(`Created ledger account: ${newAcc.code} - ${newAcc.name}`);
+    return newAcc;
+  };
+
+  const updateAccount = (id, updatedData) => {
+    setAccounts(prev => prev.map(a => (a.id === id || a.code === id) ? { ...a, ...updatedData } : a));
+    showNotification(`Updated ledger account details`);
+  };
+
+  const deleteAccount = (id) => {
+    const hasTransactions = journalLines.some(l => l.accountId === id);
+    if (hasTransactions) {
+      const err = `Cannot delete account. Active journal lines exist for this account.`;
+      showNotification(err, 'error');
+      throw new Error(err);
+    }
+
+    setAccounts(prev => prev.filter(a => a.id !== id && a.code !== id));
+    showNotification(`Deleted ledger account`, 'warning');
+  };
+
+  const deleteJournalEntry = (entryId) => {
+    setJournalEntries(prev => prev.filter(e => e.id !== entryId));
+    setJournalLines(prev => prev.filter(l => l.journalEntryId !== entryId));
+    showNotification(`Deleted Journal Voucher ${entryId}`, 'warning');
+  };
+
   const getInvoicePaymentSummary = (invoiceId, invoiceAmount = 0) => {
     const allocations = paymentAllocations.filter(a => a.invoiceId === invoiceId);
     const allocatedPaid = allocations.reduce((sum, a) => sum + (Number(a.amountApplied) || 0), 0);
@@ -2009,7 +2056,7 @@ export default function StoreContextProvider({ children }) {
       fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset,
       payments, recordCashDeposit,
       accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
-      createJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
+      createJournalEntry, addAccount, updateAccount, deleteAccount, deleteJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
       activityLogs, addLog, recordAuditLog,
       addCustomerNote,
       deleteInvoice, deleteQuote,

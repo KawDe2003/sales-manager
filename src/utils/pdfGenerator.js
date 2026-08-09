@@ -791,3 +791,237 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
     console.error('Failed to generate SLFRS Statements PDF:', err);
   }
 };
+
+// Export Account Ledger Statement (T-Account History) PDF
+export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [], startDate, endDate }) => {
+  try {
+    const doc = new jsPDF();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [99, 102, 241];
+    };
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1');
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(companyName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GENERAL LEDGER STATEMENT — ACCOUNT ${account?.code || ''}`, 14, 26);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Account Name: ${account?.name || 'N/A'} | Type: ${(account?.type || '').toUpperCase()} | Category: ${account?.statement_category || 'N/A'}`, 14, 32);
+    doc.text(`Date Range: ${startDate || 'Beginning'} to ${endDate || 'Present'} | Generated: ${new Date().toLocaleDateString()}`, 14, 37);
+
+    const entryMap = new Map((journalEntries || []).map(e => [e.id, e]));
+    
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let runningNet = 0;
+
+    const tableBody = lines.map(line => {
+      const entry = entryMap.get(line.journalEntryId);
+      const deb = Number(line.debit || 0);
+      const cred = Number(line.credit || 0);
+      totalDebit += deb;
+      totalCredit += cred;
+
+      if (account?.type === 'revenue' || account?.type === 'liability' || account?.type === 'equity') {
+        runningNet += (cred - deb);
+      } else {
+        runningNet += (deb - cred);
+      }
+
+      return [
+        entry?.date ? new Date(entry.date).toLocaleDateString() : '—',
+        entry?.reference || '—',
+        entry?.description || line.memo || 'Journal Entry',
+        deb > 0 ? deb.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-',
+        cred > 0 ? cred.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-',
+        runningNet.toLocaleString('en-US', { minimumFractionDigits: 2 })
+      ];
+    });
+
+    tableBody.push([
+      { content: 'TOTALS / ENDING BALANCE', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: runningNet.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+    ]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['Date', 'Reference', 'Description / Particulars', 'Debit (LKR)', 'Credit (LKR)', 'Net Balance (LKR)']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+        5: { halign: 'right' }
+      },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  } catch (err) {
+    console.error('Failed to export Account Ledger PDF:', err);
+  }
+};
+
+// Export General Journal Voucher PDF
+export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) => {
+  try {
+    const doc = new jsPDF();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(99, 102, 241);
+    doc.text(companyName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`JOURNAL VOUCHER #${entry?.reference || 'JV-000'}`, 14, 27);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Voucher Date: ${entry?.date ? new Date(entry.date).toLocaleDateString() : '—'} | Posted By: ${entry?.createdBy || 'System'}`, 14, 33);
+    doc.text(`Narration / Description: ${entry?.description || 'General Journal Entry'}`, 14, 38);
+
+    const accMap = new Map((accounts || []).map(a => [a.id, a]));
+    
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const tableBody = lines.map(l => {
+      const acc = accMap.get(l.accountId) || accounts.find(a => a.code === l.accountId);
+      const deb = Number(l.debit || 0);
+      const cred = Number(l.credit || 0);
+      totalDebit += deb;
+      totalCredit += cred;
+
+      return [
+        acc ? `${acc.code} - ${acc.name}` : l.accountId,
+        acc?.type?.toUpperCase() || '—',
+        deb > 0 ? deb.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-',
+        cred > 0 ? cred.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'
+      ];
+    });
+
+    tableBody.push([
+      { content: 'TOTAL VOUCHER AMOUNT', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+    ]);
+
+    autoTable(doc, {
+      startY: 44,
+      head: [['Account Description', 'Type', 'Debit (LKR)', 'Credit (LKR)']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
+      styles: { fontSize: 8.5, cellPadding: 4 }
+    });
+
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  } catch (err) {
+    console.error('Failed to export Journal Voucher PDF:', err);
+  }
+};
+
+// Export Trial Balance PDF
+export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journalEntries = [], asOfDate }) => {
+  try {
+    const doc = new jsPDF();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(99, 102, 241);
+    doc.text(companyName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.text('TRIAL BALANCE RECONCILIATION STATEMENT', 14, 26);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`As of Date: ${asOfDate || new Date().toLocaleDateString()} | Compliance: SLFRS / LKAS Financial Suite`, 14, 32);
+
+    let sumDebit = 0;
+    let sumCredit = 0;
+
+    const entryMap = new Map((journalEntries || []).map(e => [e.id, e.date]));
+    const filteredLines = journalLines.filter(line => {
+      if (!asOfDate) return true;
+      const d = entryMap.get(line.journalEntryId);
+      return !d || d <= asOfDate;
+    });
+
+    const tableBody = accounts.map(acc => {
+      const accLines = filteredLines.filter(l => l.accountId === acc.id || l.accountId === acc.code);
+      let deb = accLines.reduce((s, l) => s + Number(l.debit || 0), 0);
+      let cred = accLines.reduce((s, l) => s + Number(l.credit || 0), 0);
+
+      let debitBal = 0;
+      let creditBal = 0;
+
+      if (acc.type === 'revenue' || acc.type === 'liability' || acc.type === 'equity') {
+        const net = cred - deb;
+        if (net >= 0) creditBal = net;
+        else debitBal = Math.abs(net);
+      } else {
+        const net = deb - cred;
+        if (net >= 0) debitBal = net;
+        else creditBal = Math.abs(net);
+      }
+
+      sumDebit += debitBal;
+      sumCredit += creditBal;
+
+      return [
+        acc.code,
+        acc.name,
+        acc.type?.toUpperCase() || 'ASSET',
+        debitBal > 0 ? debitBal.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-',
+        creditBal > 0 ? creditBal.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'
+      ];
+    });
+
+    tableBody.push([
+      { content: 'TOTAL TRIAL BALANCE', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: sumDebit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: sumCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
+    ]);
+
+    autoTable(doc, {
+      startY: 38,
+      head: [['Code', 'Account Name', 'Type', 'Debit Balance (LKR)', 'Credit Balance (LKR)']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  } catch (err) {
+    console.error('Failed to export Trial Balance PDF:', err);
+  }
+};

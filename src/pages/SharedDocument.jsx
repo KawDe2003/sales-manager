@@ -207,10 +207,15 @@ const SharedDocument = () => {
   const docNumber = isQuote ? docData.quoteNumber : docData.invoiceNumber;
   const standardItems = (docData.items || []).filter(i => !i.isDiscount);
   const discountItem = (docData.items || []).find(i => i.isDiscount);
-  const discountAmount = discountItem ? Math.abs(discountItem.price) : 0;
+  
+  const getItemName = (item) => item.name || item.description || item.title || item.item_name || 'Standard Service / Item';
+  const getItemQty = (item) => Number(item.quantity || item.qty || item.count || 1);
+  const getItemPrice = (item) => Number(item.price || item.unitPrice || item.rate || item.unit_price || item.amount || 0);
+
+  const discountAmount = discountItem ? Math.abs(getItemPrice(discountItem)) : 0;
 
   const subTotal = standardItems.length > 0
-    ? standardItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
+    ? standardItems.reduce((sum, item) => sum + (getItemPrice(item) * getItemQty(item)), 0)
     : Number(docData.amount || 0) + discountAmount;
     
   const totalAmount = subTotal - discountAmount;
@@ -263,12 +268,12 @@ const SharedDocument = () => {
                 <span style={{ color: '#ffffff', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>G</span>
               </div>
               <div style={{ fontFamily: 'var(--font-display)' }}>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1 }}>Secure Portal</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>Client Access</div>
+                <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1 }}>Secure Portal</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>Client Access</div>
               </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto" style={{ flexWrap: 'wrap' }}>
-            <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'var(--subtle-bg)', height: '44px', flex: '1 1 auto' }}>
+            <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', height: '44px', flex: '1 1 auto' }}>
               <Printer size={18} /> Print
             </button>
             <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '44px', padding: '0 20px', fontSize: '0.9rem', flex: '1 1 auto' }}>
@@ -283,244 +288,251 @@ const SharedDocument = () => {
                 Preview of {docTitle}
             </h3>
         </div>
-        <div className="glass-panel main-doc-container" style={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
+        <div className="glass-panel main-doc-container" style={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)', boxShadow: 'var(--panel-shadow)', padding: '0', overflow: 'hidden', borderRadius: '24px' }}>
           
-          {/* Internal Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8" style={{ marginBottom: '80px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <span className={`badge badge-${isQuote ? 'primary' : 'warning'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 16px', fontSize: '0.7rem', fontWeight: 800 }}>
-                   {docTitle}
-                </span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 3vw, 1.25rem)', fontFamily: 'var(--font-display)' }}>#{docNumber}</span>
-              </div>
-              
-              <h2 className="h2" style={{ fontSize: 'clamp(1.2rem, 5vw, 2.2rem)', marginBottom: '12px', letterSpacing: '-0.03em' }}>{customerName}</h2>
-              
-              <div style={{ display: 'flex', gap: '16px' }}>
-                 <div>
-                   <div className="text-secondary" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Issue Date</div>
-                   <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
-                 </div>
-                 {docData.dueDate && (
+          <div style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
+            {/* Internal Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start gap-8" style={{ marginBottom: '40px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span className={`badge badge-${isQuote ? 'primary' : 'warning'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', padding: '6px 16px', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>
+                     {docTitle}
+                  </span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.95rem, 3vw, 1.25rem)', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>#{docNumber}</span>
+                </div>
+                
+                <h2 className="h2" style={{ fontSize: 'clamp(1.2rem, 5vw, 2.2rem)', marginBottom: '12px', letterSpacing: '-0.03em' }}>{customerName}</h2>
+                
+                <div style={{ display: 'flex', gap: '16px' }}>
                    <div>
-                     <div className="text-secondary" style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Payment Due</div>
-                     <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                     <div className="text-secondary" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Issue Date</div>
+                     <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                    </div>
-                 )}
-              </div>
-            </div>
-
-            <div className="w-full md:w-auto text-left md:text-right mt-8 md:mt-0">
-              <div className="md:ml-auto" style={{ 
-                width: '64px', height: '64px', borderRadius: '20px', 
-                background: isReceipt ? 'rgba(34, 197, 94, 0.1)' : 'var(--subtle-bg)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px',
-                border: isReceipt ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid var(--subtle-border)',
-                position: 'relative'
-              }}>
-                {isQuote ? <FileText size={32} /> : 
-                 isReceipt ? <CheckCircle size={32} /> : 
-                 <Receipt size={32} />}
-              </div>
-              <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.1rem', marginBottom: '4px' }}>{smsConfig.companyName || 'GymSales Pro'}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyEmail || 'billing@gymsales.com'}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyPhone || '+1 (234) 567-890'}</div>
-            </div>
-          </div>
-
-          {/* Line Items Container */}
-          <div style={{ background: 'var(--bg-secondary)', borderRadius: '24px', padding: 'clamp(16px, 3vw, 32px)', border: '1px solid var(--panel-border)', marginBottom: '40px', overflowX: 'auto', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-             <h4 style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '20px' }}>Billing Items</h4>
-             
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 'min(400px, 100%)' }}>
-                <div style={{ display: 'flex', padding: '10px 12px', borderBottom: '1px solid var(--subtle-border)', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                   <div style={{ flex: 1, minWidth: '80px' }}>Description</div>
-                   <div style={{ width: '60px', flexShrink: 0, textAlign: 'center' }}>Qty</div>
-                   <div style={{ width: '120px', flexShrink: 0, textAlign: 'right' }}>Offer Price</div>
-                   <div style={{ width: '140px', flexShrink: 0, textAlign: 'right' }}>Total</div>
+                   {docData.dueDate && (
+                     <div>
+                       <div className="text-secondary" style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Payment Due</div>
+                       <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)' }}>{new Date(docData.dueDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                     </div>
+                   )}
                 </div>
+              </div>
 
-                {standardItems.map((item, idx) => (
-                   <div key={idx} style={{ display: 'flex', padding: '12px 10px', borderBottom: idx === standardItems.length - 1 ? 'none' : '1px solid var(--subtle-border)', alignItems: 'center' }}>
-                      <div style={{ flex: 1, minWidth: '80px', wordBreak: 'break-word' }}>
-                        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{item.name}</div>
-                      </div>
-                      <div style={{ width: '60px', flexShrink: 0, textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{item.quantity || 1}</div>
-                      <div style={{ width: '120px', flexShrink: 0, textAlign: 'right', color: 'var(--text-secondary)', fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{Number(item.price || 0).toLocaleString()}</div>
-                      <div style={{ width: '140px', flexShrink: 0, textAlign: 'right', color: 'var(--text-primary)', fontWeight: 800, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</div>
-                   </div>
-                ))}
-             </div>
-          </div>
+              <div className="w-full md:w-auto text-left md:text-right mt-8 md:mt-0">
+                <div className="md:ml-auto" style={{ 
+                  width: '64px', height: '64px', borderRadius: '20px', 
+                  background: isReceipt ? 'rgba(34, 197, 94, 0.1)' : 'var(--subtle-bg)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px',
+                  border: isReceipt ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid var(--subtle-border)',
+                  position: 'relative'
+                }}>
+                  {isQuote ? <FileText size={32} /> : 
+                   isReceipt ? <CheckCircle size={32} /> : 
+                   <Receipt size={32} />}
+                </div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '1.1rem', marginBottom: '4px' }}>{smsConfig.companyName || 'GymSales Pro'}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyEmail || 'billing@gymsales.com'}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{smsConfig.companyPhone || '+1 (234) 567-890'}</div>
+              </div>
+            </div>
 
-          {/* Totals Section */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8" style={{ position: 'relative' }}>
-             <div style={{ maxWidth: '400px', width: '100%' }}>
-                {!isQuote && (
-                   <div style={{ padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--subtle-border)' }}>
-                      <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--warning)' }}>
-                         <ShieldCheck size={16} /> <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase' }}>Payment Protocol</span>
-                      </div>
-                      <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>Please settle this invoice via wire transfer. Mention reference <strong>#{docNumber}</strong> in your transaction description.</p>
-                      
-                      {smsConfig.bankDetails && (
-                        <div style={{ 
-                          marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.03)', 
-                          borderRadius: '12px', border: '1px solid var(--subtle-border)',
-                          fontSize: '0.8rem'
-                        }}>
-                          <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.6 }}>Bank Account Details</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '4px' }}>
-                            <span className="text-muted">Bank:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.bank}</span>
-                            <span className="text-muted">Branch:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.branch}</span>
-                            <span className="text-muted">Account:</span> <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{smsConfig.bankDetails.accountNumber}</span>
-                            <span className="text-muted">Name:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.accountName}</span>
+            {/* Line Items Container */}
+            <div style={{ background: '#0f172a', borderRadius: '24px', padding: 'clamp(16px, 3vw, 32px)', border: '1px solid #1e293b', marginBottom: '40px', overflowX: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}>
+               <h4 style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '20px' }}>Billing Items</h4>
+               
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 'min(400px, 100%)' }}>
+                  <div style={{ display: 'flex', padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+                     <div style={{ flex: 1, minWidth: '80px' }}>Description</div>
+                     <div style={{ width: '60px', flexShrink: 0, textAlign: 'center' }}>Qty</div>
+                     <div style={{ width: '120px', flexShrink: 0, textAlign: 'right' }}>Offer Price</div>
+                     <div style={{ width: '140px', flexShrink: 0, textAlign: 'right' }}>Total</div>
+                  </div>
+
+                  {standardItems.map((item, idx) => {
+                    const p = getItemPrice(item);
+                    const q = getItemQty(item);
+                    const name = getItemName(item);
+                    return (
+                       <div key={idx} style={{ display: 'flex', padding: '14px 12px', borderBottom: idx === standardItems.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)', alignItems: 'center' }}>
+                          <div style={{ flex: 1, minWidth: '80px', wordBreak: 'break-word' }}>
+                            <div style={{ color: '#ffffff', fontWeight: 700, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{name}</div>
                           </div>
+                          <div style={{ width: '60px', flexShrink: 0, textAlign: 'center', color: '#cbd5e1', fontWeight: 600, fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{q}</div>
+                          <div style={{ width: '120px', flexShrink: 0, textAlign: 'right', color: '#cbd5e1', fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)' }}>{p.toLocaleString()}</div>
+                          <div style={{ width: '140px', flexShrink: 0, textAlign: 'right', color: '#ffffff', fontWeight: 800, fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' }}>{(p * q).toLocaleString()}</div>
+                       </div>
+                    );
+                  })}
+               </div>
+            </div>
+
+            {/* Totals Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8" style={{ position: 'relative' }}>
+               <div style={{ maxWidth: '400px', width: '100%' }}>
+                  {!isQuote && (
+                     <div style={{ padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--subtle-border)' }}>
+                        <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--warning)' }}>
+                           <ShieldCheck size={16} /> <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase' }}>Payment Protocol</span>
                         </div>
-                      )}
-                   </div>
-                )}
-                {isQuote && (
-                   <div style={{ padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--subtle-border)' }}>
-                      <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-primary)' }}>
-                         <Clock size={16} /> <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase' }}>Estimate Validity</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>This quotation is valid for 30 days from the date of issue. Special bundle discounts applied are contingent on current stock levels.</p>
-                   </div>
-                )}
-             </div>
-
-             <div className="w-full md:w-auto" style={{ textAlign: 'right', minWidth: 'min(320px, 100%)' }}>
-                <div style={{ background: 'linear-gradient(135deg, var(--bg-secondary), var(--subtle-bg))', padding: '32px', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                   <div className="flex justify-between items-center mb-6">
-                      <div style={{ textAlign: 'left' }}>
-                         <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Account Status</div>
-                         <div style={{ 
-                            color: isApproved ? 'var(--success)' : 'var(--warning)', 
-                            fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' 
-                         }}>
-                            {isApproved ? <CheckCircle size={14} /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--warning)' }}></div>}
-                            {docData.status.toUpperCase()}
-                         </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                         <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Total Amount</div>
-                         <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.9rem' }}>LKR {totalAmount.toLocaleString()}</div>
-                      </div>
-                   </div>
-
-                   <div style={{ height: '1px', background: 'var(--subtle-border)', margin: '0 0 24px 0' }}></div>
-
-                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      {discountAmount > 0 && (
-                        <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '8px', fontSize: '0.85rem' }}>
-                             <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                             <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>LKR {subTotal.toLocaleString()}</span>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>Please settle this invoice via wire transfer. Mention reference <strong>#{docNumber}</strong> in your transaction description.</p>
+                        
+                        {smsConfig.bankDetails && (
+                          <div style={{ 
+                            marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.03)', 
+                            borderRadius: '12px', border: '1px solid var(--subtle-border)',
+                            fontSize: '0.8rem'
+                          }}>
+                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.6 }}>Bank Account Details</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '4px' }}>
+                              <span className="text-muted">Bank:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.bank}</span>
+                              <span className="text-muted">Branch:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.branch}</span>
+                              <span className="text-muted">Account:</span> <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{smsConfig.bankDetails.accountNumber}</span>
+                              <span className="text-muted">Name:</span> <span style={{ fontWeight: 600 }}>{smsConfig.bankDetails.accountName}</span>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '16px', fontSize: '0.85rem' }}>
-                             <span style={{ color: 'var(--danger)' }}>Discount</span>
-                             <span style={{ color: 'var(--danger)', fontWeight: 700 }}>- LKR {discountAmount.toLocaleString()}</span>
-                          </div>
-                        </>
-                      )}
-                      <div style={{ color: 'var(--accent-primary)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-                         {isQuote ? 'Projected Investment' : 'Current Balance Due'}
-                      </div>
-                      <div style={{ fontSize: 'clamp(1.4rem, 7.5vw, 2.5rem)', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                         <span style={{ fontSize: 'clamp(0.8rem, 3.5vw, 1rem)', color: 'var(--text-muted)', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
-                         {totalAmount.toLocaleString()}
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             {(isReceipt || docData.status === 'Paid') && (
-               <div style={{ 
-                 position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%) rotate(-10deg)',
-                 border: '8px solid var(--success)', padding: '12px 48px', borderRadius: '16px',
-                 color: 'var(--success)', fontSize: '4rem', fontWeight: 900, opacity: 0.15,
-                 pointerEvents: 'none', fontFamily: 'var(--font-display)', letterSpacing: '0.2em', zIndex: 0
-               }}>
-                 PAID
+                        )}
+                     </div>
+                  )}
+                  {isQuote && (
+                     <div style={{ padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--subtle-border)' }}>
+                        <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-primary)' }}>
+                           <Clock size={16} /> <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase' }}>Estimate Validity</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>This quotation is valid for 30 days from the date of issue. Special bundle discounts applied are contingent on current stock levels.</p>
+                     </div>
+                  )}
                </div>
-             )}
+
+               <div className="w-full md:w-auto" style={{ textAlign: 'right', minWidth: 'min(320px, 100%)' }}>
+                  <div style={{ background: '#0f172a', padding: '32px', borderRadius: '24px', border: '1px solid #1e293b', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+                     <div className="flex justify-between items-center mb-6">
+                        <div style={{ textAlign: 'left' }}>
+                           <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Account Status</div>
+                           <div style={{ 
+                              color: isApproved ? '#10b981' : '#f59e0b', 
+                              fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' 
+                           }}>
+                              {isApproved ? <CheckCircle size={14} /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></div>}
+                              {docData.status.toUpperCase()}
+                           </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                           <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Total Amount</div>
+                           <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '1rem' }}>LKR {totalAmount.toLocaleString()}</div>
+                        </div>
+                     </div>
+
+                     <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 0 24px 0' }}></div>
+
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                        {discountAmount > 0 && (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '8px', fontSize: '0.85rem' }}>
+                               <span style={{ color: '#cbd5e1' }}>Subtotal</span>
+                               <span style={{ color: '#ffffff', fontWeight: 700 }}>LKR {subTotal.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '200px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                               <span style={{ color: '#ef4444' }}>Discount</span>
+                               <span style={{ color: '#ef4444', fontWeight: 700 }}>- LKR {discountAmount.toLocaleString()}</span>
+                            </div>
+                          </>
+                        )}
+                        <div style={{ color: '#60a5fa', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                           {isQuote ? 'Projected Investment' : 'Current Balance Due'}
+                        </div>
+                        <div style={{ fontSize: 'clamp(1.4rem, 7.5vw, 2.5rem)', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                           <span style={{ fontSize: 'clamp(0.8rem, 3.5vw, 1rem)', color: '#94a3b8', verticalAlign: 'middle', marginRight: '8px', fontWeight: 700 }}>LKR</span>
+                           {totalAmount.toLocaleString()}
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {(isReceipt || docData.status === 'Paid') && (
+                 <div style={{ 
+                   position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%) rotate(-10deg)',
+                   border: '8px solid var(--success)', padding: '12px 48px', borderRadius: '16px',
+                   color: 'var(--success)', fontSize: '4rem', fontWeight: 900, opacity: 0.15,
+                   pointerEvents: 'none', fontFamily: 'var(--font-display)', letterSpacing: '0.2em', zIndex: 0
+                 }}>
+                   PAID
+                 </div>
+               )}
+            </div>
+
+            {/* Agreement & Terms Section */}
+            {docData.agreementTerms && (
+               <div style={{ marginTop: '40px', padding: '32px', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Service Agreement & Terms</h4>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                     {docData.agreementTerms}
+                  </div>
+               </div>
+            )}
+
+            {/* Bottom Call to Action for Quotes */}
+            {isQuote && docData.status === 'Pending' && !isPreview && (
+              <div className="cta-container no-print" style={{ 
+                marginTop: '60px', 
+                padding: 'clamp(24px, 5vw, 48px)', 
+                background: 'var(--subtle-bg)', 
+                borderRadius: '32px', 
+                border: '1px solid var(--subtle-border)', 
+                textAlign: 'center' 
+              }}>
+                 <h3 style={{ margin: '0 0 12px 0', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', fontWeight: 800, color: 'var(--text-primary)' }}>Ready to proceed?</h3>
+                 <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
+                 <div className="action-button-group">
+                    <button 
+                      onClick={async () => { 
+                        setDocData(prev => ({ ...prev, status: 'Accepted' }));
+                        await updateQuoteStatus(id, 'Accepted'); 
+                        setShowGratitude(true);
+                      }}
+                      className="btn btn-primary action-btn-large" style={{ background: 'var(--accent-primary)' }}>
+                      <CheckCircle size={20} /> Approve & Accept Proposal
+                    </button>
+                    <button 
+                      onClick={async () => { 
+                        setDocData(prev => ({ ...prev, status: 'Rejected' }));
+                        await updateQuoteStatus(id, 'Rejected'); 
+                        showNotification('Proposal declined.'); 
+                      }}
+                      className="btn btn-secondary action-btn-large" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
+                      <XCircle size={20} /> Decline
+                    </button>
+                 </div>
+              </div>
+            )}
+
+            {/* Bottom Call to Action for Invoices */}
+            {!isQuote && !isApproved && !isPreview && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)', textAlign: 'center' }} className="no-print">
+                 <h3 style={{ margin: '0 0 12px 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Outstanding Balance</h3>
+                 <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Please complete your payment to ensure your service remains uninterrupted.</p>
+                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                    <button 
+                      onClick={() => { 
+                        window.location.href = '/portal';
+                      }}
+                      className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--accent-primary)', border: 'none', cursor: 'pointer' }}>
+                      <CheckCircle size={20} /> Pay Now via Customer Portal
+                    </button>
+                 </div>
+              </div>
+            )}
           </div>
 
-          {/* Agreement & Terms Section */}
-          {docData.agreementTerms && (
-             <div style={{ marginTop: '40px', padding: '32px', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Service Agreement & Terms</h4>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                   {docData.agreementTerms}
-                </div>
-             </div>
-          )}
-
-          {/* Bottom Call to Action for Quotes */}
-          {isQuote && docData.status === 'Pending' && !isPreview && (
-            <div className="cta-container no-print" style={{ 
-              marginTop: '60px', 
-              padding: 'clamp(24px, 5vw, 48px)', 
-              background: 'var(--subtle-bg)', 
-              borderRadius: '32px', 
-              border: '1px solid var(--subtle-border)', 
-              textAlign: 'center' 
-            }}>
-               <h3 style={{ margin: '0 0 12px 0', fontSize: 'clamp(1.4rem, 5vw, 1.8rem)', fontWeight: 800, color: 'var(--text-primary)' }}>Ready to proceed?</h3>
-               <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
-               <div className="action-button-group">
-                  <button 
-                    onClick={async () => { 
-                      setDocData(prev => ({ ...prev, status: 'Accepted' }));
-                      await updateQuoteStatus(id, 'Accepted'); 
-                      setShowGratitude(true);
-                    }}
-                    className="btn btn-primary action-btn-large" style={{ background: 'var(--accent-primary)' }}>
-                    <CheckCircle size={20} /> Approve & Accept Proposal
-                  </button>
-                  <button 
-                    onClick={async () => { 
-                      setDocData(prev => ({ ...prev, status: 'Rejected' }));
-                      await updateQuoteStatus(id, 'Rejected'); 
-                      showNotification('Proposal declined.'); 
-                    }}
-                    className="btn btn-secondary action-btn-large" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
-                    <XCircle size={20} /> Decline
-                  </button>
-               </div>
-            </div>
-          )}
-
-          {/* Bottom Call to Action for Invoices */}
-          {!isQuote && !isApproved && !isPreview && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--panel-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)', textAlign: 'center' }} className="no-print">
-               <h3 style={{ margin: '0 0 12px 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Outstanding Balance</h3>
-               <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto 36px auto', fontSize: '1.1rem' }}>Please complete your payment to ensure your service remains uninterrupted.</p>
-               <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-                  <button 
-                    onClick={() => { 
-                      window.location.href = '/portal';
-                    }}
-                    className="btn btn-primary" style={{ padding: '0 40px', height: '56px', fontSize: '1.05rem', background: 'var(--accent-primary)', border: 'none', cursor: 'pointer' }}>
-                    <CheckCircle size={20} /> Pay Now via Customer Portal
-                  </button>
-               </div>
-            </div>
-          )}
-
-          <div style={{ padding: '40px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--panel-border)', position: 'relative', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px' }}>
-             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #0ea5e9, #8b5cf6, #ec4899)' }}></div>
-             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
-                   <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
+          <div style={{ padding: '30px 40px', background: '#0f172a', borderTop: '1px solid #1e293b', position: 'relative', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #0ea5e9, #8b5cf6, #ec4899)' }}></div>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
+                   <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
                       Authenticated Computer-Generated Document
                    </p>
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
-                   Powered by <strong style={{ color: 'var(--text-primary)' }}>GymSales Pro</strong>
+                <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
+                   Powered by <strong style={{ color: '#ffffff' }}>GymSales Pro</strong>
                 </div>
              </div>
           </div>

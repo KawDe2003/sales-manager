@@ -171,3 +171,49 @@ CREATE POLICY "View invoices by share_key" ON invoices FOR SELECT USING (true);
 CREATE POLICY "View customers for portal" ON customers FOR SELECT USING (true);
 CREATE POLICY "View payments for portal" ON payments FOR SELECT USING (true);
 CREATE POLICY "Insert payments from portal" ON payments FOR INSERT WITH CHECK (true);
+
+-- 10. ACCOUNTS (CHART OF ACCOUNTS) TABLE
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL, -- asset, liability, equity, revenue, expense
+    statement_category TEXT,
+    is_current BOOLEAN DEFAULT true,
+    parent_id TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 11. JOURNAL ENTRIES TABLE
+CREATE TABLE IF NOT EXISTS journal_entries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    date DATE NOT NULL,
+    reference TEXT NOT NULL,
+    description TEXT,
+    created_by TEXT DEFAULT 'System',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 12. JOURNAL LINES TABLE
+CREATE TABLE IF NOT EXISTS journal_lines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    journal_entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL,
+    debit NUMERIC DEFAULT 0,
+    credit NUMERIC DEFAULT 0,
+    memo TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_lines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Manage own accounts" ON accounts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own journal_entries" ON journal_entries FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own journal_lines" ON journal_lines FOR ALL USING (auth.uid() = user_id);
+
