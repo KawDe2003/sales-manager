@@ -292,26 +292,42 @@ export default function StoreContextProvider({ children }) {
   const syncInventoryToSupabase = async (item) => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from('inventory')
-        .upsert({
+      const fullPayload = {
+        id: item.id,
+        user_id: user.id,
+        name: item.name,
+        item_type: item.type,
+        price: item.price,
+        cost_price: item.costPrice || 0,
+        reorder_level: item.reorderLevel || 5,
+        stock: item.stock,
+        description: item.desc
+      };
+
+      let { error } = await supabase.from('inventory').upsert(fullPayload);
+
+      // Automatic Schema Fallback: If cost_price or reorder_level column is missing in Supabase DB schema cache
+      if (error && (error.message?.includes('cost_price') || error.message?.includes('reorder_level') || error.code === 'PGRST204')) {
+        console.warn('[Supabase Sync] Optional column cost_price/reorder_level not found in Supabase schema. Executing fallback upsert...', error.message);
+        const basePayload = {
           id: item.id,
           user_id: user.id,
           name: item.name,
           item_type: item.type,
           price: item.price,
-          cost_price: item.costPrice || 0,
-          reorder_level: item.reorderLevel || 5,
           stock: item.stock,
           description: item.desc
-        });
+        };
+        const fallbackRes = await supabase.from('inventory').upsert(basePayload);
+        error = fallbackRes.error;
+      }
+
       if (error) {
         console.error('[Supabase Sync] Inventory Error:', error);
-        showNotification(`Inventory sync failed: ${error.message}`, 'error');
+        showNotification(`Inventory sync warning: ${error.message}`, 'warning');
       }
     } catch (err) {
       console.error('[Supabase Sync] Inventory Exception:', err);
-      showNotification(`Inventory exception: ${err.message}`, 'error');
     }
   };
 
@@ -387,9 +403,27 @@ export default function StoreContextProvider({ children }) {
   const syncFixedAssetToSupabase = async (asset) => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from('fixed_assets')
-        .upsert({
+      const fullPayload = {
+        id: asset.id,
+        user_id: user.id,
+        asset_code: asset.assetCode,
+        name: asset.name,
+        category: asset.category,
+        purchase_date: asset.purchaseDate,
+        purchase_cost: asset.purchaseCost,
+        useful_life_years: asset.usefulLifeYears,
+        salvage_value: asset.salvageValue,
+        depreciation_method: asset.depreciationMethod || 'Straight Line (SLM)',
+        depreciation_rate: asset.depreciationRate || 0,
+        location: asset.location,
+        status: asset.status
+      };
+
+      let { error } = await supabase.from('fixed_assets').upsert(fullPayload);
+
+      if (error && (error.message?.includes('depreciation_method') || error.message?.includes('depreciation_rate') || error.code === 'PGRST204')) {
+        console.warn('[Supabase Sync] Depreciation columns missing in Supabase schema. Retrying base payload...', error.message);
+        const basePayload = {
           id: asset.id,
           user_id: user.id,
           asset_code: asset.assetCode,
@@ -401,7 +435,11 @@ export default function StoreContextProvider({ children }) {
           salvage_value: asset.salvageValue,
           location: asset.location,
           status: asset.status
-        });
+        };
+        const fallbackRes = await supabase.from('fixed_assets').upsert(basePayload);
+        error = fallbackRes.error;
+      }
+
       if (error) console.error('[Supabase Sync] Fixed Asset Error:', error);
     } catch (err) {
       console.error('[Supabase Sync] Fixed Asset Exception:', err);
@@ -498,15 +536,31 @@ export default function StoreContextProvider({ children }) {
         safeFetch('leads', supabase.from('leads').select('*').eq('user_id', user.id)),
         safeFetch('expenses', supabase.from('expenses').select('*').eq('user_id', user.id)),
         safeFetch('payments', supabase.from('payments').select('*').eq('user_id', user.id)),
+        safeFetch('fixed_assets', supabase.from('fixed_assets').select('*').eq('user_id', user.id)),
         safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('log_timestamp', { ascending: false }).limit(500)),
         safeFetch('user_profiles', supabase.from('user_profiles').select('config').eq('user_id', user.id).single())
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, logData, profData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, faData, logData, profData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'ERROR', '| Invoices:', iData?.length ?? 'ERROR');
 
       if (cData === null) showNotification('Could not load clients from cloud. Check console for details.', 'error');
+
+      if (faData) setFixedAssets(faData.map(a => ({
+        id: a.id,
+        assetCode: a.asset_code,
+        name: a.name,
+        category: a.category,
+        purchaseDate: a.purchase_date,
+        purchaseCost: Number(a.purchase_cost) || 0,
+        usefulLifeYears: Number(a.useful_life_years) || 5,
+        salvageValue: Number(a.salvage_value) || 0,
+        depreciationMethod: a.depreciation_method || 'Straight Line (SLM)',
+        depreciationRate: Number(a.depreciation_rate) || 0,
+        location: a.location,
+        status: a.status || 'Active'
+      })));
 
       if (profData?.config) {
         setSmsConfig(prev => {

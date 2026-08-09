@@ -144,6 +144,8 @@ CREATE TABLE IF NOT EXISTS fixed_assets (
     purchase_cost NUMERIC DEFAULT 0,
     useful_life_years NUMERIC DEFAULT 5,
     salvage_value NUMERIC DEFAULT 0,
+    depreciation_method TEXT DEFAULT 'Straight Line (SLM)',
+    depreciation_rate NUMERIC DEFAULT 0,
     location TEXT,
     status TEXT DEFAULT 'Active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
