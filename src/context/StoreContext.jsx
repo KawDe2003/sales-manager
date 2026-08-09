@@ -1082,7 +1082,9 @@ export default function StoreContextProvider({ children }) {
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'ERROR', '| Invoices:', iData?.length ?? 'ERROR');
 
-      if (cData === null) showNotification('Could not load clients from cloud. Check console for details.', 'error');
+      if (cData === null) {
+        console.warn('[Supabase Sync] Could not load clients from cloud, operating in local fallback mode.');
+      }
 
       if (faData) setFixedAssets(faData.map(a => ({
         id: a.id,
