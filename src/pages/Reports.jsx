@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, Plus, Trash2, Download, Printer, FileSpreadsheet } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '../utils/export';
-import { generateAccountingReportPDF, generatePnLReportPDF } from '../utils/pdfGenerator';
+import { generateAccountingReportPDF, generatePnLReportPDF, printPnLReportPDF } from '../utils/pdfGenerator';
 
 const Reports = () => {
   const { 
@@ -141,6 +141,20 @@ const Reports = () => {
     });
   };
 
+  const handlePrintPnLStatement = () => {
+    printPnLReportPDF({
+      totalRevenue,
+      projectedRenewals,
+      totalStockCost,
+      totalStockRetail,
+      estimatedCOGS,
+      grossProfit,
+      totalExpenses,
+      netProfit,
+      expenseByCategory
+    });
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
@@ -155,8 +169,8 @@ const Reports = () => {
           <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px', color: 'var(--success)' }} onClick={handleExportExcel}>
             <FileSpreadsheet size={16} /> Excel Download
           </button>
-          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={() => window.print()}>
-            <Printer size={16} /> Print P&L
+          <button className="btn btn-secondary" style={{ padding: '10px 20px', height: '44px' }} onClick={handlePrintPnLStatement}>
+            <Printer size={16} /> Print P&L Statement
           </button>
         </div>
       </div>

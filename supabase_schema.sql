@@ -132,6 +132,24 @@ ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- 9. FIXED ASSETS TABLE
+CREATE TABLE IF NOT EXISTS fixed_assets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    asset_code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'Gym Equipment',
+    purchase_date DATE,
+    purchase_cost NUMERIC DEFAULT 0,
+    useful_life_years NUMERIC DEFAULT 5,
+    salvage_value NUMERIC DEFAULT 0,
+    location TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE fixed_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
 -- POLICIES FOR OWNERS (Full Access)

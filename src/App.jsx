@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon
+  Sun, Moon, Building2
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -21,6 +21,7 @@ const Leads = lazy(() => import('./pages/Leads'));
 const Logs = lazy(() => import('./pages/Logs'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Debtors = lazy(() => import('./pages/Debtors'));
+const FixedAssets = lazy(() => import('./pages/FixedAssets'));
 const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -537,6 +538,7 @@ const AppContent = () => {
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <NavItem to="/assets" icon={<Building2 size={18} />} label="Fixed Assets" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
 
@@ -571,6 +573,7 @@ const AppContent = () => {
                 <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
                 <Route path="/debtors" element={<ProtectedRoute><Debtors /></ProtectedRoute>} />
+                <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

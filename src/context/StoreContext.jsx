@@ -21,6 +21,7 @@ export default function StoreContextProvider({ children }) {
   const [activityLogs, setActivityLogs] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [fixedAssets, setFixedAssets] = useState([]);
 
   // SMS Configuration (Base Defaults with localStorage mirror)
   const [smsConfig, setSmsConfig] = useState(() => {
@@ -381,6 +382,53 @@ export default function StoreContextProvider({ children }) {
     } catch (err) {
       console.error('[Supabase Sync] Payment Exception:', err);
     }
+  };
+
+  const syncFixedAssetToSupabase = async (asset) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('fixed_assets')
+        .upsert({
+          id: asset.id,
+          user_id: user.id,
+          asset_code: asset.assetCode,
+          name: asset.name,
+          category: asset.category,
+          purchase_date: asset.purchaseDate,
+          purchase_cost: asset.purchaseCost,
+          useful_life_years: asset.usefulLifeYears,
+          salvage_value: asset.salvageValue,
+          location: asset.location,
+          status: asset.status
+        });
+      if (error) console.error('[Supabase Sync] Fixed Asset Error:', error);
+    } catch (err) {
+      console.error('[Supabase Sync] Fixed Asset Exception:', err);
+    }
+  };
+
+  const addFixedAsset = (asset) => {
+    const newAsset = { ...asset, id: asset.id || uuidv4() };
+    setFixedAssets(prev => [newAsset, ...prev]);
+    syncFixedAssetToSupabase(newAsset);
+    addLog('FixedAsset', `Registered fixed asset: ${newAsset.name} (${newAsset.assetCode})`);
+  };
+
+  const updateFixedAsset = (id, data) => {
+    setFixedAssets(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
+    const updated = { ...fixedAssets.find(a => a.id === id), ...data, id };
+    syncFixedAssetToSupabase(updated);
+    addLog('FixedAsset', `Updated fixed asset: ${updated.name}`);
+  };
+
+  const deleteFixedAsset = async (id) => {
+    const asset = fixedAssets.find(a => a.id === id);
+    setFixedAssets(prev => prev.filter(a => a.id !== id));
+    if (user) {
+      await supabase.from('fixed_assets').delete().eq('id', id);
+    }
+    if (asset) addLog('FixedAsset', `Deleted fixed asset: ${asset.name}`);
   };
 
   const syncLogToSupabase = async (log) => {
@@ -1379,6 +1427,7 @@ export default function StoreContextProvider({ children }) {
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice,
       leads, addLead, updateLead, deleteLead,
       expenses, addExpense, deleteExpense,
+      fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset,
       payments, recordCashDeposit,
       activityLogs, addLog,
       addCustomerNote,
