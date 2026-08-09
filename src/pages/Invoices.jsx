@@ -1,4 +1,4 @@
-﻿import React, { useContext, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag } from 'lucide-react';
@@ -39,9 +39,7 @@ const Invoices = () => {
       const gymName = getCustomerName(inv.customerId).toLowerCase();
       const searchMatch = gymName.includes(searchTerm.toLowerCase()) ||
                           (inv.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
-      
       const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
-      
       let dateMatch = true;
       if (dateFilter === 'Last30') {
         const d = new Date(inv.date);
@@ -52,67 +50,98 @@ const Invoices = () => {
         const d = new Date(inv.date);
         dateMatch = d.getFullYear() === new Date().getFullYear();
       }
-
       return searchMatch && statusMatch && dateMatch;
     });
   };
 
+  // Compute stats
+  const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const totalCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const installmentInvoices = invoices.filter(i => i.installmentPlan?.enabled).length;
+  const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
+
   return (
     <div style={{ position: 'relative', width: '100%', paddingBottom: '40px' }}>
-      <div className="page-hero">
+
+      {/* ===== HERO HEADER ===== */}
+      <div className="page-hero" style={{ position: 'relative', zIndex: 50 }}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">Invoice Ledger</h1>
-            <p className="text-secondary" style={{ fontSize: '1rem' }}>Full record of software licenses, service fees, and gym billing status.</p>
+            <h1 className="h1 mb-1" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
+              Invoice Ledger
+            </h1>
+            <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: overdueCount > 0 ? 'var(--danger)' : 'var(--success)', boxShadow: `0 0 10px ${overdueCount > 0 ? 'var(--danger)' : 'var(--success)'}`, flexShrink: 0 }}></span>
+              Billing &amp; Collections · Software Licenses · Gym Invoices
+              {overdueCount > 0 && (
+                <span style={{ marginLeft: '4px', background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '8px', padding: '1px 8px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  ⚠ {overdueCount} Overdue
+                </span>
+              )}
+            </p>
           </div>
-          <div className="btn-group flex gap-3">
-            <button className="btn btn-secondary" onClick={handleExport} title="Export CSV">
-              <Download size={18} className="text-success" />
+          <div className="flex gap-3" style={{ flexShrink: 0 }}>
+            <button className="btn btn-secondary" onClick={handleExport} style={{ padding: '10px 18px', fontSize: '0.85rem' }}>
+              <Download size={16} />
               <span className="sm-hidden">Export CSV</span>
             </button>
-            <button className="btn btn-primary" onClick={() => { setEditingInvoice(null); setShowModal(true); }}>
-              <Plus size={18} />
-              <span>Create Invoice</span>
+            <button className="btn btn-primary" onClick={() => { setEditingInvoice(null); setShowModal(true); }} style={{ padding: '10px 18px', fontSize: '0.85rem' }}>
+              <Plus size={16} /> Create Invoice
             </button>
           </div>
         </div>
       </div>
 
-      {/* TOP INVOICE METRICS BAR */}
-      {(() => {
-        const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-        const totalCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
-        const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
-        const installmentInvoices = invoices.filter(i => i.installmentPlan?.enabled).length;
-        const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
-
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Invoiced</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>LKR {totalInvoiced.toLocaleString()}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{invoices.length} Invoices</div>
-            </div>
-            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Collected</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>LKR {totalCollected.toLocaleString()}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--success)', marginTop: '2px', fontWeight: 700 }}>Settled Invoices</div>
-            </div>
-            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Total Outstanding</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>LKR {totalOutstanding.toLocaleString()}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 700 }}>Unpaid & Pending</div>
-            </div>
-            <div className="glass-panel hover-lift" style={{ padding: '18px' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Installment Plans</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>{installmentInvoices} Plans</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', marginTop: '2px', fontWeight: 700 }}>Structured Customer Payments</div>
+      {/* ===== KPI STAT CARDS ===== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="glass-panel hover-lift" style={{ padding: '20px', overflow: 'hidden', borderBottom: '3px solid var(--accent-secondary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>TOTAL INVOICED</div>
+            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-secondary)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <Receipt size={18} />
             </div>
           </div>
-        );
-      })()}
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-secondary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1 }}>LKR {totalInvoiced.toLocaleString()}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 600 }}>{invoices.length} Total Invoices</div>
+        </div>
 
-      {/* Styled Search & Filter Toolbar */}
+        <div className="glass-panel hover-lift" style={{ padding: '20px', overflow: 'hidden', borderBottom: '3px solid var(--success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>COLLECTED</div>
+            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success)', border: '1px solid rgba(34,197,94,0.2)' }}>
+              <CheckCircle size={18} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--success)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1 }}>LKR {totalCollected.toLocaleString()}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 600 }}>Settled / Paid</div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '20px', overflow: 'hidden', borderBottom: '3px solid var(--warning)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>OUTSTANDING</div>
+            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <Clock size={18} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--warning)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1 }}>LKR {totalOutstanding.toLocaleString()}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 600 }}>Unpaid &amp; Pending</div>
+        </div>
+
+        <div className="glass-panel hover-lift" style={{ padding: '20px', overflow: 'hidden', borderBottom: '3px solid var(--accent-primary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>INSTALLMENT PLANS</div>
+            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <CalendarDays size={18} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1 }}>{installmentInvoices}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 600 }}>Structured Payments</div>
+        </div>
+      </div>
+
+
+      {/* ===== SEARCH & FILTER TOOLBAR ===== */}
       <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
         <div style={{ position: 'relative', width: '100%', flex: 1 }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
@@ -126,7 +155,7 @@ const Invoices = () => {
           />
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <select 
+          <select
             className="form-input"
             style={{ height: '42px', flex: '1 1 130px', minWidth: '120px', background: 'var(--subtle-bg)' }}
             value={statusFilter}
@@ -139,7 +168,7 @@ const Invoices = () => {
             <option value="Paid">Paid</option>
             <option value="Overdue">Overdue</option>
           </select>
-          <select 
+          <select
             className="form-input"
             style={{ height: '42px', flex: '1 1 140px', minWidth: '120px', background: 'var(--subtle-bg)' }}
             value={dateFilter}
@@ -152,10 +181,10 @@ const Invoices = () => {
         </div>
       </div>
 
+      {/* ===== INVOICE LIST ===== */}
       <div className="flex flex-col gap-4">
         {(() => {
           const filteredInvoices = getFilteredInvoices();
-
           if (filteredInvoices.length === 0) {
             return (
               <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px 0', textAlign: 'center' }}>
@@ -167,24 +196,23 @@ const Invoices = () => {
               </div>
             );
           }
-
           return filteredInvoices.map(invoice => (
-            <InvoiceCard 
-              key={invoice.id} 
-              invoice={invoice} 
+            <InvoiceCard
+              key={invoice.id}
+              invoice={invoice}
               customers={customers}
               payments={payments}
-              updateInvoiceStatus={updateInvoiceStatus} 
+              updateInvoiceStatus={updateInvoiceStatus}
               onEdit={() => { setEditingInvoice(invoice); setShowModal(true); }}
               onRecordPayment={() => navigate('/payments')}
               onViewInstallments={() => setViewingInstallmentInvoice(invoice)}
               onSendSms={() => {
-                 const customer = customers.find(c => c.id === invoice.customerId);
-                 if (!customer || !customer.phone) {
-                   showNotification(`Cannot send SMS! No phone attached to ${getCustomerName(invoice.customerId)}.`, 'error');
-                   return;
-                 }
-                 if(triggerSMS) triggerSMS('InvoiceReminder', customer, invoice);
+                const customer = customers.find(c => c.id === invoice.customerId);
+                if (!customer || !customer.phone) {
+                  showNotification(`Cannot send SMS! No phone attached to ${getCustomerName(invoice.customerId)}.`, 'error');
+                  return;
+                }
+                if (triggerSMS) triggerSMS('InvoiceReminder', customer, invoice);
               }}
               onDownload={() => {
                 const docData = { ...invoice, gymName: getCustomerName(invoice.customerId) };
@@ -196,13 +224,13 @@ const Invoices = () => {
       </div>
 
       {showModal && (
-        <InvoiceModal 
-          onClose={() => { setShowModal(false); setEditingInvoice(null); }} 
+        <InvoiceModal
+          onClose={() => { setShowModal(false); setEditingInvoice(null); }}
           onSave={(data) => {
             if (editingInvoice) updateInvoice(editingInvoice.id, data);
             else addInvoice(data);
-          }} 
-          customers={customers} 
+          }}
+          customers={customers}
           inventory={inventory}
           initialData={editingInvoice}
         />
@@ -219,11 +247,12 @@ const Invoices = () => {
     </div>
   );
 };
+
 const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendSms, onDownload }) => {
   const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
   const customer = customers.find(c => c.id === invoice.customerId) || {};
-  
+
   const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + p.amount, 0);
   const amountDue = invoice.amount - historicalPayments;
 
@@ -239,9 +268,9 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
   const plan = invoice.installmentPlan;
 
   return (
-    <div className="glass-panel hover-lift" style={{ 
-      padding: '20px', 
-      display: 'flex', 
+    <div className="glass-panel hover-lift" style={{
+      padding: '20px',
+      display: 'flex',
       flexDirection: 'column',
       gap: '20px',
       borderLeft: `4px solid ${borderLeftColor}`
@@ -269,7 +298,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
               {plan?.enabled && (
                 <>
                   <span style={{ opacity: 0.3 }}>•</span>
-                  <button 
+                  <button
                     onClick={onViewInstallments}
                     style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
@@ -282,7 +311,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
         </div>
 
         <div style={{ flexShrink: 0 }}>
-          <select 
+          <select
             className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Partially Paid' ? 'info' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
             style={{ minWidth: '125px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
             value={invoice.status}
@@ -305,29 +334,27 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
             {Math.max(0, amountDue).toLocaleString() || 0}
           </div>
           {historicalPayments > 0 && amountDue > 0 && (
-             <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 600, marginTop: '2px' }}>
-                Paid so far: LKR {historicalPayments.toLocaleString()}
-             </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 600, marginTop: '2px' }}>
+              Paid so far: LKR {historicalPayments.toLocaleString()}
+            </div>
           )}
         </div>
 
         <div className="action-bar md:justify-end w-full flex gap-2">
-          <a 
-            href={previewLink} 
-            target="_blank" 
+          <a
+            href={previewLink}
+            target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-secondary" 
-            style={{ width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            className="btn btn-secondary"
+            style={{ width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="View Shared Document"
           >
             <Eye size={16} className="text-accent" />
           </a>
-          <button 
-            className="btn btn-secondary" 
-            style={{ width: '40px', height: '40px', padding: 0 }} 
-            onClick={() => {
-              navigator.clipboard.writeText(shareLink);
-            }}
+          <button
+            className="btn btn-secondary"
+            style={{ width: '40px', height: '40px', padding: 0 }}
+            onClick={() => { navigator.clipboard.writeText(shareLink); }}
             title="Share Link"
           >
             <LinkIcon size={16} />
@@ -341,15 +368,14 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
             <Download size={16} />
           </button>
-          
           {!isPaid && (
-             <button 
-               className="btn btn-primary" 
-               style={{ height: '40px', padding: '0 12px', background: 'var(--accent-primary)', border: 'none', flex: '1 0 auto' }} 
-               onClick={onRecordPayment}
-             >
-               <BadgeDollarSign size={16} /> <span style={{ fontSize: '0.8rem' }}>Record Payment</span>
-             </button>
+            <button
+              className="btn btn-primary"
+              style={{ height: '40px', padding: '0 12px', background: 'var(--accent-primary)', border: 'none', flex: '1 0 auto' }}
+              onClick={onRecordPayment}
+            >
+              <BadgeDollarSign size={16} /> <span style={{ fontSize: '0.8rem' }}>Record Payment</span>
+            </button>
           )}
         </div>
       </div>
@@ -397,7 +423,6 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
               <div style={{ fontSize: '1.1rem', fontWeight: 850, color: 'var(--warning)' }}>LKR {Math.max(0, totalInvoiceAmount - totalPaidSoFar).toLocaleString()}</div>
             </div>
           </div>
-
           <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '12px' }}>Payment Schedule Breakdown ({plan.count} {plan.frequency} Payments)</h3>
         </div>
       </div>
@@ -412,8 +437,8 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
 
   const [formData, setFormData] = useState({
-    invoiceNumber: initialData?.invoiceNumber || `${smsConfig.invoicePrefix || 'INV-'}${smsConfig.nextInvoiceNumber || 1001}`, 
-    date: initialData?.date || new Date().toISOString().split('T')[0], 
+    invoiceNumber: initialData?.invoiceNumber || `${smsConfig.invoicePrefix || 'INV-'}${smsConfig.nextInvoiceNumber || 1001}`,
+    date: initialData?.date || new Date().toISOString().split('T')[0],
     dueDate: initialData?.dueDate || '',
     customerId: initialData?.customerId || (customers[0]?.id || ''),
     items: initialItems,
@@ -426,7 +451,6 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   const [installmentCount, setInstallmentCount] = useState(initialData?.installmentPlan?.count || 3);
   const [downPayment, setDownPayment] = useState(initialData?.installmentPlan?.downPayment || 0);
   const [installmentFrequency, setInstallmentFrequency] = useState(initialData?.installmentPlan?.frequency || 'Monthly');
-
   const [selectedInventoryId, setSelectedInventoryId] = useState('');
 
   const calculateSubtotal = (items) => items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -436,13 +460,10 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     if (!selectedInventoryId) return;
     const invItem = inventory.find(i => i.id === selectedInventoryId);
     if (!invItem) return;
-
     let newItems = [...formData.items];
     const existingIndex = newItems.findIndex(i => i.id === invItem.id);
-    
     if (existingIndex >= 0) newItems[existingIndex].quantity += 1;
     else newItems.push({ ...invItem, quantity: 1 });
-    
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
     setSelectedInventoryId('');
   };
@@ -461,46 +482,45 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '780px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
         <div className="modal-header">
-           <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
-             <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-           </div>
+          <div className="flex justify-between items-center">
+            <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
+            <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
+          </div>
         </div>
 
-        <form onSubmit={(e) => { 
-          e.preventDefault(); 
+        <form onSubmit={(e) => {
+          e.preventDefault();
           const finalItems = [...formData.items];
           if (Number(formData.discount) > 0) {
             finalItems.push({ name: 'Discount', price: -Number(formData.discount), quantity: 1, isDiscount: true });
           }
           const netTotal = calculateTotal(formData.items, formData.discount);
-          const finalPlan = (enableInstallments && generateInstallmentSchedule) 
+          const finalPlan = (enableInstallments && generateInstallmentSchedule)
             ? generateInstallmentSchedule(netTotal, installmentCount, downPayment, formData.date, installmentFrequency)
             : null;
-
-          onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan }); 
-          onClose(); 
+          onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan });
+          onClose();
         }} className="modal-body">
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Serial #</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.invoiceNumber} onChange={e => setFormData({...formData, invoiceNumber: e.target.value})} />
+              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.invoiceNumber} onChange={e => setFormData({ ...formData, invoiceNumber: e.target.value })} />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Client / Local Gym</label>
-              <select className="form-input" style={{ height: '44px' }} value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})} required>
+              <select className="form-input" style={{ height: '44px' }} value={formData.customerId} onChange={e => setFormData({ ...formData, customerId: e.target.value })} required>
                 <option value="">Select a Client</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.gymName}</option>)}
               </select>
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Issue Date</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Payment Due Date</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})} />
+              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
             </div>
           </div>
 
@@ -517,7 +537,6 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               </select>
               <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
             </div>
-
             {formData.items.length > 0 && (
               <div className="table-container" style={{ marginTop: '16px', background: 'transparent' }}>
                 <table style={{ fontSize: '0.85rem' }}>
@@ -550,14 +569,13 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             )}
           </div>
 
-          {/* DISCOUNT MODULE CONTROL PANEL */}
+          {/* DISCOUNT MODULE */}
           <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
             <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
               <div className="flex items-center gap-2">
                 <Tag size={18} color="#f59e0b" />
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount & Coupon Module</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount &amp; Coupon Module</span>
               </div>
-
               <div className="flex items-center gap-2">
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Presets:</span>
                 {[
@@ -574,15 +592,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                       key={pIdx}
                       type="button"
                       onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateTotal(formData.items, discountVal) })}
-                      style={{ 
+                      style={{
                         background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
                         border: '1px solid rgba(245, 158, 11, 0.3)',
                         color: Number(formData.discount) === discountVal ? '#ffffff' : '#f59e0b',
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
                       }}
                     >
                       {preset.label}
@@ -591,19 +605,17 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 })}
               </div>
             </div>
-
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 Gross Subtotal: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>LKR {calculateSubtotal(formData.items).toLocaleString()}</strong>
               </div>
-
               <div className="flex items-center gap-3">
                 <label className="form-label mb-0" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Deduction (LKR):</label>
-                <input 
-                  type="number" 
-                  className="form-input" 
-                  style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }} 
-                  value={formData.discount === 0 ? '' : formData.discount} 
+                <input
+                  type="number"
+                  className="form-input"
+                  style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }}
+                  value={formData.discount === 0 ? '' : formData.discount}
                   onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
                   placeholder="0"
                 />
@@ -621,7 +633,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             </div>
           </div>
 
-          {/* INSTALLMENT PLAN BUILDER SECTION */}
+          {/* INSTALLMENT PLAN */}
           <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(99, 102, 241, 0.06)', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -629,38 +641,25 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>Customer Payment Installment Plan</span>
               </div>
               <label className="flex items-center gap-2" style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                <input 
-                  type="checkbox" 
-                  checked={enableInstallments} 
-                  onChange={e => setEnableInstallments(e.target.checked)} 
+                <input
+                  type="checkbox"
+                  checked={enableInstallments}
+                  onChange={e => setEnableInstallments(e.target.checked)}
                   style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
                 />
                 Enable Installment Plan
               </label>
             </div>
-
             {enableInstallments && (
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Upfront Down Payment (LKR)</label>
-                    <input 
-                      type="number" 
-                      className="form-input" 
-                      style={{ height: '42px' }} 
-                      placeholder="0"
-                      value={downPayment === 0 ? '' : downPayment} 
-                      onChange={e => setDownPayment(e.target.value)} 
-                    />
+                    <input type="number" className="form-input" style={{ height: '42px' }} placeholder="0" value={downPayment === 0 ? '' : downPayment} onChange={e => setDownPayment(e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.8rem' }}># of Installments</label>
-                    <select 
-                      className="form-input" 
-                      style={{ height: '42px' }} 
-                      value={installmentCount} 
-                      onChange={e => setInstallmentCount(e.target.value)}
-                    >
+                    <select className="form-input" style={{ height: '42px' }} value={installmentCount} onChange={e => setInstallmentCount(e.target.value)}>
                       <option value="2">2 Installments</option>
                       <option value="3">3 Installments</option>
                       <option value="4">4 Installments</option>
@@ -670,19 +669,12 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Frequency</label>
-                    <select 
-                      className="form-input" 
-                      style={{ height: '42px' }} 
-                      value={installmentFrequency} 
-                      onChange={e => setInstallmentFrequency(e.target.value)}
-                    >
+                    <select className="form-input" style={{ height: '42px' }} value={installmentFrequency} onChange={e => setInstallmentFrequency(e.target.value)}>
                       <option value="Monthly">Monthly</option>
                       <option value="Weekly">Weekly</option>
                     </select>
                   </div>
                 </div>
-
-                {/* Real-time Schedule Breakdown Preview */}
                 {(() => {
                   const netTotal = calculateTotal(formData.items, formData.discount);
                   if (!generateInstallmentSchedule) return null;
@@ -709,9 +701,9 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           </div>
 
           <div style={{ marginTop: '24px' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Service Agreement & Terms (Optional)</label>
-            <textarea 
-              className="form-input" 
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Service Agreement &amp; Terms (Optional)</label>
+            <textarea
+              className="form-input"
               style={{ minHeight: '120px', resize: 'vertical', width: '100%', padding: '12px' }}
               placeholder="Enter payment terms, SLA, or conditions the client must agree to..."
               value={formData.agreementTerms}
