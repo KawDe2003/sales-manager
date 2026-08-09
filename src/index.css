@@ -1,49 +1,49 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ===== Modern SaaS Dark Mode Palette ===== */
-  --bg-color: #030611;
-  --bg-primary: #060914;
-  --bg-secondary: #0d1222;
-  --bg-tertiary: #161e36;
+  /* ===== Nordic Ocean Dark Mode Palette ===== */
+  --bg-color: #050b14;
+  --bg-primary: #0a1121;
+  --bg-secondary: #121d33;
+  --bg-tertiary: #1b2945;
 
-  --panel-bg: rgba(13, 18, 34, 0.75);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --panel-border-highlight: rgba(255, 255, 255, 0.14);
-  --panel-glow: rgba(99, 102, 241, 0.15);
+  --panel-bg: rgba(18, 29, 51, 0.75);
+  --panel-border: rgba(144, 224, 239, 0.08);
+  --panel-border-highlight: rgba(144, 224, 239, 0.16);
+  --panel-glow: rgba(0, 180, 216, 0.12);
 
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
 
-  --card-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.1);
-  --input-bg: rgba(9, 13, 26, 0.75);
-  --input-border: rgba(255, 255, 255, 0.11);
-  --input-focus: #6366f1;
+  --card-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), 0 0 1px rgba(144, 224, 239, 0.15);
+  --input-bg: rgba(10, 17, 33, 0.8);
+  --input-border: rgba(144, 224, 239, 0.15);
+  --input-focus: #00b4d8;
 
-  --subtle-bg: rgba(255, 255, 255, 0.035);
-  --subtle-border: rgba(255, 255, 255, 0.07);
-  --header-bg: rgba(6, 9, 20, 0.82);
+  --subtle-bg: rgba(144, 224, 239, 0.04);
+  --subtle-border: rgba(144, 224, 239, 0.08);
+  --header-bg: rgba(10, 17, 33, 0.85);
 
-  /* Vibrant Neon Accents */
-  --accent-primary: #6366f1;
-  --accent-secondary: #8b5cf6;
+  /* Nordic Oceanic Accents */
+  --accent-primary: #0077b6;
+  --accent-secondary: #00b4d8;
   --accent-pink: #ec4899;
-  --accent-cyan: #06b6d4;
+  --accent-cyan: #90e0ef;
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
-  --accent-glow: rgba(99, 102, 241, 0.28);
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  --accent-glow: rgba(0, 180, 216, 0.25);
+  --accent-gradient: linear-gradient(135deg, #0077b6 0%, #00b4d8 50%, #90e0ef 100%);
 
   --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.14);
+  --success-bg: rgba(16, 185, 129, 0.15);
   --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.14);
+  --warning-bg: rgba(245, 158, 11, 0.15);
   --danger: #f43f5e;
-  --danger-bg: rgba(244, 63, 94, 0.14);
-  --info: #06b6d4;
-  --info-bg: rgba(6, 182, 212, 0.14);
+  --danger-bg: rgba(244, 63, 94, 0.15);
+  --info: #00b4d8;
+  --info-bg: rgba(0, 180, 216, 0.15);
 
   /* Spacing & Radii */
   --space-1: 0.25rem;
@@ -55,8 +55,9 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
 
-  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -66,34 +67,34 @@
 
 /* ===== LIGHT THEME ===== */
 [data-theme='light'] {
-  --bg-color: #f1f5f9;
+  --bg-color: #f0f4f8;
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #e2e8f0;
 
-  --panel-bg: rgba(255, 255, 255, 0.88);
-  --panel-border: rgba(0, 0, 0, 0.07);
-  --panel-border-highlight: rgba(0, 0, 0, 0.12);
-  --panel-glow: rgba(99, 102, 241, 0.08);
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --panel-border: rgba(0, 119, 182, 0.08);
+  --panel-border-highlight: rgba(0, 119, 182, 0.15);
+  --panel-glow: rgba(0, 180, 216, 0.08);
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
-  --card-shadow: 0 15px 35px -5px rgba(15, 23, 42, 0.07), 0 0 1px rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 15px 35px -5px rgba(0, 119, 182, 0.06), 0 0 1px rgba(0, 0, 0, 0.05);
   --input-bg: #ffffff;
   --input-border: #cbd5e1;
-  --input-focus: #6366f1;
+  --input-focus: #0077b6;
 
-  --subtle-bg: rgba(0, 0, 0, 0.025);
-  --subtle-border: rgba(0, 0, 0, 0.06);
-  --header-bg: rgba(255, 255, 255, 0.88);
-  --accent-glow: rgba(99, 102, 241, 0.16);
+  --subtle-bg: rgba(0, 119, 182, 0.03);
+  --subtle-border: rgba(0, 119, 182, 0.08);
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --accent-glow: rgba(0, 119, 182, 0.15);
 
   --success-bg: rgba(16, 185, 129, 0.1);
   --warning-bg: rgba(245, 158, 11, 0.1);
   --danger-bg: rgba(244, 63, 94, 0.1);
-  --info-bg: rgba(6, 182, 212, 0.1);
+  --info-bg: rgba(0, 180, 216, 0.1);
 }
 
 /* ===== RESET & BASE STYLES ===== */

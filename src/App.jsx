@@ -79,7 +79,7 @@ class GlobalErrorBoundary extends React.Component {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button 
                 onClick={() => window.location.reload()} 
-                style={{ padding: '10px 20px', borderRadius: '10px', background: '#6366f1', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', borderRadius: '10px', background: 'var(--accent-primary)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
               >
                 Reload Page
               </button>
