@@ -245,23 +245,51 @@ const Dashboard = () => {
 
         {/* Custom Date Selector Dropdown/Inputs */}
         {dateFilter === 'custom' && (
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[var(--subtle-border)] flex-wrap">
-            <div className="flex items-center gap-2" style={{ minWidth: '190px', flex: '1 1 auto', maxWidth: '240px' }}>
-              <span className="text-secondary" style={{ fontSize: '0.8rem', fontWeight: 600 }}>Start:</span>
-              <DatePicker 
-                value={customStart} 
-                onChange={(val) => setCustomStart(val)} 
-                placeholder="Start Date"
-              />
+          <div style={{
+            marginTop: '20px',
+            padding: '14px 20px',
+            background: 'var(--subtle-bg)',
+            borderRadius: '14px',
+            border: '1px solid var(--subtle-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '16px',
+            flexWrap: 'wrap',
+            position: 'relative',
+            zIndex: 10,
+            animation: 'fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}>
+            <div className="flex items-center gap-2">
+              <span className="text-secondary" style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Start:</span>
+              <div style={{ width: '180px' }}>
+                <DatePicker 
+                  value={customStart} 
+                  onChange={(val) => setCustomStart(val)} 
+                  placeholder="Start Date"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2" style={{ minWidth: '190px', flex: '1 1 auto', maxWidth: '240px' }}>
-              <span className="text-secondary" style={{ fontSize: '0.8rem', fontWeight: 600 }}>End:</span>
-              <DatePicker 
-                value={customEnd} 
-                onChange={(val) => setCustomEnd(val)} 
-                placeholder="End Date"
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-secondary" style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>End:</span>
+              <div style={{ width: '180px' }}>
+                <DatePicker 
+                  value={customEnd} 
+                  onChange={(val) => setCustomEnd(val)} 
+                  placeholder="End Date"
+                />
+              </div>
             </div>
+            {(customStart || customEnd) && (
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ padding: '6px 12px', fontSize: '0.78rem', height: '38px', color: 'var(--text-muted)' }}
+                onClick={() => { setCustomStart(''); setCustomEnd(''); }}
+              >
+                Clear Range
+              </button>
+            )}
           </div>
         )}
       </div>

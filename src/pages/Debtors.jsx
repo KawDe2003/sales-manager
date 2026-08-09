@@ -137,7 +137,7 @@ const Debtors = () => {
       </div>
 
       {/* AGING BUCKETS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ marginBottom: '32px' }}>
         <AgingBucket label="Current" amount={buckets.current} color="var(--success)" desc="< 7 days overdue" percent={(buckets.current / globalTotalDebt) * 100} />
         <AgingBucket label="Warning" amount={buckets.warning} color="var(--warning)" desc="7 - 21 days overdue" percent={(buckets.warning / globalTotalDebt) * 100} />
         <AgingBucket label="At Risk" amount={buckets.overdue} color="var(--danger)" desc="21+ days overdue" percent={(buckets.overdue / globalTotalDebt) * 100} />

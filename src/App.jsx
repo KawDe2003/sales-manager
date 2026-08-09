@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2, CalendarDays, Wallet
+  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -25,23 +25,40 @@ const FixedAssets = lazy(() => import('./pages/FixedAssets'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
+const SmsPortal = lazy(() => import('./pages/SmsPortal'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
 
 const LoadingFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: 'var(--bg-primary)' }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-      <div style={{ 
-        width: '48px', height: '48px', borderRadius: '14px', 
-        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 12px 24px rgba(99, 102, 241, 0.3)',
-        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-      }}>
-        <span style={{ color: 'white', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>S</span>
+  <div style={{ 
+    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+    height: '100vh', width: '100%', background: 'var(--bg-primary)',
+    position: 'fixed', top: 0, left: 0, zIndex: 9999
+  }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '22px' }}>
+      <div className="brand-loader-logo">
+        S
       </div>
-      <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid rgba(99, 102, 241, 0.15)', borderTopColor: '#6366f1', borderRadius: '50%' }}></div>
+
+      <div className="spinner-outer">
+        <div className="spinner-inner"></div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <div style={{ 
+          fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', 
+          letterSpacing: '0.15em', textTransform: 'uppercase' 
+        }}>
+          GymSales Pro Enterprise
+        </div>
+        <div className="loader-track">
+          <div className="loader-bar"></div>
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+          Initializing SLFRS Financial Workspace...
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -118,7 +135,18 @@ const App = () => {
   );
 };
 
-const ProtectedRoute = ({ children }) => {
+const hasPermission = (userPermissions = [], required) => {
+  if (!required) return true;
+  if (!userPermissions || userPermissions.length === 0) return true;
+  if (userPermissions.includes('all')) return true;
+
+  if (Array.isArray(required)) {
+    return required.some(p => userPermissions.includes(p));
+  }
+  return userPermissions.includes(required);
+};
+
+const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
   const { user } = useAuth();
   const location = useLocation();
 
@@ -126,13 +154,58 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (requiredPermission && !hasPermission(userPermissions, requiredPermission)) {
+    return (
+      <div className="glass-panel" style={{ padding: '60px 24px', textAlign: 'center', margin: '40px auto', maxWidth: '520px' }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          background: 'rgba(244, 63, 94, 0.12)', border: '1px solid rgba(244, 63, 94, 0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+          color: 'var(--danger)'
+        }}>
+          <ShieldAlert size={32} />
+        </div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' }}>Access Restricted</h2>
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
+          Your assigned user role does not have permission to view or manage this section.
+        </p>
+        <Link to="/" className="btn btn-primary" style={{ display: 'inline-flex', padding: '10px 20px' }}>
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   return children;
 };
 
 const AppContent = () => {
-  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [] } = useContext(StoreContext);
+  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [], teamMembers = [], customRoles = [] } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
+
+  // Determine user role & permission set
+  const currentMember = teamMembers.find(m => m.email?.toLowerCase() === user?.email?.toLowerCase());
+  const userRoleTitle = currentMember?.role || user?.user_metadata?.role || 'Admin';
+  
+  const roleObj = customRoles.find(r => r.title?.toLowerCase() === userRoleTitle?.toLowerCase());
+  
+  let userPermissions = roleObj?.permissions;
+  if (!userPermissions) {
+    if (userRoleTitle === 'Admin') {
+      userPermissions = ['all'];
+    } else if (userRoleTitle === 'Sales Representative') {
+      userPermissions = ['manage_clients', 'manage_quotes', 'manage_invoices', 'manage_inventory'];
+    } else if (userRoleTitle === 'Accountant') {
+      userPermissions = ['view_financials', 'manage_invoices', 'view_debtors', 'view_reports'];
+    } else if (userRoleTitle === 'Inventory Manager') {
+      userPermissions = ['manage_inventory', 'view_reports'];
+    } else {
+      userPermissions = ['all'];
+    }
+  }
+
+  const checkPerm = (req) => hasPermission(userPermissions, req);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -334,6 +407,9 @@ const AppContent = () => {
 
         <div className="flex items-center gap-2">
           {/* Quick Actions */}
+          <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '38px', padding: '0 12px', fontSize: '0.82rem', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+            <MessageSquare size={16} /> SMS Portal
+          </Link>
           <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '38px', padding: '0 14px', fontSize: '0.82rem', color: 'var(--success)' }}>
             <CreditCard size={16} /> Invoice
           </Link>
@@ -519,41 +595,116 @@ const AppContent = () => {
           flexDirection: 'column',
           padding: isSidebarCollapsed ? '20px 8px' : '20px 0'
         }}>
+          {/* User Profile Badge */}
+          {user && (
+            <div style={{
+              margin: isSidebarCollapsed ? '0 0 16px 0' : '0 16px 16px 16px',
+              padding: isSidebarCollapsed ? '8px 0' : '10px 12px',
+              background: 'var(--subtle-bg)',
+              borderRadius: '12px',
+              border: '1px solid var(--subtle-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+              gap: '10px'
+            }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, color: 'var(--accent-primary)', fontSize: '0.82rem', flexShrink: 0
+              }}>
+                {(user?.user_metadata?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </div>
+              {!isSidebarCollapsed && (
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {user?.user_metadata?.name || user?.email?.split('@')[0]}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {userRoleTitle}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Section: CORE */}
           <SidebarSection label="CORE" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/tasks" icon={<CalendarDays size={18} />} label="Tasks & Calendar" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            {checkPerm(['manage_clients', 'manage_tasks']) && (
+              <NavItem to="/tasks" icon={<CalendarDays size={18} />} label="Tasks & Calendar" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            )}
+            {checkPerm(['manage_clients', 'manage_leads']) && (
+              <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            )}
+            {checkPerm(['manage_clients']) && (
+              <NavItem to="/customers" icon={<Users size={18} />} label="Active Gyms" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            )}
           </nav>
 
           {/* Section: SALES */}
-          <SidebarSection label="SALES" collapsed={isSidebarCollapsed} />
-          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
-            <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-          </nav>
+          {(checkPerm(['manage_quotes']) || checkPerm(['manage_invoices', 'view_invoices']) || checkPerm(['manage_inventory', 'view_inventory'])) && (
+            <>
+              <SidebarSection label="SALES" collapsed={isSidebarCollapsed} />
+              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+                {checkPerm(['manage_quotes']) && (
+                  <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['manage_invoices', 'view_invoices']) && (
+                  <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['manage_inventory', 'view_inventory']) && (
+                  <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+              </nav>
+            </>
+          )}
 
           {/* Section: FINANCE */}
-          <SidebarSection label="FINANCE" collapsed={isSidebarCollapsed} />
-          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
-            <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/expenses" icon={<Wallet size={18} />} label="Expenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/assets" icon={<Building2 size={18} />} label="Fixed Assets" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-          </nav>
+          {(checkPerm(['manage_invoices', 'view_invoices', 'view_financials']) || checkPerm(['view_financials', 'view_debtors']) || checkPerm(['view_financials', 'manage_expenses']) || checkPerm(['view_financials', 'manage_assets']) || checkPerm(['view_reports', 'view_financials'])) && (
+            <>
+              <SidebarSection label="FINANCE" collapsed={isSidebarCollapsed} />
+              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+                {checkPerm(['manage_invoices', 'view_invoices', 'view_financials']) && (
+                  <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['view_financials', 'view_debtors']) && (
+                  <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['view_financials', 'manage_expenses']) && (
+                  <NavItem to="/expenses" icon={<Wallet size={18} />} label="Expenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['view_financials', 'manage_assets']) && (
+                  <NavItem to="/assets" icon={<Building2 size={18} />} label="Fixed Assets" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['view_reports', 'view_financials']) && (
+                  <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+              </nav>
+            </>
+          )}
 
           {/* Section: SYSTEM */}
-          <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
-          <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
-            <NavItem to="/settings" icon={<Users size={18} />} label="User Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-          </nav>
-          
+          {(checkPerm(['manage_users']) || checkPerm(['view_logs', 'manage_users']) || checkPerm(['manage_users', 'manage_settings']) || checkPerm(['manage_invoices', 'manage_clients'])) && (
+            <>
+              <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
+              <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+                <NavItem to="/sms" icon={<MessageSquare size={18} />} label="SMS Portal & Broadcast" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                {checkPerm(['manage_users']) && (
+                  <NavItem to="/settings" icon={<Users size={18} />} label="User Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['view_logs', 'manage_users']) && (
+                  <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+                {checkPerm(['manage_users', 'manage_settings']) && (
+                  <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
+              </nav>
+            </>
+          )}
+
           {/* Footer */}
           <div style={{ marginTop: 'auto', padding: '20px 24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
              {!isSidebarCollapsed && (
@@ -569,20 +720,21 @@ const AppContent = () => {
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
-                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-                <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-                <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-                <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
-                <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
-                <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
-                <Route path="/debtors" element={<ProtectedRoute><Debtors /></ProtectedRoute>} />
-                <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
-                <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-                <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
+                <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
+                <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />
+                <Route path="/debtors" element={<ProtectedRoute requiredPermission={['view_financials', 'view_debtors']} userPermissions={userPermissions}><Debtors /></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
+                <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
+                <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
+                <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

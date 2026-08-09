@@ -9,54 +9,179 @@ export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(true);
 
-  // Initialize state as empty (Cloud-First)
-  const [customers, setCustomers] = useState([]);
-  const [inventory, setInventory] = useState([
-    // Keep these as "Seed" data for empty states or remove if preferred
-    // I will leave them empty as per "Fully Cloud" requirement
-  ]);
-  const [invoices, setInvoices] = useState([]);
-  const [quotes, setQuotes] = useState([]);
-  const [leads, setLeads] = useState([]);
+  // Initialize sample dummy data
+  const sampleCustomers = [
+    { id: 'c-101', gymName: 'Fitness First Colombo', name: 'Kamal Perera', email: 'kamal@fitnessfirst.lk', phone: '0771234567', dob: '1988-04-12', purchaseDate: '2025-01-15', renewalDate: '2026-08-15', annualFee: 450000, status: 'Active', notes: [{ id: 'n1', text: 'Premium enterprise subscription', timestamp: new Date().toISOString() }] },
+    { id: 'c-102', gymName: 'Power World Gym Kandy', name: 'Nalin Fernando', email: 'nalin@powerworld.lk', phone: '0719876543', dob: '1992-09-20', purchaseDate: '2025-02-10', renewalDate: '2026-08-20', annualFee: 320000, status: 'Active', notes: [] },
+    { id: 'c-103', gymName: "Gold's Gym Galle", name: 'Dinesh Jayawardena', email: 'dinesh@goldsgym.lk', phone: '0765554321', dob: '1985-11-05', purchaseDate: '2025-03-01', renewalDate: '2026-07-01', annualFee: 600000, status: 'Active', notes: [] },
+    { id: 'c-104', gymName: 'High Octane Fitness Negombo', name: 'Ruwan Silva', email: 'ruwan@highoctane.lk', phone: '0752223333', dob: '1990-06-18', purchaseDate: '2025-04-12', renewalDate: '2026-09-12', annualFee: 280000, status: 'Active', notes: [] },
+    { id: 'c-105', gymName: 'Ironworks Gym Matara', name: 'Sanjaya Wickramasinghe', email: 'sanjaya@ironworks.lk', phone: '0701112222', dob: '1995-02-28', purchaseDate: '2025-05-20', renewalDate: '2026-10-20', annualFee: 190000, status: 'Pending', notes: [] }
+  ];
+
+  const sampleInventory = [
+    { id: 'inv-101', name: 'Commercial Treadmill Heavy Duty X9', type: 'Equipment', price: 480000, costPrice: 320000, stock: 12, reorderLevel: 3, desc: 'AC 5.0HP Motor commercial treadmill with touch screen' },
+    { id: 'inv-102', name: 'Olympic Barbell 20kg Hard Chrome', type: 'Equipment', price: 42000, costPrice: 26000, stock: 45, reorderLevel: 10, desc: '2200mm 1500lbs rating chrome Olympic bar' },
+    { id: 'inv-103', name: 'Rubber Bumper Plate Set 100kg', type: 'Accessories', price: 95000, costPrice: 62000, stock: 28, reorderLevel: 5, desc: 'High density rubber bumper weight plates' },
+    { id: 'inv-104', name: 'Whey Protein Isolate 5lb (Vanilla)', type: 'Supplements', price: 24500, costPrice: 16500, stock: 110, reorderLevel: 20, desc: '100% Ultra filtered whey isolate 28g protein per scoop' },
+    { id: 'inv-105', name: 'Commercial Cable Crossover Machine', type: 'Equipment', price: 850000, costPrice: 580000, stock: 4, reorderLevel: 2, desc: 'Dual stack multi station cable crossover machine' }
+  ];
+
+  const sampleLeads = [
+    { id: 'lead-1', gymName: 'Titan Fitness Kurunegala', name: 'Sunil Cooray', phone: '0773334444', email: 'sunil@titan.lk', location: 'Kurunegala', status: 'Contacted', value: 350000, createdAt: new Date().toISOString() },
+    { id: 'lead-2', gymName: 'Pulse Gym Jaffna', name: 'K. Selvam', phone: '0718889999', email: 'selvam@pulse.lk', location: 'Jaffna', status: 'Demo Scheduled', value: 420000, createdAt: new Date().toISOString() },
+    { id: 'lead-3', gymName: 'Metro Fitness Battaramulla', name: 'Anura Dissanayake', phone: '0761110000', email: 'anura@metro.lk', location: 'Battaramulla', status: 'Interested', value: 290000, createdAt: new Date().toISOString() }
+  ];
+
+  const sampleQuotes = [
+    { id: 'q-101', shareKey: 'SNX-Q101', quoteNumber: 'QT-1001', date: '2026-07-20', prospectName: 'Pulse Gym Jaffna', prospectPhone: '0718889999', amount: 420000, status: 'Pending', items: [{ name: 'Gym Software Setup + Hardware Package', qty: 1, unitPrice: 420000, amount: 420000 }] },
+    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Metro Fitness Battaramulla', prospectPhone: '0761110000', amount: 290000, status: 'Accepted', items: [{ name: 'Annual Software License + Turnstile Gate Module', qty: 1, unitPrice: 290000, amount: 290000 }] }
+  ];
+
+  const sampleInvoices = [
+    { id: 'inv-201', shareKey: 'SNX-INV201', invoiceNumber: 'INV-1001', date: '2026-06-01', dueDate: '2026-06-15', customerId: 'c-101', prospectName: 'Fitness First Colombo', amount: 450000, status: 'Paid', items: [{ name: 'Annual GymSales Software License 2026', qty: 1, unitPrice: 450000, amount: 450000 }], reminderSent: true },
+    { id: 'inv-202', shareKey: 'SNX-INV202', invoiceNumber: 'INV-1002', date: '2026-06-10', dueDate: '2026-06-25', customerId: 'c-102', prospectName: 'Power World Gym Kandy', amount: 320000, status: 'Paid', items: [{ name: 'Annual GymSales License + Biometric Module', qty: 1, unitPrice: 320000, amount: 320000 }], reminderSent: true },
+    { id: 'inv-203', shareKey: 'SNX-INV203', invoiceNumber: 'INV-1003', date: '2026-07-01', dueDate: '2026-07-15', customerId: 'c-103', prospectName: "Gold's Gym Galle", amount: 600000, status: 'Overdue', items: [{ name: 'Multi-Branch Enterprise Software License', qty: 1, unitPrice: 600000, amount: 600000 }], reminderSent: false },
+    { id: 'inv-204', shareKey: 'SNX-INV204', invoiceNumber: 'INV-1004', date: '2026-08-01', dueDate: '2026-08-25', customerId: 'c-104', prospectName: 'High Octane Fitness Negombo', amount: 280000, status: 'Sent', items: [{ name: 'Standard Gym Management Module', qty: 1, unitPrice: 280000, amount: 280000 }], reminderSent: false }
+  ];
+
+  const sampleExpenses = [
+    { id: 'exp-1', category: 'Operational', amount: 45000, date: '2026-07-05', description: 'AWS Cloud Server & Database Infrastructure Hosting' },
+    { id: 'exp-2', category: 'Marketing', amount: 85000, date: '2026-07-10', description: 'Facebook & Google Ads Marketing Campaign' },
+    { id: 'exp-3', category: 'Staff', amount: 120000, date: '2026-07-28', description: 'Sales Team Monthly Bonus & Commissions' },
+    { id: 'exp-4', category: 'Administrative', amount: 180000, date: '2026-08-01', description: 'Headquarters Office Rent & Fibre Internet' }
+  ];
+
+  const sampleFixedAssets = [
+    { id: 'fa-1', assetCode: 'FA-1001', name: 'High Performance Server Workstations', category: 'IT Equipment', purchaseDate: '2025-01-10', purchaseCost: 1200000, usefulLifeYears: 5, salvageValue: 100000, depreciationMethod: 'Straight Line (SLM)', location: 'Colombo HQ', status: 'Active' },
+    { id: 'fa-2', assetCode: 'FA-1002', name: 'Showroom Demo Equipment Set', category: 'Fitness Equipment', purchaseDate: '2025-03-15', purchaseCost: 2500000, usefulLifeYears: 7, salvageValue: 300000, depreciationMethod: 'Straight Line (SLM)', location: 'Kandy Branch', status: 'Active' }
+  ];
+
+  const sampleJournalEntries = [
+    { id: 'je-1', date: '2026-01-01', reference: 'GEN-001', description: 'Initial Capital Contribution', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
+    { id: 'je-2', date: '2026-06-01', reference: 'GEN-002', description: 'Fitness First Invoice INV-1001 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-01').toISOString() },
+    { id: 'je-3', date: '2026-06-10', reference: 'GEN-003', description: 'Power World Gym INV-1002 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-10').toISOString() },
+    { id: 'je-4', date: '2026-07-01', reference: 'GEN-004', description: 'Gold\'s Gym Invoice INV-1003 Billed (Receivable)', createdBy: 'System', timestamp: new Date('2026-07-01').toISOString() },
+    { id: 'je-5', date: '2026-07-05', reference: 'GEN-005', description: 'Cloud Infrastructure & Hosting Expense', createdBy: 'System', timestamp: new Date('2026-07-05').toISOString() },
+    { id: 'je-6', date: '2026-07-10', reference: 'GEN-006', description: 'Digital Marketing & Lead Generation Expense', createdBy: 'System', timestamp: new Date('2026-07-10').toISOString() }
+  ];
+
+  const sampleJournalLines = [
+    { id: 'jl-1', journalEntryId: 'je-1', accountId: '1020', debit: 5000000, credit: 0 },
+    { id: 'jl-2', journalEntryId: 'je-1', accountId: '3010', debit: 0, credit: 5000000 },
+    { id: 'jl-3', journalEntryId: 'je-2', accountId: '1020', debit: 450000, credit: 0 },
+    { id: 'jl-4', journalEntryId: 'je-2', accountId: '4010', debit: 0, credit: 450000 },
+    { id: 'jl-5', journalEntryId: 'je-3', accountId: '1020', debit: 320000, credit: 0 },
+    { id: 'jl-6', journalEntryId: 'je-3', accountId: '4010', debit: 0, credit: 320000 },
+    { id: 'jl-7', journalEntryId: 'je-4', accountId: '1100', debit: 600000, credit: 0 },
+    { id: 'jl-8', journalEntryId: 'je-4', accountId: '4010', debit: 0, credit: 600000 },
+    { id: 'jl-9', journalEntryId: 'je-5', accountId: '5050', debit: 45000, credit: 0 },
+    { id: 'jl-10', journalEntryId: 'je-5', accountId: '1020', debit: 0, credit: 45000 },
+    { id: 'jl-11', journalEntryId: 'je-6', accountId: '5060', debit: 85000, credit: 0 },
+    { id: 'jl-12', journalEntryId: 'je-6', accountId: '1020', debit: 0, credit: 85000 }
+  ];
+
+  const [customers, setCustomers] = useState(() => {
+    const saved = localStorage.getItem('gym_customers');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleCustomers;
+  });
+
+  const [inventory, setInventory] = useState(() => {
+    const saved = localStorage.getItem('gym_inventory');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleInventory;
+  });
+
+  const [invoices, setInvoices] = useState(() => {
+    const saved = localStorage.getItem('gym_invoices');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleInvoices;
+  });
+
+  const [quotes, setQuotes] = useState(() => {
+    const saved = localStorage.getItem('gym_quotes');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleQuotes;
+  });
+
+  const [leads, setLeads] = useState(() => {
+    const saved = localStorage.getItem('gym_leads');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleLeads;
+  });
+
   const [activityLogs, setActivityLogs] = useState([]);
-  const [expenses, setExpenses] = useState([]);
+
+  const [expenses, setExpenses] = useState(() => {
+    const saved = localStorage.getItem('gym_expenses');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenses;
+  });
+
   const [payments, setPayments] = useState([]);
-  const [fixedAssets, setFixedAssets] = useState([]);
+
+  const [fixedAssets, setFixedAssets] = useState(() => {
+    const saved = localStorage.getItem('gym_fixed_assets');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleFixedAssets;
+  });
+
   const [tasks, setTasks] = useState([]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
-    { id: '1010', code: '1010', name: 'Cash on Hand', type: 'asset', parentId: null },
-    { id: '1020', code: '1020', name: 'Bank Account', type: 'asset', parentId: null },
-    { id: '1100', code: '1100', name: 'Accounts Receivable', type: 'asset', parentId: null },
-    { id: '1500', code: '1500', name: 'Equipment & Fixed Assets', type: 'asset', parentId: null },
-    { id: '1550', code: '1550', name: 'Accumulated Depreciation', type: 'asset', parentId: '1500' },
-    { id: '2010', code: '2010', name: 'Accounts Payable', type: 'liability', parentId: null },
-    { id: '2020', code: '2020', name: 'Tax Payable', type: 'liability', parentId: null },
-    { id: '3010', code: '3010', name: "Owner's Equity", type: 'equity', parentId: null },
-    { id: '3020', code: '3020', name: 'Retained Earnings', type: 'equity', parentId: null },
-    { id: '4010', code: '4010', name: 'Membership Revenue', type: 'revenue', parentId: null },
-    { id: '4020', code: '4020', name: 'Personal Training Revenue', type: 'revenue', parentId: null },
-    { id: '5010', code: '5010', name: 'Rent Expense', type: 'expense', parentId: null },
-    { id: '5020', code: '5020', name: 'Salaries Expense', type: 'expense', parentId: null },
-    { id: '5030', code: '5030', name: 'Utilities Expense', type: 'expense', parentId: null },
-    { id: '5040', code: '5040', name: 'Depreciation Expense', type: 'expense', parentId: null },
-    { id: '5050', code: '5050', name: 'Operational Expense', type: 'expense', parentId: null }
+    { id: '1010', code: '1010', name: 'Cash on Hand', type: 'asset', statement_category: 'cash_and_equivalents', is_current: true, parentId: null },
+    { id: '1020', code: '1020', name: 'Bank Account', type: 'asset', statement_category: 'cash_and_equivalents', is_current: true, parentId: null },
+    { id: '1100', code: '1100', name: 'Accounts Receivable', type: 'asset', statement_category: 'trade_receivables', is_current: true, parentId: null },
+    { id: '1200', code: '1200', name: 'Inventory Asset', type: 'asset', statement_category: 'inventory', is_current: true, parentId: null },
+    { id: '1500', code: '1500', name: 'Equipment & Fixed Assets', type: 'asset', statement_category: 'ppe', is_current: false, parentId: null },
+    { id: '1550', code: '1550', name: 'Accumulated Depreciation', type: 'asset', statement_category: 'accumulated_depreciation', is_current: false, parentId: '1500' },
+    { id: '1600', code: '1600', name: 'Intangible Assets', type: 'asset', statement_category: 'intangible_assets', is_current: false, parentId: null },
+    
+    { id: '2010', code: '2010', name: 'Accounts Payable', type: 'liability', statement_category: 'trade_payables', is_current: true, parentId: null },
+    { id: '2020', code: '2020', name: 'Tax Payable', type: 'liability', statement_category: 'tax_payable', is_current: true, parentId: null },
+    { id: '2030', code: '2030', name: 'Short-Term Borrowings', type: 'liability', statement_category: 'short_term_borrowings', is_current: true, parentId: null },
+    { id: '2500', code: '2500', name: 'Long-Term Loans', type: 'liability', statement_category: 'long_term_loans', is_current: false, parentId: null },
+    
+    { id: '3010', code: '3010', name: "Owner's Equity / Stated Capital", type: 'equity', statement_category: 'stated_capital', is_current: false, parentId: null },
+    { id: '3020', code: '3020', name: 'Retained Earnings', type: 'equity', statement_category: 'retained_earnings', is_current: false, parentId: null },
+    { id: '3030', code: '3030', name: "Owner's Drawings / Dividends", type: 'equity', statement_category: 'drawings', is_current: false, parentId: null },
+    
+    { id: '4010', code: '4010', name: 'Membership Revenue', type: 'revenue', statement_category: 'revenue', is_current: null, parentId: null },
+    { id: '4020', code: '4020', name: 'Personal Training Revenue', type: 'revenue', statement_category: 'revenue', is_current: null, parentId: null },
+    { id: '4030', code: '4030', name: 'Other Income', type: 'revenue', statement_category: 'other_income', is_current: null, parentId: null },
+    { id: '4040', code: '4040', name: 'Finance Income', type: 'revenue', statement_category: 'finance_income', is_current: null, parentId: null },
+    
+    { id: '4500', code: '4500', name: 'Cost of Sales (COGS)', type: 'expense', statement_category: 'cost_of_sales', is_current: null, parentId: null },
+    { id: '5010', code: '5010', name: 'Rent Expense', type: 'expense', statement_category: 'administrative_expenses', is_current: null, parentId: null },
+    { id: '5020', code: '5020', name: 'Salaries Expense', type: 'expense', statement_category: 'administrative_expenses', is_current: null, parentId: null },
+    { id: '5030', code: '5030', name: 'Utilities Expense', type: 'expense', statement_category: 'administrative_expenses', is_current: null, parentId: null },
+    { id: '5040', code: '5040', name: 'Depreciation Expense', type: 'expense', statement_category: 'administrative_expenses', is_current: null, parentId: null },
+    { id: '5050', code: '5050', name: 'Operational Expense', type: 'expense', statement_category: 'other_expenses', is_current: null, parentId: null },
+    { id: '5060', code: '5060', name: 'Distribution & Marketing Costs', type: 'expense', statement_category: 'distribution_costs', is_current: null, parentId: null },
+    { id: '5070', code: '5070', name: 'Finance Costs / Interest Expense', type: 'expense', statement_category: 'finance_costs', is_current: null, parentId: null },
+    { id: '5080', code: '5080', name: 'Income Tax Expense', type: 'expense', statement_category: 'tax_expense', is_current: null, parentId: null }
   ];
 
   const [accounts, setAccounts] = useState(() => {
     const saved = localStorage.getItem('gym_chart_of_accounts');
-    return saved ? JSON.parse(saved) : defaultAccounts;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map(acc => {
+          const match = defaultAccounts.find(d => d.id === acc.id || d.code === acc.code);
+          return {
+            ...acc,
+            statement_category: acc.statement_category || match?.statement_category || (acc.type === 'revenue' ? 'revenue' : acc.type === 'expense' ? 'administrative_expenses' : 'cash_and_equivalents'),
+            is_current: acc.is_current !== undefined ? acc.is_current : (match?.is_current !== undefined ? match.is_current : true)
+          };
+        });
+      } catch (e) {}
+    }
+    return defaultAccounts;
   });
 
   const [journalEntries, setJournalEntries] = useState(() => {
     const saved = localStorage.getItem('gym_journal_entries');
-    return saved ? JSON.parse(saved) : [];
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleJournalEntries;
   });
 
   const [journalLines, setJournalLines] = useState(() => {
     const saved = localStorage.getItem('gym_journal_lines');
-    return saved ? JSON.parse(saved) : [];
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleJournalLines;
   });
 
   const [paymentAllocations, setPaymentAllocations] = useState(() => {
@@ -219,10 +344,10 @@ export default function StoreContextProvider({ children }) {
       try { return JSON.parse(saved); } catch (e) {}
     }
     return [
-      { id: 'role-1', title: 'Admin', permissions: ['all'], isSystem: true },
-      { id: 'role-2', title: 'Sales Representative', permissions: ['manage_clients', 'manage_quotes', 'manage_invoices', 'view_inventory'], isSystem: true },
-      { id: 'role-3', title: 'Accountant', permissions: ['view_financials', 'view_invoices', 'view_debtors'], isSystem: true },
-      { id: 'role-4', title: 'Inventory Manager', permissions: ['manage_inventory', 'view_reports'], isSystem: false }
+      { id: 'role-1', title: 'Admin', description: 'Full system administrative access and configuration rights.', permissions: ['all'], isSystem: true },
+      { id: 'role-2', title: 'Sales Representative', description: 'Access to Gym clients, quotations, invoices, and inventory stock.', permissions: ['manage_clients', 'manage_quotes', 'manage_invoices', 'manage_inventory'], isSystem: true },
+      { id: 'role-3', title: 'Accountant', description: 'Read and manage financial statements, invoices, debtors, assets & P&L reports.', permissions: ['view_financials', 'manage_invoices', 'view_debtors', 'view_reports'], isSystem: true },
+      { id: 'role-4', title: 'Inventory Manager', description: 'Manage equipment inventory, stock pricing, and view stock reports.', permissions: ['manage_inventory', 'view_reports'], isSystem: false }
     ];
   });
 
@@ -234,11 +359,32 @@ export default function StoreContextProvider({ children }) {
     const newRole = {
       id: `role-${Date.now()}`,
       title: roleData.title,
+      description: roleData.description || '',
       permissions: roleData.permissions || [],
       isSystem: false
     };
     setCustomRoles(prev => [...prev, newRole]);
     showNotification(`Created custom user role: ${roleData.title}`);
+  };
+
+  const updateCustomRole = (roleId, roleData) => {
+    setCustomRoles(prev => prev.map(r => r.id === roleId ? { ...r, ...roleData } : r));
+    showNotification(`Updated role: ${roleData.title}`);
+  };
+
+  const duplicateCustomRole = (roleId) => {
+    const roleToCopy = customRoles.find(r => r.id === roleId);
+    if (!roleToCopy) return;
+
+    const copiedRole = {
+      id: `role-${Date.now()}`,
+      title: `${roleToCopy.title} (Copy)`,
+      description: roleToCopy.description || '',
+      permissions: [...roleToCopy.permissions],
+      isSystem: false
+    };
+    setCustomRoles(prev => [...prev, copiedRole]);
+    showNotification(`Duplicated role as ${copiedRole.title}`);
   };
 
   const deleteCustomRole = (roleId) => {
@@ -252,12 +398,36 @@ export default function StoreContextProvider({ children }) {
       name: data.name,
       email: data.email,
       role: data.role || 'Sales Representative',
-      status: 'Active',
+      department: data.department || 'General',
+      phone: data.phone || '',
+      status: data.status || 'Active',
+      mustChangePassword: !!data.mustChangePassword,
+      expiryDate: data.expiryDate || '',
       password: data.password || 'password123',
       addedAt: new Date().toISOString()
     };
     setTeamMembers(prev => [newMember, ...prev]);
     showNotification(`Added team member ${data.name} as ${newMember.role}`);
+  };
+
+  const updateTeamMember = (id, updatedData) => {
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, ...updatedData } : m));
+    showNotification(`Updated user account details for ${updatedData.name || 'user'}`);
+    if (typeof addLog === 'function') {
+      addLog('Access', `Admin updated user account details for: ${updatedData.name || id}`);
+    }
+  };
+
+  const toggleTeamMemberStatus = (id) => {
+    let newStatus = 'Active';
+    setTeamMembers(prev => prev.map(m => {
+      if (m.id === id) {
+        newStatus = m.status === 'Active' ? 'Suspended' : 'Active';
+        return { ...m, status: newStatus };
+      }
+      return m;
+    }));
+    showNotification(`User account status changed to ${newStatus}`);
   };
 
   const updateTeamMemberRole = (id, newRole) => {
@@ -299,6 +469,30 @@ export default function StoreContextProvider({ children }) {
     localStorage.setItem('gym_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  const seedDummyData = () => {
+    setCustomers(sampleCustomers);
+    setInventory(sampleInventory);
+    setLeads(sampleLeads);
+    setQuotes(sampleQuotes);
+    setInvoices(sampleInvoices);
+    setExpenses(sampleExpenses);
+    setFixedAssets(sampleFixedAssets);
+    setJournalEntries(sampleJournalEntries);
+    setJournalLines(sampleJournalLines);
+
+    localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
+    localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
+    localStorage.setItem('gym_leads', JSON.stringify(sampleLeads));
+    localStorage.setItem('gym_quotes', JSON.stringify(sampleQuotes));
+    localStorage.setItem('gym_invoices', JSON.stringify(sampleInvoices));
+    localStorage.setItem('gym_expenses', JSON.stringify(sampleExpenses));
+    localStorage.setItem('gym_fixed_assets', JSON.stringify(sampleFixedAssets));
+    localStorage.setItem('gym_journal_entries', JSON.stringify(sampleJournalEntries));
+    localStorage.setItem('gym_journal_lines', JSON.stringify(sampleJournalLines));
+
+    showNotification('Loaded full enterprise demo dataset successfully!');
+  };
 
   const resetToSeynexDefaults = async () => {
     if (window.confirm("This will permanently remove your cloud account data. Proceed?")) {
@@ -1788,12 +1982,12 @@ export default function StoreContextProvider({ children }) {
       addCustomerNote,
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
-      teamMembers, addTeamMember, updateTeamMemberRole, deleteTeamMember, resetUserPassword,
-      customRoles, addCustomRole, deleteCustomRole,
+      teamMembers, addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
+      customRoles, addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole,
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, markNotificationsRead,
-      resetToSeynexDefaults,
+      resetToSeynexDefaults, seedDummyData,
       isStoreLoading
     }}>
       {children}

@@ -1,23 +1,30 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
+import CustomSelect from '../components/CustomSelect';
 import { 
   Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, 
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
-  Key, Eye, EyeOff, Copy
+  Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
+  AlertTriangle, CheckCircle2
 } from 'lucide-react';
 
 const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
-    handleTestSms, resetToSeynexDefaults,
-    teamMembers = [], addTeamMember, updateTeamMemberRole, deleteTeamMember, resetUserPassword,
-    customRoles = [], addCustomRole, deleteCustomRole
+    handleTestSms, resetToSeynexDefaults, seedDummyData,
+    teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
+    customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editingRole, setEditingRole] = useState(null);
+  
+  const [searchMemberQuery, setSearchMemberQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
 
   const handleRefreshBalance = async () => {
@@ -74,6 +81,50 @@ const Settings = () => {
       {/* TAB 1: TEAM & USER ROLES (PRIMARY DEFAULT VIEW) */}
       {activeSettingsTab === 'users' && (
         <div className="flex flex-col gap-8 mb-8">
+          {/* STATS OVERVIEW CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '14px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                <Users size={22} color="var(--accent-primary)" />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Accounts</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>{teamMembers.length}</div>
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                <CheckCircle2 size={22} color="var(--success)" />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Logins</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>{teamMembers.filter(m => m.status === 'Active').length}</div>
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ padding: '12px', background: 'rgba(244, 63, 94, 0.15)', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.25)' }}>
+                <AlertTriangle size={22} color="var(--danger)" />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suspended / Inactive</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--danger)', fontFamily: 'var(--font-display)' }}>{teamMembers.filter(m => m.status === 'Suspended').length}</div>
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ padding: '12px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '14px', border: '1px solid rgba(168, 85, 247, 0.25)' }}>
+                <Shield size={22} color="#a855f7" />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Defined Roles</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a855f7', fontFamily: 'var(--font-display)' }}>{customRoles.length}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN USER ACCOUNTS TABLE PANEL */}
           <div className="glass-panel" style={{ padding: '28px' }}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4" style={{ borderBottom: '1px solid var(--panel-border)' }}>
               <div className="flex items-center gap-3">
@@ -82,74 +133,151 @@ const Settings = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Access Control</div>
-                  <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Team & User Role Management</h2>
+                  <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Team & User Account Management</h2>
                 </div>
               </div>
-              <button className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem' }} onClick={() => setShowAddUserModal(true)}>
-                <UserPlus size={18} /> + Create User Account
+              <button className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem', gap: '8px' }} onClick={() => setShowAddUserModal(true)}>
+                <UserPlus size={18} /> + Provision User Account
               </button>
             </div>
 
-            <p className="text-secondary" style={{ fontSize: '0.9rem', marginBottom: '24px' }}>
-              Create system logins for your sales team, managers, and accountants. Define role-based permissions to control access across client data and financial P&L statements.
-            </p>
+            {/* SEARCH & FILTER BAR */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" style={{ background: 'var(--subtle-bg)', padding: '14px 18px', borderRadius: '14px', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Search accounts by name, email or department..." 
+                  value={searchMemberQuery} 
+                  onChange={e => setSearchMemberQuery(e.target.value)} 
+                  style={{ height: '38px', paddingLeft: '40px', fontSize: '0.86rem' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Status:</span>
+                {['All', 'Active', 'Suspended', 'Pending'].map(st => (
+                  <button 
+                    key={st}
+                    type="button" 
+                    onClick={() => setStatusFilter(st)}
+                    style={{
+                      padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
+                      background: statusFilter === st ? 'var(--accent-primary)' : 'transparent',
+                      color: statusFilter === st ? 'white' : 'var(--text-secondary)',
+                      border: statusFilter === st ? '1px solid var(--accent-primary)' : '1px solid var(--subtle-border)'
+                    }}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="table-container" style={{ background: 'transparent' }}>
               <table style={{ fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Team Member</th>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Team Member Details</th>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Department</th>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>System Role</th>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>Account Status</th>
-                    <th style={{ padding: '12px 0', textAlign: 'right', opacity: 0.7 }}>Actions</th>
+                    <th style={{ padding: '12px 0', textAlign: 'right', opacity: 0.7 }}>Actions & Security</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {teamMembers.map(member => (
+                  {teamMembers
+                    .filter(member => {
+                      const q = searchMemberQuery.toLowerCase();
+                      const matchesSearch = (member.name || '').toLowerCase().includes(q) || (member.email || '').toLowerCase().includes(q) || (member.department || '').toLowerCase().includes(q);
+                      const matchesStatus = statusFilter === 'All' || member.status === statusFilter;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map(member => (
                     <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                       <td style={{ padding: '16px 0' }}>
                         <div className="flex items-center gap-3">
                           <div style={{
-                            width: '40px', height: '40px', borderRadius: '12px',
-                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.1))',
+                            width: '42px', height: '42px', borderRadius: '12px',
+                            background: member.status === 'Suspended' 
+                              ? 'rgba(244, 63, 94, 0.15)' 
+                              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.1))',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)'
+                            fontWeight: 800, color: member.status === 'Suspended' ? 'var(--danger)' : 'var(--accent-primary)', fontFamily: 'var(--font-display)'
                           }}>
                             {(member.name || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{member.name}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{member.email}</div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {member.name}
+                              {member.mustChangePassword && (
+                                <span className="badge badge-warning" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>Reset Required</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</div>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <select 
-                          className="form-input" 
-                          style={{ height: '38px', fontSize: '0.82rem', padding: '4px 12px', width: '190px', background: 'var(--subtle-bg)', fontWeight: 700 }}
-                          value={member.role}
-                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
-                        >
-                          <option value="Admin">👑 Admin (Full Access)</option>
-                          <option value="Sales Representative">💼 Sales Representative</option>
-                          <option value="Accountant">📊 Accountant (Read-Only)</option>
-                          {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
-                            <option key={r.id} value={r.title}>🛡️ {r.title}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
-                          <Check size={12} /> Active Account
+                        <span className="badge badge-secondary" style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.05)' }}>
+                          <Building size={11} /> {member.department || 'General'}
                         </span>
                       </td>
+                      <td>
+                        <CustomSelect 
+                          size="sm"
+                          style={{ width: '210px' }}
+                          value={member.role}
+                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
+                          options={[
+                            { value: 'Admin', label: '👑 Admin (Full Access)' },
+                            { value: 'Sales Representative', label: '💼 Sales Representative' },
+                            { value: 'Accountant', label: '📊 Accountant (Read-Only)' },
+                            ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
+                              value: r.title,
+                              label: `🛡️ ${r.title}`
+                            }))
+                          ]}
+                        />
+                      </td>
+                      <td>
+                        <button 
+                          type="button"
+                          onClick={() => toggleTeamMemberStatus && toggleTeamMemberStatus(member.id)}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                          title="Click to toggle status"
+                        >
+                          {member.status === 'Active' ? (
+                            <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
+                              <Check size={12} /> Active Account
+                            </span>
+                          ) : member.status === 'Pending' ? (
+                            <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
+                              <Clock size={12} /> Pending Invite
+                            </span>
+                          ) : (
+                            <span className="badge badge-danger" style={{ fontSize: '0.7rem', padding: '4px 10px' }}>
+                              <X size={12} /> Suspended Access
+                            </span>
+                          )}
+                        </button>
+                      </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '8px 10px', fontSize: '0.8rem' }}
+                            onClick={() => setEditingUser(member)}
+                            title="Edit Account Details"
+                          >
+                            <Edit3 size={14} /> Edit
+                          </button>
                           <button 
                             className="btn btn-secondary" 
                             style={{ 
-                              padding: '8px 12px', 
-                              fontSize: '0.82rem',
+                              padding: '8px 10px', 
+                              fontSize: '0.8rem',
                               color: 'var(--accent-primary)', 
                               background: 'rgba(99, 102, 241, 0.1)', 
                               border: '1px solid rgba(99, 102, 241, 0.25)' 
@@ -157,19 +285,19 @@ const Settings = () => {
                             onClick={() => setResetPasswordUser(member)}
                             title="Reset User Password"
                           >
-                            <Key size={14} /> Reset Password
+                            <Key size={14} /> Reset Pass
                           </button>
                           <button 
                             className="btn btn-secondary" 
-                            style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+                            style={{ padding: '8px 10px', fontSize: '0.8rem', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to remove access for ${member.name}?`)) {
+                              if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
                                 deleteTeamMember && deleteTeamMember(member.id);
                               }
                             }}
                             title="Revoke User Access"
                           >
-                            <Trash2 size={14} /> Remove Account
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
@@ -188,49 +316,83 @@ const Settings = () => {
                   <Shield size={24} color="#a855f7" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Role Definitions</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Role Definitions & Matrix</div>
                   <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Defined System & Custom Roles</h2>
                 </div>
               </div>
-              <button className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.88rem', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#a855f7' }} onClick={() => setShowCreateRoleModal(true)}>
+              <button className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.88rem', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#a855f7' }} onClick={() => { setEditingRole(null); setShowCreateRoleModal(true); }}>
                 <Shield size={16} /> + Create Custom Role
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {customRoles.map(role => (
-                <div key={role.id} style={{
-                  background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '14px',
-                  border: '1px solid var(--subtle-border)', display: 'flex', flexDirection: 'column', justifyBetween: 'space-between'
-                }}>
-                  <div className="flex justify-between items-center mb-3">
-                    <span style={{ fontWeight: 850, fontSize: '1rem', color: 'var(--text-primary)' }}>{role.title}</span>
-                    {role.isSystem ? (
-                      <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>System Built-in</span>
-                    ) : (
-                      <button 
-                        className="btn btn-secondary" 
-                        style={{ padding: '4px 8px', fontSize: '0.7rem', color: 'var(--danger)', background: 'transparent' }}
-                        onClick={() => deleteCustomRole && deleteCustomRole(role.id)}
-                      >
-                        Delete Role
-                      </button>
-                    )}
+              {customRoles.map(role => {
+                const assignedCount = teamMembers.filter(m => m.role === role.title).length;
+                return (
+                  <div key={role.id} style={{
+                    background: 'var(--subtle-bg)', padding: '20px', borderRadius: '16px',
+                    border: '1px solid var(--subtle-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+                  }}>
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontWeight: 850, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{role.title}</span>
+                          <span className="badge badge-secondary" style={{ fontSize: '0.65rem' }}>{assignedCount} Member(s)</span>
+                        </div>
+                        {role.isSystem ? (
+                          <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>System Built-in</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              type="button"
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              onClick={() => { setEditingRole(role); setShowCreateRoleModal(true); }}
+                            >
+                              <Edit3 size={12} /> Edit
+                            </button>
+                            <button 
+                              type="button"
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              onClick={() => duplicateCustomRole && duplicateCustomRole(role.id)}
+                              title="Duplicate Role"
+                            >
+                              <Copy size={12} /> Copy
+                            </button>
+                            <button 
+                              type="button"
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '0.72rem', color: 'var(--danger)', background: 'transparent' }}
+                              onClick={() => deleteCustomRole && deleteCustomRole(role.id)}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {role.description && (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: 1.4 }}>
+                          {role.description}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 style={{ marginTop: '12px' }}">
+                      {role.permissions.includes('all') ? (
+                        <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>👑 Full Administrative System Access</span>
+                      ) : (
+                        role.permissions.map(p => (
+                          <span key={p} className="badge badge-secondary" style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)' }}>
+                            {p.replace(/_/g, ' ')}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {role.permissions.includes('all') ? (
-                      <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>Full System Access</span>
-                    ) : (
-                      role.permissions.map(p => (
-                        <span key={p} className="badge badge-secondary" style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)' }}>
-                          {p.replace(/_/g, ' ')}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -427,6 +589,38 @@ const Settings = () => {
                   value={smsConfig.nextQuoteNumber || 1001}
                   onChange={e => updateSmsConfig({...smsConfig, nextQuoteNumber: Number(e.target.value)})} />
               </div>
+            </div>
+          </div>
+
+          {/* Demo Data & System Utilities */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+              <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px' }}>
+                <Zap size={22} color="var(--success)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Demo Data & Sample Records</h2>
+                <p className="text-secondary" style={{ fontSize: '0.82rem', margin: 0 }}>Populate full sample enterprise records across clients, invoices, inventory, and general ledger journal lines.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={seedDummyData}
+                style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px' }}
+              >
+                <Zap size={16} /> Seed Sample Enterprise Dataset
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={resetToSeynexDefaults}
+                style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
+              >
+                <Trash2 size={16} /> Clear Workspace Data
+              </button>
             </div>
           </div>
 
@@ -904,10 +1098,26 @@ const Settings = () => {
         />
       )}
 
+      {editingUser && (
+        <EditUserModal 
+          user={editingUser}
+          onClose={() => setEditingUser(null)} 
+          onSave={(data) => updateTeamMember && updateTeamMember(editingUser.id, data)} 
+          customRoles={customRoles}
+        />
+      )}
+
       {showCreateRoleModal && (
         <CreateRoleModal 
-          onClose={() => setShowCreateRoleModal(false)} 
-          onSave={(roleData) => addCustomRole && addCustomRole(roleData)} 
+          initialRole={editingRole}
+          onClose={() => { setShowCreateRoleModal(false); setEditingRole(null); }} 
+          onSave={(roleData) => {
+            if (editingRole) {
+              updateCustomRole && updateCustomRole(editingRole.id, roleData);
+            } else {
+              addCustomRole && addCustomRole(roleData);
+            }
+          }} 
         />
       )}
 
@@ -923,7 +1133,37 @@ const Settings = () => {
 };
 
 const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
-  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'Sales Representative', password: '' });
+  const [userForm, setUserForm] = useState({ 
+    name: '', email: '', phone: '', department: 'Sales Division', role: 'Sales Representative', 
+    status: 'Active', password: '', mustChangePassword: false, expiryDate: '' 
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Live Password Strength Meter
+  const getPasswordStrength = (pass) => {
+    if (!pass) return { label: 'None', color: 'var(--text-muted)', width: '0%' };
+    let score = 0;
+    if (pass.length >= 6) score += 1;
+    if (pass.length >= 10) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+
+    if (score <= 2) return { label: 'Weak', color: 'var(--danger)', width: '33%' };
+    if (score <= 4) return { label: 'Good', color: 'var(--warning)', width: '66%' };
+    return { label: 'Enterprise Strong 🛡️', color: 'var(--success)', width: '100%' };
+  };
+
+  const strength = getPasswordStrength(userForm.password);
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+    let generated = 'Sec#';
+    for (let i = 0; i < 8; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setUserForm(prev => ({ ...prev, password: generated }));
+  };
 
   return (
     <div style={{
@@ -932,9 +1172,17 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
       padding: '24px'
     }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="modal-header">
-           <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Create User Account</h2>
+           <div className="flex items-center gap-3">
+             <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '10px' }}>
+               <UserPlus size={20} color="var(--accent-primary)" />
+             </div>
+             <div>
+               <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Provision User Account</h2>
+               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Create system credentials & assign access rights</p>
+             </div>
+           </div>
            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
         </div>
 
@@ -942,39 +1190,136 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
           e.preventDefault();
           onSave(userForm);
           onClose();
-        }} className="modal-body">
-          <div className="form-group mb-4">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Full Name</label>
-            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Kasun Perera" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} />
+        }} className="modal-body" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto', padding: '24px' }}>
+          
+          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            1. Personal & Contact Profile
           </div>
 
-          <div className="form-group mb-4">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Email Address (Login Username)</label>
-            <input required type="email" className="form-input" style={{ height: '42px' }} placeholder="kasun@seynex.com" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Full Name *</label>
+              <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Kasun Perera" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Email Address (Login ID) *</label>
+              <input required type="email" className="form-input" style={{ height: '42px' }} placeholder="kasun@seynex.com" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Mobile Phone</label>
+              <input type="text" className="form-input" style={{ height: '42px' }} placeholder="+94 77 123 4567" value={userForm.phone} onChange={e => setUserForm({...userForm, phone: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Department / Branch</label>
+              <select className="form-input" style={{ height: '42px' }} value={userForm.department} onChange={e => setUserForm({...userForm, department: e.target.value})}>
+                <option value="Headquarters">Headquarters</option>
+                <option value="Sales Division">Sales Division</option>
+                <option value="Finance & Accounting">Finance & Accounting</option>
+                <option value="Inventory & Operations">Inventory & Operations</option>
+                <option value="Regional Support">Regional Support</option>
+              </select>
+            </div>
           </div>
 
-          <div className="form-group mb-4">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Assign User Role</label>
-            <select className="form-input" style={{ height: '42px' }} value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}>
-              <option value="Admin">Admin (Full Access & Settings)</option>
-              <option value="Sales Representative">Sales Representative (Sales & Inventory)</option>
-              <option value="Accountant">Accountant (Read-Only Financials)</option>
-              {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
-                <option key={r.id} value={r.title}>{r.title}</option>
-              ))}
-            </select>
+          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '20px 0 12px 0' }}>
+            2. System Access & Security Credentials
           </div>
 
-          <div className="form-group mb-6">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Initial Temporary Password</label>
-            <input required type="password" className="form-input" style={{ height: '42px' }} placeholder="••••••••" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Assign System Role *</label>
+              <CustomSelect
+                value={userForm.role}
+                onChange={e => setUserForm({...userForm, role: e.target.value})}
+                options={[
+                  { value: 'Admin', label: '👑 Admin (Full Access)' },
+                  { value: 'Sales Representative', label: '💼 Sales Representative' },
+                  { value: 'Accountant', label: '📊 Accountant (Financials)' },
+                  ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
+                    value: r.title,
+                    label: `🛡️ ${r.title}`
+                  }))
+                ]}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
+              <CustomSelect
+                value={userForm.status}
+                onChange={e => setUserForm({...userForm, status: e.target.value})}
+                options={[
+                  { value: 'Active', label: '🟢 Active Account' },
+                  { value: 'Pending', label: '🟡 Pending Verification' },
+                  { value: 'Suspended', label: '🔴 Suspended Access' }
+                ]}
+              />
+            </div>
           </div>
 
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '24px 0' }}></div>
+          <div className="form-group mb-3">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label className="form-label" style={{ fontSize: '0.85rem', margin: 0 }}>Initial Temporary Password *</label>
+              <button 
+                type="button" 
+                onClick={generatePassword}
+                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} /> Auto-Generate
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input 
+                required 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                style={{ height: '42px', paddingRight: '44px' }} 
+                placeholder="••••••••" 
+                value={userForm.password} 
+                onChange={e => setUserForm({...userForm, password: e.target.value})} 
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {/* Strength Meter Bar */}
+            {userForm.password && (
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: strength.width, background: strength.color, transition: 'all 0.3s' }}></div>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: strength.color, fontWeight: 700, marginTop: '4px' }}>
+                  Strength: {strength.label}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 mb-6" style={{ padding: '12px 14px', background: 'var(--subtle-bg)', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
+            <input 
+              type="checkbox" 
+              id="mustChange"
+              style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
+              checked={userForm.mustChangePassword}
+              onChange={e => setUserForm({ ...userForm, mustChangePassword: e.target.checked })}
+            />
+            <label htmlFor="mustChange" style={{ fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+              Require user to reset password upon first sign in
+            </label>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '20px 0' }}></div>
 
           <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem' }}>Create Account</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem' }}>Provision Account</button>
           </div>
         </form>
       </div>
@@ -982,18 +1327,152 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
   );
 };
 
-const CreateRoleModal = ({ onClose, onSave }) => {
-  const [roleTitle, setRoleTitle] = useState('');
-  const [permissions, setPermissions] = useState(['manage_clients', 'manage_invoices']);
+const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
+  const [form, setForm] = useState({
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    department: user.department || 'General',
+    role: user.role || 'Sales Representative',
+    status: user.status || 'Active',
+    expiryDate: user.expiryDate || ''
+  });
 
-  const availablePermissions = [
-    { id: 'all', label: '👑 Full System Administrative Access' },
-    { id: 'manage_clients', label: '👥 Manage Gym Clients & Leads' },
-    { id: 'manage_quotes', label: '📄 Manage Quotations' },
-    { id: 'manage_invoices', label: '🧾 Manage Invoices & Payments' },
-    { id: 'manage_inventory', label: '📦 Manage Inventory Stock & Pricing' },
-    { id: 'view_financials', label: '📊 View Profit & Loss (P&L) Reports' },
-    { id: 'manage_users', label: '🔑 Manage Team Accounts & User Roles' },
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      padding: '24px'
+    }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="modal-header">
+           <div className="flex items-center gap-3">
+             <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '10px' }}>
+               <Edit3 size={20} color="var(--accent-primary)" />
+             </div>
+             <div>
+               <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Edit Account Details</h2>
+               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Update contact info, department and system permissions</p>
+             </div>
+           </div>
+           <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
+        </div>
+
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          onSave(form);
+          onClose();
+        }} className="modal-body" style={{ padding: '24px' }}>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Full Name</label>
+              <input required type="text" className="form-input" style={{ height: '42px' }} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Email Address</label>
+              <input required type="email" className="form-input" style={{ height: '42px' }} value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Phone Number</label>
+              <input type="text" className="form-input" style={{ height: '42px' }} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Department / Branch</label>
+              <select className="form-input" style={{ height: '42px' }} value={form.department} onChange={e => setForm({...form, department: e.target.value})}>
+                <option value="Headquarters">Headquarters</option>
+                <option value="Sales Division">Sales Division</option>
+                <option value="Finance & Accounting">Finance & Accounting</option>
+                <option value="Inventory & Operations">Inventory & Operations</option>
+                <option value="Regional Support">Regional Support</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Assigned System Role</label>
+              <select className="form-input" style={{ height: '42px', fontWeight: 700 }} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
+                <option value="Admin">👑 Admin (Full Access)</option>
+                <option value="Sales Representative">💼 Sales Representative</option>
+                <option value="Accountant">📊 Accountant (Read-Only)</option>
+                {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
+                  <option key={r.id} value={r.title}>🛡️ {r.title}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
+              <select className="form-input" style={{ height: '42px' }} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
+                <option value="Active">🟢 Active Account</option>
+                <option value="Pending">🟡 Pending Verification</option>
+                <option value="Suspended">🔴 Suspended Access</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '20px 0' }}></div>
+
+          <div className="flex justify-end gap-3 responsive-form-actions">
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 18px', fontSize: '0.88rem' }} onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.88rem' }}>Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const CreateRoleModal = ({ initialRole = null, onClose, onSave }) => {
+  const [roleTitle, setRoleTitle] = useState(initialRole?.title || '');
+  const [roleDescription, setRoleDescription] = useState(initialRole?.description || '');
+  const [permissions, setPermissions] = useState(initialRole?.permissions || ['manage_clients', 'manage_invoices']);
+
+  const permissionCategories = [
+    {
+      category: '👥 Client & Lead Management',
+      items: [
+        { id: 'manage_clients', label: 'Manage Gym Clients, Leads & Tasks' }
+      ]
+    },
+    {
+      category: '📄 Sales & Invoices',
+      items: [
+        { id: 'manage_quotes', label: 'Manage Quotations & Proposals' },
+        { id: 'manage_invoices', label: 'Manage Invoices & Payments' }
+      ]
+    },
+    {
+      category: '📦 Inventory & Stock',
+      items: [
+        { id: 'manage_inventory', label: 'Manage Inventory Stock & Pricing' }
+      ]
+    },
+    {
+      category: '📊 Financials & Accounting',
+      items: [
+        { id: 'view_financials', label: 'View Profit & Loss, Expenses, Assets & Debtors' }
+      ]
+    },
+    {
+      category: '📈 Reports & Analytics',
+      items: [
+        { id: 'view_reports', label: 'View Analytics & Financial Reports' }
+      ]
+    },
+    {
+      category: '🔑 System Administration & Audit',
+      items: [
+        { id: 'all', label: '👑 Master Full System Access (Admin)' },
+        { id: 'manage_users', label: 'Manage Team Accounts & User Roles' },
+        { id: 'view_logs', label: 'View System Audit Logs' }
+      ]
+    }
   ];
 
   const togglePerm = (permId) => {
@@ -1011,42 +1490,63 @@ const CreateRoleModal = ({ onClose, onSave }) => {
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
       padding: '24px'
     }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', padding: 0, overflow: 'hidden', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
         <div className="modal-header">
-           <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Create Custom User Role</h2>
+           <div className="flex items-center gap-3">
+             <div style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '10px' }}>
+               <Shield size={20} color="#a855f7" />
+             </div>
+             <div>
+               <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>{initialRole ? "Edit Role Definition" : "Create Custom User Role"}</h2>
+               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Configure role permissions & access matrix</p>
+             </div>
+           </div>
            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
         </div>
 
         <form onSubmit={(e) => {
           e.preventDefault();
           if (!roleTitle.trim()) return;
-          onSave({ title: roleTitle, permissions });
+          onSave({ title: roleTitle, description: roleDescription, permissions });
           onClose();
-        }} className="modal-body">
+        }} className="modal-body" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto', padding: '24px' }}>
+          
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Role Title *</label>
+            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Regional Support Manager" value={roleTitle} onChange={e => setRoleTitle(e.target.value)} />
+          </div>
+
           <div className="form-group mb-6">
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Role Title Name</label>
-            <input required type="text" className="form-input" style={{ height: '44px' }} placeholder="e.g. Regional Support Manager" value={roleTitle} onChange={e => setRoleTitle(e.target.value)} />
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Role Description</label>
+            <input type="text" className="form-input" style={{ height: '40px' }} placeholder="Brief overview of responsibilities..." value={roleDescription} onChange={e => setRoleDescription(e.target.value)} />
           </div>
 
-          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            Select Access Rights & Privileges:
+          <div className="flex justify-between items-center mb-3">
+            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Select Privilege Matrix ({permissions.includes('all') ? 'All' : permissions.length} Granted):
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 mb-6" style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '6px' }}>
-            {availablePermissions.map(p => (
-              <label key={p.id} className="flex items-center gap-3 hover-lift" style={{
-                padding: '10px 14px', background: 'var(--subtle-bg)', borderRadius: '10px',
-                border: `1px solid ${permissions.includes(p.id) ? 'rgba(168, 85, 247, 0.4)' : 'var(--subtle-border)'}`,
-                cursor: 'pointer'
-              }}>
-                <input 
-                  type="checkbox" 
-                  style={{ width: '18px', height: '18px', accentColor: '#a855f7' }}
-                  checked={permissions.includes(p.id)}
-                  onChange={() => togglePerm(p.id)}
-                />
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>{p.label}</span>
-              </label>
+          <div className="flex flex-col gap-4 mb-6">
+            {permissionCategories.map(cat => (
+              <div key={cat.category} style={{ background: 'var(--subtle-bg)', padding: '14px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  {cat.category}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {cat.items.map(p => (
+                    <label key={p.id} className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: '0.86rem', color: 'var(--text-primary)' }}>
+                      <input 
+                        type="checkbox" 
+                        style={{ width: '16px', height: '16px', accentColor: '#a855f7' }}
+                        checked={permissions.includes(p.id)}
+                        onChange={() => togglePerm(p.id)}
+                      />
+                      <span>{p.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 
@@ -1054,7 +1554,9 @@ const CreateRoleModal = ({ onClose, onSave }) => {
 
           <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem', background: '#a855f7', borderColor: '#a855f7' }}>Save Role Definition</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem', background: '#a855f7', borderColor: '#a855f7' }}>
+              Save Role Matrix
+            </button>
           </div>
         </form>
       </div>

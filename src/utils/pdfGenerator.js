@@ -617,3 +617,177 @@ export const printPnLReportPDF = (pnlData) => {
 export const printDocument = () => {
   window.print();
 };
+
+// SLFRS/LKAS Compliant 3-Statement PDF Generator
+export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, pnl, balanceSheet, cashFlow }) => {
+  try {
+    const doc = new jsPDF();
+    const primaryColor = [30, 41, 59]; // Slate 800
+
+    const cName = companyName || 'GymSales Pro Enterprise';
+    const fmt = (val) => {
+      if (val === 0 || val === undefined || val === null) return '—';
+      const num = Number(val);
+      if (isNaN(num)) return '—';
+      return num < 0 ? `(${Math.abs(num).toLocaleString()})` : num.toLocaleString();
+    };
+
+    // Page 1: Statement of Profit or Loss (LKAS 1)
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(cName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(12);
+    doc.text('STATEMENT OF PROFIT OR LOSS', 14, 26);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`For the Period: ${periodLabel || 'Current Period'}`, 14, 32);
+    doc.text('Prepared in accordance with Sri Lanka Accounting Standards (SLFRS/LKAS 1)', 14, 37);
+
+    const pnlBody = [
+      ['Revenue', fmt(pnl.current.revenue), fmt(pnl.prior.revenue)],
+      ['Cost of Sales', `(${fmt(pnl.current.costOfSales)})`, `(${fmt(pnl.prior.costOfSales)})`],
+      [{ content: 'Gross Profit', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.grossProfit), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.grossProfit), styles: { fontStyle: 'bold' } }],
+      ['Other Income', fmt(pnl.current.otherIncome), fmt(pnl.prior.otherIncome)],
+      ['Distribution Costs', `(${fmt(pnl.current.distributionCosts)})`, `(${fmt(pnl.prior.distributionCosts)})`],
+      ['Administrative Expenses', `(${fmt(pnl.current.adminExpenses)})`, `(${fmt(pnl.prior.adminExpenses)})`],
+      ['Other Expenses', `(${fmt(pnl.current.otherExpenses)})`, `(${fmt(pnl.prior.otherExpenses)})`],
+      [{ content: 'Operating Profit', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.operatingProfit), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.operatingProfit), styles: { fontStyle: 'bold' } }],
+      ['Finance Income', fmt(pnl.current.financeIncome), fmt(pnl.prior.financeIncome)],
+      ['Finance Costs', `(${fmt(pnl.current.financeCosts)})`, `(${fmt(pnl.prior.financeCosts)})`],
+      [{ content: 'Profit Before Tax', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.profitBeforeTax), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.profitBeforeTax), styles: { fontStyle: 'bold' } }],
+      ['Income Tax Expense', `(${fmt(pnl.current.taxExpense)})`, `(${fmt(pnl.prior.taxExpense)})`],
+      [{ content: 'PROFIT FOR THE PERIOD', styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.current.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.prior.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }]
+    ];
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['Line Item', 'Current Period (LKR)', 'Prior Period (LKR)']],
+      body: pnlBody,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
+      styles: { fontSize: 8.5, cellPadding: 3.5 }
+    });
+
+    // Page 2: Statement of Financial Position (LKAS 1)
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(cName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(12);
+    doc.text('STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)', 14, 26);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`As at: ${periodLabel || 'Current Date'}`, 14, 32);
+    doc.text('Prepared in accordance with Sri Lanka Accounting Standards (SLFRS/LKAS 1)', 14, 37);
+
+    const bsBody = [
+      [{ content: 'ASSETS', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
+      [{ content: 'Non-Current Assets', colSpan: 2, styles: { fontStyle: 'bold' } }],
+      ['   Property, Plant & Equipment (Net of Dep.)', fmt(balanceSheet.nonCurrentAssets.ppeNet)],
+      ['   Intangible Assets', fmt(balanceSheet.nonCurrentAssets.intangibles)],
+      [{ content: 'Total Non-Current Assets', styles: { fontStyle: 'bold' } }, { content: fmt(balanceSheet.nonCurrentAssets.total), styles: { fontStyle: 'bold' } }],
+      
+      [{ content: 'Current Assets', colSpan: 2, styles: { fontStyle: 'bold' } }],
+      ['   Inventory', fmt(balanceSheet.currentAssets.inventory)],
+      ['   Trade Receivables (Accounts Receivable)', fmt(balanceSheet.currentAssets.tradeReceivables)],
+      ['   Cash and Cash Equivalents', fmt(balanceSheet.currentAssets.cashAndEquivalents)],
+      [{ content: 'Total Current Assets', styles: { fontStyle: 'bold' } }, { content: fmt(balanceSheet.currentAssets.total), styles: { fontStyle: 'bold' } }],
+      
+      [{ content: 'TOTAL ASSETS', styles: { fontStyle: 'bold', fontSize: 9.5 } }, { content: fmt(balanceSheet.totalAssets), styles: { fontStyle: 'bold', fontSize: 9.5 } }],
+
+      [{ content: 'EQUITY AND LIABILITIES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
+      [{ content: 'Equity', colSpan: 2, styles: { fontStyle: 'bold' } }],
+      ['   Stated Capital / Owner\'s Equity', fmt(balanceSheet.equity.statedCapital)],
+      ['   Retained Earnings (Rolled Forward)', fmt(balanceSheet.equity.retainedEarningsRolled)],
+      [{ content: 'Total Equity', styles: { fontStyle: 'bold' } }, { content: fmt(balanceSheet.equity.total), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'Non-Current Liabilities', colSpan: 2, styles: { fontStyle: 'bold' } }],
+      ['   Long-Term Loans', fmt(balanceSheet.nonCurrentLiabilities.longTermLoans)],
+      [{ content: 'Total Non-Current Liabilities', styles: { fontStyle: 'bold' } }, { content: fmt(balanceSheet.nonCurrentLiabilities.total), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'Current Liabilities', colSpan: 2, styles: { fontStyle: 'bold' } }],
+      ['   Trade Payables (Accounts Payable)', fmt(balanceSheet.currentLiabilities.tradePayables)],
+      ['   Tax Payable', fmt(balanceSheet.currentLiabilities.taxPayable)],
+      ['   Short-Term Borrowings', fmt(balanceSheet.currentLiabilities.shortTermBorrowings)],
+      [{ content: 'Total Current Liabilities', styles: { fontStyle: 'bold' } }, { content: fmt(balanceSheet.currentLiabilities.total), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'TOTAL EQUITY AND LIABILITIES', styles: { fontStyle: 'bold', fontSize: 9.5 } }, { content: fmt(balanceSheet.totalEquityAndLiabilities), styles: { fontStyle: 'bold', fontSize: 9.5 } }]
+    ];
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['Classification', 'Amount (LKR)']],
+      body: bsBody,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 1: { halign: 'right' } },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+
+    // Page 3: Statement of Cash Flows (LKAS 7)
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(cName.toUpperCase(), 14, 18);
+
+    doc.setFontSize(12);
+    doc.text('STATEMENT OF CASH FLOWS (INDIRECT METHOD)', 14, 26);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`For the Period: ${periodLabel || 'Current Period'}`, 14, 32);
+    doc.text('Prepared in accordance with Sri Lanka Accounting Standards (SLFRS/LKAS 7)', 14, 37);
+
+    const cf = cashFlow;
+    const cfBody = [
+      [{ content: 'Cash Flows from Operating Activities', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
+      ['Profit Before Tax', fmt(cf.operating.pbt)],
+      ['Adjustments for: Depreciation & Amortisation', fmt(cf.operating.depreciation)],
+      ['Adjustments for: Finance Costs', fmt(cf.operating.financeCosts)],
+      [{ content: 'Operating Profit Before Working Capital Changes', styles: { fontStyle: 'bold' } }, { content: fmt(cf.operating.operatingProfitBeforeWC), styles: { fontStyle: 'bold' } }],
+      ['(Increase)/Decrease in Trade Receivables', fmt(cf.operating.deltaReceivables)],
+      ['(Increase)/Decrease in Inventory', fmt(cf.operating.deltaInventory)],
+      ['Increase/(Decrease) in Trade Payables', fmt(cf.operating.deltaPayables)],
+      [{ content: 'Cash Generated from Operations', styles: { fontStyle: 'bold' } }, { content: fmt(cf.operating.cashGeneratedFromOps), styles: { fontStyle: 'bold' } }],
+      ['Income Tax Paid', `(${fmt(cf.operating.taxPaid)})`],
+      [{ content: 'Net Cash from Operating Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.operating.netCashOperating), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'Cash Flows from Investing Activities', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
+      ['Purchase of Property, Plant & Equipment', `(${fmt(cf.investing.ppePurchase)})`],
+      [{ content: 'Net Cash used in Investing Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.investing.netCashInvesting), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'Cash Flows from Financing Activities', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
+      ['Proceeds from Borrowings', fmt(cf.financing.loanProceeds)],
+      ['Repayment of Borrowings', `(${fmt(cf.financing.loanRepayments)})`],
+      ['Owner\'s Drawings / Dividends Paid', `(${fmt(cf.financing.drawingsPaid)})`],
+      [{ content: 'Net Cash from/(used in) Financing Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.financing.netCashFinancing), styles: { fontStyle: 'bold' } }],
+
+      [{ content: 'NET INCREASE IN CASH & CASH EQUIVALENTS', styles: { fontStyle: 'bold' } }, { content: fmt(cf.netIncreaseInCash), styles: { fontStyle: 'bold' } }],
+      ['Cash and Cash Equivalents at Beginning of Period', fmt(cf.cashAtBeginning)],
+      [{ content: 'CASH AND CASH EQUIVALENTS AT END OF PERIOD', styles: { fontStyle: 'bold', fontSize: 9.5 } }, { content: fmt(cf.cashAtEndCalculated), styles: { fontStyle: 'bold', fontSize: 9.5 } }]
+    ];
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['Cash Flow Item', 'Amount (LKR)']],
+      body: cfBody,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 1: { halign: 'right' } },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  } catch (err) {
+    console.error('Failed to generate SLFRS Statements PDF:', err);
+  }
+};
