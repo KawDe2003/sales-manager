@@ -614,6 +614,7 @@ const Procurement = () => {
                   <label className="form-label">EXPECTED DELIVERY DATE</label>
                   <input 
                     type="date"
+                    className="form-input"
                     value={poForm.expectedDelivery}
                     onChange={(e) => setPoForm({ ...poForm, expectedDelivery: e.target.value })}
                   />
@@ -633,6 +634,7 @@ const Procurement = () => {
                     <div key={idx} className="flex items-center gap-2">
                       <input 
                         type="text" 
+                        className="form-input"
                         placeholder="Item / Equipment Name"
                         value={item.name}
                         onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
@@ -640,6 +642,7 @@ const Procurement = () => {
                       />
                       <input 
                         type="number" 
+                        className="form-input"
                         placeholder="Qty"
                         value={item.quantity}
                         onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
@@ -647,6 +650,7 @@ const Procurement = () => {
                       />
                       <input 
                         type="number" 
+                        className="form-input"
                         placeholder="Unit Cost Price (LKR)"
                         value={item.unitCost}
                         onChange={(e) => handleItemChange(idx, 'unitCost', e.target.value)}
@@ -705,6 +709,7 @@ const Procurement = () => {
                 <label className="form-label">SUPPLIER / COMPANY NAME *</label>
                 <input 
                   type="text" 
+                  className="form-input"
                   placeholder="e.g. TechnoGym Sri Lanka"
                   value={supplierForm.name}
                   onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
@@ -717,6 +722,7 @@ const Procurement = () => {
                   <label className="form-label">CONTACT PERSON</label>
                   <input 
                     type="text" 
+                    className="form-input"
                     placeholder="Contact Name"
                     value={supplierForm.contactPerson}
                     onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })}
@@ -726,6 +732,7 @@ const Procurement = () => {
                   <label className="form-label">CATEGORY</label>
                   <input 
                     type="text" 
+                    className="form-input"
                     placeholder="e.g. Fitness Equipment"
                     value={supplierForm.category}
                     onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
@@ -738,6 +745,7 @@ const Procurement = () => {
                   <label className="form-label">PHONE NUMBER</label>
                   <input 
                     type="text" 
+                    className="form-input"
                     placeholder="011XXXXXXX"
                     value={supplierForm.phone}
                     onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
@@ -747,6 +755,7 @@ const Procurement = () => {
                   <label className="form-label">EMAIL ADDRESS</label>
                   <input 
                     type="email" 
+                    className="form-input"
                     placeholder="supplier@company.lk"
                     value={supplierForm.email}
                     onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
@@ -757,6 +766,7 @@ const Procurement = () => {
               <div>
                 <label className="form-label">BUSINESS ADDRESS</label>
                 <textarea 
+                  className="form-textarea"
                   placeholder="Street, City, Postal Code"
                   rows="2"
                   value={supplierForm.address}
