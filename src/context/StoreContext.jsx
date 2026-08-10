@@ -169,8 +169,103 @@ export default function StoreContextProvider({ children }) {
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePurchaseOrders;
   });
 
+  // --- HR & PAYROLL ERP STATE ---
+  const sampleEmployees = [
+    {
+      id: 'emp-1',
+      employeeId: 'EMP-101',
+      name: 'Kasun Rajapaksha',
+      designation: 'Head Fitness Trainer',
+      department: 'Fitness & Training',
+      phone: '0771234567',
+      email: 'kasun@gymsales.lk',
+      joinDate: '2023-01-15',
+      basicSalary: 85000,
+      allowance: 15000,
+      epfEligible: true,
+      bankDetails: 'Commercial Bank - 8004920192',
+      status: 'Active'
+    },
+    {
+      id: 'emp-2',
+      employeeId: 'EMP-102',
+      name: 'Dilani Samarasinghe',
+      designation: 'Operations Manager',
+      department: 'Management',
+      phone: '0719876543',
+      email: 'dilani@gymsales.lk',
+      joinDate: '2022-06-01',
+      basicSalary: 120000,
+      allowance: 20000,
+      epfEligible: true,
+      bankDetails: 'Sampath Bank - 1009283940',
+      status: 'Active'
+    },
+    {
+      id: 'emp-3',
+      employeeId: 'EMP-103',
+      name: 'Mahesh Kumara',
+      designation: 'Senior Gym Instructor',
+      department: 'Fitness & Training',
+      phone: '0754443322',
+      email: 'mahesh@gymsales.lk',
+      joinDate: '2023-08-10',
+      basicSalary: 65000,
+      allowance: 10000,
+      epfEligible: true,
+      bankDetails: 'HNB Bank - 0029384756',
+      status: 'Active'
+    }
+  ];
+
+  const samplePayruns = [
+    {
+      id: 'pr-1',
+      month: '2026-07',
+      payrunDate: '2026-07-31',
+      totalGross: 315000,
+      totalNet: 289800,
+      totalEpfEmployer: 32400,
+      totalEtfEmployer: 8100,
+      status: 'Processed',
+      slipsCount: 3
+    }
+  ];
+
+  const defaultFeatureToggles = {
+    procurement: true,
+    hrPayroll: true,
+    fixedAssets: true,
+    debtors: true,
+    expenses: true,
+    leads: true,
+    smsPortal: true,
+    inventory: true,
+    quotations: true,
+    tasks: true,
+    ledger: true
+  };
+
+  const [employees, setEmployees] = useState(() => {
+    const saved = localStorage.getItem('gym_employees');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleEmployees;
+  });
+
+  const [payruns, setPayruns] = useState(() => {
+    const saved = localStorage.getItem('gym_payruns');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePayruns;
+  });
+
+  const [featureToggles, setFeatureToggles] = useState(() => {
+    const saved = localStorage.getItem('gym_feature_toggles');
+    return saved ? { ...defaultFeatureToggles, ...JSON.parse(saved) } : defaultFeatureToggles;
+  });
+
   useEffect(() => { localStorage.setItem('gym_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
   useEffect(() => { localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
+  useEffect(() => { localStorage.setItem('gym_employees', JSON.stringify(employees)); }, [employees]);
+  useEffect(() => { localStorage.setItem('gym_payruns', JSON.stringify(payruns)); }, [payruns]);
+  useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
@@ -1946,6 +2041,79 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Purchase Order #${po?.poNumber || ''} deleted.`, 'info');
   };
 
+  // --- HR & PAYROLL ERP CRUD HANDLERS ---
+  const addEmployee = (empData) => {
+    const newEmp = {
+      ...empData,
+      id: `emp-${Date.now()}`,
+      employeeId: empData.employeeId || `EMP-${100 + employees.length + 1}`,
+      status: empData.status || 'Active',
+      basicSalary: Number(empData.basicSalary) || 0,
+      allowance: Number(empData.allowance) || 0
+    };
+    setEmployees(prev => [newEmp, ...prev]);
+    showNotification(`Employee "${newEmp.name}" added!`, 'success');
+  };
+
+  const updateEmployee = (id, data) => {
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+    showNotification('Employee details updated!', 'success');
+  };
+
+  const deleteEmployee = (id) => {
+    const target = employees.find(e => e.id === id);
+    setEmployees(prev => prev.filter(e => e.id !== id));
+    showNotification(`Employee "${target?.name || ''}" removed.`, 'info');
+  };
+
+  const processPayrun = ({ month, payrunDate, employeeCalculations }) => {
+    const totalGross = employeeCalculations.reduce((s, c) => s + (Number(c.grossSalary) || 0), 0);
+    const totalNet = employeeCalculations.reduce((s, c) => s + (Number(c.netSalary) || 0), 0);
+    const totalEpfEmployer = employeeCalculations.reduce((s, c) => s + (Number(c.epfEmployer) || 0), 0);
+    const totalEtfEmployer = employeeCalculations.reduce((s, c) => s + (Number(c.etfEmployer) || 0), 0);
+
+    const newPayrun = {
+      id: `pr-${Date.now()}`,
+      month,
+      payrunDate: payrunDate || new Date().toISOString().split('T')[0],
+      totalGross,
+      totalNet,
+      totalEpfEmployer,
+      totalEtfEmployer,
+      status: 'Processed',
+      slipsCount: employeeCalculations.length,
+      details: employeeCalculations
+    };
+
+    setPayruns(prev => [newPayrun, ...prev]);
+
+    // Auto-post Payroll Expense to Journal (Debit: 5020 Staff Salaries, Credit: 1020 Bank Account)
+    try {
+      createJournalEntry({
+        date: payrunDate || new Date().toISOString().split('T')[0],
+        reference: `PAYROLL-${month}`,
+        description: `Monthly Staff Salary Payrun for ${month}`,
+        lines: [
+          { accountId: '5020', debit: totalGross, credit: 0 },
+          { accountId: '1020', debit: 0, credit: totalGross }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Payroll Journal Post Warning]', err);
+    }
+
+    addLog('HR & Payroll', `Processed Monthly Payroll for ${month} (${employeeCalculations.length} staff slips, Total Net: LKR ${totalNet.toLocaleString()})`);
+    showNotification(`Payroll Payrun for ${month} processed successfully!`, 'success');
+  };
+
+  const updateFeatureToggle = (featureKey, enabled) => {
+    setFeatureToggles(prev => {
+      const updated = { ...prev, [featureKey]: enabled };
+      showNotification(`Module "${featureKey}" ${enabled ? 'Enabled' : 'Disabled'}!`, enabled ? 'success' : 'info');
+      return updated;
+    });
+  };
+
 
 
   // Automated Scheduler for Renewals and Invoices
@@ -2281,6 +2449,9 @@ export default function StoreContextProvider({ children }) {
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
+      employees, addEmployee, updateEmployee, deleteEmployee,
+      payruns, processPayrun,
+      featureToggles, updateFeatureToggle,
       isStoreLoading,
       confirmAction
     }}>

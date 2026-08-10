@@ -424,6 +424,13 @@ const Procurement = () => {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div className="flex items-center justify-end gap-2">
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setViewingPO(po)}
+                              title="Print / View Purchase Order"
+                            >
+                              <FileText size={14} /> Print PO
+                            </button>
                             {!isReceived && po.status !== 'Cancelled' && (
                               <button 
                                 className="btn btn-secondary btn-sm"
@@ -785,6 +792,82 @@ const Procurement = () => {
                 <button type="submit" className="btn btn-primary">{editingSupplier ? 'Save Changes' : 'Register Supplier'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: PRINT / VIEW PURCHASE ORDER ===== */}
+      {viewingPO && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          padding: '20px', animation: 'backdropFade 0.14s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '640px', padding: 0, borderRadius: '20px',
+            maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
+            boxShadow: '0 30px 70px rgba(0,0,0,0.7)', background: '#ffffff', color: '#1e293b'
+          }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="flex items-center gap-2">
+                <div style={{ background: '#059669', color: '#ffffff', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>G</div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>OFFICIAL PURCHASE ORDER</h3>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>#{viewingPO.poNumber}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
+                  <Printer size={14} /> Print
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setViewingPO(null)}>
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>ISSUED TO (SUPPLIER)</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a', marginTop: '4px' }}>{viewingPO.supplierName}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>ORDER DATE & EXPECTED</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>Date: {viewingPO.date}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Expected: {viewingPO.expectedDelivery}</div>
+                </div>
+              </div>
+
+              <div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                      <th style={{ padding: '10px' }}>ITEM DESCRIPTION</th>
+                      <th style={{ padding: '10px', textAlign: 'center' }}>QTY</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>UNIT COST</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>LINE TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingPO.items && viewingPO.items.map((item, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px', fontWeight: 600 }}>{item.name}</td>
+                        <td style={{ padding: '10px', textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ padding: '10px', textAlign: 'right' }}>LKR {(Number(item.unitCost) || 0).toLocaleString()}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700 }}>LKR {((Number(item.quantity) || 1) * (Number(item.unitCost) || 0)).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: '#475569' }}>Total Purchase Order Value:</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>LKR {(Number(viewingPO.totalAmount) || 0).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

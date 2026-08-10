@@ -6,7 +6,7 @@ import {
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
-  AlertTriangle, CheckCircle2
+  AlertTriangle, CheckCircle2, Sliders, ToggleLeft
 } from 'lucide-react';
 
 const Settings = () => {
@@ -14,7 +14,8 @@ const Settings = () => {
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     handleTestSms, resetToSeynexDefaults, seedDummyData,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
-    customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction
+    customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
+    featureToggles = {}, updateFeatureToggle
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -57,6 +58,7 @@ const Settings = () => {
       <div className="glass-panel flex flex-wrap gap-2 mb-8" style={{ padding: '8px 12px' }}>
         {[
           { id: 'users', label: 'Team & User Roles', icon: <Users size={16} /> },
+          { id: 'modules', label: 'Module Feature Controls', icon: <Sliders size={16} /> },
           { id: 'company', label: 'Corporate Identity', icon: <Building2 size={16} /> },
           { id: 'sms', label: 'SMS & Messaging API', icon: <MessageSquare size={16} /> },
           { id: 'bank', label: 'Bank & Payments', icon: <CreditCard size={16} /> }
@@ -77,6 +79,63 @@ const Settings = () => {
           </button>
         ))}
       </div>
+
+      {/* TAB 5: MODULE FEATURE CONTROLS */}
+      {activeSettingsTab === 'modules' && (
+        <div className="glass-panel" style={{ padding: '32px' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-secondary)' }}>
+              <Sliders size={22} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>ERP Module Feature Controls</h2>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Enable or disable system features on demand. Disabled modules are hidden from navigation and routes.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'procurement', label: 'Procurement & Purchase Orders', desc: 'Supplier management, PO replenishment, and Accounts Payable automation.', category: 'Operations' },
+              { key: 'hrPayroll', label: 'HR & Staff Payroll System', desc: 'Staff directory, EPF/ETF statutory tracking, and monthly payruns.', category: 'Human Resources' },
+              { key: 'fixedAssets', label: 'Fixed Assets & Depreciation', desc: 'PPE asset tracking with SLFRS/LKAS depreciation schedules.', category: 'Finance' },
+              { key: 'debtors', label: 'Debtors & Collection Aging', desc: 'Outstanding balances, debtor aging buckets, and payment reminders.', category: 'Finance' },
+              { key: 'expenses', label: 'Expenses & Overhead Costs', desc: 'Operational expense logs, category breakdowns, and receipts.', category: 'Finance' },
+              { key: 'leads', label: 'Leads & Prospect Pipeline', desc: 'Sales pipeline stages, lead tracking, and conversion analytics.', category: 'Sales & CRM' },
+              { key: 'smsPortal', label: 'SMS Gateway & Broadcast', desc: 'Direct SMS messaging, automated reminders, and bulk campaigns.', category: 'Marketing' },
+              { key: 'inventory', label: 'Inventory & Catalog', desc: 'Hardware stock levels, service offerings, and price lists.', category: 'Operations' },
+              { key: 'quotations', label: 'Sales Quotations', desc: 'Proposal generator, PDF quote sharing, and conversion to invoices.', category: 'Sales & CRM' },
+              { key: 'tasks', label: 'Task & Follow-up Scheduler', desc: 'Team task manager, deadlines, and follow-up reminders.', category: 'Operations' },
+              { key: 'ledger', label: 'Double-Entry Ledger Accounts', desc: 'Chart of accounts, journal vouchers, and double-entry trial balance.', category: 'Finance' }
+            ].map(mod => {
+              const isEnabled = featureToggles[mod.key] !== false;
+
+              return (
+                <div key={mod.key} className="glass-panel hover-lift" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${isEnabled ? 'var(--success)' : 'var(--text-muted)'}` }}>
+                  <div style={{ flex: 1, paddingRight: '16px' }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>{mod.label}</span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'var(--subtle-bg)', color: 'var(--accent-secondary)' }}>{mod.category}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{mod.desc}</p>
+                  </div>
+
+                  <button 
+                    onClick={() => updateFeatureToggle && updateFeatureToggle(mod.key, !isEnabled)}
+                    className={`btn ${isEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700,
+                      background: isEnabled ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
+                      minWidth: '100px', flexShrink: 0
+                    }}
+                  >
+                    {isEnabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: TEAM & USER ROLES (PRIMARY DEFAULT VIEW) */}
       {activeSettingsTab === 'users' && (
