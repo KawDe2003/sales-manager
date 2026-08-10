@@ -6,7 +6,7 @@ import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 
 const Invoices = () => {
-  const { invoices = [], customers = [], payments = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification } = useContext(StoreContext) || {};
+  const { invoices = [], customers = [], payments = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification, generateRecurringInvoices } = useContext(StoreContext) || {};
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -82,6 +82,15 @@ const Invoices = () => {
             </p>
           </div>
           <div className="flex gap-3" style={{ flexShrink: 0 }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={generateRecurringInvoices} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem', color: 'var(--accent-secondary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+              title="Auto-generate monthly subscription invoices for active gym accounts"
+            >
+              <CalendarDays size={16} />
+              <span>Run Auto-Renewals</span>
+            </button>
             <button className="btn btn-secondary" onClick={handleExport} style={{ padding: '10px 18px', fontSize: '0.85rem' }}>
               <Download size={16} />
               <span className="sm-hidden">Export CSV</span>

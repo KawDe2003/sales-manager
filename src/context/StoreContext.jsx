@@ -299,9 +299,30 @@ export default function StoreContextProvider({ children }) {
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleLeaveRequests;
   });
 
+  const sampleStockTransfers = [
+    {
+      id: 'st-1',
+      transferNumber: 'STO-1001',
+      sourceLocation: 'Main Central Warehouse',
+      destinationLocation: 'Colombo 03 Gym Branch',
+      requestDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
+      status: 'In Transit',
+      items: [
+        { itemName: 'Rubber Bumper Plates 20kg', quantity: 10 },
+        { itemName: 'Commercial Dumbbell Set 2.5-25kg', quantity: 2 }
+      ],
+      notes: 'Branch replenishment for new fitness studio area'
+    }
+  ];
+
   const [salaryAdvances, setSalaryAdvances] = useState(() => {
     const saved = localStorage.getItem('gym_salary_advances');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSalaryAdvances;
+  });
+
+  const [stockTransfers, setStockTransfers] = useState(() => {
+    const saved = localStorage.getItem('gym_stock_transfers');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleStockTransfers;
   });
 
   const [featureToggles, setFeatureToggles] = useState(() => {
@@ -316,6 +337,7 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
   useEffect(() => { localStorage.setItem('gym_leave_requests', JSON.stringify(leaveRequests)); }, [leaveRequests]);
   useEffect(() => { localStorage.setItem('gym_salary_advances', JSON.stringify(salaryAdvances)); }, [salaryAdvances]);
+  useEffect(() => { localStorage.setItem('gym_stock_transfers', JSON.stringify(stockTransfers)); }, [stockTransfers]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
@@ -2252,6 +2274,74 @@ export default function StoreContextProvider({ children }) {
     showNotification('Salary advance entry deleted.', 'info');
   };
 
+  // --- MULTI-BRANCH STOCK TRANSFERS ---
+  const addStockTransfer = (transferData) => {
+    const newST = {
+      ...transferData,
+      id: `st-${Date.now()}`,
+      transferNumber: transferData.transferNumber || `STO-${1000 + stockTransfers.length + 1}`,
+      status: transferData.status || 'Requested',
+      requestDate: transferData.requestDate || new Date().toISOString().split('T')[0]
+    };
+    setStockTransfers(prev => [newST, ...prev]);
+    showNotification(`Stock Transfer Order #${newST.transferNumber} created!`, 'success');
+  };
+
+  const updateStockTransferStatus = (id, status) => {
+    setStockTransfers(prev => prev.map(st => {
+      if (st.id === id) {
+        if (status === 'Received' && st.status !== 'Received') {
+          showNotification(`Stock Transfer #${st.transferNumber} marked Received at destination branch!`, 'success');
+        }
+        return { ...st, status };
+      }
+      return st;
+    }));
+  };
+
+  const deleteStockTransfer = (id) => {
+    setStockTransfers(prev => prev.filter(st => st.id !== id));
+    showNotification('Stock transfer order deleted.', 'info');
+  };
+
+  // --- AUTOMATED MEMBERSHIP AUTO-INVOICING RENEWAL ENGINE ---
+  const generateRecurringInvoices = () => {
+    let generatedCount = 0;
+    const activeClients = customers.filter(c => c.status === 'Active' || c.status === 'Overdue');
+
+    activeClients.forEach(client => {
+      const annualVal = Number(client.annualValue) || 120000;
+      const monthlyVal = Math.round(annualVal / 12);
+      const invNum = `INV-REC-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      addInvoice({
+        invoiceNumber: invNum,
+        prospectName: client.gymName,
+        billingCycle: 'Monthly Recurring',
+        issueDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        totalAmount: monthlyVal,
+        status: 'Unpaid',
+        items: [
+          { name: `Monthly Gym Management System Subscription (${client.packageName || 'Pro Plan'})`, amount: monthlyVal }
+        ]
+      });
+
+      if (client.phone) {
+        try {
+          triggerSMS && triggerSMS('payment_due', client, { invoiceNumber: invNum, totalAmount: monthlyVal, dueDate: '14 days' });
+        } catch (e) {
+          console.warn('[SMS Trigger Error]', e);
+        }
+      }
+
+      generatedCount++;
+    });
+
+    addLog('Invoicing', `Executed Auto-Renewal Engine: Generated ${generatedCount} recurring invoices.`);
+    showNotification(`Auto-Renewal Engine complete: ${generatedCount} recurring invoices generated!`, 'success');
+  };
+
 
 
   // Automated Scheduler for Renewals and Invoices
@@ -2592,6 +2682,8 @@ export default function StoreContextProvider({ children }) {
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,
       leaveRequests, addLeaveRequest, updateLeaveStatus, deleteLeaveRequest,
       salaryAdvances, addSalaryAdvance, deleteSalaryAdvance,
+      stockTransfers, addStockTransfer, updateStockTransferStatus, deleteStockTransfer,
+      generateRecurringInvoices,
       featureToggles, updateFeatureToggle,
       isStoreLoading,
       confirmAction

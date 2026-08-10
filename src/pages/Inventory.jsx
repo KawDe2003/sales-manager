@@ -9,12 +9,21 @@ import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
 
 const Inventory = () => {
-  const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem, confirmAction } = useContext(StoreContext) || {};
+  const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem, confirmAction, stockTransfers = [], addStockTransfer, updateStockTransferStatus, deleteStockTransfer, showNotification } = useContext(StoreContext) || {};
   const [showModal, setShowModal] = useState(false);
+  const [showSTModal, setShowSTModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'stock'
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'stock' | 'transfers'
+
+  // Stock Transfer Form State
+  const [stForm, setStForm] = useState({
+    sourceLocation: 'Main Central Warehouse',
+    destinationLocation: 'Colombo 03 Gym Branch',
+    notes: '',
+    items: [{ itemName: '', quantity: 1 }]
+  });
 
   // --- SALES & UNITS SOLD LINKAGE CALCULATIONS ---
   const itemSalesMap = React.useMemo(() => {
@@ -264,6 +273,25 @@ const Inventory = () => {
         >
           <TrendingUp size={16} /> Stock & Valuation Table
         </button>
+        <button 
+          onClick={() => setActiveTab('transfers')}
+          style={{
+            padding: '10px 24px',
+            borderRadius: '10px',
+            fontSize: '0.9rem',
+            fontWeight: 700,
+            transition: 'all 0.3s ease',
+            background: activeTab === 'transfers' ? 'var(--accent-primary)' : 'transparent',
+            color: activeTab === 'transfers' ? 'white' : 'var(--text-muted)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Layers size={16} /> Multi-Branch Transfers ({stockTransfers.length})
+        </button>
       </div>
 
       {/* Search Toolbar */}
@@ -367,6 +395,101 @@ const Inventory = () => {
         </div>
       )}
 
+      {/* TAB 3: MULTI-BRANCH STOCK TRANSFERS */}
+      {activeTab === 'transfers' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Multi-Branch Stock Transfers
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Inter-branch stock transfer orders between central warehouse and gym locations.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setShowSTModal(true)}>
+              <Plus size={16} /> New Stock Transfer
+            </button>
+          </div>
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>TRANSFER #</th>
+                  <th>SOURCE LOCATION</th>
+                  <th>DESTINATION BRANCH</th>
+                  <th>DATE</th>
+                  <th>ITEMS</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockTransfers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                      No inter-branch stock transfers logged.
+                    </td>
+                  </tr>
+                ) : (
+                  stockTransfers.map(st => (
+                    <tr key={st.id}>
+                      <td style={{ fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {st.transferNumber}
+                      </td>
+                      <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                        {st.sourceLocation}
+                      </td>
+                      <td style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                        {st.destinationLocation}
+                      </td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {st.requestDate}
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.82rem' }}>
+                          {(st.items || []).map(i => `${i.itemName} (x${i.quantity})`).join(', ')}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px',
+                          background: st.status === 'Received' ? 'rgba(34, 197, 94, 0.14)' : st.status === 'In Transit' ? 'rgba(245, 158, 11, 0.14)' : 'rgba(148, 163, 184, 0.14)',
+                          color: st.status === 'Received' ? 'var(--success)' : st.status === 'In Transit' ? 'var(--warning)' : 'var(--text-muted)'
+                        }}>
+                          {st.status}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="flex items-center justify-end gap-2">
+                          {st.status !== 'Received' && (
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: 'var(--success)', border: '1px solid rgba(34, 197, 94, 0.3)' }}
+                              onClick={() => updateStockTransferStatus(st.id, 'Received')}
+                            >
+                              Mark Received
+                            </button>
+                          )}
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: 'var(--danger)', padding: '6px' }}
+                            onClick={() => deleteStockTransfer(st.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <InventoryModal
           onClose={() => { setShowModal(false); setEditingItem(null); }}
@@ -376,6 +499,105 @@ const Inventory = () => {
           }}
           initialData={editingItem}
         />
+      )}
+
+      {/* MODAL: NEW STOCK TRANSFER */}
+      {showSTModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          padding: '20px', animation: 'backdropFade 0.14s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '540px', padding: 0, borderRadius: '20px',
+            border: '1px solid var(--panel-border)', boxShadow: '0 30px 70px rgba(0,0,0,0.7)',
+            animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Issue Stock Transfer Order
+              </h3>
+              <button onClick={() => setShowSTModal(false)} className="btn btn-secondary" style={{ padding: '6px' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              addStockTransfer(stForm);
+              setShowSTModal(false);
+            }} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">SOURCE WAREHOUSE</label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={stForm.sourceLocation}
+                    onChange={(e) => setStForm({ ...stForm, sourceLocation: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">DESTINATION BRANCH</label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={stForm.destinationLocation}
+                    onChange={(e) => setStForm({ ...stForm, destinationLocation: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">ITEM & QUANTITY</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    className="form-input"
+                    placeholder="Item / Hardware Name"
+                    value={stForm.items[0]?.itemName || ''}
+                    onChange={(e) => {
+                      const items = [...stForm.items];
+                      items[0].itemName = e.target.value;
+                      setStForm({ ...stForm, items });
+                    }}
+                    style={{ flex: 2 }}
+                    required
+                  />
+                  <input 
+                    type="number"
+                    className="form-input"
+                    placeholder="Qty"
+                    value={stForm.items[0]?.quantity || 1}
+                    onChange={(e) => {
+                      const items = [...stForm.items];
+                      items[0].quantity = Number(e.target.value) || 1;
+                      setStForm({ ...stForm, items });
+                    }}
+                    style={{ width: '90px' }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">TRANSFER NOTES</label>
+                <textarea 
+                  className="form-textarea"
+                  rows="2"
+                  value={stForm.notes}
+                  onChange={(e) => setStForm({ ...stForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowSTModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Dispatch Transfer</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
