@@ -122,6 +122,56 @@ export default function StoreContextProvider({ children }) {
 
   const [tasks, setTasks] = useState([]);
 
+  // --- PROCUREMENT & PURCHASE ORDER (PO) ERP STATE ---
+  const sampleSuppliers = [
+    { id: 'sup-1', name: 'TechnoGym Sri Lanka', contactPerson: 'Kanishka Silva', phone: '0112345678', email: 'sales@technogym.lk', category: 'Fitness Equipment', address: 'No 45, Galle Road, Colombo 03', status: 'Active' },
+    { id: 'sup-2', name: 'Matrix Fitness Hardware', contactPerson: 'Nalin Perera', phone: '0117654321', email: 'orders@matrixfitness.lk', category: 'Gym Hardware & Sensors', address: 'No 112, Kandy Road, Kelaniya', status: 'Active' },
+    { id: 'sup-3', name: 'Seynex Tech Hardware Supplying', contactPerson: 'Devinda de Silva', phone: '0728408880', email: 'hardware@seynex.lk', category: 'Biometric Access Control', address: 'No 680/1B, Gonwala, Kelaniya', status: 'Active' }
+  ];
+
+  const samplePurchaseOrders = [
+    {
+      id: 'po-1',
+      poNumber: 'PO-1001',
+      supplierId: 'sup-1',
+      supplierName: 'TechnoGym Sri Lanka',
+      date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
+      expectedDelivery: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+      status: 'Ordered',
+      totalAmount: 450000,
+      items: [
+        { name: 'Commercial Treadmill X10', quantity: 1, unitCost: 350000, totalCost: 350000 },
+        { name: 'Rubber Bumper Plates 20kg', quantity: 4, unitCost: 25000, totalCost: 100000 }
+      ]
+    },
+    {
+      id: 'po-2',
+      poNumber: 'PO-1002',
+      supplierId: 'sup-3',
+      supplierName: 'Seynex Tech Hardware Supplying',
+      date: new Date(Date.now() - 12 * 86400000).toISOString().split('T')[0],
+      expectedDelivery: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+      status: 'Received',
+      totalAmount: 180000,
+      items: [
+        { name: 'Biometric Turnstile Controller', quantity: 2, unitCost: 90000, totalCost: 180000 }
+      ]
+    }
+  ];
+
+  const [suppliers, setSuppliers] = useState(() => {
+    const saved = localStorage.getItem('gym_suppliers');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSuppliers;
+  });
+
+  const [purchaseOrders, setPurchaseOrders] = useState(() => {
+    const saved = localStorage.getItem('gym_purchase_orders');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePurchaseOrders;
+  });
+
+  useEffect(() => { localStorage.setItem('gym_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
+  useEffect(() => { localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
+
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
     { id: '1010', code: '1010', name: 'Cash on Hand', type: 'asset', statement_category: 'cash_and_equivalents', is_current: true, parentId: null },
@@ -507,9 +557,17 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message, type = 'success', duration = 3200) => {
+    if (!message) {
+      setNotification(null);
+      if (window._toastTimer) clearTimeout(window._toastTimer);
+      return;
+    }
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    if (window._toastTimer) clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+      setNotification(null);
+    }, duration);
   };
 
   // Save theme to localStorage (UI Preference only)
@@ -868,6 +926,7 @@ export default function StoreContextProvider({ children }) {
     }
 
     addLog('FixedAsset', `Registered fixed asset: ${newAsset.name} (${newAsset.assetCode})`);
+    showNotification(`Fixed asset "${newAsset.name}" registered!`, 'success');
   };
 
   const processMonthlyDepreciation = (assetId) => {
@@ -896,6 +955,7 @@ export default function StoreContextProvider({ children }) {
     };
     setDepreciationSchedule(prev => [schedRow, ...prev]);
     addLog('FixedAsset', `Auto-posted monthly depreciation for ${asset.name}: LKR ${monthlyAmount}`);
+    showNotification(`Depreciation LKR ${monthlyAmount.toLocaleString()} posted for ${asset.name}`, 'success');
     return schedRow;
   };
 
@@ -904,6 +964,7 @@ export default function StoreContextProvider({ children }) {
     const updated = { ...fixedAssets.find(a => a.id === id), ...data, id };
     syncFixedAssetToSupabase(updated);
     addLog('FixedAsset', `Updated fixed asset: ${updated.name}`);
+    showNotification(`Fixed asset "${updated.name}" updated!`, 'success');
   };
 
   const deleteFixedAsset = async (id) => {
@@ -913,6 +974,7 @@ export default function StoreContextProvider({ children }) {
       await supabase.from('fixed_assets').delete().eq('id', id);
     }
     if (asset) addLog('FixedAsset', `Deleted fixed asset: ${asset.name}`);
+    showNotification(`Fixed asset "${asset?.name || 'Asset'}" deleted.`, 'info');
   };
 
   // --- Expenses CRUD ---
@@ -942,6 +1004,7 @@ export default function StoreContextProvider({ children }) {
     }
 
     addLog('Expense', `Added new expense: ${newExpense.category} - LKR ${newExpense.amount}`);
+    showNotification(`Expense of LKR ${Number(newExpense.amount).toLocaleString()} added!`, 'success');
   };
 
   const updateExpense = (id, data) => {
@@ -949,6 +1012,7 @@ export default function StoreContextProvider({ children }) {
     const updated = { ...expenses.find(e => e.id === id), ...data, id };
     syncExpenseToSupabase(updated);
     addLog('Expense', `Updated expense: ${updated.category}`);
+    showNotification(`Expense details updated!`, 'success');
   };
 
   const deleteExpense = async (id) => {
@@ -958,6 +1022,7 @@ export default function StoreContextProvider({ children }) {
       await supabase.from('expenses').delete().eq('id', id);
     }
     if (expense) addLog('Expense', `Deleted expense: ${expense.category}`);
+    showNotification(`Expense deleted.`, 'info');
   };
 
   // --- Tasks CRUD ---
@@ -988,6 +1053,7 @@ export default function StoreContextProvider({ children }) {
     setTasks(prev => [newTask, ...prev]);
     syncTaskToSupabase(newTask);
     addLog('Task', `Created task: ${newTask.title}`);
+    showNotification(`Task "${newTask.title}" created!`, 'success');
   };
 
   const updateTask = (id, data) => {
@@ -995,6 +1061,7 @@ export default function StoreContextProvider({ children }) {
     const updated = { ...tasks.find(t => t.id === id), ...data, id };
     syncTaskToSupabase(updated);
     addLog('Task', `Updated task: ${updated.title}`);
+    showNotification(`Task updated!`, 'success');
   };
 
   const deleteTask = async (id) => {
@@ -1004,6 +1071,7 @@ export default function StoreContextProvider({ children }) {
       await supabase.from('tasks').delete().eq('id', id);
     }
     if (task) addLog('Task', `Deleted task: ${task.title}`);
+    showNotification(`Task deleted.`, 'info');
   };
 
   const syncLogToSupabase = async (log) => {
@@ -1256,13 +1324,16 @@ export default function StoreContextProvider({ children }) {
     setCustomers([...customers, newCustomer]);
     syncCustomerToSupabase(newCustomer);
     addLog('System', `Added new Active Gym: ${customer.gymName}`);
+    showNotification(`Client "${customer.gymName || customer.name}" added successfully!`, 'success');
   };
 
   const deleteCustomer = async (id) => {
+    const target = customers.find(c => c.id === id);
     setCustomers(customers.filter(c => c.id !== id));
     if (user) {
       await supabase.from('customers').delete().eq('id', id);
     }
+    showNotification(`Client "${target?.gymName || 'Client'}" removed.`, 'info');
   };
 
   const updateCustomer = (id, updatedData) => {
@@ -1270,6 +1341,7 @@ export default function StoreContextProvider({ children }) {
       if (c.id === id) {
         const updated = { ...c, ...updatedData };
         syncCustomerToSupabase(updated);
+        showNotification(`Client "${updated.gymName || 'Client'}" updated!`, 'success');
         return updated;
       }
       return c;
@@ -1289,6 +1361,7 @@ export default function StoreContextProvider({ children }) {
         const updated = { ...c, notes: updatedNotes };
         syncCustomerToSupabase(updated);
         addLog('Status', `Update logged for ${c.gymName}: ${text.substring(0, 30)}...`);
+        showNotification(`Note added for ${c.gymName}`, 'success');
         return updated;
       }
       return c;
@@ -1311,13 +1384,16 @@ export default function StoreContextProvider({ children }) {
     const newItem = { ...item, id: uuidv4() };
     setInventory([...inventory, newItem]);
     syncInventoryToSupabase(newItem);
+    showNotification(`Inventory item "${item.name}" added!`, 'success');
   };
 
   const deleteInventoryItem = async (id) => {
+    const item = inventory.find(i => i.id === id);
     setInventory(inventory.filter(i => i.id !== id));
     if (user) {
       await supabase.from('inventory').delete().eq('id', id);
     }
+    showNotification(`Inventory item "${item?.name || 'Item'}" deleted.`, 'info');
   };
 
   const updateInventoryItem = (id, data) => {
@@ -1325,6 +1401,7 @@ export default function StoreContextProvider({ children }) {
       if (i.id === id) {
         const updated = { ...i, ...data };
         syncInventoryToSupabase(updated);
+        showNotification(`Inventory item "${updated.name}" updated!`, 'success');
         return updated;
       }
       return i;
@@ -1399,6 +1476,7 @@ export default function StoreContextProvider({ children }) {
     if (invoice.invoiceNumber === `${currentPrefix}${currentNext}`) {
         updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentNext + 1 });
     }
+    showNotification(`Invoice #${newInvoice.invoiceNumber} created!`, 'success');
   };
 
   const deleteInvoice = async (id) => {
@@ -1410,6 +1488,7 @@ export default function StoreContextProvider({ children }) {
     if (user) {
       await supabase.from('invoices').delete().eq('id', id);
     }
+    showNotification(`Invoice #${inv?.invoiceNumber || ''} deleted.`, 'info');
   };
 
   const generateInstallmentSchedule = (totalAmount, count = 3, downPayment = 0, startDate = new Date().toISOString().split('T')[0], frequency = 'Monthly') => {
@@ -1475,6 +1554,7 @@ export default function StoreContextProvider({ children }) {
         const updated = { ...i, installmentPlan: plan };
         syncInvoiceToSupabase(updated);
         addLog('Invoice', `Updated Installment Plan for ${i.invoiceNumber}`);
+        showNotification(`Installment plan updated for ${i.invoiceNumber}`, 'success');
         return updated;
       }
       return i;
@@ -1486,6 +1566,7 @@ export default function StoreContextProvider({ children }) {
       if (i.id === id) {
         const updated = { ...i, ...data };
         syncInvoiceToSupabase(updated);
+        showNotification(`Invoice #${updated.invoiceNumber || ''} updated!`, 'success');
         return updated;
       }
       return i;
@@ -1499,6 +1580,7 @@ export default function StoreContextProvider({ children }) {
         const updated = { ...i, status };
         addLog('Status', `Invoice ${i.invoiceNumber} status changed to ${status}`);
         syncInvoiceToSupabase(updated);
+        showNotification(`Invoice #${i.invoiceNumber} marked as ${status}!`, 'success');
 
         // Deduct stock when paid or sent, restore if reset to draft
         if ((status === 'Paid' || status === 'Sent') && (i.status !== 'Paid' && i.status !== 'Sent')) {
@@ -1530,13 +1612,16 @@ export default function StoreContextProvider({ children }) {
     if (quote.quoteNumber === `${currentPrefix}${currentNext}`) {
         updateSmsConfig({ ...smsConfig, nextQuoteNumber: currentNext + 1 });
     }
+    showNotification(`Quotation #${newQuote.quoteNumber} created!`, 'success');
   };
 
   const deleteQuote = async (id) => {
+    const q = quotes.find(item => item.id === id);
     setQuotes(quotes.filter(q => q.id !== id));
     if (user) {
       await supabase.from('quotations').delete().eq('id', id);
     }
+    showNotification(`Quotation #${q?.quoteNumber || ''} deleted.`, 'info');
   };
 
   const updateQuote = (id, updatedData) => {
@@ -1544,6 +1629,7 @@ export default function StoreContextProvider({ children }) {
       if (q.id === id) {
         const updated = { ...q, ...updatedData };
         syncQuoteToSupabase(updated);
+        showNotification(`Quotation #${updated.quoteNumber || ''} updated!`, 'success');
         return updated;
       }
       return q;
@@ -1746,22 +1832,118 @@ export default function StoreContextProvider({ children }) {
     setLeads([...leads, newLead]);
     syncLeadToSupabase(newLead);
     addLog('System', `New Lead Added: ${lead.gymName}`);
+    showNotification(`Lead "${lead.gymName || lead.prospectName || 'Lead'}" added!`, 'success');
   };
   const updateLead = (id, data) => {
     setLeads(prev => prev.map(l => {
         if (l.id === id) {
             const updated = { ...l, ...data };
             syncLeadToSupabase(updated);
+            showNotification(`Lead "${updated.gymName || 'Lead'}" updated!`, 'success');
             return updated;
         }
         return l;
     }));
   };
   const deleteLead = async (id) => {
+    const target = leads.find(l => l.id === id);
     setLeads(leads.filter(l => l.id !== id));
     if (user) {
         await supabase.from('leads').delete().eq('id', id);
     }
+    showNotification(`Lead "${target?.gymName || 'Lead'}" removed.`, 'info');
+  };
+
+  // --- PROCUREMENT & SUPPLIER MANAGEMENT CRUD ---
+  const addSupplier = (supplierData) => {
+    const newSup = { ...supplierData, id: `sup-${Date.now()}`, status: 'Active' };
+    setSuppliers(prev => [newSup, ...prev]);
+    showNotification(`Supplier "${newSup.name}" added!`, 'success');
+  };
+
+  const updateSupplier = (id, data) => {
+    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+    showNotification('Supplier details updated!', 'success');
+  };
+
+  const deleteSupplier = (id) => {
+    const target = suppliers.find(s => s.id === id);
+    setSuppliers(prev => prev.filter(s => s.id !== id));
+    showNotification(`Supplier "${target?.name || ''}" removed.`, 'info');
+  };
+
+  const fulfillPurchaseOrderItems = (po) => {
+    // 1. Auto-replenish stock for ordered items
+    if (po.items && Array.isArray(po.items)) {
+      setInventory(prevInventory => {
+        return prevInventory.map(invItem => {
+          const match = po.items.find(pi => pi.name && pi.name.toLowerCase() === invItem.name.toLowerCase());
+          if (match) {
+            const addedStock = Number(match.quantity || 1);
+            const newStock = (Number(invItem.stock) || 0) + addedStock;
+            addLog('Inventory', `Stock replenished via PO ${po.poNumber}: ${invItem.name} (+${addedStock} units). New Stock: ${newStock}`);
+            return { ...invItem, stock: newStock };
+          }
+          return invItem;
+        });
+      });
+    }
+
+    // 2. Auto-post Accounts Payable (AP) Journal Voucher (Debit: 1200 Inventory Asset, Credit: 2010 Accounts Payable)
+    try {
+      createJournalEntry({
+        date: new Date().toISOString().split('T')[0],
+        reference: po.poNumber,
+        description: `Goods Received PO #${po.poNumber} from ${po.supplierName}`,
+        lines: [
+          { accountId: '1200', debit: Number(po.totalAmount) || 0, credit: 0 },
+          { accountId: '2010', debit: 0, credit: Number(po.totalAmount) || 0 }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for PO]', err);
+    }
+  };
+
+  const addPurchaseOrder = (poData) => {
+    const newPO = {
+      ...poData,
+      id: `po-${Date.now()}`,
+      poNumber: poData.poNumber || `PO-${1000 + purchaseOrders.length + 1}`,
+      status: poData.status || 'Ordered',
+      date: poData.date || new Date().toISOString().split('T')[0]
+    };
+    setPurchaseOrders(prev => [newPO, ...prev]);
+    addLog('Procurement', `Issued Purchase Order ${newPO.poNumber} to ${newPO.supplierName}`);
+    showNotification(`Purchase Order #${newPO.poNumber} created!`, 'success');
+
+    if (newPO.status === 'Received') {
+      fulfillPurchaseOrderItems(newPO);
+    }
+  };
+
+  const updatePurchaseOrderStatus = (id, newStatus) => {
+    setPurchaseOrders(prev => prev.map(po => {
+      if (po.id === id) {
+        const oldStatus = po.status;
+        const updated = { ...po, status: newStatus };
+        
+        if (newStatus === 'Received' && oldStatus !== 'Received') {
+          fulfillPurchaseOrderItems(updated);
+          showNotification(`PO #${po.poNumber} received! Stock replenished & Accounts Payable updated.`, 'success');
+        } else {
+          showNotification(`PO #${po.poNumber} status changed to ${newStatus}`, 'info');
+        }
+        return updated;
+      }
+      return po;
+    }));
+  };
+
+  const deletePurchaseOrder = (id) => {
+    const po = purchaseOrders.find(p => p.id === id);
+    setPurchaseOrders(prev => prev.filter(p => p.id !== id));
+    showNotification(`Purchase Order #${po?.poNumber || ''} deleted.`, 'info');
   };
 
 
@@ -2097,6 +2279,8 @@ export default function StoreContextProvider({ children }) {
       notification, showNotification,
       systemNotifications, markNotificationsRead,
       resetToSeynexDefaults, seedDummyData,
+      suppliers, addSupplier, updateSupplier, deleteSupplier,
+      purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
       isStoreLoading,
       confirmAction
     }}>

@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen
+  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 
@@ -27,6 +27,7 @@ const Tasks = lazy(() => import('./pages/Tasks'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
 const SmsPortal = lazy(() => import('./pages/SmsPortal'));
+const Procurement = lazy(() => import('./pages/Procurement'));
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
@@ -339,22 +340,55 @@ const AppContent = () => {
       {/* ===== GLOBAL TOAST NOTIFICATION ===== */}
       {notification && (
         <div style={{
-          position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
-          padding: '14px 20px', borderRadius: 'var(--radius-md)', minWidth: '320px', maxWidth: '420px',
-          background: notification.type === 'success' 
-            ? 'linear-gradient(135deg, #059669, #10b981)' 
-            : 'linear-gradient(135deg, #dc2626, #f43f5e)',
-          color: 'white',
-          boxShadow: notification.type === 'success' 
-            ? '0 12px 40px rgba(16, 185, 129, 0.4)' 
-            : '0 12px 40px rgba(244, 63, 94, 0.4)',
+          position: 'fixed', top: '24px', right: '24px', zIndex: 99999,
+          padding: '12px 18px', borderRadius: '12px', minWidth: '280px', maxWidth: '400px',
+          background: notification.type === 'error' 
+            ? 'linear-gradient(135deg, #7f1d1d, #dc2626)' 
+            : notification.type === 'warning' || notification.type === 'info'
+            ? 'linear-gradient(135deg, #78350f, #d97706)' 
+            : 'linear-gradient(135deg, #064e3b, #059669)',
+          color: '#ffffff',
+          boxShadow: notification.type === 'error' 
+            ? '0 10px 30px rgba(220, 38, 38, 0.35)' 
+            : notification.type === 'warning' || notification.type === 'info'
+            ? '0 10px 30px rgba(217, 119, 6, 0.35)'
+            : '0 10px 30px rgba(5, 150, 105, 0.35)',
           display: 'flex', alignItems: 'center', gap: '12px',
-          animation: 'slideInRight 0.35s ease-out',
-          border: '1px solid rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(10px)'
+          animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(12px)'
         }}>
-          {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-          <span style={{ flex: 1, fontWeight: '600', fontSize: '0.88rem', lineHeight: 1.4 }}>{notification.message}</span>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            {notification.type === 'error' ? (
+              <AlertCircle size={16} color="#ffffff" />
+            ) : notification.type === 'warning' || notification.type === 'info' ? (
+              <ShieldAlert size={16} color="#ffffff" />
+            ) : (
+              <CheckCircle size={16} color="#ffffff" />
+            )}
+          </div>
+          <span style={{ flex: 1, fontWeight: '600', fontSize: '0.86rem', lineHeight: 1.35, letterSpacing: '-0.01em' }}>
+            {notification.message}
+          </span>
+          <button 
+            onClick={() => showNotification && showNotification(null)}
+            style={{ 
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', 
+              cursor: 'pointer', padding: '4px', borderRadius: '6px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#ffffff'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+            title="Close"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -408,44 +442,44 @@ const AppContent = () => {
 
         <div className="flex items-center gap-2">
           {/* Quick Actions */}
-          <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '38px', padding: '0 12px', fontSize: '0.82rem', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
-            <MessageSquare size={16} /> SMS Portal
+          <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+            <MessageSquare size={15} /> SMS Portal
           </Link>
-          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '38px', padding: '0 14px', fontSize: '0.82rem', color: 'var(--success)' }}>
-            <CreditCard size={16} /> Invoice
+          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-emerald)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+            <CreditCard size={15} /> Invoice
           </Link>
-          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '38px', padding: '0 14px', fontSize: '0.82rem' }}>
-            <PlusCircle size={16} /> New Client
+          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '36px', padding: '0 14px', fontSize: '0.8rem', boxShadow: '0 2px 10px rgba(16, 185, 129, 0.25)' }}>
+            <PlusCircle size={15} /> New Client
           </Link>
 
           {/* Search */}
           <button 
             className="btn btn-secondary" 
-            style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setSearchOpen(true)}
             title="Search (Ctrl+K)"
           >
-            <Search size={17} className="text-secondary" />
+            <Search size={16} className="text-secondary" />
           </button>
 
           {/* Theme Toggle */}
           <button
             className="btn btn-secondary hidden-mobile"
-            style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
           >
-            {theme === 'dark' ? <Sun size={17} className="text-secondary" /> : <Moon size={17} className="text-secondary" />}
+            {theme === 'dark' ? <Sun size={16} className="text-secondary" /> : <Moon size={16} className="text-secondary" />}
           </button>
 
           {/* Notifications */}
           <div style={{ position: 'relative' }}>
             <button 
               className="btn btn-secondary" 
-              style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+              style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
             >
-              <Bell size={17} className="text-secondary" />
+              <Bell size={16} className="text-secondary" />
               {systemNotifications?.length > 0 && (
                 <span style={{
                   position: 'absolute', top: '-3px', right: '-3px',
@@ -458,7 +492,7 @@ const AppContent = () => {
             
             {notificationsOpen && (
               <div className="glass-panel" style={{
-                position: 'absolute', top: '50px', right: '0', width: '340px', padding: '0',
+                position: 'absolute', top: '46px', right: '0', width: '340px', padding: '0',
                 zIndex: 1000, boxShadow: '0 25px 60px rgba(0,0,0,0.6)', border: '1px solid var(--panel-border)',
                 borderRadius: 'var(--radius-lg)', overflow: 'hidden'
               }}>
@@ -491,23 +525,23 @@ const AppContent = () => {
           <Link 
             to="/settings" 
             className="btn btn-secondary hidden-mobile" 
-            style={{ height: '38px', width: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={closeSidebar}
           >
-            <SettingsIcon size={17} className="text-secondary" />
+            <SettingsIcon size={16} className="text-secondary" />
           </Link>
 
           {/* Logout */}
           {user && (
             <button 
               className="btn btn-secondary" 
-              style={{ color: 'var(--danger)', height: '38px', padding: '0 12px', fontSize: '0.82rem' }}
+              style={{ color: 'var(--danger)', height: '36px', padding: '0 12px', fontSize: '0.8rem' }}
               onClick={() => {
                 signOut();
                 closeSidebar();
               }}
             >
-              <LogIn size={16} style={{ transform: 'rotate(180deg)' }} />
+              <LogIn size={15} style={{ transform: 'rotate(180deg)' }} />
               <span className="hidden-mobile">Logout</span>
             </button>
           )}
@@ -548,8 +582,9 @@ const AppContent = () => {
                      const foundCustomers = customers.filter(c => c.gymName?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q)).slice(0, 3);
                      const foundLeads = leads.filter(l => l.gymName?.toLowerCase().includes(q)).slice(0, 3);
                      const foundInvoices = invoices.filter(i => i.invoiceNumber?.toLowerCase().includes(q) || i.prospectName?.toLowerCase().includes(q)).slice(0, 3);
+                     const foundPOs = (purchaseOrders || []).filter(po => po.poNumber?.toLowerCase().includes(q) || po.supplierName?.toLowerCase().includes(q)).slice(0, 3);
                      
-                     const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0;
+                     const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0 || foundPOs.length > 0;
                      
                      return !hasResults ? (
                         <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>No results for "{searchQuery}"</div>
@@ -573,6 +608,13 @@ const AppContent = () => {
                            {foundInvoices.map(i => (
                              <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Receipt size={15} style={{ color: 'var(--success)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{i.invoiceNumber} — {i.prospectName}</span></div>
+                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                             </Link>
+                           ))}
+                           {foundPOs.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Purchase Orders</div>}
+                           {foundPOs.map(po => (
+                             <Link key={po.id} to="/procurement" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><ShoppingBag size={15} style={{ color: 'var(--accent-secondary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{po.poNumber} — {po.supplierName}</span></div>
                                <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                              </Link>
                            ))}
@@ -660,6 +702,9 @@ const AppContent = () => {
                 {checkPerm(['manage_inventory', 'view_inventory']) && (
                   <NavItem to="/inventory" icon={<Package size={18} />} label="Inventory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 )}
+                {checkPerm(['manage_inventory', 'view_inventory']) && (
+                  <NavItem to="/procurement" icon={<ShoppingBag size={18} />} label="Procurement & POs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                )}
               </nav>
             </>
           )}
@@ -730,6 +775,7 @@ const AppContent = () => {
                 <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
                 <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
                 <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
+                <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
                 <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
                 <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />

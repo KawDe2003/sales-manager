@@ -320,7 +320,7 @@ button, button:hover, button:focus,
   font-weight: 600;
   font-size: 0.86rem;
   cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.14s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid transparent;
   font-family: var(--font-family);
   letter-spacing: 0.01em;
@@ -328,7 +328,7 @@ button, button:hover, button:focus,
   position: relative;
   overflow: hidden;
 }
-.btn:active { transform: scale(0.97); }
+.btn:active { transform: scale(0.97); transition: transform 0.08s ease; }
 
 .btn-group { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 
@@ -583,17 +583,19 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 /* ===== LAYOUT: HEADER ===== */
 .layout-header {
   height: 68px;
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--panel-border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 0 32px;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 0 24px;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* ===== LAYOUT: SIDEBAR ===== */
@@ -627,6 +629,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 
 /* ===== LAYOUT: MAIN ===== */
 .main-container {
+  margin-top: 68px;
   margin-left: 260px;
   flex: 1;
   min-width: 0;
@@ -687,12 +690,17 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
   border-radius: var(--radius-xl);
   box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.75), 0 0 30px rgba(99, 102, 241, 0.15);
   position: relative;
-  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal-body { padding: 32px; }
@@ -721,7 +729,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 }
 
 @media (max-width: 768px) {
-  .main-container, .main-container.sidebar-collapsed { margin-left: 0; padding: 18px; }
+  .main-container, .main-container.sidebar-collapsed { margin-left: 0; margin-top: 64px; padding: 18px; }
   .page-hero { margin: -18px -18px 24px -18px; padding: 18px; }
   .layout-header { padding: 0 18px; height: 64px; }
   .app-sidebar {

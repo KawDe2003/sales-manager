@@ -1,23 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, Trash2, X, CheckCircle2 } from 'lucide-react';
 
 const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelText = 'Cancel', variant = 'danger', onConfirm, onClose }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const isDanger = variant === 'danger';
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-      padding: '20px', animation: 'fadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1)'
-    }}>
+    <div 
+      onWheel={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+        padding: '20px', animation: 'backdropFade 0.14s ease-out'
+      }}
+    >
       <div className="glass-panel" style={{
         width: '100%', maxWidth: '440px', padding: '28px', borderRadius: '20px',
         border: isDanger ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(99, 102, 241, 0.3)',
         boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.25)' : '0 25px 50px -12px rgba(99, 102, 241, 0.25)',
-        position: 'relative', background: 'var(--bg-secondary)'
+        position: 'relative', background: 'var(--bg-secondary)',
+        animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
       }}>
         <button 
           onClick={onClose} 
@@ -75,8 +94,10 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
             }}
             style={{ 
               padding: '10px 22px', fontSize: '0.88rem', fontWeight: 700,
+              color: '#ffffff',
               background: isDanger ? 'linear-gradient(135deg, #ef4444, #dc2626)' : undefined,
-              boxShadow: isDanger ? '0 4px 14px rgba(239, 68, 68, 0.35)' : undefined
+              boxShadow: isDanger ? '0 4px 14px rgba(239, 68, 68, 0.4)' : undefined,
+              border: isDanger ? '1px solid rgba(255,255,255,0.15)' : undefined
             }}
           >
             {confirmText}

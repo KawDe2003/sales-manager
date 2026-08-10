@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake, Download } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
@@ -12,6 +12,21 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [activeNotesCustomer, setActiveNotesCustomer] = useState(null);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+
+  useEffect(() => {
+    const isAnyModalOpen = showModal || !!activeNotesCustomer || showBroadcastModal;
+    if (isAnyModalOpen) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, [showModal, activeNotesCustomer, showBroadcastModal]);
 
   const filteredCustomers = customers.filter(c => {
     // Search match
