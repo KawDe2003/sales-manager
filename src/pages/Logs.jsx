@@ -3,7 +3,7 @@ import { StoreContext } from '../context/StoreContext';
 import { ClipboardList, Smartphone, Info, AlertCircle, Calendar, Trash2, Clock, Activity, ShieldCheck } from 'lucide-react';
 
 const Logs = () => {
-  const { activityLogs = [] } = useContext(StoreContext) || {};
+  const { activityLogs = [], confirmAction } = useContext(StoreContext) || {};
   const [filterType, setFilterType] = useState('All');
 
   const filteredLogs = filterType === 'All' 
@@ -22,9 +22,20 @@ const Logs = () => {
   };
 
   const clearLogs = () => {
-    if(window.confirm('This will permanently delete all historical activity logs. Proceed?')) {
+    const executeClear = () => {
       localStorage.removeItem('gym_logs');
       window.location.reload(); 
+    };
+
+    if (confirmAction) {
+      confirmAction({
+        title: 'Clear Activity Logs',
+        message: 'This will permanently delete all historical activity and audit logs. Proceed?',
+        confirmText: 'Clear All Logs',
+        onConfirm: executeClear
+      });
+    } else if (window.confirm('This will permanently delete all historical activity logs. Proceed?')) {
+      executeClear();
     }
   };
 

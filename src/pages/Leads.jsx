@@ -4,7 +4,7 @@ import { Plus, Target, Phone, Mail, Trash2, User, Calendar, Edit2, FileText, X, 
 import { useNavigate } from 'react-router-dom';
 
 const Leads = () => {
-  const { leads = [], addLead, deleteLead, updateLead } = useContext(StoreContext) || {};
+  const { leads = [], addLead, deleteLead, updateLead, confirmAction } = useContext(StoreContext) || {};
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -28,7 +28,7 @@ const Leads = () => {
     const matchesSearch = (l.gymName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (l.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (l.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (l.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
+                        (l.phone || '').includes(searchTerm);
     return matchesStatus && matchesSearch;
   });
 
@@ -37,47 +37,38 @@ const Leads = () => {
       <div className="page-hero">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">Leads Pipeline</h1>
-            <p className="text-secondary" style={{ fontSize: '1rem' }}>Track and convert your fitness prospects</p>
+            <h1 className="h1 mb-1" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>Leads Pipeline</h1>
+            <p className="text-secondary" style={{ fontWeight: 600 }}>Track prospect gyms, follow-ups, and sales conversions.</p>
           </div>
-          <button className="btn btn-primary" style={{ padding: '12px 24px', height: '44px' }} onClick={() => { setEditingLead(null); setShowModal(true); }}>
-            <Plus size={20} /> Add New Lead
+          <button className="btn btn-primary" onClick={() => { setEditingLead(null); setShowModal(true); }}>
+            <Plus size={18} /> New Lead Prospect
           </button>
         </div>
       </div>
 
-      <div className="flex gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hide">
-        <button 
-          className={`btn ${filterStatus === 'All' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setFilterStatus('All')}
-          style={{ minWidth: '120px', padding: '10px 20px', background: filterStatus === 'All' ? '' : 'rgba(255,255,255,0.03)' }}
-        >
-          All Leads ({leads.length})
-        </button>
-        {statuses.map(status => (
-          <button 
-            key={status}
-            className={`btn ${filterStatus === status ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilterStatus(status)}
-            style={{ whiteSpace: 'nowrap', minWidth: '140px', padding: '10px 20px', background: filterStatus === status ? '' : 'rgba(255,255,255,0.03)' }}
-          >
-            {status} ({leads.filter(l => l.status === status).length})
-          </button>
-        ))}
-      </div>
-
-      {/* Styled Search Toolbar */}
-      <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px', flex: '1 1 auto' }}>
+      {/* SEARCH AND FILTER BAR */}
+      <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input"
-            placeholder="Search prospects by gym, person, or email..."
+            placeholder="Search leads by gym name, contact person, or email..."
             style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex gap-4 w-full md:w-auto">
+          <select
+            className="form-input"
+            style={{ height: '42px', flex: '1 1 140px', minWidth: '130px', background: 'var(--subtle-bg)' }}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="All">All Statuses</option>
+            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
       </div>
 
@@ -87,7 +78,18 @@ const Leads = () => {
             key={lead.id} 
             lead={lead} 
             onEdit={() => { setEditingLead(lead); setShowModal(true); }}
-            onDelete={() => { if(window.confirm(`Delete ${lead.gymName} from pipeline?`)) deleteLead(lead.id); }}
+            onDelete={() => {
+              if (confirmAction) {
+                confirmAction({
+                  title: 'Delete Lead Prospect',
+                  message: `Are you sure you want to remove "${lead.gymName}" from your pipeline?`,
+                  confirmText: 'Delete Lead',
+                  onConfirm: () => deleteLead(lead.id)
+                });
+              } else if (window.confirm(`Delete ${lead.gymName} from pipeline?`)) {
+                deleteLead(lead.id);
+              }
+            }}
             onUpdateStatus={(s) => updateLead(lead.id, { status: s })}
             onQuote={() => navigate(`/quotations?leadId=${lead.id}`)}
           />

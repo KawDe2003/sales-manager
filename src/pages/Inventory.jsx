@@ -9,7 +9,7 @@ import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
 
 const Inventory = () => {
-  const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem } = useContext(StoreContext) || {};
+  const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem, confirmAction } = useContext(StoreContext) || {};
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -306,7 +306,18 @@ const Inventory = () => {
                 key={item.id} 
                 item={item} 
                 onEdit={() => { setEditingItem(item); setShowModal(true); }}
-                onDelete={() => { if (window.confirm(`Permanently remove ${item.name}?`)) deleteInventoryItem(item.id); }}
+                onDelete={() => {
+                  if (confirmAction) {
+                    confirmAction({
+                      title: 'Delete Inventory Item',
+                      message: `Are you sure you want to permanently remove "${item.name}"?`,
+                      confirmText: 'Delete Item',
+                      onConfirm: () => deleteInventoryItem(item.id)
+                    });
+                  } else if (window.confirm(`Permanently remove ${item.name}?`)) {
+                    deleteInventoryItem(item.id);
+                  }
+                }}
                 getTypeIcon={getTypeIcon}
                 getTypeBadgeClass={getTypeBadgeClass}
               />

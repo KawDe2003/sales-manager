@@ -14,7 +14,8 @@ const FixedAssets = () => {
     updateFixedAsset, 
     deleteFixedAsset,
     processMonthlyDepreciation,
-    showNotification 
+    showNotification,
+    confirmAction
   } = useContext(StoreContext) || {};
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -421,7 +422,17 @@ const FixedAssets = () => {
                           className="btn btn-danger btn-sm" 
                           style={{ padding: '6px' }}
                           onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete ${asset.name}?`)) {
+                            if (confirmAction) {
+                              confirmAction({
+                                title: 'Delete Fixed Asset',
+                                message: `Are you sure you want to delete ${asset.name}?`,
+                                confirmText: 'Delete Asset',
+                                onConfirm: () => {
+                                  deleteFixedAsset && deleteFixedAsset(asset.id);
+                                  showNotification && showNotification(`Asset ${asset.name} deleted.`, 'success');
+                                }
+                              });
+                            } else if (window.confirm(`Are you sure you want to delete ${asset.name}?`)) {
                               deleteFixedAsset && deleteFixedAsset(asset.id);
                               showNotification && showNotification(`Asset ${asset.name} deleted.`, 'success');
                             }

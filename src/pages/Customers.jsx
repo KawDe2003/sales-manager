@@ -4,7 +4,7 @@ import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
 
 const Customers = () => {
-  const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification } = useContext(StoreContext) || {};
+  const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification, confirmAction } = useContext(StoreContext) || {};
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [monthFilter, setMonthFilter] = useState('All');
@@ -133,7 +133,16 @@ const Customers = () => {
               gym={gym}
               onEdit={() => { setEditingCustomer(gym); setShowModal(true); }}
               onDelete={() => {
-                if (window.confirm(`Remove ${gym.gymName} from your client list?`)) deleteCustomer && deleteCustomer(gym.id);
+                if (confirmAction) {
+                  confirmAction({
+                    title: 'Remove Client',
+                    message: `Are you sure you want to remove ${gym.gymName} from your client list?`,
+                    confirmText: 'Remove Client',
+                    onConfirm: () => deleteCustomer && deleteCustomer(gym.id)
+                  });
+                } else if (window.confirm(`Remove ${gym.gymName} from your client list?`)) {
+                  deleteCustomer && deleteCustomer(gym.id);
+                }
               }}
               onSendReminder={() => {
                 if (!gym.phone) { 

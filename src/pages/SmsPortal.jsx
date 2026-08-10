@@ -10,7 +10,7 @@ const SmsPortal = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     sendDirectSMS, sendBulkSMSArray, handleTestSms,
-    customers = [], leads = [], invoices = [], activityLogs = []
+    customers = [], leads = [], invoices = [], activityLogs = [], confirmAction
   } = useContext(StoreContext) || {};
 
   const [activeTab, setActiveTab] = useState('broadcast'); // 'broadcast' | 'direct' | 'templates' | 'history'
@@ -133,15 +133,26 @@ const SmsPortal = () => {
       return;
     }
 
-    if (!window.confirm(`Confirm dispatching SMS Broadcast to ${recipients.length} contact(s)?`)) return;
+    const executeBroadcast = async () => {
+      setIsSendingBroadcast(true);
+      const phoneNumbers = recipients.map(r => r.phone);
+      if (sendBulkSMSArray) {
+        await sendBulkSMSArray(phoneNumbers, broadcastMessage);
+      }
+      setIsSendingBroadcast(false);
+    };
 
-    setIsSendingBroadcast(true);
-    const phoneNumbers = recipients.map(r => r.phone);
-    
-    if (sendBulkSMSArray) {
-      await sendBulkSMSArray(phoneNumbers, broadcastMessage);
+    if (confirmAction) {
+      confirmAction({
+        title: 'Dispatch SMS Broadcast',
+        message: `Confirm dispatching SMS Broadcast to ${recipients.length} selected contact(s)?`,
+        confirmText: 'Send Broadcast',
+        variant: 'primary',
+        onConfirm: executeBroadcast
+      });
+    } else if (window.confirm(`Confirm dispatching SMS Broadcast to ${recipients.length} contact(s)?`)) {
+      executeBroadcast();
     }
-    setIsSendingBroadcast(false);
   };
 
   const handleSendSingleDirect = async (e) => {

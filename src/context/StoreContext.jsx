@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 export const StoreContext = createContext();
 
@@ -2046,6 +2047,33 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
+  // Global Modern Confirmation Modal System
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    variant: 'danger',
+    onConfirm: null
+  });
+
+  const confirmAction = ({ title, message, confirmText = 'Delete', cancelText = 'Cancel', variant = 'danger', onConfirm }) => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      variant,
+      onConfirm
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState(prev => ({ ...prev, isOpen: false }));
+  };
+
   return (
     <StoreContext.Provider value={{
       customers, addCustomer, deleteCustomer, updateCustomer,
@@ -2069,9 +2097,20 @@ export default function StoreContextProvider({ children }) {
       notification, showNotification,
       systemNotifications, markNotificationsRead,
       resetToSeynexDefaults, seedDummyData,
-      isStoreLoading
+      isStoreLoading,
+      confirmAction
     }}>
       {children}
+      <ConfirmModal 
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+        onConfirm={confirmState.onConfirm}
+        onClose={closeConfirm}
+      />
     </StoreContext.Provider>
   );
 }

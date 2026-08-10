@@ -14,7 +14,7 @@ const Settings = () => {
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     handleTestSms, resetToSeynexDefaults, seedDummyData,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
-    customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole
+    customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -291,7 +291,14 @@ const Settings = () => {
                             className="btn btn-secondary" 
                             style={{ padding: '8px 10px', fontSize: '0.8rem', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.08)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
+                              if (confirmAction) {
+                                confirmAction({
+                                  title: 'Revoke User Access',
+                                  message: `Are you sure you want to remove user account for ${member.name}?`,
+                                  confirmText: 'Remove Access',
+                                  onConfirm: () => deleteTeamMember && deleteTeamMember(member.id)
+                                });
+                              } else if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
                                 deleteTeamMember && deleteTeamMember(member.id);
                               }
                             }}
@@ -1049,7 +1056,14 @@ const Settings = () => {
                             className="btn btn-secondary" 
                             style={{ padding: '6px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)', border: 'none' }}
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
+                              if (confirmAction) {
+                                confirmAction({
+                                  title: 'Revoke User Access',
+                                  message: `Are you sure you want to remove user account for ${member.name}?`,
+                                  confirmText: 'Remove Access',
+                                  onConfirm: () => deleteTeamMember && deleteTeamMember(member.id)
+                                });
+                              } else if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
                                 deleteTeamMember && deleteTeamMember(member.id);
                               }
                             }}
