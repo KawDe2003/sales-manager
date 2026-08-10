@@ -246,6 +246,12 @@ export default function StoreContextProvider({ children }) {
     ledger: true
   };
 
+  const sampleAttendanceLogs = [
+    { id: 'att-1', employeeId: 'emp-1', date: new Date().toISOString().split('T')[0], status: 'Present', checkIn: '08:30', checkOut: '17:30', otHours: 1 },
+    { id: 'att-2', employeeId: 'emp-2', date: new Date().toISOString().split('T')[0], status: 'Present', checkIn: '08:50', checkOut: '17:00', otHours: 0 },
+    { id: 'att-3', employeeId: 'emp-3', date: new Date().toISOString().split('T')[0], status: 'On Leave', checkIn: '', checkOut: '', otHours: 0 }
+  ];
+
   const [employees, setEmployees] = useState(() => {
     const saved = localStorage.getItem('gym_employees');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleEmployees;
@@ -254,6 +260,11 @@ export default function StoreContextProvider({ children }) {
   const [payruns, setPayruns] = useState(() => {
     const saved = localStorage.getItem('gym_payruns');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePayruns;
+  });
+
+  const [attendanceLogs, setAttendanceLogs] = useState(() => {
+    const saved = localStorage.getItem('gym_attendance_logs');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleAttendanceLogs;
   });
 
   const [featureToggles, setFeatureToggles] = useState(() => {
@@ -265,6 +276,7 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
   useEffect(() => { localStorage.setItem('gym_employees', JSON.stringify(employees)); }, [employees]);
   useEffect(() => { localStorage.setItem('gym_payruns', JSON.stringify(payruns)); }, [payruns]);
+  useEffect(() => { localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
@@ -2114,6 +2126,40 @@ export default function StoreContextProvider({ children }) {
     });
   };
 
+  const markAttendance = (records) => {
+    setAttendanceLogs(prev => {
+      let updated = [...prev];
+      records.forEach(rec => {
+        const existingIdx = updated.findIndex(a => a.employeeId === rec.employeeId && a.date === rec.date);
+        if (existingIdx >= 0) {
+          updated[existingIdx] = { ...updated[existingIdx], ...rec };
+        } else {
+          updated.unshift({ id: `att-${Date.now()}-${Math.random().toString(36).substr(2,4)}`, ...rec });
+        }
+      });
+      return updated;
+    });
+    showNotification('Daily staff attendance logged successfully!', 'success');
+  };
+
+  const getMonthlyAttendanceSummary = (employeeId, monthStr) => {
+    const logs = attendanceLogs.filter(a => a.employeeId === employeeId && a.date?.startsWith(monthStr));
+    const present = logs.filter(a => a.status === 'Present').length;
+    const absent = logs.filter(a => a.status === 'Absent').length;
+    const halfDay = logs.filter(a => a.status === 'Half Day').length;
+    const leave = logs.filter(a => a.status === 'On Leave').length;
+    const otHours = logs.reduce((sum, a) => sum + (Number(a.otHours) || 0), 0);
+
+    return {
+      totalLogged: logs.length,
+      present,
+      absent,
+      halfDay,
+      leave,
+      otHours
+    };
+  };
+
 
 
   // Automated Scheduler for Renewals and Invoices
@@ -2451,6 +2497,7 @@ export default function StoreContextProvider({ children }) {
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
       employees, addEmployee, updateEmployee, deleteEmployee,
       payruns, processPayrun,
+      attendanceLogs, markAttendance, getMonthlyAttendanceSummary,
       featureToggles, updateFeatureToggle,
       isStoreLoading,
       confirmAction
