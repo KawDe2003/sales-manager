@@ -704,8 +704,8 @@ const Procurement = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveSupplier} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
+            <form onSubmit={handleSaveSupplier} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+              <div style={{ width: '100%' }}>
                 <label className="form-label">SUPPLIER / COMPANY NAME *</label>
                 <input 
                   type="text" 
@@ -713,12 +713,13 @@ const Procurement = () => {
                   placeholder="e.g. TechnoGym Sri Lanka"
                   value={supplierForm.name}
                   onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                  style={{ width: '100%' }}
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ width: '100%' }}>
+                <div style={{ width: '100%' }}>
                   <label className="form-label">CONTACT PERSON</label>
                   <input 
                     type="text" 
@@ -726,9 +727,10 @@ const Procurement = () => {
                     placeholder="Contact Name"
                     value={supplierForm.contactPerson}
                     onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })}
+                    style={{ width: '100%' }}
                   />
                 </div>
-                <div>
+                <div style={{ width: '100%' }}>
                   <label className="form-label">CATEGORY</label>
                   <input 
                     type="text" 
@@ -736,12 +738,13 @@ const Procurement = () => {
                     placeholder="e.g. Fitness Equipment"
                     value={supplierForm.category}
                     onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
+                    style={{ width: '100%' }}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ width: '100%' }}>
+                <div style={{ width: '100%' }}>
                   <label className="form-label">PHONE NUMBER</label>
                   <input 
                     type="text" 
@@ -749,9 +752,10 @@ const Procurement = () => {
                     placeholder="011XXXXXXX"
                     value={supplierForm.phone}
                     onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                    style={{ width: '100%' }}
                   />
                 </div>
-                <div>
+                <div style={{ width: '100%' }}>
                   <label className="form-label">EMAIL ADDRESS</label>
                   <input 
                     type="email" 
@@ -759,11 +763,12 @@ const Procurement = () => {
                     placeholder="supplier@company.lk"
                     value={supplierForm.email}
                     onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                    style={{ width: '100%' }}
                   />
                 </div>
               </div>
 
-              <div>
+              <div style={{ width: '100%' }}>
                 <label className="form-label">BUSINESS ADDRESS</label>
                 <textarea 
                   className="form-textarea"
@@ -771,6 +776,7 @@ const Procurement = () => {
                   rows="2"
                   value={supplierForm.address}
                   onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                  style={{ width: '100%' }}
                 />
               </div>
 
