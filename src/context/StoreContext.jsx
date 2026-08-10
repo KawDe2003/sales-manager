@@ -252,6 +252,33 @@ export default function StoreContextProvider({ children }) {
     { id: 'att-3', employeeId: 'emp-3', date: new Date().toISOString().split('T')[0], status: 'On Leave', checkIn: '', checkOut: '', otHours: 0 }
   ];
 
+  const sampleLeaveRequests = [
+    {
+      id: 'leave-1',
+      employeeId: 'emp-3',
+      employeeName: 'Mahesh Kumara',
+      leaveType: 'Annual Leave',
+      startDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
+      days: 2,
+      reason: 'Personal family event',
+      status: 'Approved'
+    }
+  ];
+
+  const sampleSalaryAdvances = [
+    {
+      id: 'adv-1',
+      employeeId: 'emp-1',
+      employeeName: 'Kasun Rajapaksha',
+      amount: 15000,
+      requestDate: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0],
+      reason: 'Emergency home repair',
+      status: 'Issued',
+      deductedInMonth: ''
+    }
+  ];
+
   const [employees, setEmployees] = useState(() => {
     const saved = localStorage.getItem('gym_employees');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleEmployees;
@@ -267,6 +294,16 @@ export default function StoreContextProvider({ children }) {
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleAttendanceLogs;
   });
 
+  const [leaveRequests, setLeaveRequests] = useState(() => {
+    const saved = localStorage.getItem('gym_leave_requests');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleLeaveRequests;
+  });
+
+  const [salaryAdvances, setSalaryAdvances] = useState(() => {
+    const saved = localStorage.getItem('gym_salary_advances');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSalaryAdvances;
+  });
+
   const [featureToggles, setFeatureToggles] = useState(() => {
     const saved = localStorage.getItem('gym_feature_toggles');
     return saved ? { ...defaultFeatureToggles, ...JSON.parse(saved) } : defaultFeatureToggles;
@@ -277,6 +314,8 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_employees', JSON.stringify(employees)); }, [employees]);
   useEffect(() => { localStorage.setItem('gym_payruns', JSON.stringify(payruns)); }, [payruns]);
   useEffect(() => { localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
+  useEffect(() => { localStorage.setItem('gym_leave_requests', JSON.stringify(leaveRequests)); }, [leaveRequests]);
+  useEffect(() => { localStorage.setItem('gym_salary_advances', JSON.stringify(salaryAdvances)); }, [salaryAdvances]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
@@ -2160,6 +2199,59 @@ export default function StoreContextProvider({ children }) {
     };
   };
 
+  const addLeaveRequest = (leaveData) => {
+    const newReq = {
+      ...leaveData,
+      id: `leave-${Date.now()}`,
+      status: leaveData.status || 'Pending'
+    };
+    setLeaveRequests(prev => [newReq, ...prev]);
+    showNotification(`Leave request logged for ${newReq.employeeName}!`, 'success');
+  };
+
+  const updateLeaveStatus = (id, status) => {
+    setLeaveRequests(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    showNotification(`Leave request status updated to ${status}!`, status === 'Approved' ? 'success' : 'info');
+  };
+
+  const deleteLeaveRequest = (id) => {
+    setLeaveRequests(prev => prev.filter(l => l.id !== id));
+    showNotification('Leave request deleted.', 'info');
+  };
+
+  const addSalaryAdvance = (advData) => {
+    const newAdv = {
+      ...advData,
+      id: `adv-${Date.now()}`,
+      status: 'Issued',
+      amount: Number(advData.amount) || 0,
+      requestDate: advData.requestDate || new Date().toISOString().split('T')[0]
+    };
+    setSalaryAdvances(prev => [newAdv, ...prev]);
+
+    // Auto-post Advance to General Ledger
+    try {
+      createJournalEntry({
+        date: newAdv.requestDate,
+        reference: `ADV-${newAdv.employeeName}`,
+        description: `Salary Advance issued to ${newAdv.employeeName}`,
+        lines: [
+          { accountId: '1100', debit: newAdv.amount, credit: 0 },
+          { accountId: '1020', debit: 0, credit: newAdv.amount }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Salary Advance Journal Entry Failed]', err);
+    }
+
+    showNotification(`Salary advance of LKR ${newAdv.amount.toLocaleString()} issued to ${newAdv.employeeName}!`, 'success');
+  };
+
+  const deleteSalaryAdvance = (id) => {
+    setSalaryAdvances(prev => prev.filter(a => a.id !== id));
+    showNotification('Salary advance entry deleted.', 'info');
+  };
+
 
 
   // Automated Scheduler for Renewals and Invoices
@@ -2498,6 +2590,8 @@ export default function StoreContextProvider({ children }) {
       employees, addEmployee, updateEmployee, deleteEmployee,
       payruns, processPayrun,
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,
+      leaveRequests, addLeaveRequest, updateLeaveStatus, deleteLeaveRequest,
+      salaryAdvances, addSalaryAdvance, deleteSalaryAdvance,
       featureToggles, updateFeatureToggle,
       isStoreLoading,
       confirmAction
