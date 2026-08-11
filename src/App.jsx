@@ -8,30 +8,29 @@ import {
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
-
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Customers = lazy(() => import('./pages/Customers'));
-const Quotations = lazy(() => import('./pages/Quotations'));
-const Invoices = lazy(() => import('./pages/Invoices'));
-const Reports = lazy(() => import('./pages/Reports'));
-const Ledger = lazy(() => import('./pages/Ledger'));
-const Inventory = lazy(() => import('./pages/Inventory'));
-const Settings = lazy(() => import('./pages/Settings'));
-const SharedDocument = lazy(() => import('./pages/SharedDocument'));
-const Leads = lazy(() => import('./pages/Leads'));
-const Logs = lazy(() => import('./pages/Logs'));
-const Payments = lazy(() => import('./pages/Payments'));
-const Debtors = lazy(() => import('./pages/Debtors'));
-const FixedAssets = lazy(() => import('./pages/FixedAssets'));
-const Tasks = lazy(() => import('./pages/Tasks'));
-const Expenses = lazy(() => import('./pages/Expenses'));
-const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
-const SmsPortal = lazy(() => import('./pages/SmsPortal'));
-const Procurement = lazy(() => import('./pages/Procurement'));
-const HR = lazy(() => import('./pages/HR'));
-
 import { AuthProvider, useAuth } from './context/AuthContext';
-const Login = lazy(() => import('./pages/Login'));
+
+import Dashboard from './pages/Dashboard';
+import Customers from './pages/Customers';
+import Quotations from './pages/Quotations';
+import Invoices from './pages/Invoices';
+import Reports from './pages/Reports';
+import Ledger from './pages/Ledger';
+import Inventory from './pages/Inventory';
+import Settings from './pages/Settings';
+import SharedDocument from './pages/SharedDocument';
+import Leads from './pages/Leads';
+import Logs from './pages/Logs';
+import Payments from './pages/Payments';
+import Debtors from './pages/Debtors';
+import FixedAssets from './pages/FixedAssets';
+import Tasks from './pages/Tasks';
+import Expenses from './pages/Expenses';
+import CustomerPortal from './pages/CustomerPortal';
+import SmsPortal from './pages/SmsPortal';
+import Procurement from './pages/Procurement';
+import HR from './pages/HR';
+import Login from './pages/Login';
 
 const LoadingFallback = () => (
   <div style={{ 
@@ -764,29 +763,27 @@ const AppContent = () => {
         {/* ===== MAIN CONTENT ===== */}
         <main className={`main-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
-                <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
-                <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
-                <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
-                <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
-                <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
-                <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
-                <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
-                <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
-                <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
-                <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />
-                <Route path="/debtors" element={<ProtectedRoute requiredPermission={['view_financials', 'view_debtors']} userPermissions={userPermissions}><Debtors /></ProtectedRoute>} />
-                <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
-                <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
-                <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
-                <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
-                <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+              <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
+              <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
+              <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
+              <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
+              <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
+              <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
+              <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
+              <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
+              <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
+              <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />
+              <Route path="/debtors" element={<ProtectedRoute requiredPermission={['view_financials', 'view_debtors']} userPermissions={userPermissions}><Debtors /></ProtectedRoute>} />
+              <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
+              <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
+              <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
+              <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
+              <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
         </main>
       </div>

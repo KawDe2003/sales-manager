@@ -8,7 +8,7 @@ export const StoreContext = createContext();
 
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
-  const [isStoreLoading, setIsStoreLoading] = useState(true);
+  const [isStoreLoading, setIsStoreLoading] = useState(false);
 
   // Initialize sample dummy data
   const sampleCustomers = [
