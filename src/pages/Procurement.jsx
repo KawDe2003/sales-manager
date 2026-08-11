@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { 
   ShoppingBag, Truck, Plus, Search, Filter, CheckCircle2, Clock, 
   AlertTriangle, ArrowUpRight, DollarSign, PackageCheck, Building2, 
-  Trash2, Edit, X, ArrowRight, RefreshCw, FileText
+  Trash2, Edit, X, ArrowRight, RefreshCw, FileText, Printer
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
@@ -22,6 +22,7 @@ const Procurement = () => {
   const [showPOModal, setShowPOModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [viewingPO, setViewingPO] = useState(null);
 
   // New PO Form State
   const [poForm, setPoForm] = useState({
