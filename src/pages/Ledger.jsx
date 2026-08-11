@@ -17,7 +17,17 @@ const Ledger = () => {
     showNotification 
   } = useContext(StoreContext);
 
-  const [activeTab, setActiveTab] = useState('coa'); // 'coa' | 'statement' | 'vouchers' | 'trial'
+  const [activeTab, setActiveTab] = useState('coa'); // 'coa' | 'statement' | 'vouchers' | 'reconciliation' | 'trial'
+  const [reconciledLineIds, setReconciledLineIds] = useState(new Set());
+
+  const toggleReconcileLine = (lineId) => {
+    setReconciledLineIds(prev => {
+      const next = new Set(prev);
+      if (next.has(lineId)) next.delete(lineId);
+      else next.add(lineId);
+      return next;
+    });
+  };
 
   // Chart of Accounts Filters & Search
   const [coaSearch, setCoaSearch] = useState('');
@@ -646,6 +656,7 @@ const Ledger = () => {
           { id: 'coa', label: `Chart of Accounts (${accounts.length})`, icon: BookOpen },
           { id: 'statement', label: 'Account Ledger Statement', icon: FileText },
           { id: 'vouchers', label: `Journal Vouchers (${journalEntries.length})`, icon: Layers },
+          { id: 'reconciliation', label: 'Bank Reconciliation', icon: ShieldCheck },
           { id: 'trial', label: 'Trial Balance', icon: Scale }
         ].map(tab => {
           const Icon = tab.icon;
@@ -1285,6 +1296,116 @@ const Ledger = () => {
                           </tr>
                         )}
                       </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: BANK RECONCILIATION */}
+      {activeTab === 'reconciliation' && (
+        <div style={{ 
+          background: 'rgba(15, 23, 42, 0.75)', 
+          border: '1px solid rgba(255, 255, 255, 0.1)', 
+          borderRadius: '24px', 
+          padding: '28px',
+          backdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                Bank Account Statement Reconciliation
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Match General Ledger cash/bank entries against physical bank statement records.
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Bank GL Account:</span>
+              <select 
+                value={selectedAccountId} 
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: '10px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.85rem' }}
+              >
+                {accounts.filter(a => a.type === 'asset').map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.code} - {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>GL BOOK BALANCE</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', fontFamily: 'monospace', marginTop: '4px' }}>
+                LKR {(accountBalances.get(selectedAccountId)?.net || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>RECONCILED CLEARED</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#34d399', fontFamily: 'monospace', marginTop: '4px' }}>
+                LKR {selectedAccountLines.filter(l => reconciledLineIds.has(l.id)).reduce((s, l) => s + (Number(l.debit || 0) - Number(l.credit || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>UNRECONCILED DIFFERENCE</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', marginTop: '4px' }}>
+                LKR {selectedAccountLines.filter(l => !reconciledLineIds.has(l.id)).reduce((s, l) => s + (Number(l.debit || 0) - Number(l.credit || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                  <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>DATE</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>VOUCHER REF</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>NARRATION / PARTICULARS</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'right', fontSize: '0.72rem', fontWeight: 800 }}>INFLOW (DEBIT)</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'right', fontSize: '0.72rem', fontWeight: 800 }}>OUTFLOW (CREDIT)</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800 }}>RECONCILED</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'right', fontSize: '0.72rem', fontWeight: 800 }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedAccountLines.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                      No ledger transaction lines for this account.
+                    </td>
+                  </tr>
+                ) : (
+                  selectedAccountLines.map((line, idx) => {
+                    const entry = entryMap.get(line.journalEntryId);
+                    const isReconciled = reconciledLineIds.has(line.id);
+                    return (
+                      <tr key={line.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                        <td style={{ padding: '14px 18px', fontFamily: 'monospace', color: '#cbd5e1' }}>{entry?.date || '-'}</td>
+                        <td style={{ padding: '14px 18px', fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace' }}>{entry?.reference || '-'}</td>
+                        <td style={{ padding: '14px 18px', color: '#cbd5e1' }}>{entry?.description || line.description || '-'}</td>
+                        <td style={{ padding: '14px 18px', textAlign: 'right', color: '#34d399', fontFamily: 'monospace' }}>{Number(line.debit) > 0 ? `LKR ${Number(line.debit).toLocaleString()}` : '-'}</td>
+                        <td style={{ padding: '14px 18px', textAlign: 'right', color: '#fb7185', fontFamily: 'monospace' }}>{Number(line.credit) > 0 ? `LKR ${Number(line.credit).toLocaleString()}` : '-'}</td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px', background: isReconciled ? 'rgba(52, 211, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)', color: isReconciled ? '#34d399' : '#fbbf24' }}>
+                            {isReconciled ? 'Cleared' : 'Unreconciled'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '4px 12px', fontSize: '0.78rem', color: isReconciled ? '#fb7185' : '#34d399', border: `1px solid ${isReconciled ? 'rgba(251, 113, 133, 0.3)' : 'rgba(52, 211, 153, 0.3)'}` }}
+                            onClick={() => toggleReconcileLine(line.id)}
+                          >
+                            {isReconciled ? 'Unmark' : 'Reconcile Match'}
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })
                 )}

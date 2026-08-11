@@ -315,6 +315,36 @@ export default function StoreContextProvider({ children }) {
     }
   ];
 
+  const samplePerformanceReviews = [
+    {
+      id: 'rev-1',
+      employeeId: 'emp-1',
+      employeeName: 'Kasun Rajapaksha',
+      reviewDate: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0],
+      reviewer: 'Manager',
+      punctualityRating: 5,
+      trainingQualityRating: 4,
+      clientEngagementRating: 5,
+      teamworkRating: 4,
+      overallScore: 4.5,
+      comments: 'Exceptional client retention rate and gym floor discipline.'
+    }
+  ];
+
+  const sampleExpenseClaims = [
+    {
+      id: 'claim-1',
+      employeeId: 'emp-2',
+      employeeName: 'Nimali Perera',
+      claimDate: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
+      category: 'Gym Equipment Supplies',
+      description: 'Emergency cable replacement parts purchased locally',
+      amount: 4500,
+      status: 'Approved',
+      disbursedDate: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0]
+    }
+  ];
+
   const [salaryAdvances, setSalaryAdvances] = useState(() => {
     const saved = localStorage.getItem('gym_salary_advances');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSalaryAdvances;
@@ -323,6 +353,16 @@ export default function StoreContextProvider({ children }) {
   const [stockTransfers, setStockTransfers] = useState(() => {
     const saved = localStorage.getItem('gym_stock_transfers');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleStockTransfers;
+  });
+
+  const [performanceReviews, setPerformanceReviews] = useState(() => {
+    const saved = localStorage.getItem('gym_performance_reviews');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePerformanceReviews;
+  });
+
+  const [expenseClaims, setExpenseClaims] = useState(() => {
+    const saved = localStorage.getItem('gym_expense_claims');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenseClaims;
   });
 
   const [featureToggles, setFeatureToggles] = useState(() => {
@@ -338,6 +378,8 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_leave_requests', JSON.stringify(leaveRequests)); }, [leaveRequests]);
   useEffect(() => { localStorage.setItem('gym_salary_advances', JSON.stringify(salaryAdvances)); }, [salaryAdvances]);
   useEffect(() => { localStorage.setItem('gym_stock_transfers', JSON.stringify(stockTransfers)); }, [stockTransfers]);
+  useEffect(() => { localStorage.setItem('gym_performance_reviews', JSON.stringify(performanceReviews)); }, [performanceReviews]);
+  useEffect(() => { localStorage.setItem('gym_expense_claims', JSON.stringify(expenseClaims)); }, [expenseClaims]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
@@ -2342,6 +2384,113 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Auto-Renewal Engine complete: ${generatedCount} recurring invoices generated!`, 'success');
   };
 
+  // --- HR PERFORMANCE APPRAISALS ---
+  const addPerformanceReview = (reviewData) => {
+    const p = Number(reviewData.punctualityRating) || 5;
+    const t = Number(reviewData.trainingQualityRating) || 5;
+    const c = Number(reviewData.clientEngagementRating) || 5;
+    const w = Number(reviewData.teamworkRating) || 5;
+    const overallScore = Math.round(((p + t + c + w) / 4) * 10) / 10;
+
+    const newRev = {
+      ...reviewData,
+      id: `rev-${Date.now()}`,
+      overallScore,
+      reviewDate: reviewData.reviewDate || new Date().toISOString().split('T')[0]
+    };
+
+    setPerformanceReviews(prev => [newRev, ...prev]);
+    showNotification(`Performance Appraisal logged for ${newRev.employeeName} (Score: ${overallScore}/5)!`, 'success');
+  };
+
+  const deletePerformanceReview = (id) => {
+    setPerformanceReviews(prev => prev.filter(r => r.id !== id));
+    showNotification('Performance review deleted.', 'info');
+  };
+
+  // --- HR STAFF EXPENSE CLAIMS & REIMBURSEMENTS ---
+  const addExpenseClaim = (claimData) => {
+    const newClaim = {
+      ...claimData,
+      id: `claim-${Date.now()}`,
+      status: 'Pending',
+      amount: Number(claimData.amount) || 0,
+      claimDate: claimData.claimDate || new Date().toISOString().split('T')[0]
+    };
+
+    setExpenseClaims(prev => [newClaim, ...prev]);
+    showNotification(`Expense claim of LKR ${newClaim.amount.toLocaleString()} submitted by ${newClaim.employeeName}!`, 'success');
+  };
+
+  const updateExpenseClaimStatus = (id, status) => {
+    setExpenseClaims(prev => prev.map(cl => {
+      if (cl.id === id) {
+        if (status === 'Approved' && cl.status !== 'Approved') {
+          try {
+            createJournalEntry({
+              date: new Date().toISOString().split('T')[0],
+              reference: `REIMB-${cl.employeeName}`,
+              description: `Staff Expense Reimbursement to ${cl.employeeName}: ${cl.description}`,
+              lines: [
+                { accountId: '5010', debit: cl.amount, credit: 0 },
+                { accountId: '1020', debit: 0, credit: cl.amount }
+              ]
+            });
+          } catch (err) {
+            console.warn('[Staff Reimbursement Journal Error]', err);
+          }
+        }
+        return { 
+          ...cl, 
+          status,
+          disbursedDate: status === 'Approved' ? new Date().toISOString().split('T')[0] : cl.disbursedDate
+        };
+      }
+      return cl;
+    }));
+    showNotification(`Expense claim ${status.toLowerCase()}!`, status === 'Approved' ? 'success' : 'info');
+  };
+
+  const deleteExpenseClaim = (id) => {
+    setExpenseClaims(prev => prev.filter(c => c.id !== id));
+    showNotification('Expense claim deleted.', 'info');
+  };
+
+  // --- FIXED ASSETS DEPRECIATION RUN ENGINE ---
+  const runFixedAssetDepreciation = () => {
+    if (fixedAssets.length === 0) {
+      showNotification('No fixed assets registered to depreciate.', 'info');
+      return;
+    }
+
+    let totalMonthlyDep = 0;
+    fixedAssets.forEach(fa => {
+      const cost = Number(fa.costPrice || fa.purchaseCost) || 0;
+      const usefulYears = Number(fa.usefulLifeYears) || 5;
+      const salvage = Number(fa.salvageValue) || 0;
+      const monthlyDep = Math.round(Math.max(0, (cost - salvage) / (usefulYears * 12)));
+      totalMonthlyDep += monthlyDep;
+    });
+
+    if (totalMonthlyDep > 0) {
+      try {
+        createJournalEntry({
+          date: new Date().toISOString().split('T')[0],
+          reference: `DEP-RUN-${new Date().toISOString().slice(0,7)}`,
+          description: `Monthly Fixed Assets Depreciation Run (${fixedAssets.length} assets)`,
+          lines: [
+            { accountId: '5040', debit: totalMonthlyDep, credit: 0 },
+            { accountId: '1590', debit: 0, credit: totalMonthlyDep }
+          ]
+        });
+      } catch (err) {
+        console.warn('[Depreciation Run Journal Error]', err);
+      }
+    }
+
+    showNotification(`Monthly Fixed Asset Depreciation of LKR ${totalMonthlyDep.toLocaleString()} posted to Ledger!`, 'success');
+  };
+
 
 
   // Automated Scheduler for Renewals and Invoices
@@ -2684,6 +2833,9 @@ export default function StoreContextProvider({ children }) {
       salaryAdvances, addSalaryAdvance, deleteSalaryAdvance,
       stockTransfers, addStockTransfer, updateStockTransferStatus, deleteStockTransfer,
       generateRecurringInvoices,
+      performanceReviews, addPerformanceReview, deletePerformanceReview,
+      expenseClaims, addExpenseClaim, updateExpenseClaimStatus, deleteExpenseClaim,
+      runFixedAssetDepreciation,
       featureToggles, updateFeatureToggle,
       isStoreLoading,
       confirmAction

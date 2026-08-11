@@ -14,12 +14,35 @@ const HR = () => {
     payruns = [], processPayrun, confirmAction, showNotification,
     attendanceLogs = [], markAttendance, getMonthlyAttendanceSummary,
     leaveRequests = [], addLeaveRequest, updateLeaveStatus, deleteLeaveRequest,
-    salaryAdvances = [], addSalaryAdvance, deleteSalaryAdvance
+    salaryAdvances = [], addSalaryAdvance, deleteSalaryAdvance,
+    performanceReviews = [], addPerformanceReview, deletePerformanceReview,
+    expenseClaims = [], addExpenseClaim, updateExpenseClaimStatus, deleteExpenseClaim
   } = useContext(StoreContext) || {};
 
-  const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'attendance' | 'leaves' | 'advances' | 'payruns'
+  const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'attendance' | 'leaves' | 'advances' | 'appraisals' | 'claims' | 'payruns'
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
+
+  // Appraisal Form Modal State
+  const [showAppraisalModal, setShowAppraisalModal] = useState(false);
+  const [appraisalForm, setAppraisalForm] = useState({
+    employeeId: '',
+    punctualityRating: 5,
+    trainingQualityRating: 5,
+    clientEngagementRating: 5,
+    teamworkRating: 5,
+    comments: ''
+  });
+
+  // Expense Claim Modal State
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimForm, setClaimForm] = useState({
+    employeeId: '',
+    category: 'Gym Equipment Supplies',
+    amount: 5000,
+    description: '',
+    claimDate: new Date().toISOString().split('T')[0]
+  });
 
   // Attendance Sheet State
   const [attDate, setAttDate] = useState(new Date().toISOString().split('T')[0]);
@@ -371,6 +394,8 @@ const HR = () => {
               { id: 'attendance', label: 'Daily Attendance' },
               { id: 'leaves', label: `Leaves (${leaveRequests.length})` },
               { id: 'advances', label: `Salary Advances (${salaryAdvances.length})` },
+              { id: 'appraisals', label: `Appraisals (${performanceReviews.length})` },
+              { id: 'claims', label: `Expense Claims (${expenseClaims.length})` },
               { id: 'payruns', label: `Payruns (${payruns.length})` }
             ].map(tab => (
               <button 
@@ -779,6 +804,180 @@ const HR = () => {
                         >
                           <Trash2 size={14} />
                         </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== TAB: PERFORMANCE APPRAISALS ===== */}
+      {activeTab === 'appraisals' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Staff Performance Appraisals & KPI Reviews
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Evaluate employee punctuality, training quality, client engagement, and teamwork scores.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setShowAppraisalModal(true)}>
+              <Plus size={16} /> Conduct Appraisal
+            </button>
+          </div>
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>EMPLOYEE</th>
+                  <th>REVIEW DATE</th>
+                  <th>REVIEWER</th>
+                  <th>RATINGS (P / T / C / W)</th>
+                  <th>OVERALL SCORE</th>
+                  <th>COMMENTS</th>
+                  <th style={{ textAlign: 'right' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {performanceReviews.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No performance reviews recorded.
+                    </td>
+                  </tr>
+                ) : (
+                  performanceReviews.map(r => (
+                    <tr key={r.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.employeeName}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.reviewDate}</td>
+                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.reviewer}</td>
+                      <td style={{ fontSize: '0.82rem' }}>
+                        {r.punctualityRating}★ / {r.trainingQualityRating}★ / {r.clientEngagementRating}★ / {r.teamworkRating}★
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '0.85rem', fontWeight: 900, padding: '4px 10px', borderRadius: '6px',
+                          background: r.overallScore >= 4.0 ? 'rgba(34, 197, 94, 0.14)' : 'rgba(245, 158, 11, 0.14)',
+                          color: r.overallScore >= 4.0 ? 'var(--success)' : 'var(--warning)'
+                        }}>
+                          {r.overallScore} / 5.0
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.comments || '-'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          style={{ color: 'var(--danger)', padding: '6px' }}
+                          onClick={() => deletePerformanceReview(r.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== TAB: EXPENSE CLAIMS ===== */}
+      {activeTab === 'claims' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Staff Expense Claims & Out-of-Pocket Reimbursements
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Approve employee reimbursement claims with automated General Ledger journal entries.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setShowClaimModal(true)}>
+              <Plus size={16} /> Submit Expense Claim
+            </button>
+          </div>
+
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>EMPLOYEE</th>
+                  <th>CLAIM DATE</th>
+                  <th>CATEGORY</th>
+                  <th>DESCRIPTION</th>
+                  <th>AMOUNT</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenseClaims.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No expense reimbursement claims recorded.
+                    </td>
+                  </tr>
+                ) : (
+                  expenseClaims.map(c => (
+                    <tr key={c.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.employeeName}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.claimDate}</td>
+                      <td>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-secondary)' }}>
+                          {c.category}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{c.description || '-'}</td>
+                      <td>
+                        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                          LKR {(Number(c.amount) || 0).toLocaleString()}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px',
+                          background: c.status === 'Approved' ? 'rgba(34, 197, 94, 0.14)' : c.status === 'Rejected' ? 'rgba(244, 63, 94, 0.14)' : 'rgba(245, 158, 11, 0.14)',
+                          color: c.status === 'Approved' ? 'var(--success)' : c.status === 'Rejected' ? 'var(--danger)' : 'var(--warning)'
+                        }}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="flex items-center justify-end gap-2">
+                          {c.status === 'Pending' && (
+                            <>
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: 'var(--success)' }}
+                                onClick={() => updateExpenseClaimStatus(c.id, 'Approved')}
+                              >
+                                Approve & Disburse
+                              </button>
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: 'var(--danger)' }}
+                                onClick={() => updateExpenseClaimStatus(c.id, 'Rejected')}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: 'var(--danger)', padding: '6px' }}
+                            onClick={() => deleteExpenseClaim(c.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1540,6 +1739,174 @@ const HR = () => {
                 <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-mono)' }}>LKR {(Number(viewingPayslip.netSalary) || 0).toLocaleString()}</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: CONDUCT PERFORMANCE APPRAISAL ===== */}
+      {showAppraisalModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          padding: '20px', animation: 'backdropFade 0.14s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '520px', padding: 0, borderRadius: '20px',
+            border: '1px solid var(--panel-border)', boxShadow: '0 30px 70px rgba(0,0,0,0.7)',
+            animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Log Performance Appraisal Review
+              </h3>
+              <button onClick={() => setShowAppraisalModal(false)} className="btn btn-secondary" style={{ padding: '6px' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!appraisalForm.employeeId) {
+                showNotification('Please select staff member', 'error');
+                return;
+              }
+              const emp = employees.find(e => e.id === appraisalForm.employeeId);
+              addPerformanceReview({
+                ...appraisalForm,
+                employeeName: emp ? emp.name : 'Unknown Staff',
+                reviewer: 'Manager'
+              });
+              setShowAppraisalModal(false);
+            }} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+              <div>
+                <label className="form-label">SELECT STAFF MEMBER *</label>
+                <CustomSelect 
+                  value={appraisalForm.employeeId}
+                  onChange={(val) => setAppraisalForm({ ...appraisalForm, employeeId: val })}
+                  options={activeStaff.map(e => ({ value: e.id, label: `${e.name} (${e.employeeId})` }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">PUNCTUALITY (1-5★)</label>
+                  <input type="number" min="1" max="5" className="form-input" value={appraisalForm.punctualityRating} onChange={e => setAppraisalForm({ ...appraisalForm, punctualityRating: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="form-label">TRAINING QUALITY (1-5★)</label>
+                  <input type="number" min="1" max="5" className="form-input" value={appraisalForm.trainingQualityRating} onChange={e => setAppraisalForm({ ...appraisalForm, trainingQualityRating: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="form-label">CLIENT ENGAGEMENT (1-5★)</label>
+                  <input type="number" min="1" max="5" className="form-input" value={appraisalForm.clientEngagementRating} onChange={e => setAppraisalForm({ ...appraisalForm, clientEngagementRating: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="form-label">TEAMWORK (1-5★)</label>
+                  <input type="number" min="1" max="5" className="form-input" value={appraisalForm.teamworkRating} onChange={e => setAppraisalForm({ ...appraisalForm, teamworkRating: e.target.value })} required />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">APPRAISAL COMMENTS / FEEDBACK</label>
+                <textarea 
+                  className="form-textarea"
+                  rows="2"
+                  value={appraisalForm.comments}
+                  onChange={(e) => setAppraisalForm({ ...appraisalForm, comments: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAppraisalModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Appraisal</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: SUBMIT EXPENSE CLAIM ===== */}
+      {showClaimModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          padding: '20px', animation: 'backdropFade 0.14s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '520px', padding: 0, borderRadius: '20px',
+            border: '1px solid var(--panel-border)', boxShadow: '0 30px 70px rgba(0,0,0,0.7)',
+            animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Submit Staff Expense Claim
+              </h3>
+              <button onClick={() => setShowClaimModal(false)} className="btn btn-secondary" style={{ padding: '6px' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!claimForm.employeeId) {
+                showNotification('Please select staff member', 'error');
+                return;
+              }
+              const emp = employees.find(e => e.id === claimForm.employeeId);
+              addExpenseClaim({
+                ...claimForm,
+                employeeName: emp ? emp.name : 'Unknown Staff'
+              });
+              setShowClaimModal(false);
+            }} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+              <div>
+                <label className="form-label">SELECT STAFF MEMBER *</label>
+                <CustomSelect 
+                  value={claimForm.employeeId}
+                  onChange={(val) => setClaimForm({ ...claimForm, employeeId: val })}
+                  options={activeStaff.map(e => ({ value: e.id, label: `${e.name} (${e.employeeId})` }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">EXPENSE CATEGORY</label>
+                  <CustomSelect 
+                    value={claimForm.category}
+                    onChange={(val) => setClaimForm({ ...claimForm, category: val })}
+                    options={[
+                      { value: 'Gym Equipment Supplies', label: 'Gym Equipment Supplies' },
+                      { value: 'Travel & Transport', label: 'Travel & Transport' },
+                      { value: 'Office Stationary', label: 'Office Stationary' },
+                      { value: 'Staff Welfare / Meals', label: 'Staff Welfare / Meals' },
+                      { value: 'Other Miscellaneous', label: 'Other Miscellaneous' }
+                    ]}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">CLAIM AMOUNT (LKR) *</label>
+                  <input type="number" className="form-input" value={claimForm.amount} onChange={e => setClaimForm({ ...claimForm, amount: e.target.value })} required />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">CLAIM DESCRIPTION / RECEIPT DETAILS</label>
+                <textarea 
+                  className="form-textarea"
+                  rows="2"
+                  value={claimForm.description}
+                  onChange={(e) => setClaimForm({ ...claimForm, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowClaimModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Submit Claim</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
