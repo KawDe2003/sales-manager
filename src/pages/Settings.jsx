@@ -733,15 +733,43 @@ const Settings = () => {
               />
             </div>
 
-            <div style={{ marginTop: '24px', padding: '24px', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.4), rgba(30, 41, 59, 0.2))', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
+            <div style={{ 
+              marginTop: '24px', 
+              padding: '24px', 
+              background: 'var(--subtle-bg)', 
+              borderRadius: '16px', 
+              border: '1px solid var(--panel-border)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
+            }}>
               <div className="flex justify-between items-end" style={{ marginBottom: '20px' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepaid Wallet Balance</h3>
+                  <h3 style={{ 
+                    margin: '0 0 6px 0', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 800, 
+                    color: 'var(--text-secondary)', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.08em' 
+                  }}>
+                    Prepaid Wallet Balance
+                  </h3>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 800, color: smsConfig.balance === 'Error' ? 'var(--danger)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
+                    <span style={{ 
+                      fontSize: '2.2rem', 
+                      fontWeight: 900, 
+                      color: smsConfig.balance === 'Error' ? 'var(--danger)' : '#10b981', 
+                      fontFamily: 'var(--font-display)',
+                      lineHeight: 1
+                    }}>
                       {smsConfig.balance !== undefined ? smsConfig.balance : '0.00'}
                     </span>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>SMS Credits</span>
+                    <span style={{ 
+                      fontSize: '0.88rem', 
+                      color: 'var(--text-primary)', 
+                      fontWeight: 700 
+                    }}>
+                      SMS Credits
+                    </span>
                   </div>
                 </div>
                 <button
@@ -749,9 +777,21 @@ const Settings = () => {
                   onClick={handleRefreshBalance}
                   disabled={balanceLoading}
                   className="btn btn-secondary"
-                  style={{ animation: balanceLoading ? 'pulse 1s infinite' : 'none' }}
+                  style={{ 
+                    animation: balanceLoading ? 'pulse 1s infinite' : 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--panel-border)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--text-primary)'
+                  }}
                 >
-                  <RefreshCw size={16} className={balanceLoading ? 'spin-anim' : ''} /> Sync
+                  <RefreshCw size={15} className={balanceLoading ? 'spin-anim' : ''} /> Sync
                 </button>
               </div>
 
@@ -760,7 +800,21 @@ const Settings = () => {
                 target="_blank" 
                 rel="noreferrer"
                 className="btn btn-primary" 
-                style={{ width: '100%', background: 'linear-gradient(to right, #3b82f6, #2563eb)' }}
+                style={{ 
+                  width: '100%', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                  textDecoration: 'none'
+                }}
               >
                 <CreditCard size={18} /> Add Wallet Credits
               </a>

@@ -1692,7 +1692,7 @@ const Ledger = () => {
                   Post Double-Entry Journal Voucher
                 </h3>
                 <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                  All manual postings must balance ($\sum \text{Debits} = \sum \text{Credits}$).
+                  All manual postings must balance (Total Debits = Total Credits).
                 </p>
               </div>
 
