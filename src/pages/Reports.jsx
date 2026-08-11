@@ -222,14 +222,18 @@ const Reports = () => {
         </div>
 
         {periodPreset === 'custom' && (
-          <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid var(--panel-border)', marginTop: '8px' }}>
-            <div className="flex items-center gap-2" style={{ flex: '1 1 200px', maxWidth: '260px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Start Date:</span>
-              <DatePicker value={customStartDate} onChange={setCustomStartDate} placeholder="Start Date" />
+          <div className="flex items-center gap-4 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--panel-border)', marginTop: '8px' }}>
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>Start Date:</span>
+              <div style={{ width: '180px' }}>
+                <DatePicker value={customStartDate} onChange={setCustomStartDate} placeholder="Start Date" />
+              </div>
             </div>
-            <div className="flex items-center gap-2" style={{ flex: '1 1 200px', maxWidth: '260px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>End Date:</span>
-              <DatePicker value={customEndDate} onChange={setCustomEndDate} placeholder="End Date" />
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>End Date:</span>
+              <div style={{ width: '180px' }}>
+                <DatePicker value={customEndDate} onChange={setCustomEndDate} placeholder="End Date" />
+              </div>
             </div>
           </div>
         )}
