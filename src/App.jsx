@@ -288,13 +288,11 @@ const AppContent = () => {
   if (isCustomerPortal) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/portal" element={<CustomerPortal />} />
-            <Route path="/pay" element={<CustomerPortal />} />
-            <Route path="/pay/:phone" element={<CustomerPortal />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          <Route path="/portal" element={<CustomerPortal />} />
+          <Route path="/pay" element={<CustomerPortal />} />
+          <Route path="/pay/:phone" element={<CustomerPortal />} />
+        </Routes>
       </div>
     );
   }
@@ -303,11 +301,9 @@ const AppContent = () => {
   if (isPublicShareView) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/share/:type/:id" element={<SharedDocument />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          <Route path="/share/:type/:id" element={<SharedDocument />} />
+        </Routes>
       </div>
     );
   }
@@ -318,17 +314,10 @@ const AppContent = () => {
       return <Navigate to="/" replace />;
     }
     return (
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+      </Routes>
     );
-  }
-
-  // Fully Cloud: Show global loader if store is still fetching for authenticated user
-  if (user && isStoreLoading) {
-    return <LoadingFallback />;
   }
 
   return (

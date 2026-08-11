@@ -1327,7 +1327,6 @@ export default function StoreContextProvider({ children }) {
     
     try {
       console.log('[Supabase Sync] Fetching all business data...');
-      setIsStoreLoading(true);
 
       const safeFetch = async (table, query) => {
         try {
