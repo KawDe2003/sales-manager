@@ -6,6 +6,39 @@ import ConfirmModal from '../components/ConfirmModal';
 
 export const StoreContext = createContext();
 
+export const PLAN_CONFIGS = {
+  starter: {
+    id: 'starter',
+    name: 'Starter Plan',
+    price: 'LKR 15,000 / mo',
+    maxBranches: 1,
+    maxUsers: 2,
+    maxCustomers: 50,
+    maxSmsCredits: 100,
+    maxQuotations: 20
+  },
+  professional: {
+    id: 'professional',
+    name: 'Professional Plan',
+    price: 'LKR 42,000 / mo',
+    maxBranches: 3,
+    maxUsers: 10,
+    maxCustomers: 250,
+    maxSmsCredits: 500,
+    maxQuotations: Infinity
+  },
+  enterprise: {
+    id: 'enterprise',
+    name: 'Enterprise Plan',
+    price: 'LKR 95,000 / mo',
+    maxBranches: Infinity,
+    maxUsers: Infinity,
+    maxCustomers: Infinity,
+    maxSmsCredits: 5000,
+    maxQuotations: Infinity
+  }
+};
+
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(false);
@@ -363,6 +396,11 @@ export default function StoreContextProvider({ children }) {
   const [expenseClaims, setExpenseClaims] = useState(() => {
     const saved = localStorage.getItem('gym_expense_claims');
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenseClaims;
+  });
+
+  const [currentPlan, setCurrentPlan] = useState(() => {
+    const saved = localStorage.getItem('gym_current_plan');
+    return saved || 'enterprise';
   });
 
   const [featureToggles, setFeatureToggles] = useState(() => {
@@ -2228,6 +2266,79 @@ export default function StoreContextProvider({ children }) {
     });
   };
 
+  const applyPlanPreset = (planName) => {
+    let preset = {};
+    if (planName === 'starter') {
+      preset = {
+        tasks: true, quotations: true, debtors: true,
+        leads: false, inventory: false, procurement: false,
+        hrPayroll: false, expenses: false, fixedAssets: false,
+        ledger: false, smsPortal: false
+      };
+    } else if (planName === 'professional') {
+      preset = {
+        tasks: true, quotations: true, debtors: true,
+        leads: true, inventory: true, procurement: true,
+        hrPayroll: true, expenses: true, fixedAssets: false,
+        ledger: false, smsPortal: true
+      };
+    } else if (planName === 'enterprise') {
+      preset = {
+        tasks: true, quotations: true, debtors: true,
+        leads: true, inventory: true, procurement: true,
+        hrPayroll: true, expenses: true, fixedAssets: true,
+        ledger: true, smsPortal: true
+      };
+    } else if (planName === 'enable_all') {
+      preset = {
+        tasks: true, quotations: true, debtors: true,
+        leads: true, inventory: true, procurement: true,
+        hrPayroll: true, expenses: true, fixedAssets: true,
+        ledger: true, smsPortal: true
+      };
+    } else if (planName === 'disable_all') {
+      preset = {
+        tasks: false, quotations: false, debtors: false,
+        leads: false, inventory: false, procurement: false,
+        hrPayroll: false, expenses: false, fixedAssets: false,
+        ledger: false, smsPortal: false
+      };
+    }
+
+    setFeatureToggles(preset);
+    localStorage.setItem('gym_feature_toggles', JSON.stringify(preset));
+    showNotification(`Applied ${planName.toUpperCase().replace('_', ' ')} Plan Feature Preset!`, 'success');
+  };
+
+  const selectPlan = (planId) => {
+    if (!PLAN_CONFIGS[planId]) return;
+    setCurrentPlan(planId);
+    localStorage.setItem('gym_current_plan', planId);
+    applyPlanPreset(planId);
+    showNotification(`Switched subscription plan to ${PLAN_CONFIGS[planId].name}!`, 'success');
+  };
+
+  const checkPlanLimit = (limitType) => {
+    const config = PLAN_CONFIGS[currentPlan] || PLAN_CONFIGS.enterprise;
+    let currentCount = 0;
+    let maxLimit = config[limitType] !== undefined ? config[limitType] : Infinity;
+
+    if (limitType === 'maxCustomers') currentCount = (customers || []).length;
+    else if (limitType === 'maxUsers') currentCount = (teamMembers || []).length;
+    else if (limitType === 'maxBranches') currentCount = 1;
+    else if (limitType === 'maxQuotations') currentCount = (quotations || []).length;
+    else if (limitType === 'maxSmsCredits') currentCount = smsConfig?.balance || 0;
+
+    const allowed = currentCount < maxLimit;
+    return {
+      allowed,
+      currentCount,
+      maxLimit,
+      planName: config.name,
+      message: allowed ? null : `Limit Reached: ${config.name} allows up to ${maxLimit} ${limitType.replace('max', '')}. Please upgrade your plan!`
+    };
+  };
+
   const markAttendance = (records) => {
     setAttendanceLogs(prev => {
       let updated = [...prev];
@@ -2835,7 +2946,8 @@ export default function StoreContextProvider({ children }) {
       performanceReviews, addPerformanceReview, deletePerformanceReview,
       expenseClaims, addExpenseClaim, updateExpenseClaimStatus, deleteExpenseClaim,
       runFixedAssetDepreciation,
-      featureToggles, updateFeatureToggle,
+      featureToggles, updateFeatureToggle, applyPlanPreset,
+      currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
       confirmAction
     }}>

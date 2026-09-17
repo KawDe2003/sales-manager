@@ -9,13 +9,22 @@ import {
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft
 } from 'lucide-react';
 
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+  let generated = 'Sec#';
+  for (let i = 0; i < 8; i++) {
+    generated += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return generated;
+};
+
 const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
     handleTestSms, resetToSeynexDefaults, seedDummyData,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
-    featureToggles = {}, updateFeatureToggle
+    featureToggles = {}, updateFeatureToggle, applyPlanPreset
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -90,6 +99,30 @@ const Settings = () => {
             <div>
               <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>ERP Module Feature Controls</h2>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Enable or disable system features on demand. Disabled modules are hidden from navigation and routes.</p>
+            </div>
+          </div>
+
+          {/* 1-CLICK PLAN PRESETS BAR */}
+          <div style={{ background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--panel-border)', marginBottom: '24px' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+              ⚡ 1-Click Plan Feature Presets
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button onClick={() => applyPlanPreset && applyPlanPreset('starter')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                Starter Plan Preset
+              </button>
+              <button onClick={() => applyPlanPreset && applyPlanPreset('professional')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
+                Professional Plan Preset
+              </button>
+              <button onClick={() => applyPlanPreset && applyPlanPreset('enterprise')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(129, 140, 248, 0.12)', color: '#818cf8', border: '1px solid rgba(129, 140, 248, 0.3)' }}>
+                Enterprise Plan Preset
+              </button>
+              <button onClick={() => applyPlanPreset && applyPlanPreset('enable_all')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(52, 211, 153, 0.12)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
+                Enable All Modules
+              </button>
+              <button onClick={() => applyPlanPreset && applyPlanPreset('disable_all')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(251, 113, 133, 0.12)', color: '#fb7185', border: '1px solid rgba(251, 113, 133, 0.3)' }}>
+                Disable All
+              </button>
             </div>
           </div>
 
@@ -1284,12 +1317,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
   const strength = getPasswordStrength(userForm.password);
 
   const generatePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-    let generated = 'Sec#';
-    for (let i = 0; i < 8; i++) {
-      generated += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setUserForm(prev => ({ ...prev, password: generated }));
+    setUserForm(prev => ({ ...prev, password: generateRandomPassword() }));
   };
 
   return (
@@ -1714,11 +1742,7 @@ const ResetPasswordModal = ({ member, onClose, onReset }) => {
   const [error, setError] = useState('');
 
   const generatePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-    let generated = 'Sec#';
-    for (let i = 0; i < 8; i++) {
-      generated += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const generated = generateRandomPassword();
     setNewPassword(generated);
     setConfirmPassword(generated);
     setError('');

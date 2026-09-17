@@ -4,7 +4,7 @@ import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
 
 const Customers = () => {
-  const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification, confirmAction } = useContext(StoreContext) || {};
+  const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit } = useContext(StoreContext) || {};
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [monthFilter, setMonthFilter] = useState('All');
@@ -12,6 +12,18 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [activeNotesCustomer, setActiveNotesCustomer] = useState(null);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+
+  const handleOpenAddModal = () => {
+    if (checkPlanLimit) {
+      const check = checkPlanLimit('maxCustomers');
+      if (!check.allowed) {
+        showNotification(check.message, 'warning');
+        return;
+      }
+    }
+    setEditingCustomer(null);
+    setShowModal(true);
+  };
 
   useEffect(() => {
     const isAnyModalOpen = showModal || !!activeNotesCustomer || showBroadcastModal;
@@ -83,7 +95,7 @@ const Customers = () => {
             <button 
               className="btn btn-primary" 
               style={{ padding: '12px 24px' }} 
-              onClick={() => { setEditingCustomer(null); setShowModal(true); }}
+              onClick={handleOpenAddModal}
             >
               <Plus size={18} /> New Account
             </button>

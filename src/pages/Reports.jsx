@@ -144,8 +144,121 @@ const Reports = () => {
   const fmtLKR = (val) => {
     if (val === 0 || val === undefined || val === null) return '—';
     const num = Number(val);
-    if (isNaN(num)) return '—';
+    if (isNaN(num) || num === 0) return '—';
     return num < 0 ? `(LKR ${Math.abs(num).toLocaleString()})` : `LKR ${num.toLocaleString()}`;
+  };
+
+  const fmtExpenseLKR = (val) => {
+    if (val === 0 || val === undefined || val === null) return '—';
+    const num = Number(val);
+    if (isNaN(num) || num === 0) return '—';
+    return `(LKR ${Math.abs(num).toLocaleString()})`;
+  };
+
+  const handleExportExcel = () => {
+    const pnlRows = [
+      { 'Line Item': 'Revenue', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.revenue, 'Prior Period': pnlStatement.prior.revenue },
+      { 'Line Item': 'Cost of Sales', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.costOfSales), 'Prior Period': -Math.abs(pnlStatement.prior.costOfSales) },
+      { 'Line Item': 'GROSS PROFIT', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.grossProfit, 'Prior Period': pnlStatement.prior.grossProfit },
+      { 'Line Item': 'Other Income', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.otherIncome, 'Prior Period': pnlStatement.prior.otherIncome },
+      { 'Line Item': 'Distribution Costs', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.distributionCosts), 'Prior Period': -Math.abs(pnlStatement.prior.distributionCosts) },
+      { 'Line Item': 'Administrative Expenses', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.adminExpenses), 'Prior Period': -Math.abs(pnlStatement.prior.adminExpenses) },
+      { 'Line Item': 'Other Expenses', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.otherExpenses), 'Prior Period': -Math.abs(pnlStatement.prior.otherExpenses) },
+      { 'Line Item': 'OPERATING PROFIT', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.operatingProfit, 'Prior Period': pnlStatement.prior.operatingProfit },
+      { 'Line Item': 'Finance Income', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.financeIncome, 'Prior Period': pnlStatement.prior.financeIncome },
+      { 'Line Item': 'Finance Costs', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.financeCosts), 'Prior Period': -Math.abs(pnlStatement.prior.financeCosts) },
+      { 'Line Item': 'PROFIT BEFORE TAX', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.profitBeforeTax, 'Prior Period': pnlStatement.prior.profitBeforeTax },
+      { 'Line Item': 'Income Tax Expense', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.taxExpense), 'Prior Period': -Math.abs(pnlStatement.prior.taxExpense) },
+      { 'Line Item': 'PROFIT FOR THE PERIOD', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.profitForPeriod, 'Prior Period': pnlStatement.prior.profitForPeriod }
+    ];
+
+    const bsRows = [
+      { 'Classification': 'Non-Current Assets', 'Line Item': 'Property, Plant & Equipment (Net)', 'Amount (LKR)': balanceSheet.nonCurrentAssets.ppeNet },
+      { 'Classification': 'Non-Current Assets', 'Line Item': 'Intangible Assets', 'Amount (LKR)': balanceSheet.nonCurrentAssets.intangibles },
+      { 'Classification': 'Non-Current Assets', 'Line Item': 'Total Non-Current Assets', 'Amount (LKR)': balanceSheet.nonCurrentAssets.total },
+      { 'Classification': 'Current Assets', 'Line Item': 'Inventory', 'Amount (LKR)': balanceSheet.currentAssets.inventory },
+      { 'Classification': 'Current Assets', 'Line Item': 'Trade Receivables (AR)', 'Amount (LKR)': balanceSheet.currentAssets.tradeReceivables },
+      { 'Classification': 'Current Assets', 'Line Item': 'Cash and Cash Equivalents', 'Amount (LKR)': balanceSheet.currentAssets.cashAndEquivalents },
+      { 'Classification': 'Current Assets', 'Line Item': 'Total Current Assets', 'Amount (LKR)': balanceSheet.currentAssets.total },
+      { 'Classification': 'SUMMARY', 'Line Item': 'TOTAL ASSETS', 'Amount (LKR)': balanceSheet.totalAssets },
+      { 'Classification': 'Equity', 'Line Item': 'Stated Capital / Owner Equity', 'Amount (LKR)': balanceSheet.equity.statedCapital },
+      { 'Classification': 'Equity', 'Line Item': 'Retained Earnings (Rolled Forward)', 'Amount (LKR)': balanceSheet.equity.retainedEarningsRolled },
+      { 'Classification': 'Equity', 'Line Item': 'Total Equity', 'Amount (LKR)': balanceSheet.equity.total },
+      { 'Classification': 'Non-Current Liabilities', 'Line Item': 'Long-Term Loans', 'Amount (LKR)': balanceSheet.nonCurrentLiabilities.longTermLoans },
+      { 'Classification': 'Non-Current Liabilities', 'Line Item': 'Total Non-Current Liabilities', 'Amount (LKR)': balanceSheet.nonCurrentLiabilities.total },
+      { 'Classification': 'Current Liabilities', 'Line Item': 'Trade Payables (AP)', 'Amount (LKR)': balanceSheet.currentLiabilities.tradePayables },
+      { 'Classification': 'Current Liabilities', 'Line Item': 'Tax Payable', 'Amount (LKR)': balanceSheet.currentLiabilities.taxPayable },
+      { 'Classification': 'Current Liabilities', 'Line Item': 'Short-Term Borrowings', 'Amount (LKR)': balanceSheet.currentLiabilities.shortTermBorrowings },
+      { 'Classification': 'Current Liabilities', 'Line Item': 'Total Current Liabilities', 'Amount (LKR)': balanceSheet.currentLiabilities.total },
+      { 'Classification': 'SUMMARY', 'Line Item': 'TOTAL EQUITY & LIABILITIES', 'Amount (LKR)': balanceSheet.totalEquityAndLiabilities }
+    ];
+
+    const cfRows = [
+      { 'Classification': 'Operating Activities', 'Item': 'Profit Before Tax', 'Amount (LKR)': cashFlowStatement.operating.pbt },
+      { 'Classification': 'Operating Activities', 'Item': 'Depreciation & Amortisation', 'Amount (LKR)': cashFlowStatement.operating.depreciation },
+      { 'Classification': 'Operating Activities', 'Item': 'Finance Costs', 'Amount (LKR)': cashFlowStatement.operating.financeCosts },
+      { 'Classification': 'Operating Activities', 'Item': 'Operating Profit Before Working Capital Changes', 'Amount (LKR)': cashFlowStatement.operating.operatingProfitBeforeWC },
+      { 'Classification': 'Operating Activities', 'Item': '(Increase)/Decrease in Receivables', 'Amount (LKR)': cashFlowStatement.operating.deltaReceivables },
+      { 'Classification': 'Operating Activities', 'Item': '(Increase)/Decrease in Inventory', 'Amount (LKR)': cashFlowStatement.operating.deltaInventory },
+      { 'Classification': 'Operating Activities', 'Item': 'Increase/(Decrease) in Payables', 'Amount (LKR)': cashFlowStatement.operating.deltaPayables },
+      { 'Classification': 'Operating Activities', 'Item': 'Cash Generated from Operations', 'Amount (LKR)': cashFlowStatement.operating.cashGeneratedFromOps },
+      { 'Classification': 'Operating Activities', 'Item': 'Income Tax Paid', 'Amount (LKR)': -Math.abs(cashFlowStatement.operating.taxPaid) },
+      { 'Classification': 'Operating Activities', 'Item': 'Net Cash from Operating Activities', 'Amount (LKR)': cashFlowStatement.operating.netCashOperating },
+      { 'Classification': 'Investing Activities', 'Item': 'Purchase of Property, Plant & Equipment', 'Amount (LKR)': -Math.abs(cashFlowStatement.investing.ppePurchase) },
+      { 'Classification': 'Investing Activities', 'Item': 'Net Cash used in Investing Activities', 'Amount (LKR)': cashFlowStatement.investing.netCashInvesting },
+      { 'Classification': 'Financing Activities', 'Item': 'Proceeds from Borrowings', 'Amount (LKR)': cashFlowStatement.financing.loanProceeds },
+      { 'Classification': 'Financing Activities', 'Item': 'Repayment of Borrowings', 'Amount (LKR)': -Math.abs(cashFlowStatement.financing.loanRepayments) },
+      { 'Classification': 'Financing Activities', 'Item': 'Owner Drawings / Dividends Paid', 'Amount (LKR)': -Math.abs(cashFlowStatement.financing.drawingsPaid) },
+      { 'Classification': 'Financing Activities', 'Item': 'Net Cash from Financing Activities', 'Amount (LKR)': cashFlowStatement.financing.netCashFinancing },
+      { 'Classification': 'Summary', 'Item': 'NET INCREASE IN CASH', 'Amount (LKR)': cashFlowStatement.netIncreaseInCash },
+      { 'Classification': 'Summary', 'Item': 'Cash at Beginning of Period', 'Amount (LKR)': cashFlowStatement.cashAtBeginning },
+      { 'Classification': 'Summary', 'Item': 'CASH AND CASH EQUIVALENTS AT END', 'Amount (LKR)': cashFlowStatement.cashAtEndCalculated }
+    ];
+
+    const tbRows = trialBalance.map(acc => ({
+      'Account Code': acc.code,
+      'Account Name': acc.name,
+      'Account Type': (acc.type || '').toUpperCase(),
+      'SLFRS Category': acc.statement_category || 'General',
+      'Total Debit (LKR)': acc.totalDebit || 0,
+      'Total Credit (LKR)': acc.totalCredit || 0,
+      'Net Balance (LKR)': acc.net || 0
+    }));
+
+    exportToExcel(`SLFRS_Financial_Statements_${(dateRange.periodLabel || '2026').replace(/[^a-zA-Z0-9]/g, '_')}`, {
+      'Profit & Loss': pnlRows,
+      'Balance Sheet': bsRows,
+      'Cash Flows': cfRows,
+      'Trial Balance': tbRows
+    });
+  };
+
+  const handleExportCSV = () => {
+    let sumDebit = 0;
+    let sumCredit = 0;
+    const formatted = trialBalance.map(acc => {
+      sumDebit += Number(acc.totalDebit || 0);
+      sumCredit += Number(acc.totalCredit || 0);
+      return {
+        'Account Code': acc.code,
+        'Account Name': acc.name,
+        'Account Type': (acc.type || '').toUpperCase(),
+        'Category': acc.statement_category || 'General',
+        'Total Debit (LKR)': acc.totalDebit || 0,
+        'Total Credit (LKR)': acc.totalCredit || 0,
+        'Net Balance (LKR)': acc.net || 0
+      };
+    });
+    formatted.push({
+      'Account Code': 'TOTAL',
+      'Account Name': 'TOTAL TRIAL BALANCE',
+      'Account Type': '',
+      'Category': '',
+      'Total Debit (LKR)': sumDebit,
+      'Total Credit (LKR)': sumCredit,
+      'Net Balance (LKR)': sumDebit - sumCredit
+    });
+    exportToCSV('Trial_Balance_Audit_Ledger', formatted);
   };
 
   return (
@@ -184,10 +297,18 @@ const Reports = () => {
           <button 
             type="button" 
             className="btn btn-secondary" 
-            onClick={() => exportToCSV('Trial_Balance_Ledger', trialBalance)}
+            onClick={handleExportExcel}
+            style={{ padding: '10px 16px', fontSize: '0.88rem', gap: '6px', color: 'var(--success)' }}
+          >
+            <FileSpreadsheet size={16} /> Excel (.xlsx)
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            onClick={handleExportCSV}
             style={{ padding: '10px 16px', fontSize: '0.88rem', gap: '6px' }}
           >
-            <FileSpreadsheet size={16} /> CSV
+            <FileText size={16} /> CSV
           </button>
         </div>
       </div>
@@ -305,8 +426,8 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ fontWeight: 600 }}>Cost of Sales</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.costOfSales)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.costOfSales)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.costOfSales)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.costOfSales)}</td>
                 </tr>
                 <tr style={{ background: 'var(--subtle-bg)', borderTop: '1px solid var(--panel-border)', borderBottom: '1px solid var(--panel-border)' }}>
                   <td style={{ fontWeight: 850, fontSize: '0.95rem' }}>GROSS PROFIT</td>
@@ -323,18 +444,18 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Distribution Costs</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.distributionCosts)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.distributionCosts)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.distributionCosts)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.distributionCosts)}</td>
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Administrative Expenses</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.adminExpenses)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.adminExpenses)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.adminExpenses)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.adminExpenses)}</td>
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Other Expenses</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.otherExpenses)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.otherExpenses)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.otherExpenses)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.otherExpenses)}</td>
                 </tr>
 
                 <tr style={{ background: 'var(--subtle-bg)', borderTop: '1px solid var(--panel-border)', borderBottom: '1px solid var(--panel-border)' }}>
@@ -352,8 +473,8 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Finance Costs</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.financeCosts)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.financeCosts)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.financeCosts)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.financeCosts)}</td>
                 </tr>
 
                 <tr style={{ background: 'rgba(99, 102, 241, 0.08)', borderTop: '2px solid var(--accent-primary)' }}>
@@ -366,8 +487,8 @@ const Reports = () => {
 
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Income Tax Expense</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(pnlStatement.current.taxExpense)})</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>({fmtLKR(pnlStatement.prior.taxExpense)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.taxExpense)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.taxExpense)}</td>
                 </tr>
 
                 <tr style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(99, 102, 241, 0.15))', borderTop: '2px solid var(--success)', borderBottom: '2px double var(--success)' }}>
@@ -628,7 +749,7 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px', color: 'var(--danger)' }}>Income Tax Paid</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(cashFlowStatement.operating.taxPaid)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.operating.taxPaid)}</td>
                 </tr>
                 <tr style={{ background: 'rgba(99, 102, 241, 0.08)', fontWeight: 800 }}>
                   <td style={{ paddingLeft: '20px' }}>Net Cash from Operating Activities</td>
@@ -640,7 +761,7 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px' }}>Purchase of Property, Plant & Equipment</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(cashFlowStatement.investing.ppePurchase)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.investing.ppePurchase)}</td>
                 </tr>
                 <tr style={{ background: 'rgba(168, 85, 247, 0.08)', fontWeight: 800 }}>
                   <td style={{ paddingLeft: '20px' }}>Net Cash used in Investing Activities</td>
@@ -656,11 +777,11 @@ const Reports = () => {
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px' }}>Repayment of Borrowings</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(cashFlowStatement.financing.loanRepayments)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.financing.loanRepayments)}</td>
                 </tr>
                 <tr>
                   <td style={{ paddingLeft: '20px' }}>Owner's Drawings / Dividends Paid</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>({fmtLKR(cashFlowStatement.financing.drawingsPaid)})</td>
+                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.financing.drawingsPaid)}</td>
                 </tr>
                 <tr style={{ background: 'rgba(16, 185, 129, 0.08)', fontWeight: 800 }}>
                   <td style={{ paddingLeft: '20px' }}>Net Cash from/(used in) Financing Activities</td>

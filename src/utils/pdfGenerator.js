@@ -1,6 +1,17 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Helper for converting hex color code to RGB array
+const hexToRgb = (hex, defaultRgb = [59, 130, 246]) => {
+  if (!hex) return defaultRgb;
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : defaultRgb;
+};
+
 // Generic PDF Generator for both Invoices and Quotations
 export const generateDocumentPDF = (type, documentData, items) => {
   try {
@@ -18,22 +29,16 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const isReceipt = type?.toLowerCase().includes('receipt');
     const docTitle = isReceipt ? 'PAYMENT RECEIPT' : isInvoice ? 'INVOICE' : 'QUOTATION';
 
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16)
-      ] : [59, 130, 246]; // Default blue
-    };
-
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
     const lightGray = [240, 240, 240];
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // Safe field reads — guard every potentially-undefined field
-    const docNumber = (isInvoice ? documentData?.invoiceNumber : documentData?.quoteNumber) || 'N/A';
+    const isReceiptDoc = isReceipt;
+    const docNumber = isReceiptDoc
+      ? (documentData?.receiptNumber || documentData?.referenceNumber || documentData?.invoiceNumber || 'REC-001')
+      : (isInvoice ? documentData?.invoiceNumber : documentData?.quoteNumber) || 'N/A';
     const targetName = (isInvoice ? (documentData?.gymName || documentData?.prospectName) : (documentData?.prospectName || documentData?.gymName)) || 'Valued Client';
     const dateStr = documentData?.date ? new Date(documentData.date).toLocaleDateString() : '—';
     const dueDateStr = documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '—';
@@ -41,13 +46,26 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const itemsList = Array.isArray(items) && items.length > 0 ? items : (documentData?.items || []);
     const standardItems = itemsList.filter(i => !i.isDiscount);
     const discountItem = itemsList.find(i => i.isDiscount);
-    const discountAmount = discountItem ? Math.abs(discountItem.price) : 0;
+    const discountAmount = discountItem ? Math.abs(discountItem.price ?? discountItem.amount ?? 0) : 0;
 
-    const subTotal = standardItems.length > 0
-      ? standardItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
-      : Number(documentData?.amount || 0) + discountAmount;
+    // Support both price/quantity and unitPrice/qty naming
+    const getItemPrice = (item) => Number(item.price ?? item.unitPrice ?? 0);
+    const getItemQty = (item) => Number(item.quantity ?? item.qty ?? 1);
+    const getItemTotal = (item) => {
+      if (item.amount !== undefined && item.amount !== null && !isNaN(Number(item.amount))) {
+        return Number(item.amount);
+      }
+      return getItemPrice(item) * getItemQty(item);
+    };
 
-    const totalAmount = subTotal - discountAmount;
+    const calculatedSubTotal = standardItems.reduce((sum, item) => sum + getItemTotal(item), 0);
+    const subTotal = calculatedSubTotal > 0
+      ? calculatedSubTotal
+      : (Number(documentData?.amount || 0) + discountAmount);
+
+    const totalAmount = isReceiptDoc
+      ? Number(documentData?.amountPaidNow ?? documentData?.amount ?? (subTotal - discountAmount))
+      : (subTotal - discountAmount);
 
     // Add company logo if available (priority logic)
     if (savedConfig.receiptLogo) {
@@ -81,10 +99,17 @@ export const generateDocumentPDF = (type, documentData, items) => {
     // Doc meta (right side)
     doc.setFontSize(10);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text(`${(isInvoice || isReceipt) ? 'Invoice' : 'Quote'} #: ${docNumber}`, 196, 31, { align: 'right' });
+    doc.text(`${isReceiptDoc ? 'Receipt' : isInvoice ? 'Invoice' : 'Quote'} #: ${docNumber}`, 196, 31, { align: 'right' });
     doc.text(`Date: ${dateStr}`, 196, 37, { align: 'right' });
-    if (isInvoice || isReceipt) {
+    if (isInvoice) {
       doc.text(`Due Date: ${dueDateStr}`, 196, 43, { align: 'right' });
+    } else if (isReceiptDoc) {
+      if (documentData?.invoiceNumber) {
+        doc.text(`Invoice Ref: #${documentData.invoiceNumber}`, 196, 43, { align: 'right' });
+      }
+      if (documentData?.method || documentData?.paymentMethod) {
+        doc.text(`Payment: ${documentData.method || documentData.paymentMethod}`, 196, 49, { align: 'right' });
+      }
     }
 
     // PAID Watermark for Invoices marked as Paid or Receipts
@@ -98,12 +123,12 @@ export const generateDocumentPDF = (type, documentData, items) => {
       doc.restoreGraphicsState();
     }
 
-    // ── Bill To ───────────────────────────────────────────────────────────────
+    // ── Bill To / Received From ─────────────────────────────────────────────
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
     doc.rect(14, 50, 85, 8, 'F');
     doc.setFontSize(10);
     doc.setFont(undefined, 'bold');
-    doc.text('BILL TO:', 16, 56);
+    doc.text(isReceiptDoc ? 'RECEIVED FROM:' : 'BILL TO:', 16, 56);
     doc.setFont(undefined, 'normal');
     doc.text(targetName, 16, 66);
 
@@ -113,13 +138,13 @@ export const generateDocumentPDF = (type, documentData, items) => {
       tableBody = standardItems.map(item => [
         item.name || 'Item',
         item.type || 'Service',
-        `LKR ${Number(item.price || 0).toLocaleString()}`,
-        String(item.quantity || 1),
-        `LKR ${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}`
+        `LKR ${getItemPrice(item).toLocaleString()}`,
+        String(getItemQty(item)),
+        `LKR ${getItemTotal(item).toLocaleString()}`
       ]);
     } else {
       tableBody = [
-        ['Software Package / Services', 'Package', `LKR ${subTotal.toLocaleString()}`, '1', `LKR ${subTotal.toLocaleString()}`]
+        [isReceiptDoc ? 'Payment Credit for Account Services' : 'Software Package / Services', 'Package', `LKR ${subTotal.toLocaleString()}`, '1', `LKR ${subTotal.toLocaleString()}`]
       ];
     }
 
@@ -161,7 +186,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text('Total Amount:', 140, finalY + 8, { align: 'right' });
+    doc.text(isReceiptDoc ? 'Total Paid:' : 'Total Amount:', 140, finalY + 8, { align: 'right' });
 
     doc.setFontSize(14);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -269,7 +294,8 @@ export const generateDocumentPDF = (type, documentData, items) => {
     }
 
     // ── Save ──────────────────────────────────────────────────────────────────
-    const safeFileName = `${docNumber}_${(targetName).replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    const safeDocPrefix = isReceiptDoc ? 'Receipt' : isInvoice ? 'Invoice' : 'Quote';
+    const safeFileName = `${safeDocPrefix}_${docNumber}_${(targetName).replace(/[^a-z0-9]/gi, '_')}.pdf`;
     doc.save(safeFileName);
 
   } catch (err) {
@@ -285,15 +311,6 @@ export const generateStockReportPDF = (inventoryItems) => {
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16)
-      ] : [59, 130, 246];
-    };
-
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -377,11 +394,6 @@ export const generateAccountingReportPDF = (data) => {
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [59, 130, 246];
-    };
-
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -461,11 +473,7 @@ export const generatePnLReportPDF = (pnlData) => {
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
     const companyPhone = savedConfig.companyPhone || '';
 
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [99, 102, 241];
-    };
-    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1');
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
     const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
 
     // Company Header
@@ -541,11 +549,7 @@ export const printPnLReportPDF = (pnlData) => {
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
     const companyPhone = savedConfig.companyPhone || '';
 
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [99, 102, 241];
-    };
-    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1');
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
     const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
 
     // Company Header
@@ -628,8 +632,15 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
     const fmt = (val) => {
       if (val === 0 || val === undefined || val === null) return '—';
       const num = Number(val);
-      if (isNaN(num)) return '—';
-      return num < 0 ? `(${Math.abs(num).toLocaleString()})` : num.toLocaleString();
+      if (isNaN(num) || num === 0) return '—';
+      return num < 0 ? `(${Math.abs(num).toLocaleString('en-US')})` : num.toLocaleString('en-US');
+    };
+
+    const fmtExpense = (val) => {
+      if (val === 0 || val === undefined || val === null) return '—';
+      const num = Number(val);
+      if (isNaN(num) || num === 0) return '—';
+      return `(${Math.abs(num).toLocaleString('en-US')})`;
     };
 
     // Page 1: Statement of Profit or Loss (LKAS 1)
@@ -648,17 +659,17 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
 
     const pnlBody = [
       ['Revenue', fmt(pnl.current.revenue), fmt(pnl.prior.revenue)],
-      ['Cost of Sales', `(${fmt(pnl.current.costOfSales)})`, `(${fmt(pnl.prior.costOfSales)})`],
+      ['Cost of Sales', fmtExpense(pnl.current.costOfSales), fmtExpense(pnl.prior.costOfSales)],
       [{ content: 'Gross Profit', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.grossProfit), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.grossProfit), styles: { fontStyle: 'bold' } }],
       ['Other Income', fmt(pnl.current.otherIncome), fmt(pnl.prior.otherIncome)],
-      ['Distribution Costs', `(${fmt(pnl.current.distributionCosts)})`, `(${fmt(pnl.prior.distributionCosts)})`],
-      ['Administrative Expenses', `(${fmt(pnl.current.adminExpenses)})`, `(${fmt(pnl.prior.adminExpenses)})`],
-      ['Other Expenses', `(${fmt(pnl.current.otherExpenses)})`, `(${fmt(pnl.prior.otherExpenses)})`],
+      ['Distribution Costs', fmtExpense(pnl.current.distributionCosts), fmtExpense(pnl.prior.distributionCosts)],
+      ['Administrative Expenses', fmtExpense(pnl.current.adminExpenses), fmtExpense(pnl.prior.adminExpenses)],
+      ['Other Expenses', fmtExpense(pnl.current.otherExpenses), fmtExpense(pnl.prior.otherExpenses)],
       [{ content: 'Operating Profit', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.operatingProfit), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.operatingProfit), styles: { fontStyle: 'bold' } }],
       ['Finance Income', fmt(pnl.current.financeIncome), fmt(pnl.prior.financeIncome)],
-      ['Finance Costs', `(${fmt(pnl.current.financeCosts)})`, `(${fmt(pnl.prior.financeCosts)})`],
+      ['Finance Costs', fmtExpense(pnl.current.financeCosts), fmtExpense(pnl.prior.financeCosts)],
       [{ content: 'Profit Before Tax', styles: { fontStyle: 'bold' } }, { content: fmt(pnl.current.profitBeforeTax), styles: { fontStyle: 'bold' } }, { content: fmt(pnl.prior.profitBeforeTax), styles: { fontStyle: 'bold' } }],
-      ['Income Tax Expense', `(${fmt(pnl.current.taxExpense)})`, `(${fmt(pnl.prior.taxExpense)})`],
+      ['Income Tax Expense', fmtExpense(pnl.current.taxExpense), fmtExpense(pnl.prior.taxExpense)],
       [{ content: 'PROFIT FOR THE PERIOD', styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.current.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.prior.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }]
     ];
 
@@ -757,17 +768,17 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
       ['(Increase)/Decrease in Inventory', fmt(cf.operating.deltaInventory)],
       ['Increase/(Decrease) in Trade Payables', fmt(cf.operating.deltaPayables)],
       [{ content: 'Cash Generated from Operations', styles: { fontStyle: 'bold' } }, { content: fmt(cf.operating.cashGeneratedFromOps), styles: { fontStyle: 'bold' } }],
-      ['Income Tax Paid', `(${fmt(cf.operating.taxPaid)})`],
+      ['Income Tax Paid', fmtExpense(cf.operating.taxPaid)],
       [{ content: 'Net Cash from Operating Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.operating.netCashOperating), styles: { fontStyle: 'bold' } }],
 
       [{ content: 'Cash Flows from Investing Activities', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
-      ['Purchase of Property, Plant & Equipment', `(${fmt(cf.investing.ppePurchase)})`],
+      ['Purchase of Property, Plant & Equipment', fmtExpense(cf.investing.ppePurchase)],
       [{ content: 'Net Cash used in Investing Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.investing.netCashInvesting), styles: { fontStyle: 'bold' } }],
 
       [{ content: 'Cash Flows from Financing Activities', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 245] } }],
       ['Proceeds from Borrowings', fmt(cf.financing.loanProceeds)],
-      ['Repayment of Borrowings', `(${fmt(cf.financing.loanRepayments)})`],
-      ['Owner\'s Drawings / Dividends Paid', `(${fmt(cf.financing.drawingsPaid)})`],
+      ['Repayment of Borrowings', fmtExpense(cf.financing.loanRepayments)],
+      ['Owner\'s Drawings / Dividends Paid', fmtExpense(cf.financing.drawingsPaid)],
       [{ content: 'Net Cash from/(used in) Financing Activities', styles: { fontStyle: 'bold' } }, { content: fmt(cf.financing.netCashFinancing), styles: { fontStyle: 'bold' } }],
 
       [{ content: 'NET INCREASE IN CASH & CASH EQUIVALENTS', styles: { fontStyle: 'bold' } }, { content: fmt(cf.netIncreaseInCash), styles: { fontStyle: 'bold' } }],
@@ -785,8 +796,8 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
       styles: { fontSize: 8, cellPadding: 3 }
     });
 
-    const pdfBlobUrl = doc.output('bloburl');
-    window.open(pdfBlobUrl, '_blank');
+    const cleanFileName = `SLFRS_Statements_${(periodLabel || 'Report').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    doc.save(cleanFileName);
   } catch (err) {
     console.error('Failed to generate SLFRS Statements PDF:', err);
   }
@@ -799,11 +810,7 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
 
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [99, 102, 241];
-    };
-    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1');
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -870,8 +877,8 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
       styles: { fontSize: 8, cellPadding: 3 }
     });
 
-    const pdfBlobUrl = doc.output('bloburl');
-    window.open(pdfBlobUrl, '_blank');
+    const cleanFileName = `General_Ledger_${account?.code || 'Account'}_Statement.pdf`;
+    doc.save(cleanFileName);
   } catch (err) {
     console.error('Failed to export Account Ledger PDF:', err);
   }
@@ -935,8 +942,8 @@ export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) =>
       styles: { fontSize: 8.5, cellPadding: 4 }
     });
 
-    const pdfBlobUrl = doc.output('bloburl');
-    window.open(pdfBlobUrl, '_blank');
+    const cleanFileName = `Journal_Voucher_${(entry?.reference || 'Voucher').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    doc.save(cleanFileName);
   } catch (err) {
     console.error('Failed to export Journal Voucher PDF:', err);
   }
@@ -1019,8 +1026,8 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
       styles: { fontSize: 8, cellPadding: 3 }
     });
 
-    const pdfBlobUrl = doc.output('bloburl');
-    window.open(pdfBlobUrl, '_blank');
+    const cleanFileName = `Trial_Balance_${(asOfDate || new Date().toISOString().split('T')[0]).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    doc.save(cleanFileName);
   } catch (err) {
     console.error('Failed to export Trial Balance PDF:', err);
   }

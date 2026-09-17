@@ -5,7 +5,7 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck
+  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -31,6 +31,7 @@ import SmsPortal from './pages/SmsPortal';
 import Procurement from './pages/Procurement';
 import HR from './pages/HR';
 import Login from './pages/Login';
+import Features from './pages/Features';
 
 const LoadingFallback = () => (
   <div style={{ 
@@ -737,6 +738,7 @@ const AppContent = () => {
             {checkPerm(['manage_users', 'manage_settings']) && (
               <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
+            <NavItem to="/features" icon={<Sparkles size={18} />} label="Features Directory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
 
           {/* Footer */}
@@ -771,6 +773,7 @@ const AppContent = () => {
               <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
               <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
+              <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
