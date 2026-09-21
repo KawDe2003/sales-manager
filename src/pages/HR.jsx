@@ -50,7 +50,7 @@ const numberToWords = (num) => {
 
 const HR = () => {
   const { 
-    employees = [], addEmployee, updateEmployee, deleteEmployee,
+    employees = [], addEmployee, updateEmployee, deleteEmployee, terminateEmployee,
     payruns = [], processPayrun, confirmAction, showNotification,
     attendanceLogs = [], markAttendance, getMonthlyAttendanceSummary,
     leaveRequests = [], addLeaveRequest, updateLeaveStatus, deleteLeaveRequest, getEmployeeLeaveBalance,
@@ -68,6 +68,9 @@ const HR = () => {
   const [deptFilter, setDeptFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [directoryViewMode, setDirectoryViewMode] = useState('table'); // 'table' | 'cards'
+
+  // Analytics toggle
+  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
 
   // Selected Employee for 360° Profile Modal
   const [profileEmployee, setProfileEmployee] = useState(null);
@@ -125,6 +128,24 @@ const HR = () => {
     days: 1,
     reason: ''
   });
+
+  // Auto-calculate days when leave dates change
+  const handleLeaveDateChange = (field, value) => {
+    const updated = { ...leaveForm, [field]: value };
+    const start = new Date(field === 'startDate' ? value : leaveForm.startDate);
+    const end = new Date(field === 'endDate' ? value : leaveForm.endDate);
+    if (!isNaN(start) && !isNaN(end) && end >= start) {
+      let count = 0;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const dayOfWeek = cursor.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) count++; // Exclude weekends
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      updated.days = Math.max(1, count);
+    }
+    setLeaveForm(updated);
+  };
 
   // Salary Advance Modal State
   const [showAdvModal, setShowAdvModal] = useState(false);
@@ -205,15 +226,40 @@ const HR = () => {
   }, [attDate, activeStaff, attendanceLogs]);
 
   // Metrics & KPI Computations
-  const totalMonthlyBasic = activeStaff.reduce((sum, e) => sum + (Number(e.basicSalary) || 0) + (Number(e.allowance) || 0), 0);
+  const totalMonthlyBasic = activeStaff.reduce((sum, e) => sum + (Number(e.basicSalary) || 0) + (Number(e.allowance) || 0) + (Number(e.foodAllowance) || 0) + (Number(e.transportAllowance) || 0), 0);
   const pendingLeavesCount = leaveRequests.filter(l => l.status === 'Pending').length;
   const activeAdvancesTotal = salaryAdvances.filter(a => a.status === 'Issued').reduce((s, a) => s + (Number(a.amount) || 0), 0);
 
   // Today's attendance snapshot
-  const todayLogs = attendanceLogs.filter(a => a.date === new Date().toISOString().split('T')[0]);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLogs = attendanceLogs.filter(a => a.date === todayStr);
   const todayPresentCount = todayLogs.filter(a => a.status === 'Present').length;
   const todayAbsentCount = todayLogs.filter(a => a.status === 'Absent').length;
   const todayLeaveCount = todayLogs.filter(a => a.status === 'On Leave').length;
+
+  // Department analytics
+  const deptStats = useMemo(() => {
+    const stats = {};
+    employees.forEach(e => {
+      const dept = e.department || 'Unknown';
+      if (!stats[dept]) stats[dept] = { count: 0, totalSalary: 0, active: 0 };
+      stats[dept].count++;
+      stats[dept].totalSalary += (Number(e.basicSalary) || 0);
+      if (e.status === 'Active') stats[dept].active++;
+    });
+    return Object.entries(stats).sort((a, b) => b[1].count - a[1].count);
+  }, [employees]);
+
+  // Years of service helper
+  const getYearsOfService = (joinDate) => {
+    if (!joinDate) return null;
+    const join = new Date(joinDate);
+    const now = new Date();
+    const years = Math.floor((now - join) / (365.25 * 24 * 60 * 60 * 1000));
+    const months = Math.floor(((now - join) % (365.25 * 24 * 60 * 60 * 1000)) / (30.44 * 24 * 60 * 60 * 1000));
+    if (years > 0) return `${years}y ${months}m`;
+    return `${months}m`;
+  };
 
   // Filter Employees
   const filteredEmployees = employees.filter(e => {
@@ -349,8 +395,8 @@ const HR = () => {
   };
 
   // Payrun Calculation Engine
-  const openPayrunModal = () => {
-    const calcs = activeStaff.map(emp => {
+  const buildPayrunCalcs = (month) => {
+    return activeStaff.map(emp => {
       const basic = Number(emp.basicSalary) || 0;
       const allow = Number(emp.allowance) || 0;
       const foodAllow = Number(emp.foodAllowance) || 0;
@@ -359,7 +405,7 @@ const HR = () => {
       const bonus = 0;
 
       // Attendance summary for month
-      const attSummary = getMonthlyAttendanceSummary ? getMonthlyAttendanceSummary(emp.id, payrunMonth) : { present: 26, absent: 0, otHours: 0 };
+      const attSummary = getMonthlyAttendanceSummary ? getMonthlyAttendanceSummary(emp.id, month) : { present: 26, absent: 0, otHours: 0 };
       const daysAbsent = attSummary.absent || 0;
       const otHours = attSummary.otHours || 0;
 
@@ -391,6 +437,7 @@ const HR = () => {
         bankAccount: emp.bankAccount || '',
         basic,
         allow: totalAllowances,
+        fixedAllowance: allow,
         foodAllowance: foodAllow,
         transportAllowance: transAllow,
         bonus,
@@ -408,9 +455,26 @@ const HR = () => {
         netSalary
       };
     });
+  };
 
+  const openPayrunModal = () => {
+    // Warn if payrun for this month already exists
+    const existingPayrun = payruns.find(pr => pr.month === payrunMonth);
+    if (existingPayrun) {
+      showNotification(`⚠️ A payrun for ${payrunMonth} has already been processed on ${existingPayrun.payrunDate}. Processing again will create a duplicate.`, 'warning');
+    }
+    const calcs = buildPayrunCalcs(payrunMonth);
     setPayrunCalcList(calcs);
     setShowPayrunModal(true);
+  };
+
+  // Recalculate when payrun month changes inside modal
+  const handlePayrunMonthChange = (newMonth) => {
+    setPayrunMonth(newMonth);
+    if (showPayrunModal) {
+      const calcs = buildPayrunCalcs(newMonth);
+      setPayrunCalcList(calcs);
+    }
   };
 
   const updatePayrunBonus = (index, bonusVal) => {
@@ -707,7 +771,7 @@ const HR = () => {
               />
             </div>
             {activeTab === 'directory' && (
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
                 <CustomSelect 
                   value={deptFilter}
                   onChange={setDeptFilter}
@@ -721,6 +785,26 @@ const HR = () => {
                   ]}
                   style={{ height: '36px', minWidth: '160px' }}
                 />
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={[
+                    { value: 'All', label: 'All Statuses' },
+                    { value: 'Active', label: 'Active' },
+                    { value: 'On Leave', label: 'On Leave' },
+                    { value: 'Resigned', label: 'Resigned' },
+                    { value: 'Inactive', label: 'Inactive' }
+                  ]}
+                  style={{ height: '36px', minWidth: '130px' }}
+                />
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowAnalyticsPanel(prev => !prev)}
+                  title="Toggle Department Analytics Panel"
+                  style={{ padding: '8px 12px' }}
+                >
+                  <TrendingUp size={15} /> Analytics
+                </button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => setDirectoryViewMode(prev => prev === 'table' ? 'cards' : 'table')}
@@ -751,6 +835,7 @@ const HR = () => {
                       <th>DESIGNATION</th>
                       <th>DEPARTMENT</th>
                       <th>SHIFT</th>
+                      <th>SERVICE</th>
                       <th>BASIC SALARY</th>
                       <th>TOTAL ALLOWANCE</th>
                       <th>STATUS</th>
@@ -760,7 +845,7 @@ const HR = () => {
                   <tbody>
                     {filteredEmployees.length === 0 ? (
                       <tr>
-                        <td colSpan="9" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
+                        <td colSpan="10" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
                           No employees found matching your query.
                         </td>
                       </tr>
@@ -806,6 +891,11 @@ const HR = () => {
                             </td>
                             <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                               {emp.shift || 'General Shift'}
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                {getYearsOfService(emp.joinDate) || '—'}
+                              </div>
                             </td>
                             <td>
                               <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
@@ -859,13 +949,31 @@ const HR = () => {
                                   onClick={() => {
                                     confirmAction({
                                       title: 'Remove Employee Record',
-                                      message: `Are you sure you want to remove ${emp.name} from payroll and employee records?`,
+                                      message: `Are you sure you want to remove ${emp.name} from payroll and employee records? This action cannot be undone.`,
                                       onConfirm: () => deleteEmployee(emp.id)
                                     });
                                   }}
                                 >
                                   <Trash2 size={14} />
                                 </button>
+                                {emp.status === 'Active' && (
+                                  <button 
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ color: 'var(--warning)', padding: '6px', fontSize: '0.72rem' }}
+                                    title="Mark as Resigned"
+                                    onClick={() => {
+                                      confirmAction({
+                                        title: 'Mark Employee as Resigned',
+                                        message: `Are you sure you want to mark ${emp.name} as Resigned? This will remove them from payroll processing.`,
+                                        confirmText: 'Mark Resigned',
+                                        variant: 'warning',
+                                        onConfirm: () => terminateEmployee && terminateEmployee(emp.id, 'Resigned')
+                                      });
+                                    }}
+                                  >
+                                    <UserCheck size={14} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -976,6 +1084,50 @@ const HR = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* ===== ANALYTICS PANEL ===== */}
+      {activeTab === 'directory' && showAnalyticsPanel && (
+        <div className="glass-panel mb-4" style={{ padding: '20px 24px' }}>
+          <div className="flex justify-between items-center mb-4">
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              <TrendingUp size={16} style={{ marginRight: '8px', color: 'var(--accent-secondary)' }} />
+              Workforce & Department Analytics
+            </h4>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowAnalyticsPanel(false)} style={{ padding: '4px 8px' }}>
+              <X size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {deptStats.map(([dept, stat]) => (
+              <div key={dept} style={{ background: 'var(--subtle-bg)', padding: '14px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{dept}</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-primary)' }}>{stat.count}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  <span style={{ color: 'var(--success)', fontWeight: 700 }}>{stat.active} Active</span> · LKR {Math.round(stat.totalSalary / 1000)}k Total
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+            <div style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>TOTAL HEADCOUNT</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-secondary)' }}>{employees.length}</div>
+            </div>
+            <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>ACTIVE STAFF</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--success)' }}>{activeStaff.length}</div>
+            </div>
+            <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>TOTAL PAYROLL</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--warning)', fontFamily: 'var(--font-mono)' }}>LKR {totalMonthlyBasic.toLocaleString()}</div>
+            </div>
+            <div style={{ background: 'rgba(244, 63, 94, 0.08)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>EPF/ETF LIABILITY</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>LKR {activeStaff.reduce((s, e) => s + (e.epfEligible !== false ? Math.round(Number(e.basicSalary) * 0.15) : 0), 0).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ========================================================================= */}
@@ -2668,7 +2820,7 @@ const HR = () => {
                     type="date" 
                     className="form-input"
                     value={leaveForm.startDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                    onChange={(e) => handleLeaveDateChange('startDate', e.target.value)}
                     required
                   />
                 </div>
@@ -2678,7 +2830,7 @@ const HR = () => {
                     type="date" 
                     className="form-input"
                     value={leaveForm.endDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                    onChange={(e) => handleLeaveDateChange('endDate', e.target.value)}
                     required
                   />
                 </div>
@@ -2834,7 +2986,7 @@ const HR = () => {
                     type="month"
                     className="form-input"
                     value={payrunMonth}
-                    onChange={(e) => setPayrunMonth(e.target.value)}
+                    onChange={(e) => handlePayrunMonthChange(e.target.value)}
                     style={{ width: '170px' }}
                   />
                 </div>
@@ -3089,13 +3241,34 @@ const HR = () => {
                         <td style={{ padding: '6px 0', color: '#475569' }}>Basic Salary</td>
                         <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.basic) || 0).toLocaleString()}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '6px 0', color: '#475569' }}>Fixed Allowances</td>
-                        <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.allow) || 0).toLocaleString()}</td>
-                      </tr>
+                      {Number(viewingPayslip.fixedAllowance) > 0 && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 0', color: '#475569' }}>Fixed Allowance</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.fixedAllowance) || 0).toLocaleString()}</td>
+                        </tr>
+                      )}
+                      {Number(viewingPayslip.foodAllowance) > 0 && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 0', color: '#475569' }}>Food Allowance</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.foodAllowance) || 0).toLocaleString()}</td>
+                        </tr>
+                      )}
+                      {Number(viewingPayslip.transportAllowance) > 0 && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 0', color: '#475569' }}>Transport Allowance</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.transportAllowance) || 0).toLocaleString()}</td>
+                        </tr>
+                      )}
+                      {/* fallback for old records that have only `allow` */}
+                      {!viewingPayslip.fixedAllowance && !viewingPayslip.foodAllowance && !viewingPayslip.transportAllowance && Number(viewingPayslip.allow) > 0 && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 0', color: '#475569' }}>Fixed Allowances</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.allow) || 0).toLocaleString()}</td>
+                        </tr>
+                      )}
                       {Number(viewingPayslip.otPay) > 0 && (
                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '6px 0', color: '#059669' }}>OT Pay ({viewingPayslip.otHours || 0} hrs)</td>
+                          <td style={{ padding: '6px 0', color: '#059669' }}>OT Pay ({viewingPayslip.otHours || 0} hrs @ 1.5×)</td>
                           <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600, color: '#059669' }}>+{(Number(viewingPayslip.otPay) || 0).toLocaleString()}</td>
                         </tr>
                       )}

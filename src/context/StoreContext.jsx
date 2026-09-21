@@ -2497,13 +2497,30 @@ export default function StoreContextProvider({ children }) {
   };
 
   const updateLeaveStatus = (id, status) => {
-    setLeaveRequests(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    setLeaveRequests(prev => prev.map(l => {
+      if (l.id !== id) return l;
+      return { ...l, status, reviewedAt: new Date().toISOString() };
+    }));
     showNotification(`Leave request status updated to ${status}!`, status === 'Approved' ? 'success' : 'info');
   };
 
   const deleteLeaveRequest = (id) => {
     setLeaveRequests(prev => prev.filter(l => l.id !== id));
     showNotification('Leave request deleted.', 'info');
+  };
+
+  // Terminate / Resign an employee - marks status as Resigned and records date
+  const terminateEmployee = (id, reason = 'Resigned', terminationDate = null) => {
+    const target = employees.find(e => e.id === id);
+    const date = terminationDate || new Date().toISOString().split('T')[0];
+    setEmployees(prev => prev.map(e => e.id === id ? {
+      ...e,
+      status: reason,
+      terminationDate: date,
+      terminationReason: reason
+    } : e));
+    addLog('HR & Payroll', `Employee "${target?.name || 'Unknown'}" marked as ${reason} effective ${date}.`);
+    showNotification(`${target?.name || 'Employee'} has been marked as ${reason}.`, 'info');
   };
 
   const addSalaryAdvance = (advData) => {
@@ -3095,7 +3112,7 @@ export default function StoreContextProvider({ children }) {
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
-      employees, addEmployee, updateEmployee, deleteEmployee,
+      employees, addEmployee, updateEmployee, deleteEmployee, terminateEmployee,
       payruns, processPayrun,
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,
       leaveRequests, addLeaveRequest, updateLeaveStatus, deleteLeaveRequest, getEmployeeLeaveBalance,
