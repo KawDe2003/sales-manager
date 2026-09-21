@@ -208,46 +208,142 @@ export default function StoreContextProvider({ children }) {
       id: 'emp-1',
       employeeId: 'EMP-101',
       name: 'Kasun Rajapaksha',
+      nic: '199214502819',
+      dob: '1992-05-14',
+      gender: 'Male',
+      bloodGroup: 'O+',
       designation: 'Head Fitness Trainer',
       department: 'Fitness & Training',
+      employmentType: 'Full-Time',
+      shift: 'Morning (06:00 - 15:00)',
       phone: '0771234567',
       email: 'kasun@gymsales.lk',
+      address: '45/2 Temple Road, Colombo 03',
+      emergencyContactName: 'Sunethra Rajapaksha',
+      emergencyContactPhone: '0778899001',
+      emergencyContactRelation: 'Spouse',
       joinDate: '2023-01-15',
+      confirmationDate: '2023-07-15',
       basicSalary: 85000,
       allowance: 15000,
+      foodAllowance: 5000,
+      transportAllowance: 10000,
       epfEligible: true,
-      bankDetails: 'Commercial Bank - 8004920192',
-      status: 'Active'
+      bankName: 'Commercial Bank of Ceylon',
+      bankAccount: '8004920192',
+      bankBranch: 'Kollupitiya Branch',
+      bankDetails: 'Commercial Bank - 8004920192 (Kollupitiya)',
+      status: 'Active',
+      leaveBalances: { annual: 14, casual: 7, medical: 7 }
     },
     {
       id: 'emp-2',
       employeeId: 'EMP-102',
       name: 'Dilani Samarasinghe',
+      nic: '198865403211',
+      dob: '1988-11-20',
+      gender: 'Female',
+      bloodGroup: 'A+',
       designation: 'Operations Manager',
       department: 'Management',
+      employmentType: 'Full-Time',
+      shift: 'General (08:30 - 17:00)',
       phone: '0719876543',
       email: 'dilani@gymsales.lk',
+      address: '12 Galle Road, Mount Lavinia',
+      emergencyContactName: 'Kamal Samarasinghe',
+      emergencyContactPhone: '0712233445',
+      emergencyContactRelation: 'Brother',
       joinDate: '2022-06-01',
+      confirmationDate: '2022-12-01',
       basicSalary: 120000,
       allowance: 20000,
+      foodAllowance: 8000,
+      transportAllowance: 12000,
       epfEligible: true,
-      bankDetails: 'Sampath Bank - 1009283940',
-      status: 'Active'
+      bankName: 'Sampath Bank PLC',
+      bankAccount: '1009283940',
+      bankBranch: 'Dehiwala Branch',
+      bankDetails: 'Sampath Bank - 1009283940 (Dehiwala)',
+      status: 'Active',
+      leaveBalances: { annual: 14, casual: 7, medical: 7 }
     },
     {
       id: 'emp-3',
       employeeId: 'EMP-103',
       name: 'Mahesh Kumara',
+      nic: '199532104928',
+      dob: '1995-09-08',
+      gender: 'Male',
+      bloodGroup: 'B+',
       designation: 'Senior Gym Instructor',
       department: 'Fitness & Training',
+      employmentType: 'Full-Time',
+      shift: 'Evening (13:00 - 22:00)',
       phone: '0754443322',
       email: 'mahesh@gymsales.lk',
+      address: '88 Kandy Road, Kelaniya',
+      emergencyContactName: 'Ranjith Kumara',
+      emergencyContactPhone: '0751122334',
+      emergencyContactRelation: 'Father',
       joinDate: '2023-08-10',
+      confirmationDate: '2024-02-10',
       basicSalary: 65000,
       allowance: 10000,
+      foodAllowance: 4000,
+      transportAllowance: 6000,
       epfEligible: true,
-      bankDetails: 'HNB Bank - 0029384756',
-      status: 'Active'
+      bankName: 'Hatton National Bank',
+      bankAccount: '0029384756',
+      bankBranch: 'Kelaniya Branch',
+      bankDetails: 'HNB Bank - 0029384756 (Kelaniya)',
+      status: 'Active',
+      leaveBalances: { annual: 14, casual: 7, medical: 7 }
+    },
+    {
+      id: 'emp-4',
+      employeeId: 'EMP-104',
+      name: 'Anoma Perera',
+      nic: '199854302910',
+      dob: '1998-03-24',
+      gender: 'Female',
+      bloodGroup: 'AB+',
+      designation: 'Front Desk Receptionist',
+      department: 'Operations & Front Desk',
+      employmentType: 'Full-Time',
+      shift: 'Morning (06:00 - 15:00)',
+      phone: '0703344556',
+      email: 'anoma@gymsales.lk',
+      address: '14/B Lake Road, Rajagiriya',
+      emergencyContactName: 'Swarna Perera',
+      emergencyContactPhone: '0708877665',
+      emergencyContactRelation: 'Mother',
+      joinDate: '2024-01-05',
+      confirmationDate: '2024-07-05',
+      basicSalary: 55000,
+      allowance: 8000,
+      foodAllowance: 3000,
+      transportAllowance: 5000,
+      epfEligible: true,
+      bankName: 'Bank of Ceylon',
+      bankAccount: '772819034',
+      bankBranch: 'Rajagiriya Branch',
+      bankDetails: 'Bank of Ceylon - 772819034 (Rajagiriya)',
+      status: 'Active',
+      leaveBalances: { annual: 14, casual: 7, medical: 7 }
+    }
+  ];
+
+  const sampleHrLetters = [
+    {
+      id: 'let-1',
+      employeeId: 'emp-1',
+      employeeName: 'Kasun Rajapaksha',
+      type: 'Salary Certificate',
+      title: 'Salary Confirmation & Employment Certificate',
+      date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+      recipient: 'The Manager, Commercial Bank of Ceylon PLC',
+      content: 'This is to certify that Mr. Kasun Rajapaksha is an active full-time employee holding the designation of Head Fitness Trainer with a current gross monthly remuneration of LKR 100,000.00.'
     }
   ];
 
@@ -398,6 +494,11 @@ export default function StoreContextProvider({ children }) {
     return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenseClaims;
   });
 
+  const [hrLetters, setHrLetters] = useState(() => {
+    const saved = localStorage.getItem('gym_hr_letters');
+    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleHrLetters;
+  });
+
   const [currentPlan, setCurrentPlan] = useState(() => {
     const saved = localStorage.getItem('gym_current_plan');
     return saved || 'enterprise';
@@ -418,6 +519,7 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_stock_transfers', JSON.stringify(stockTransfers)); }, [stockTransfers]);
   useEffect(() => { localStorage.setItem('gym_performance_reviews', JSON.stringify(performanceReviews)); }, [performanceReviews]);
   useEffect(() => { localStorage.setItem('gym_expense_claims', JSON.stringify(expenseClaims)); }, [expenseClaims]);
+  useEffect(() => { localStorage.setItem('gym_hr_letters', JSON.stringify(hrLetters)); }, [hrLetters]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
@@ -2201,10 +2303,13 @@ export default function StoreContextProvider({ children }) {
       employeeId: empData.employeeId || `EMP-${100 + employees.length + 1}`,
       status: empData.status || 'Active',
       basicSalary: Number(empData.basicSalary) || 0,
-      allowance: Number(empData.allowance) || 0
+      allowance: Number(empData.allowance) || 0,
+      foodAllowance: Number(empData.foodAllowance) || 0,
+      transportAllowance: Number(empData.transportAllowance) || 0,
+      leaveBalances: empData.leaveBalances || { annual: 14, casual: 7, medical: 7 }
     };
     setEmployees(prev => [newEmp, ...prev]);
-    showNotification(`Employee "${newEmp.name}" added!`, 'success');
+    showNotification(`Employee "${newEmp.name}" registered successfully!`, 'success');
   };
 
   const updateEmployee = (id, data) => {
@@ -2238,6 +2343,14 @@ export default function StoreContextProvider({ children }) {
     };
 
     setPayruns(prev => [newPayrun, ...prev]);
+
+    // Automatically mark all deducted salary advances as Recovered
+    const allAdvanceIds = employeeCalculations.flatMap(c => c.advanceIds || []).filter(Boolean);
+    if (allAdvanceIds.length > 0) {
+      setSalaryAdvances(prev => prev.map(a => 
+        allAdvanceIds.includes(a.id) ? { ...a, status: 'Recovered', deductedInMonth: month } : a
+      ));
+    }
 
     // Auto-post Payroll Expense to Journal (Debit: 5020 Staff Salaries, Credit: 1020 Bank Account)
     try {
@@ -2424,6 +2537,52 @@ export default function StoreContextProvider({ children }) {
   const deleteSalaryAdvance = (id) => {
     setSalaryAdvances(prev => prev.filter(a => a.id !== id));
     showNotification('Salary advance entry deleted.', 'info');
+  };
+
+  const getEmployeeLeaveBalance = (employeeId) => {
+    const currentYear = new Date().getFullYear().toString();
+    const empApprovedLeaves = leaveRequests.filter(l => 
+      l.employeeId === employeeId && 
+      l.status === 'Approved' && 
+      (l.startDate?.startsWith(currentYear) || !l.startDate)
+    );
+
+    const annualUsed = empApprovedLeaves
+      .filter(l => l.leaveType === 'Annual Leave')
+      .reduce((sum, l) => sum + (Number(l.days) || 0), 0);
+    const casualUsed = empApprovedLeaves
+      .filter(l => l.leaveType === 'Casual Leave')
+      .reduce((sum, l) => sum + (Number(l.days) || 0), 0);
+    const medicalUsed = empApprovedLeaves
+      .filter(l => l.leaveType === 'Medical Leave')
+      .reduce((sum, l) => sum + (Number(l.days) || 0), 0);
+
+    const emp = employees.find(e => e.id === employeeId);
+    const totalAnnual = emp?.leaveBalances?.annual ?? 14;
+    const totalCasual = emp?.leaveBalances?.casual ?? 7;
+    const totalMedical = emp?.leaveBalances?.medical ?? 7;
+
+    return {
+      annual: { total: totalAnnual, used: annualUsed, remaining: Math.max(0, totalAnnual - annualUsed) },
+      casual: { total: totalCasual, used: casualUsed, remaining: Math.max(0, totalCasual - casualUsed) },
+      medical: { total: totalMedical, used: medicalUsed, remaining: Math.max(0, totalMedical - medicalUsed) }
+    };
+  };
+
+  const addHrLetter = (letterData) => {
+    const newLetter = {
+      ...letterData,
+      id: `let-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setHrLetters(prev => [newLetter, ...prev]);
+    showNotification(`Generated ${newLetter.title || 'HR Document'} successfully!`, 'success');
+    return newLetter;
+  };
+
+  const deleteHrLetter = (id) => {
+    setHrLetters(prev => prev.filter(l => l.id !== id));
+    showNotification('Document record removed.', 'info');
   };
 
   // --- MULTI-BRANCH STOCK TRANSFERS ---
@@ -2939,8 +3098,9 @@ export default function StoreContextProvider({ children }) {
       employees, addEmployee, updateEmployee, deleteEmployee,
       payruns, processPayrun,
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,
-      leaveRequests, addLeaveRequest, updateLeaveStatus, deleteLeaveRequest,
+      leaveRequests, addLeaveRequest, updateLeaveStatus, deleteLeaveRequest, getEmployeeLeaveBalance,
       salaryAdvances, addSalaryAdvance, deleteSalaryAdvance,
+      hrLetters, addHrLetter, deleteHrLetter,
       stockTransfers, addStockTransfer, updateStockTransferStatus, deleteStockTransfer,
       generateRecurringInvoices,
       performanceReviews, addPerformanceReview, deletePerformanceReview,
