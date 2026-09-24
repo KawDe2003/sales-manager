@@ -4,7 +4,7 @@ import { ChevronDown, Check } from 'lucide-react';
 
 /**
  * CustomSelect — premium portal-based dropdown rendered at <body> level,
- * so it is NEVER clipped by overflow containers or modal backdrops.
+ * with buttery-smooth mount/unmount and fluid micro-interactions.
  */
 const CustomSelect = ({
   options = [],
@@ -18,6 +18,8 @@ const CustomSelect = ({
   size = 'md'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 200, openUpwards: false });
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -53,12 +55,31 @@ const CustomSelect = ({
     });
   }, []);
 
-  /* ── Open / close ───────────────────────────────────────────────────────── */
+  /* ── Open / close with smooth enter/exit transitions ────────────────────── */
   const handleToggle = () => {
     if (disabled) return;
     if (!isOpen) computePosition();
     setIsOpen(prev => !prev);
   };
+
+  useEffect(() => {
+    let timer;
+    if (isOpen) {
+      setMounted(true);
+      timer = requestAnimationFrame(() => {
+        setVisible(true);
+      });
+    } else {
+      setVisible(false);
+      timer = setTimeout(() => {
+        setMounted(false);
+      }, 160);
+    }
+    return () => {
+      cancelAnimationFrame(timer);
+      clearTimeout(timer);
+    };
+  }, [isOpen]);
 
   /* ── Close on outside click, scroll, resize or Escape ──────────────────── */
   useEffect(() => {
@@ -107,8 +128,8 @@ const CustomSelect = ({
   // Separate container-level styles from trigger-level styles
   const { height, ...containerStyle } = style;
 
-  /* ── Portal dropdown ────────────────────────────────────────────────────── */
-  const dropdown = isOpen
+  /* ── Portal dropdown with fluid transitions ─────────────────────────────── */
+  const dropdown = mounted
     ? ReactDOM.createPortal(
         <div
           ref={dropdownRef}
@@ -128,8 +149,13 @@ const CustomSelect = ({
             maxHeight:            '270px',
             overflowY:            'auto',
             padding:              '6px',
-            animation:            'modalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-            transform:            dropPos.openUpwards ? 'translateY(-100%)' : 'none',
+            opacity:              visible ? 1 : 0,
+            transform:            dropPos.openUpwards 
+              ? (visible ? 'translateY(-100%) scale(1)' : 'translateY(calc(-100% + 8px)) scale(0.96)') 
+              : (visible ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.96)'),
+            transformOrigin:      dropPos.openUpwards ? 'bottom center' : 'top center',
+            transition:           'opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+            pointerEvents:        visible ? 'auto' : 'none',
             boxSizing:            'border-box'
           }}
         >
@@ -156,10 +182,10 @@ const CustomSelect = ({
                     borderRadius:   'var(--radius-sm, 8px)',
                     fontSize:       '0.84rem',
                     fontWeight:     isSel ? 700 : 500,
-                    color:          isSel ? 'var(--accent-primary, #10b981)' : 'var(--text-primary, #eef2f6)',
+                    color:          isSel ? (triggerStyle?.color || 'var(--accent-primary, #10b981)') : 'var(--text-primary, #eef2f6)',
                     background:     isSel ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
                     cursor:         'pointer',
-                    transition:     'background 0.14s ease, transform 0.14s ease, color 0.14s ease',
+                    transition:     'background 0.14s ease, transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), color 0.14s ease',
                     marginBottom:   '2px',
                     userSelect:     'none',
                     whiteSpace:     'nowrap',
@@ -169,7 +195,7 @@ const CustomSelect = ({
                   onMouseEnter={e => {
                     if (!isSel) {
                       e.currentTarget.style.background = 'var(--subtle-bg, rgba(255,255,255,0.06))';
-                      e.currentTarget.style.transform  = 'translateX(3px)';
+                      e.currentTarget.style.transform  = 'translateX(4px)';
                     }
                   }}
                   onMouseLeave={e => {
@@ -185,8 +211,12 @@ const CustomSelect = ({
                   {isSel && (
                     <Check
                       size={14}
-                      color="var(--accent-primary, #10b981)"
-                      style={{ flexShrink: 0, marginLeft: '8px' }}
+                      color={triggerStyle?.color || "var(--accent-primary, #10b981)"}
+                      style={{
+                        flexShrink: 0,
+                        marginLeft: '8px',
+                        animation: 'checkPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      }}
                     />
                   )}
                 </div>
@@ -210,7 +240,7 @@ const CustomSelect = ({
         ...containerStyle
       }}
     >
-      {/* Trigger button */}
+      {/* Trigger button with transitions */}
       <div
         onClick={handleToggle}
         className="custom-select-trigger"
@@ -232,7 +262,7 @@ const CustomSelect = ({
           boxShadow:      isOpen
             ? '0 0 0 3.5px var(--accent-glow, rgba(16, 185, 129, 0.25))'
             : '0 2px 8px rgba(0,0,0,0.06)',
-          transition:     'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          transition:     'border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
           boxSizing:      'border-box',
           width:          '100%',
           ...triggerStyle
@@ -251,7 +281,7 @@ const CustomSelect = ({
           color={triggerStyle?.color || "var(--accent-primary, #10b981)"}
           style={{
             transform:  isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
             flexShrink: 0
           }}
         />

@@ -544,6 +544,10 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
   text-transform: uppercase;
   letter-spacing: 0.06em;
   white-space: nowrap;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.badge:hover {
+  transform: translateY(-1px);
 }
 
 .badge-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
@@ -552,6 +556,17 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 .badge-info { background: var(--info-bg); color: var(--info); border: 1px solid rgba(6, 182, 212, 0.3); }
 .badge-neutral { background: var(--subtle-bg); color: var(--text-secondary); border: 1px solid var(--panel-border); }
 .badge-primary { background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+
+/* Custom Select Micro-transitions */
+.custom-select-container {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.custom-select-trigger:hover {
+  transform: translateY(-1px);
+}
+.custom-select-trigger:active {
+  transform: translateY(0) scale(0.99);
+}
 
 /* Live Pulse Dots */
 .pulse-dot {
@@ -708,6 +723,12 @@ tr:hover td { background: rgba(255, 255, 255, 0.025); color: var(--text-primary)
 @keyframes backdropFade {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0.35); opacity: 0; }
+  65% { transform: scale(1.22); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .modal-body { padding: 32px; }
