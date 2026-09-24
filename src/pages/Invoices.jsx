@@ -4,6 +4,7 @@ import { StoreContext } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
+import CustomSelect from '../components/CustomSelect';
 
 const Invoices = () => {
   const { invoices = [], customers = [], payments = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification, generateRecurringInvoices } = useContext(StoreContext) || {};
@@ -164,29 +165,29 @@ const Invoices = () => {
           />
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <select
-            className="form-input"
-            style={{ height: '42px', flex: '1 1 130px', minWidth: '120px', background: 'var(--subtle-bg)' }}
+          <CustomSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Status</option>
-            <option value="Draft">Draft</option>
-            <option value="Sent">Sent</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-          </select>
-          <select
-            className="form-input"
-            style={{ height: '42px', flex: '1 1 140px', minWidth: '120px', background: 'var(--subtle-bg)' }}
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: 'All', label: 'All Status' },
+              { value: 'Draft', label: 'Draft' },
+              { value: 'Sent', label: 'Sent' },
+              { value: 'Partially Paid', label: 'Partially Paid' },
+              { value: 'Paid', label: 'Paid' },
+              { value: 'Overdue', label: 'Overdue' }
+            ]}
+            style={{ height: '42px', minWidth: '135px' }}
+          />
+          <CustomSelect
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-          >
-            <option value="All">All Time</option>
-            <option value="Last30">Last 30 Days</option>
-            <option value="ThisYear">This Year</option>
-          </select>
+            onChange={(val) => setDateFilter(val)}
+            options={[
+              { value: 'All', label: 'All Time' },
+              { value: 'Last30', label: 'Last 30 Days' },
+              { value: 'ThisYear', label: 'This Year' }
+            ]}
+            style={{ height: '42px', minWidth: '135px' }}
+          />
         </div>
       </div>
 
@@ -320,18 +321,25 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
         </div>
 
         <div style={{ flexShrink: 0 }}>
-          <select
-            className={`badge badge-${isPaid ? 'success' : isOverdue ? 'danger' : invoice.status === 'Partially Paid' ? 'info' : invoice.status === 'Sent' ? 'warning' : 'secondary'}`}
-            style={{ minWidth: '125px', cursor: 'pointer', outline: 'none', padding: '6px 8px', fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', appearance: 'none', border: '1px solid currentColor' }}
+          <CustomSelect
             value={invoice.status}
-            onChange={(e) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, e.target.value)}
-          >
-            <option value="Draft">Draft</option>
-            <option value="Sent">Sent</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-          </select>
+            onChange={(val) => updateInvoiceStatus && updateInvoiceStatus(invoice.id, val)}
+            options={[
+              { value: 'Draft', label: 'Draft' },
+              { value: 'Sent', label: 'Sent' },
+              { value: 'Partially Paid', label: 'Partially Paid' },
+              { value: 'Paid', label: 'Paid' },
+              { value: 'Overdue', label: 'Overdue' }
+            ]}
+            size="sm"
+            style={{ minWidth: '135px' }}
+            triggerStyle={{
+              height: '32px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '4px 10px'
+            }}
+          />
         </div>
       </div>
 
@@ -518,10 +526,16 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Client / Local Gym</label>
-              <select className="form-input" style={{ height: '44px' }} value={formData.customerId} onChange={e => setFormData({ ...formData, customerId: e.target.value })} required>
-                <option value="">Select a Client</option>
-                {customers.map(c => <option key={c.id} value={c.id}>{c.gymName}</option>)}
-              </select>
+              <CustomSelect 
+                value={formData.customerId} 
+                onChange={val => setFormData({ ...formData, customerId: val })}
+                placeholder="Select a Client"
+                options={[
+                  { value: '', label: 'Select a Client' },
+                  ...customers.map(c => ({ value: c.id, label: c.gymName }))
+                ]}
+                style={{ height: '44px', width: '100%' }}
+              />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Issue Date</label>
@@ -536,14 +550,19 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           <div style={{ marginTop: '32px', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
             <label className="form-label" style={{ fontSize: '0.85rem' }}>Dynamic Line Items</label>
             <div className="flex gap-4 mb-4">
-              <select className="form-input flex-1" style={{ height: '44px' }} value={selectedInventoryId} onChange={e => setSelectedInventoryId(e.target.value)}>
-                <option value="">+ Browse inventory or software subscription...</option>
-                {inventory.map(inv => (
-                  <option key={inv.id} value={inv.id}>
-                    {inv.name} • LKR {(inv.price || 0).toLocaleString()} {inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect 
+                value={selectedInventoryId} 
+                onChange={val => setSelectedInventoryId(val)}
+                placeholder="+ Browse inventory or software subscription..."
+                options={[
+                  { value: '', label: '+ Browse inventory or software subscription...' },
+                  ...inventory.map(inv => ({
+                    value: inv.id,
+                    label: `${inv.name} • LKR ${(inv.price || 0).toLocaleString()} ${inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}`
+                  }))
+                ]}
+                style={{ height: '44px', flex: 1 }}
+              />
               <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
             </div>
             {formData.items.length > 0 && (
@@ -668,20 +687,30 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.8rem' }}># of Installments</label>
-                    <select className="form-input" style={{ height: '42px' }} value={installmentCount} onChange={e => setInstallmentCount(e.target.value)}>
-                      <option value="2">2 Installments</option>
-                      <option value="3">3 Installments</option>
-                      <option value="4">4 Installments</option>
-                      <option value="6">6 Installments</option>
-                      <option value="12">12 Installments</option>
-                    </select>
+                    <CustomSelect 
+                      value={installmentCount} 
+                      onChange={val => setInstallmentCount(val)}
+                      options={[
+                        { value: '2', label: '2 Installments' },
+                        { value: '3', label: '3 Installments' },
+                        { value: '4', label: '4 Installments' },
+                        { value: '6', label: '6 Installments' },
+                        { value: '12', label: '12 Installments' }
+                      ]}
+                      style={{ height: '42px', width: '100%' }}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Frequency</label>
-                    <select className="form-input" style={{ height: '42px' }} value={installmentFrequency} onChange={e => setInstallmentFrequency(e.target.value)}>
-                      <option value="Monthly">Monthly</option>
-                      <option value="Weekly">Weekly</option>
-                    </select>
+                    <CustomSelect 
+                      value={installmentFrequency} 
+                      onChange={val => setInstallmentFrequency(val)}
+                      options={[
+                        { value: 'Monthly', label: 'Monthly' },
+                        { value: 'Weekly', label: 'Weekly' }
+                      ]}
+                      style={{ height: '42px', width: '100%' }}
+                    />
                   </div>
                 </div>
                 {(() => {

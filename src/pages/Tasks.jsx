@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Search, CheckCircle, Clock, Trash2, CalendarDays, Edit3 } from 'lucide-react';
+import CustomSelect from '../components/CustomSelect';
 
 const Tasks = () => {
   const { tasks = [], addTask, updateTask, deleteTask } = useContext(StoreContext);
@@ -84,12 +85,17 @@ const Tasks = () => {
       {/* Toolbar */}
       <div className="glass-panel mb-8" style={{ padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="flex gap-4 w-full md:w-auto">
-          <select className="form-input" style={{ width: '150px' }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-          </select>
+          <CustomSelect 
+            value={filterStatus} 
+            onChange={(val) => setFilterStatus(val)}
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'Pending', label: 'Pending' },
+              { value: 'In Progress', label: 'In Progress' },
+              { value: 'Completed', label: 'Completed' }
+            ]}
+            style={{ width: '160px', height: '42px' }}
+          />
         </div>
         <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '350px' }}>
           <Search size={18} className="text-secondary" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -176,12 +182,12 @@ const Tasks = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Priority</label>
-                  <select className="form-input" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}>
-                    <option value="Low">Low</option>
-                    <option value="Normal">Normal</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
+                  <CustomSelect 
+                    value={form.priority} 
+                    onChange={val => setForm({...form, priority: val})}
+                    options={['Low', 'Normal', 'High', 'Urgent']}
+                    style={{ width: '100%', height: '42px' }}
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-4 mt-8">

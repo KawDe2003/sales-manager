@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Target, Phone, Mail, Trash2, User, Calendar, Edit2, FileText, X, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import CustomSelect from '../components/CustomSelect';
 
 const Leads = () => {
   const { leads = [], addLead, deleteLead, updateLead, confirmAction } = useContext(StoreContext) || {};
@@ -60,15 +61,15 @@ const Leads = () => {
           />
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <select
-            className="form-input"
-            style={{ height: '42px', flex: '1 1 140px', minWidth: '130px', background: 'var(--subtle-bg)' }}
+          <CustomSelect
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(val) => setFilterStatus(val)}
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              ...statuses.map(s => ({ value: s, label: s }))
+            ]}
+            style={{ height: '42px', minWidth: '150px' }}
+          />
         </div>
       </div>
 
@@ -137,22 +138,20 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
             <User size={13} style={{ opacity: 0.7 }} /> <span style={{ fontWeight: 500 }}>{lead.contactPerson}</span>
           </div>
         </div>
-        <select 
+        <CustomSelect 
           value={lead.status} 
-          onChange={(e) => onUpdateStatus(e.target.value)}
-          style={{ 
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.05), transparent)', 
-            border: '1px solid rgba(255,255,255,0.1)', 
-            color: getStatusColor(lead.status), fontSize: '0.7rem', padding: '4px 10px', borderRadius: '6px',
-            fontWeight: 700, appearance: 'none', cursor: 'pointer', outline: 'none'
+          onChange={(val) => onUpdateStatus(val)}
+          options={statuses.map(s => ({ value: s, label: s }))}
+          size="sm"
+          style={{ width: '130px' }}
+          triggerStyle={{
+            padding: '4px 10px',
+            fontSize: '0.75rem',
+            height: '32px',
+            color: getStatusColor(lead.status),
+            background: 'var(--subtle-bg)'
           }}
-        >
-          <option value="New">New</option>
-          <option value="Contacted">Contacted</option>
-          <option value="Interested">Interested</option>
-          <option value="Demo Scheduled">Demo</option>
-          <option value="Refused">Refused</option>
-        </select>
+        />
       </div>
 
       {/* Details Area */}
@@ -236,9 +235,12 @@ const LeadModal = ({ initialData, onClose, onSave, statuses }) => {
             </div>
             <div className="form-group">
               <label className="form-label">Pipeline Stage</label>
-              <select className="form-input" style={{ height: '44px' }} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <CustomSelect 
+                value={formData.status} 
+                onChange={val => setFormData({...formData, status: val})}
+                options={statuses.map(s => ({ value: s, label: s }))}
+                style={{ width: '100%', height: '44px' }}
+              />
             </div>
           </div>
           

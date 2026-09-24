@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
+import CustomSelect from '../components/CustomSelect';
 
 const Inventory = () => {
   const { inventory = [], invoices = [], addInventoryItem, deleteInventoryItem, updateInventoryItem, confirmAction, stockTransfers = [], addStockTransfer, updateStockTransferStatus, deleteStockTransfer, showNotification } = useContext(StoreContext) || {};
@@ -310,17 +311,17 @@ const Inventory = () => {
 
         <div className="flex items-center gap-3">
           <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>Category:</label>
-          <select 
-            className="form-input" 
-            style={{ height: '42px', width: '160px', background: 'var(--subtle-bg)' }}
+          <CustomSelect 
             value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            <option value="Hardware">Hardware</option>
-            <option value="Software">Software</option>
-            <option value="Service">Service</option>
-          </select>
+            onChange={val => setCategoryFilter(val)}
+            options={[
+              { value: 'All', label: 'All Categories' },
+              { value: 'Hardware', label: 'Hardware' },
+              { value: 'Software', label: 'Software' },
+              { value: 'Service', label: 'Service' }
+            ]}
+            style={{ width: '160px', height: '42px' }}
+          />
         </div>
       </div>
 
@@ -817,11 +818,16 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
 
           <div className="form-group mb-4">
             <label className="form-label">Classification Category</label>
-            <select className="form-input" style={{ height: '42px', width: '100%' }} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-              <option value="Hardware">Hardware / Terminal</option>
-              <option value="Software">Software Solution</option>
-              <option value="Service">Professional Service</option>
-            </select>
+            <CustomSelect 
+              value={formData.type} 
+              onChange={val => setFormData({...formData, type: val})}
+              options={[
+                { value: 'Hardware', label: 'Hardware / Terminal' },
+                { value: 'Software', label: 'Software Solution' },
+                { value: 'Service', label: 'Professional Service' }
+              ]}
+              style={{ width: '100%', height: '42px' }}
+            />
           </div>
 
           {/* Pricing & Cost Grid */}

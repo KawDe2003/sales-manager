@@ -1325,17 +1325,17 @@ const Ledger = () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Bank GL Account:</span>
-              <select 
+              <CustomSelect 
                 value={selectedAccountId} 
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: '10px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.85rem' }}
-              >
-                {accounts.filter(a => a.type === 'asset').map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
+                onChange={val => setSelectedAccountId(val)}
+                placeholder="Select Bank Account..."
+                options={accounts.filter(a => a.type === 'asset').map(acc => ({
+                  value: acc.id,
+                  label: `${acc.code} - ${acc.name}`
+                }))}
+                style={{ minWidth: '220px', height: '40px' }}
+                triggerStyle={{ height: '38px', fontSize: '0.85rem' }}
+              />
             </div>
           </div>
 

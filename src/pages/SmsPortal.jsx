@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
+import CustomSelect from '../components/CustomSelect';
 import { 
   MessageSquare, Send, Users, RefreshCw, Smartphone, ShieldCheck, 
   Zap, Sparkles, Check, Copy, Clock, Filter, AlertCircle, PlusCircle, 
@@ -81,8 +82,8 @@ const SmsPortal = () => {
   const recipients = getTargetRecipients();
 
   // Template Quick Loader
-  const handleLoadTemplate = (e) => {
-    const key = e.target.value;
+  const handleLoadTemplate = (val) => {
+    const key = typeof val === 'object' && val?.target ? val.target.value : val;
     setSelectedTemplateKey(key);
     if (!key) return;
 
@@ -400,19 +401,21 @@ const SmsPortal = () => {
                   <Send size={18} color="var(--accent-primary)" />
                   <h3 className="h3" style={{ margin: 0, fontSize: '1.1rem' }}>2. Compose Broadcast Message</h3>
                 </div>
-                <select 
-                  className="form-input" 
-                  style={{ height: '36px', fontSize: '0.8rem', width: '220px' }}
+                <CustomSelect 
                   value={selectedTemplateKey}
                   onChange={handleLoadTemplate}
-                >
-                  <option value="">-- Load Predefined Template --</option>
-                  <option value="renewal">📅 Subscription Renewal</option>
-                  <option value="debtor">⚠️ Overdue Payment Nudge</option>
-                  <option value="promo">🎉 Promotional Special Offer</option>
-                  <option value="cash">🧾 Cash Payment Confirmation</option>
-                  <option value="birthday">🎂 Birthday Greetings</option>
-                </select>
+                  placeholder="-- Load Predefined Template --"
+                  options={[
+                    { value: '', label: '-- Load Predefined Template --' },
+                    { value: 'renewal', label: '📅 Subscription Renewal' },
+                    { value: 'debtor', label: '⚠️ Overdue Payment Nudge' },
+                    { value: 'promo', label: '🎉 Promotional Special Offer' },
+                    { value: 'cash', label: '🧾 Cash Payment Confirmation' },
+                    { value: 'birthday', label: '🎂 Birthday Greetings' }
+                  ]}
+                  style={{ width: '240px', height: '36px' }}
+                  size="sm"
+                />
               </div>
 
               {/* Dynamic Tag Quick Insert */}
@@ -525,24 +528,26 @@ const SmsPortal = () => {
           <form onSubmit={handleSendSingleDirect}>
             <div className="form-group mb-4">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Select Client or Prospect (Optional)</label>
-              <select 
-                className="form-input" 
-                style={{ height: '42px' }}
+              <CustomSelect 
                 value={directRecipient}
-                onChange={e => {
-                  const val = e.target.value;
+                onChange={val => {
                   setDirectRecipient(val);
                   if (val) setDirectPhone(val);
                 }}
-              >
-                <option value="">-- Choose Existing Contact --</option>
-                {customers.filter(c => c.phone).map(c => (
-                  <option key={c.id} value={c.phone}>{c.gymName} ({c.name}) - {c.phone}</option>
-                ))}
-                {leads.filter(l => l.phone).map(l => (
-                  <option key={l.id} value={l.phone}>[Lead] {l.gymName} - {l.phone}</option>
-                ))}
-              </select>
+                placeholder="-- Choose Existing Contact --"
+                options={[
+                  { value: '', label: '-- Choose Existing Contact --' },
+                  ...customers.filter(c => c.phone).map(c => ({
+                    value: c.phone,
+                    label: `${c.gymName} (${c.name}) - ${c.phone}`
+                  })),
+                  ...leads.filter(l => l.phone).map(l => ({
+                    value: l.phone,
+                    label: `[Lead] ${l.gymName} - ${l.phone}`
+                  }))
+                ]}
+                style={{ height: '42px', width: '100%' }}
+              />
             </div>
 
             <div className="form-group mb-4">

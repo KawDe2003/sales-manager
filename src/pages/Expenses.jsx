@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Search, CheckCircle, Trash2, Edit3, DollarSign, PieChart, Wallet } from 'lucide-react';
+import CustomSelect from '../components/CustomSelect';
 
 const Expenses = () => {
   const { expenses = [], addExpense, updateExpense, deleteExpense } = useContext(StoreContext);
@@ -92,10 +93,15 @@ const Expenses = () => {
       {/* Toolbar */}
       <div className="glass-panel mb-8" style={{ padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="flex gap-4 w-full md:w-auto">
-          <select className="form-input" style={{ width: '150px' }} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-            <option value="All">All Categories</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <CustomSelect 
+            value={filterCategory} 
+            onChange={val => setFilterCategory(val)}
+            options={[
+              { value: 'All', label: 'All Categories' },
+              ...categories.map(c => ({ value: c, label: c }))
+            ]}
+            style={{ width: '160px', height: '42px' }}
+          />
         </div>
         <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '350px' }}>
           <Search size={18} className="text-secondary" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -166,9 +172,12 @@ const Expenses = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="form-group">
                   <label className="form-label">Category</label>
-                  <select required className="form-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <CustomSelect 
+                    value={form.category} 
+                    onChange={val => setForm({...form, category: val})}
+                    options={categories.map(c => ({ value: c, label: c }))}
+                    style={{ width: '100%', height: '42px' }}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Date</label>

@@ -6,6 +6,7 @@ import {
   Clock, TrendingDown, Eye, Calculator, Table
 } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '../utils/export';
+import CustomSelect from '../components/CustomSelect';
 
 const FixedAssets = () => {
   const { 
@@ -308,31 +309,31 @@ const FixedAssets = () => {
         </div>
 
         <div className="flex gap-2 flex-wrap" style={{ width: '100%', mdWidth: 'auto' }}>
-          <select 
-            className="form-input" 
-            style={{ height: '42px', minWidth: '150px', background: 'var(--subtle-bg)', fontSize: '0.8rem' }}
+          <CustomSelect 
             value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            <option value="Gym Equipment">Gym Equipment</option>
-            <option value="IT Hardware">IT Hardware & Servers</option>
-            <option value="Office Furniture">Office Furniture</option>
-            <option value="Facility Infrastructure">Facility & Aircon</option>
-          </select>
+            onChange={val => setCategoryFilter(val)}
+            options={[
+              { value: 'All', label: 'All Categories' },
+              { value: 'Gym Equipment', label: 'Gym Equipment' },
+              { value: 'IT Hardware', label: 'IT Hardware & Servers' },
+              { value: 'Office Furniture', label: 'Office Furniture' },
+              { value: 'Facility Infrastructure', label: 'Facility & Aircon' }
+            ]}
+            style={{ minWidth: '160px', height: '42px' }}
+          />
 
-          <select 
-            className="form-input" 
-            style={{ height: '42px', minWidth: '160px', background: 'var(--subtle-bg)', fontSize: '0.8rem' }}
+          <CustomSelect 
             value={methodFilter}
-            onChange={e => setMethodFilter(e.target.value)}
-          >
-            <option value="All">All Dep. Methods</option>
-            <option value="Straight Line (SLM)">Straight Line (SLM)</option>
-            <option value="Declining Balance (WDV)">Declining Balance (WDV)</option>
-            <option value="Sum of Years Digits (SYD)">Sum of Years Digits (SYD)</option>
-            <option value="No Depreciation (Land/Art)">No Depreciation</option>
-          </select>
+            onChange={val => setMethodFilter(val)}
+            options={[
+              { value: 'All', label: 'All Dep. Methods' },
+              { value: 'Straight Line (SLM)', label: 'Straight Line (SLM)' },
+              { value: 'Declining Balance (WDV)', label: 'Declining Balance (WDV)' },
+              { value: 'Sum of Years Digits (SYD)', label: 'Sum of Years Digits (SYD)' },
+              { value: 'No Depreciation (Land/Art)', label: 'No Depreciation' }
+            ]}
+            style={{ minWidth: '170px', height: '42px' }}
+          />
         </div>
       </div>
 
@@ -538,17 +539,18 @@ const AssetModal = ({ initialData, onClose, onSave }) => {
             </div>
             <div className="form-group">
               <label className="form-label">Asset Category</label>
-              <select 
-                className="form-input" 
+              <CustomSelect 
                 value={formData.category} 
-                onChange={e => setFormData({ ...formData, category: e.target.value })}
-              >
-                <option value="Gym Equipment">Gym Equipment</option>
-                <option value="IT Hardware">IT Hardware & Servers</option>
-                <option value="Office Furniture">Office Furniture</option>
-                <option value="Facility Infrastructure">Facility & Aircon</option>
-                <option value="Other">Other Equipment</option>
-              </select>
+                onChange={val => setFormData({ ...formData, category: val })}
+                options={[
+                  { value: 'Gym Equipment', label: 'Gym Equipment' },
+                  { value: 'IT Hardware', label: 'IT Hardware & Servers' },
+                  { value: 'Office Furniture', label: 'Office Furniture' },
+                  { value: 'Facility Infrastructure', label: 'Facility & Aircon' },
+                  { value: 'Other', label: 'Other Equipment' }
+                ]}
+                style={{ width: '100%', height: '42px' }}
+              />
             </div>
           </div>
 
@@ -568,16 +570,17 @@ const AssetModal = ({ initialData, onClose, onSave }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ background: 'var(--subtle-bg)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" style={{ color: 'var(--accent-primary)', fontWeight: 800 }}>Depreciation Method</label>
-              <select 
-                className="form-input" 
+              <CustomSelect 
                 value={formData.depreciationMethod} 
-                onChange={e => setFormData({ ...formData, depreciationMethod: e.target.value })}
-              >
-                <option value="Straight Line (SLM)">Straight Line Method (SLM)</option>
-                <option value="Declining Balance (WDV)">Declining / Reducing Balance (WDV)</option>
-                <option value="Sum of Years Digits (SYD)">Sum of Years Digits (SYD)</option>
-                <option value="No Depreciation (Land/Art)">No Depreciation (Land / Art)</option>
-              </select>
+                onChange={val => setFormData({ ...formData, depreciationMethod: val })}
+                options={[
+                  { value: 'Straight Line (SLM)', label: 'Straight Line Method (SLM)' },
+                  { value: 'Declining Balance (WDV)', label: 'Declining / Reducing Balance (WDV)' },
+                  { value: 'Sum of Years Digits (SYD)', label: 'Sum of Years Digits (SYD)' },
+                  { value: 'No Depreciation (Land/Art)', label: 'No Depreciation (Land / Art)' }
+                ]}
+                style={{ width: '100%', height: '42px' }}
+              />
             </div>
 
             {formData.depreciationMethod === 'Declining Balance (WDV)' && (
@@ -653,15 +656,16 @@ const AssetModal = ({ initialData, onClose, onSave }) => {
 
           <div className="form-group">
             <label className="form-label">Operational Status</label>
-            <select 
-              className="form-input" 
+            <CustomSelect 
               value={formData.status} 
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="Active">Active / Operational</option>
-              <option value="Maintenance">In Repair / Maintenance</option>
-              <option value="Disposed">Retired / Disposed</option>
-            </select>
+              onChange={val => setFormData({ ...formData, status: val })}
+              options={[
+                { value: 'Active', label: 'Active / Operational' },
+                { value: 'Maintenance', label: 'In Repair / Maintenance' },
+                { value: 'Disposed', label: 'Retired / Disposed' }
+              ]}
+              style={{ width: '100%', height: '42px' }}
+            />
           </div>
 
           <div className="flex justify-end gap-3 mt-6">

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
+import CustomSelect from '../components/CustomSelect';
 
 const Quotations = () => {
   const { quotes = [], addQuote, updateQuote, updateQuoteStatus, convertQuoteToInvoice, inventory = [], triggerSMS, smsConfig, customers = [], leads = [], showNotification } = useContext(StoreContext) || {};
@@ -174,20 +175,23 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
         </div>
 
         <div style={{ flexShrink: 0 }}>
-          <select 
-            className={`badge badge-${isAccepted ? 'success' : isRejected ? 'danger' : 'warning'}`}
-            style={{ 
-              minWidth: '110px', cursor: 'pointer', outline: 'none', padding: '6px 8px', 
-              fontSize: '0.7rem', backgroundImage: 'none', textAlign: 'center', 
-              appearance: 'none', border: '1px solid currentColor' 
-            }}
+          <CustomSelect 
             value={quote.status || 'Pending'}
-            onChange={(e) => updateQuoteStatus && updateQuoteStatus(quote.id, e.target.value)}
-          >
-            <option value="Pending">Pending</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+            onChange={(val) => updateQuoteStatus && updateQuoteStatus(quote.id, val)}
+            options={[
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Accepted', label: 'Accepted' },
+              { value: 'Rejected', label: 'Rejected' }
+            ]}
+            size="sm"
+            style={{ minWidth: '120px' }}
+            triggerStyle={{
+              height: '32px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '4px 10px'
+            }}
+          />
         </div>
       </div>
 
@@ -339,17 +343,23 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
                 <div style={{ position: 'relative' }}>
                   <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.prospectName} onChange={e => setFormData({...formData, prospectName: e.target.value})} />
                   {customers.length > 0 && !initialData && (
-                    <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Quick link: <select 
-                        style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-                        onChange={e => {
-                          const sel = customers.find(c => c.id === e.target.value);
+                    <div className="flex items-center gap-2" style={{ marginTop: '8px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Quick link:</span>
+                      <CustomSelect 
+                        value=""
+                        placeholder="Select Existing Client..."
+                        onChange={(val) => {
+                          const sel = customers.find(c => c.id === val);
                           if (sel) setFormData(prev => ({ ...prev, prospectName: sel.gymName, prospectPhone: sel.phone || '' }));
                         }}
-                      >
-                        <option value="">Select Existing Client...</option>
-                        {customers.map(c => <option key={c.id} value={c.id}>{c.gymName}</option>)}
-                      </select>
+                        options={[
+                          { value: '', label: 'Select Existing Client...' },
+                          ...customers.map(c => ({ value: c.id, label: c.gymName }))
+                        ]}
+                        size="sm"
+                        style={{ minWidth: '200px' }}
+                        triggerStyle={{ height: '30px', fontSize: '0.78rem' }}
+                      />
                     </div>
                   )}
                 </div>
@@ -364,14 +374,19 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           <div style={{ marginTop: '32px', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
             <label className="form-label" style={{ fontSize: '0.85rem' }}>Proposal Line Items</label>
             <div className="flex gap-4">
-              <select className="form-input flex-1" style={{ height: '44px' }} value={selectedInventoryId} onChange={e => setSelectedInventoryId(e.target.value)}>
-                <option value="">+ Browse inventory...</option>
-                {inventory.map(inv => (
-                  <option key={inv.id} value={inv.id}>
-                    {inv.name} • LKR {(inv.price || 0).toLocaleString()} {inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect 
+                value={selectedInventoryId} 
+                onChange={val => setSelectedInventoryId(val)}
+                placeholder="+ Browse inventory..."
+                options={[
+                  { value: '', label: '+ Browse inventory...' },
+                  ...inventory.map(inv => ({
+                    value: inv.id,
+                    label: `${inv.name} • LKR ${(inv.price || 0).toLocaleString()} ${inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}`
+                  }))
+                ]}
+                style={{ height: '44px', flex: 1 }}
+              />
               <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
             </div>
 

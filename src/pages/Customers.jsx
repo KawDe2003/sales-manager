@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake, Download } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
+import CustomSelect from '../components/CustomSelect';
 
 const Customers = () => {
   const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit } = useContext(StoreContext) || {};
@@ -117,29 +118,28 @@ const Customers = () => {
           />
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <select 
-            className="form-input"
-            style={{ height: '42px', width: '100%', mdWidth: '130px', background: 'var(--subtle-bg)' }}
+          <CustomSelect 
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-          <select 
-            className="form-input"
-            style={{ height: '42px', width: '100%', mdWidth: '140px', background: 'var(--subtle-bg)' }}
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: 'All', label: 'All Status' },
+              { value: 'Active', label: 'Active' },
+              { value: 'Inactive', label: 'Inactive' }
+            ]}
+            style={{ height: '42px', minWidth: '130px' }}
+          />
+          <CustomSelect 
             value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-          >
-            <option value="All">Any Month</option>
-            {Array.from({length: 12}).map((_, i) => (
-              <option key={i} value={i.toString()}>
-                {new Date(0, i).toLocaleString('default', { month: 'long' })}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setMonthFilter(val)}
+            options={[
+              { value: 'All', label: 'Any Month' },
+              ...Array.from({ length: 12 }).map((_, i) => ({
+                value: i.toString(),
+                label: new Date(0, i).toLocaleString('default', { month: 'long' })
+              }))
+            ]}
+            style={{ height: '42px', minWidth: '140px' }}
+          />
         </div>
       </div>
 
@@ -501,10 +501,15 @@ const CustomerModal = ({ onClose, onSave, initialData }) => {
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
-              <select className="form-input" style={{ height: '44px' }} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                <option value="Active">Active Subscription</option>
-                <option value="Inactive">Suspended / Deactivated</option>
-              </select>
+              <CustomSelect 
+                value={formData.status} 
+                onChange={(val) => setFormData({ ...formData, status: val })}
+                options={[
+                  { value: 'Active', label: 'Active Subscription' },
+                  { value: 'Inactive', label: 'Suspended / Deactivated' }
+                ]}
+                style={{ height: '44px', width: '100%' }}
+              />
             </div>
           </div>
 

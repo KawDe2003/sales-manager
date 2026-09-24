@@ -1393,16 +1393,18 @@ const Settings = () => {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{member.email}</div>
                       </td>
                       <td>
-                        <select 
-                          className="form-input" 
-                          style={{ height: '34px', fontSize: '0.78rem', padding: '2px 8px', width: '160px', background: 'var(--subtle-bg)' }}
+                        <CustomSelect 
                           value={member.role}
-                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
-                        >
-                          <option value="Admin">Admin (Full Access)</option>
-                          <option value="Sales Representative">Sales Representative</option>
-                          <option value="Accountant">Accountant (Read-Only)</option>
-                        </select>
+                          onChange={val => updateTeamMemberRole && updateTeamMemberRole(member.id, val)}
+                          options={[
+                            { value: 'Admin', label: 'Admin (Full Access)' },
+                            { value: 'Sales Representative', label: 'Sales Representative' },
+                            { value: 'Accountant', label: 'Accountant (Read-Only)' }
+                          ]}
+                          size="sm"
+                          style={{ width: '180px' }}
+                          triggerStyle={{ height: '32px', fontSize: '0.78rem' }}
+                        />
                       </td>
                       <td>
                         <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
@@ -1590,13 +1592,18 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
 
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Department / Branch</label>
-              <select className="form-input" style={{ height: '42px' }} value={userForm.department} onChange={e => setUserForm({...userForm, department: e.target.value})}>
-                <option value="Headquarters">Headquarters</option>
-                <option value="Sales Division">Sales Division</option>
-                <option value="Finance & Accounting">Finance & Accounting</option>
-                <option value="Inventory & Operations">Inventory & Operations</option>
-                <option value="Regional Support">Regional Support</option>
-              </select>
+              <CustomSelect 
+                value={userForm.department} 
+                onChange={val => setUserForm({...userForm, department: val})}
+                options={[
+                  { value: 'Headquarters', label: 'Headquarters' },
+                  { value: 'Sales Division', label: 'Sales Division' },
+                  { value: 'Finance & Accounting', label: 'Finance & Accounting' },
+                  { value: 'Inventory & Operations', label: 'Inventory & Operations' },
+                  { value: 'Regional Support', label: 'Regional Support' }
+                ]}
+                style={{ height: '42px', width: '100%' }}
+              />
             </div>
           </div>
 
@@ -1759,36 +1766,52 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
 
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Department / Branch</label>
-              <select className="form-input" style={{ height: '42px' }} value={form.department} onChange={e => setForm({...form, department: e.target.value})}>
-                <option value="Headquarters">Headquarters</option>
-                <option value="Sales Division">Sales Division</option>
-                <option value="Finance & Accounting">Finance & Accounting</option>
-                <option value="Inventory & Operations">Inventory & Operations</option>
-                <option value="Regional Support">Regional Support</option>
-              </select>
+              <CustomSelect 
+                value={form.department} 
+                onChange={val => setForm({...form, department: val})}
+                options={[
+                  { value: 'Headquarters', label: 'Headquarters' },
+                  { value: 'Sales Division', label: 'Sales Division' },
+                  { value: 'Finance & Accounting', label: 'Finance & Accounting' },
+                  { value: 'Inventory & Operations', label: 'Inventory & Operations' },
+                  { value: 'Regional Support', label: 'Regional Support' }
+                ]}
+                style={{ height: '42px', width: '100%' }}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Assigned System Role</label>
-              <select className="form-input" style={{ height: '42px', fontWeight: 700 }} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
-                <option value="Admin">👑 Admin (Full Access)</option>
-                <option value="Sales Representative">💼 Sales Representative</option>
-                <option value="Accountant">📊 Accountant (Read-Only)</option>
-                {customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => (
-                  <option key={r.id} value={r.title}>🛡️ {r.title}</option>
-                ))}
-              </select>
+              <CustomSelect 
+                value={form.role} 
+                onChange={val => setForm({...form, role: val})}
+                options={[
+                  { value: 'Admin', label: '👑 Admin (Full Access)' },
+                  { value: 'Sales Representative', label: '💼 Sales Representative' },
+                  { value: 'Accountant', label: '📊 Accountant (Read-Only)' },
+                  ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
+                    value: r.title,
+                    label: `🛡️ ${r.title}`
+                  }))
+                ]}
+                style={{ height: '42px', width: '100%' }}
+              />
             </div>
 
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
-              <select className="form-input" style={{ height: '42px' }} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
-                <option value="Active">🟢 Active Account</option>
-                <option value="Pending">🟡 Pending Verification</option>
-                <option value="Suspended">🔴 Suspended Access</option>
-              </select>
+              <CustomSelect 
+                value={form.status} 
+                onChange={val => setForm({...form, status: val})}
+                options={[
+                  { value: 'Active', label: '🟢 Active Account' },
+                  { value: 'Pending', label: '🟡 Pending Verification' },
+                  { value: 'Suspended', label: '🔴 Suspended Access' }
+                ]}
+                style={{ height: '42px', width: '100%' }}
+              />
             </div>
           </div>
 
