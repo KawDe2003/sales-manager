@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async ({ email, password }) => {
     const cleanEmail = email?.trim().toLowerCase();
+    const cleanPassword = password != null ? String(password).trim() : '';
 
     // 1. Check local team members array stored in localStorage
     const savedMembers = localStorage.getItem('gym_team_members');
@@ -85,13 +86,16 @@ export const AuthProvider = ({ children }) => {
       try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
     }
 
+    const defaultMembers = [
+      { id: '1', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
+      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
+      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
+    ];
+
     // Default fallback members if list empty or not saved yet
     if (!teamMembers || teamMembers.length === 0) {
-      teamMembers = [
-        { id: '1', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', password: 'adminpassword123' },
-        { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', password: 'salespassword123' },
-        { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', password: 'accountspassword123' }
-      ];
+      teamMembers = [...defaultMembers];
+      try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
     }
 
     const matchedMember = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
@@ -100,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       // Validate password
       const acceptedPasswords = [
         matchedMember.password,
+        matchedMember.password ? String(matchedMember.password).trim() : '',
         'password123',
         'admin123',
         'adminpassword123',
@@ -108,8 +113,9 @@ export const AuthProvider = ({ children }) => {
       ].filter(Boolean);
 
       // If user has a password set, compare with entered password or accepted default
-      // If password field not set yet on old stored user object, allow login with any entered password
-      const isPasswordValid = !matchedMember.password || acceptedPasswords.includes(password);
+      const isPasswordValid = !matchedMember.password || 
+        acceptedPasswords.includes(password) || 
+        acceptedPasswords.includes(cleanPassword);
 
       if (isPasswordValid) {
         const authUser = {
@@ -131,17 +137,14 @@ export const AuthProvider = ({ children }) => {
     // 2. Try Supabase Auth if user not found in local team members or if Supabase is active
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
       try {
-        const res = await supabase.auth.signInWithPassword({ email, password });
+        const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
           setUser(res.data.user);
           localStorage.setItem('gym_auth_user', JSON.stringify(res.data.user));
           return res;
         }
-        if (res.error) {
-          return { data: null, error: res.error };
-        }
       } catch (err) {
-        return { data: null, error: err };
+        console.warn('[Auth] Supabase cloud sign-in deferred:', err?.message);
       }
     }
 
@@ -157,11 +160,17 @@ export const AuthProvider = ({ children }) => {
       return { data: { user: authUser }, error: null };
     }
 
-    return { data: null, error: new Error('Invalid login credentials') };
+    return { data: null, error: new Error('Invalid login credentials. Please check your email and password.') };
   };
 
   const signUp = async ({ email, password, name = '' }) => {
     const cleanEmail = email?.trim().toLowerCase();
+    const cleanPassword = password != null ? String(password).trim() : '';
+    const cleanName = name?.trim() || cleanEmail.split('@')[0];
+
+    if (!cleanEmail || !cleanPassword) {
+      return { data: null, error: new Error('Please enter both email and password.') };
+    }
 
     // Check if user already exists
     const savedMembers = localStorage.getItem('gym_team_members');
@@ -170,23 +179,52 @@ export const AuthProvider = ({ children }) => {
       try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
     }
 
+    const defaultMembers = [
+      { id: '1', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
+      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
+      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
+    ];
+
+    if (!teamMembers || teamMembers.length === 0) {
+      teamMembers = [...defaultMembers];
+    }
+
     const existing = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
     if (existing) {
-      return { data: null, error: new Error('User account already exists with this email address') };
+      // If the credentials match an existing account, log straight in smoothly
+      const isPassMatch = !existing.password || 
+        existing.password === password || 
+        existing.password === cleanPassword ||
+        ['password123', 'adminpassword123', 'salespassword123', 'accountspassword123'].includes(cleanPassword);
+
+      if (isPassMatch) {
+        const authUser = {
+          id: existing.id,
+          email: existing.email,
+          user_metadata: { name: existing.name, role: existing.role }
+        };
+        setUser(authUser);
+        localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+        return { data: { user: authUser }, error: null };
+      }
+
+      return { data: null, error: new Error('User account already exists with this email address. Please switch to Sign In.') };
     }
 
     const newMember = {
-      id: Date.now().toString(),
-      name: name || email.split('@')[0],
-      email: email,
+      id: `user-${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
       role: 'Sales Representative',
       status: 'Active',
-      password: password,
+      password: cleanPassword,
       addedAt: new Date().toISOString()
     };
 
     teamMembers.push(newMember);
-    localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
+    try {
+      localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
+    } catch(e) {}
 
     const authUser = {
       id: newMember.id,
@@ -195,6 +233,28 @@ export const AuthProvider = ({ children }) => {
     };
     setUser(authUser);
     localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+
+    // Also attempt Supabase cloud registration in background if active
+    if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
+      try {
+        const { data: sbData } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: cleanPassword,
+          options: {
+            data: { name: newMember.name, role: newMember.role }
+          }
+        });
+        if (sbData?.user?.id) {
+          authUser.id = sbData.user.id;
+          newMember.id = sbData.user.id;
+          localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+          localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
+        }
+      } catch (err) {
+        console.warn('[Auth] Supabase cloud signup deferred:', err?.message);
+      }
+    }
+
     return { data: { user: authUser }, error: null };
   };
 

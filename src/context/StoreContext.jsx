@@ -857,25 +857,55 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addTeamMember = (data) => {
+    const cleanEmail = (data.email || '').trim().toLowerCase();
+    const cleanPassword = (data.password || 'password123').trim();
     const newMember = {
       id: Date.now().toString(),
-      name: data.name,
-      email: data.email,
+      name: (data.name || '').trim() || cleanEmail.split('@')[0],
+      email: cleanEmail,
       role: data.role || 'Sales Representative',
       department: data.department || 'General',
-      phone: data.phone || '',
+      phone: (data.phone || '').trim(),
       status: data.status || 'Active',
       mustChangePassword: !!data.mustChangePassword,
       expiryDate: data.expiryDate || '',
-      password: data.password || 'password123',
+      password: cleanPassword,
       addedAt: new Date().toISOString()
     };
-    setTeamMembers(prev => [newMember, ...prev]);
-    showNotification(`Added team member ${data.name} as ${newMember.role}`);
+
+    setTeamMembers(prev => {
+      const filtered = prev.filter(m => (m.email || '').trim().toLowerCase() !== cleanEmail);
+      const updated = [newMember, ...filtered];
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to sync team member to localStorage', e);
+      }
+      return updated;
+    });
+
+    // Also attempt Supabase sign-up in the background so cloud auth is in sync if online
+    if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
+      supabase.auth.signUp({
+        email: cleanEmail,
+        password: cleanPassword,
+        options: {
+          data: { name: newMember.name, role: newMember.role }
+        }
+      }).catch(err => console.log('[StoreContext] Cloud auth sync deferred:', err?.message));
+    }
+
+    showNotification(`Added team member ${newMember.name} as ${newMember.role}`);
   };
 
   const updateTeamMember = (id, updatedData) => {
-    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, ...updatedData } : m));
+    setTeamMembers(prev => {
+      const updated = prev.map(m => m.id === id ? { ...m, ...updatedData } : m);
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     showNotification(`Updated user account details for ${updatedData.name || 'user'}`);
     if (typeof addLog === 'function') {
       addLog('Access', `Admin updated user account details for: ${updatedData.name || id}`);
@@ -884,39 +914,64 @@ export default function StoreContextProvider({ children }) {
 
   const toggleTeamMemberStatus = (id) => {
     let newStatus = 'Active';
-    setTeamMembers(prev => prev.map(m => {
-      if (m.id === id) {
-        newStatus = m.status === 'Active' ? 'Suspended' : 'Active';
-        return { ...m, status: newStatus };
-      }
-      return m;
-    }));
+    setTeamMembers(prev => {
+      const updated = prev.map(m => {
+        if (m.id === id) {
+          newStatus = m.status === 'Active' ? 'Suspended' : 'Active';
+          return { ...m, status: newStatus };
+        }
+        return m;
+      });
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     showNotification(`User account status changed to ${newStatus}`);
   };
 
   const updateTeamMemberRole = (id, newRole) => {
-    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, role: newRole } : m));
+    setTeamMembers(prev => {
+      const updated = prev.map(m => m.id === id ? { ...m, role: newRole } : m);
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     showNotification(`Updated user role to ${newRole}`);
   };
 
   const deleteTeamMember = (id) => {
-    setTeamMembers(prev => prev.filter(m => m.id !== id));
+    setTeamMembers(prev => {
+      const updated = prev.filter(m => m.id !== id);
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     showNotification(`Removed team member`, 'warning');
   };
 
   const resetUserPassword = (id, newPassword) => {
     let targetName = 'User';
-    setTeamMembers(prev => prev.map(m => {
-      if (m.id === id) {
-        targetName = m.name;
-        return { 
-          ...m, 
-          password: newPassword, 
-          passwordResetAt: new Date().toISOString() 
-        };
-      }
-      return m;
-    }));
+    const cleanPass = (newPassword || '').trim();
+    setTeamMembers(prev => {
+      const updated = prev.map(m => {
+        if (m.id === id) {
+          targetName = m.name;
+          return { 
+            ...m, 
+            password: cleanPass, 
+            passwordResetAt: new Date().toISOString() 
+          };
+        }
+        return m;
+      });
+      try {
+        localStorage.setItem('gym_team_members', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     showNotification(`Password updated successfully for ${targetName}`);
     if (typeof addLog === 'function') {
       addLog('Security', `Admin reset password for user: ${targetName}`);

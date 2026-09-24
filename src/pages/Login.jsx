@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Lock, Mail, LogIn, AlertCircle, CheckCircle, 
+  Lock, Mail, User, LogIn, AlertCircle, CheckCircle, 
   ArrowRight, ShieldCheck, BadgeDollarSign, Loader2 
 } from 'lucide-react';
 
 const Login = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,11 +26,11 @@ const Login = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp({ email, password });
+        const { error } = await signUp({ email: email.trim(), password, name: name.trim() });
         if (error) throw error;
-        setMessage('Check your email for the confirmation link!');
+        navigate('/');
       } else {
-        const { error } = await signIn({ email, password });
+        const { error } = await signIn({ email: email.trim(), password });
         if (error) throw error;
         navigate('/');
       }
@@ -127,6 +128,29 @@ const Login = () => {
         )}
 
         <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {isSignUp && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={14} /> Full Name
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Kasun Perera"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="name"
+                style={{ 
+                  paddingLeft: '44px', 
+                  background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") no-repeat 16px center`,
+                  height: '52px'
+                }}
+              />
+            </div>
+          )}
+
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Mail size={14} /> Email Address

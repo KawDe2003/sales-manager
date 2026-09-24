@@ -1516,11 +1516,12 @@ const Settings = () => {
 };
 
 const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
-  const [userForm, setUserForm] = useState({ 
+  const [userForm, setUserForm] = useState(() => ({ 
     name: '', email: '', phone: '', department: 'Sales Division', role: 'Sales Representative', 
-    status: 'Active', password: '', mustChangePassword: false, expiryDate: '' 
-  });
+    status: 'Active', password: generateRandomPassword(), mustChangePassword: false, expiryDate: '' 
+  }));
   const [showPassword, setShowPassword] = useState(false);
+  const [copiedCredentials, setCopiedCredentials] = useState(false);
 
   // Live Password Strength Meter
   const getPasswordStrength = (pass) => {
@@ -1541,6 +1542,13 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
 
   const generatePassword = () => {
     setUserForm(prev => ({ ...prev, password: generateRandomPassword() }));
+  };
+
+  const copyCredentials = () => {
+    const text = `Sales Manager Login:\nEmail: ${userForm.email || '(enter email)'}\nPassword: ${userForm.password}\nRole: ${userForm.role}`;
+    navigator.clipboard.writeText(text);
+    setCopiedCredentials(true);
+    setTimeout(() => setCopiedCredentials(false), 2200);
   };
 
   return (
@@ -1646,13 +1654,22 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
           <div className="form-group mb-3">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label className="form-label" style={{ fontSize: '0.85rem', margin: 0 }}>Initial Temporary Password *</label>
-              <button 
-                type="button" 
-                onClick={generatePassword}
-                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <RefreshCw size={12} /> Auto-Generate
-              </button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button 
+                  type="button" 
+                  onClick={copyCredentials}
+                  style={{ background: 'none', border: 'none', color: copiedCredentials ? 'var(--success)' : 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {copiedCredentials ? <Check size={12} /> : <Copy size={12} />} {copiedCredentials ? 'Copied!' : 'Copy'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={generatePassword}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <RefreshCw size={12} /> Auto-Generate
+                </button>
+              </div>
             </div>
             <div style={{ position: 'relative' }}>
               <input 
