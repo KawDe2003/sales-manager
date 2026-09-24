@@ -48,7 +48,10 @@ const Settings = () => {
   }, []);
 
   const handleSave = () => {
-    showNotification('System configuration updated successfully.');
+    if (updateSmsConfig) {
+      updateSmsConfig({ ...smsConfig });
+    }
+    showNotification('System configuration and business identity saved successfully.');
   };
 
   return (
@@ -321,7 +324,7 @@ const Settings = () => {
                           size="sm"
                           style={{ width: '210px' }}
                           value={member.role}
-                          onChange={e => updateTeamMemberRole && updateTeamMemberRole(member.id, e.target.value)}
+                          onChange={val => updateTeamMemberRole && updateTeamMemberRole(member.id, val)}
                           options={[
                             { value: 'Admin', label: '👑 Admin (Full Access)' },
                             { value: 'Sales Representative', label: '💼 Sales Representative' },
@@ -514,21 +517,38 @@ const Settings = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group">
-                <label className="form-label">Dashboard Brand Name</label>
+                <label className="form-label">Dashboard Brand / System Name</label>
                 <div style={{ position: 'relative' }}>
                   <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
                   <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
-                    placeholder="e.g. GymSales"
+                    placeholder="e.g. GymSales Pro"
                     value={smsConfig.dashboardName || ''}
-                    onChange={e => updateSmsConfig({...smsConfig, dashboardName: e.target.value})} />
+                    onChange={e => {
+                      const newDash = e.target.value;
+                      const updates = { ...smsConfig, dashboardName: newDash };
+                      if (!smsConfig.companyName || smsConfig.companyName === 'Seynex Technology') {
+                        updates.companyName = newDash;
+                      }
+                      updateSmsConfig(updates);
+                    }} />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Legal Entity Name</label>
+                <label className="form-label">Business / Legal Entity Name</label>
                 <div style={{ position: 'relative' }}>
                   <Building2 size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                  <input type="text" className="form-input" style={{ paddingLeft: '40px' }} value={smsConfig.companyName || ''}
-                    onChange={e => updateSmsConfig({...smsConfig, companyName: e.target.value})} />
+                  <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
+                    placeholder="e.g. Seynex Technology (Pvt) Ltd"
+                    value={smsConfig.companyName || ''}
+                    onChange={e => {
+                      const newName = e.target.value;
+                      const updates = { ...smsConfig, companyName: newName };
+                      const isDefaultDash = !smsConfig.dashboardName || smsConfig.dashboardName === 'GymSales Pro' || smsConfig.dashboardName === 'GymSales';
+                      if (isDefaultDash) {
+                        updates.dashboardName = newName;
+                      }
+                      updateSmsConfig(updates);
+                    }} />
                 </div>
               </div>
               <div className="form-group">
@@ -1388,7 +1408,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Assign System Role *</label>
               <CustomSelect
                 value={userForm.role}
-                onChange={e => setUserForm({...userForm, role: e.target.value})}
+                onChange={val => setUserForm({...userForm, role: val})}
                 options={[
                   { value: 'Admin', label: '👑 Admin (Full Access)' },
                   { value: 'Sales Representative', label: '💼 Sales Representative' },
@@ -1405,7 +1425,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
               <CustomSelect
                 value={userForm.status}
-                onChange={e => setUserForm({...userForm, status: e.target.value})}
+                onChange={val => setUserForm({...userForm, status: val})}
                 options={[
                   { value: 'Active', label: '🟢 Active Account' },
                   { value: 'Pending', label: '🟡 Pending Verification' },

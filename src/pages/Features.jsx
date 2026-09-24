@@ -9,7 +9,7 @@ import {
 import { StoreContext } from '../context/StoreContext';
 
 const Features = () => {
-  const { featureToggles = {}, updateFeatureToggle, applyPlanPreset, showNotification } = useContext(StoreContext) || {};
+  const { smsConfig = {}, featureToggles = {}, updateFeatureToggle, applyPlanPreset, showNotification } = useContext(StoreContext) || {};
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -282,7 +282,7 @@ const Features = () => {
               <Sparkles size={14} /> Official Capabilities Directory
             </div>
             <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.03em' }}>
-              GymSales Pro Enterprise ERP Features
+              {smsConfig.dashboardName || smsConfig.companyName || 'GymSales Pro'} Enterprise ERP Features
             </h1>
             <p style={{ fontSize: '0.95rem', color: '#94a3b8', margin: '8px 0 0 0', maxWidth: '750px', lineHeight: 1.5 }}>
               Explore the complete catalog of double-entry accounting, SLFRS financial statements, statutory payroll, inventory, procurement, and CRM micro-features.

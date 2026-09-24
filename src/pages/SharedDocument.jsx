@@ -445,7 +445,7 @@ const SharedDocument = () => {
             </div>
 
             <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
-              Powered by <strong style={{ color: '#ffffff', fontWeight: 800 }}>GymSales Pro</strong>
+              Powered by <strong style={{ color: '#ffffff', fontWeight: 800 }}>{smsConfig.dashboardName || smsConfig.companyName || 'GymSales Pro'}</strong>
             </div>
           </div>
         </div>

@@ -33,38 +33,49 @@ import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
 
-const LoadingFallback = () => (
-  <div style={{ 
-    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-    height: '100vh', width: '100%', background: 'var(--bg-primary)',
-    position: 'fixed', top: 0, left: 0, zIndex: 9999
-  }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '22px' }}>
-      <div className="brand-loader-logo">
-        S
-      </div>
+const LoadingFallback = () => {
+  const brandName = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+      return saved.dashboardName || saved.companyName || 'GymSales Pro';
+    } catch {
+      return 'GymSales Pro';
+    }
+  })();
 
-      <div className="spinner-outer">
-        <div className="spinner-inner"></div>
-      </div>
+  return (
+    <div style={{ 
+      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+      height: '100vh', width: '100%', background: 'var(--bg-primary)',
+      position: 'fixed', top: 0, left: 0, zIndex: 9999
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '22px' }}>
+        <div className="brand-loader-logo">
+          {brandName.charAt(0).toUpperCase()}
+        </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-        <div style={{ 
-          fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', 
-          letterSpacing: '0.15em', textTransform: 'uppercase' 
-        }}>
-          GymSales Pro Enterprise
+        <div className="spinner-outer">
+          <div className="spinner-inner"></div>
         </div>
-        <div className="loader-track">
-          <div className="loader-bar"></div>
-        </div>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          Initializing SLFRS Financial Workspace...
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <div style={{ 
+            fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', 
+            letterSpacing: '0.15em', textTransform: 'uppercase' 
+          }}>
+            {brandName} Enterprise
+          </div>
+          <div className="loader-track">
+            <div className="loader-bar"></div>
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Initializing Workspace...
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
@@ -187,6 +198,8 @@ const AppContent = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
 
+  const brandName = smsConfig.dashboardName || smsConfig.companyName || 'GymSales Pro';
+
   const isFeatureEnabled = (key) => featureToggles[key] !== false;
 
   // Determine user role & permission set
@@ -280,10 +293,10 @@ const AppContent = () => {
     }
   }, [smsConfig.appFavicon]);
 
-  // Sync browser tab title with Dashboard Name
+  // Sync browser tab title with Brand Name
   useEffect(() => {
-    document.title = `${smsConfig.dashboardName || 'GymSales Pro'} | Sales Management`;
-  }, [smsConfig.dashboardName]);
+    document.title = `${brandName} | Sales Management`;
+  }, [brandName]);
 
   // If on public customer portal, render without admin layout
   if (isCustomerPortal) {
@@ -421,12 +434,12 @@ const AppContent = () => {
               boxShadow: '0 6px 16px rgba(99, 102, 241, 0.25)'
             }}>
               <span style={{ color: 'white', fontWeight: '900', fontSize: '18px', fontFamily: 'var(--font-display)' }}>
-                {(smsConfig.dashboardName || 'GymSales').charAt(0).toUpperCase()}
+                {brandName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="hidden-mobile">
               <h1 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
-                {smsConfig.dashboardName || 'GymSales'}<span style={{ color: 'var(--accent-primary)' }}>.</span>
+                {brandName}<span style={{ color: 'var(--accent-primary)' }}>.</span>
               </h1>
             </div>
           </Link>
