@@ -247,8 +247,8 @@ const CustomSelect = ({
           {displayLabel}
         </span>
         <ChevronDown
-          size={15}
-          color="var(--accent-primary, #10b981)"
+          size={size === 'sm' ? 13 : 15}
+          color={triggerStyle?.color || "var(--accent-primary, #10b981)"}
           style={{
             transform:  isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',

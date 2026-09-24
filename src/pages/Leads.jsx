@@ -4,6 +4,8 @@ import { Plus, Target, Phone, Mail, Trash2, User, Calendar, Edit2, FileText, X, 
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 
+const statuses = ['New', 'Contacted', 'Interested', 'Demo Scheduled', 'Refused'];
+
 const Leads = () => {
   const { leads = [], addLead, deleteLead, updateLead, confirmAction } = useContext(StoreContext) || {};
   const [showModal, setShowModal] = useState(false);
@@ -11,8 +13,6 @@ const Leads = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-
-  const statuses = ['New', 'Contacted', 'Interested', 'Demo Scheduled', 'Refused'];
 
   const handleSave = (data) => {
     if (editingLead) {
@@ -131,11 +131,11 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
     <div className="glass-panel hover-lift" style={{ padding: '18px', borderLeft: `4px solid ${getStatusColor(lead.status)}`, display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div style={{ flex: 1, paddingRight: '12px' }}>
-          <h3 className="h3" style={{ marginBottom: '4px', fontSize: '1.05rem' }}>{lead.gymName}</h3>
+      <div className="flex justify-between items-start gap-2">
+        <div style={{ flex: 1, minWidth: 0, paddingRight: '6px' }}>
+          <h3 className="h3" style={{ marginBottom: '4px', fontSize: '1.05rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lead.gymName}</h3>
           <div className="flex items-center gap-1.5 text-secondary" style={{ fontSize: '0.8rem' }}>
-            <User size={13} style={{ opacity: 0.7 }} /> <span style={{ fontWeight: 500 }}>{lead.contactPerson}</span>
+            <User size={13} style={{ opacity: 0.7, flexShrink: 0 }} /> <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.contactPerson || 'Contact not specified'}</span>
           </div>
         </div>
         <CustomSelect 
@@ -143,30 +143,39 @@ const LeadCard = ({ lead, onEdit, onDelete, onUpdateStatus, onQuote }) => {
           onChange={(val) => onUpdateStatus(val)}
           options={statuses.map(s => ({ value: s, label: s }))}
           size="sm"
-          style={{ width: '130px' }}
+          style={{ width: '160px', flexShrink: 0 }}
           triggerStyle={{
             padding: '4px 10px',
-            fontSize: '0.75rem',
+            fontSize: '0.78rem',
+            fontWeight: 700,
             height: '32px',
             color: getStatusColor(lead.status),
-            background: 'var(--subtle-bg)'
+            borderColor: `color-mix(in srgb, ${getStatusColor(lead.status)} 35%, transparent)`,
+            background: `color-mix(in srgb, ${getStatusColor(lead.status)} 8%, var(--subtle-bg))`
           }}
         />
       </div>
 
       {/* Details Area */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '10px' }}>
-        <div className="flex items-center gap-2.5 text-secondary" style={{ fontSize: '0.85rem' }}>
-          <Phone size={14} className="text-muted" /> <span style={{ color: '#e2e8f0' }}>{lead.phone || 'No phone'}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--subtle-border)', borderRadius: '10px' }}>
+        <div className="flex items-center gap-2.5" style={{ fontSize: '0.85rem' }}>
+          <Phone size={14} className="text-muted" style={{ flexShrink: 0 }} /> <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{lead.phone || 'No phone'}</span>
         </div>
         {lead.email && (
-          <div className="flex items-center gap-2.5 text-secondary" style={{ fontSize: '0.85rem' }}>
-            <Mail size={14} className="text-muted" /> <span style={{ color: '#e2e8f0' }}>{lead.email}</span>
+          <div className="flex items-center gap-2.5" style={{ fontSize: '0.85rem' }}>
+            <Mail size={14} className="text-muted" style={{ flexShrink: 0 }} /> <span style={{ color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.email}</span>
           </div>
         )}
-        <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
-          <Calendar size={13} /> {new Date(lead.date).toLocaleDateString()}
-        </div>
+        {(() => {
+          const dateVal = lead.date || lead.createdAt || lead.created_at;
+          const parsedDate = dateVal ? new Date(dateVal) : null;
+          const isValid = parsedDate && !isNaN(parsedDate.getTime());
+          return (
+            <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.75rem', marginTop: '2px' }}>
+              <Calendar size={13} style={{ flexShrink: 0 }} /> <span>{isValid ? parsedDate.toLocaleDateString() : 'Date not recorded'}</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Action Footer */}
