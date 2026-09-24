@@ -712,6 +712,7 @@ export default function StoreContextProvider({ children }) {
     companyName: 'Seynex Technology',
     dashboardName: 'GymSales Pro',
     receiptLogo: '',
+    companyLogo: '',
     companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
     companyPhone: '072 840 8880',
     adminPhone: '072 840 8880',
@@ -1543,6 +1544,11 @@ export default function StoreContextProvider({ children }) {
           }
           if (prev.dashboardName && prev.dashboardName !== 'GymSales Pro' && (!profData.config.dashboardName || profData.config.dashboardName === 'GymSales Pro')) {
             merged.dashboardName = prev.dashboardName;
+          }
+          // Guard: Preserve locally uploaded logo if cloud config is missing it
+          if ((prev.receiptLogo || prev.companyLogo) && (!profData.config.receiptLogo && !profData.config.companyLogo)) {
+            merged.receiptLogo = prev.receiptLogo || prev.companyLogo;
+            merged.companyLogo = prev.companyLogo || prev.receiptLogo;
           }
           try {
             localStorage.setItem('gym_sms_config', JSON.stringify(merged));

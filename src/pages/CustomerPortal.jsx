@@ -539,11 +539,23 @@ const CustomerPortal = () => {
         <div className="flex items-center gap-3">
           <div style={{
             width: '44px', height: '44px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+            background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.08)' : 'linear-gradient(135deg, #6366f1, #a855f7)',
+            border: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)'
+            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)',
+            overflow: 'hidden'
           }}>
-            <span style={{ color: 'white', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>S</span>
+            {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
+              <img 
+                src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                alt="Logo" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }} 
+              />
+            ) : (
+              <span style={{ color: 'white', fontWeight: '900', fontSize: '22px', fontFamily: 'var(--font-display)' }}>
+                {(smsConfig.companyName || 'S').charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '1.2rem', fontWeight: 850, fontFamily: 'var(--font-display)', lineHeight: 1 }}>

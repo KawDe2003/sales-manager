@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
 import { 
@@ -6,8 +6,49 @@ import {
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
-  AlertTriangle, CheckCircle2, Sliders, ToggleLeft
+  AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon
 } from 'lucide-react';
+
+// Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
+const compressImageFile = (file, maxWidth = 360, maxHeight = 360, quality = 0.88) => {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('Please select a valid image file'));
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onerror = () => reject(new Error('Failed to decode image'));
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const isPng = file.type === 'image/png' || file.type === 'image/svg+xml';
+        const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
 
 const generateRandomPassword = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -36,6 +77,9 @@ const Settings = () => {
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
+
+  const logoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
 
   const handleRefreshBalance = async () => {
     setBalanceLoading(true);
@@ -612,56 +656,213 @@ const Settings = () => {
               </div>
             </div>
             
-            <div className="form-group" style={{ marginTop: '12px' }}>
-              <label className="form-label">Receipt Logo</label>
-              <div style={{ position: 'relative' }}>
-                <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                <input type="file" accept="image/*" className="form-input" style={{ paddingLeft: '40px' }}
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        updateSmsConfig({ ...smsConfig, receiptLogo: reader.result });
-                      };
-                      reader.readAsDataURL(file);
+            {/* Company / Brand Logo */}
+            <div className="form-group" style={{ marginTop: '16px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Company / Brand Logo <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>(Dashboard Navbar, Invoices, Receipts & Quotes)</span></span>
+                {(smsConfig.receiptLogo || smsConfig.companyLogo) && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={13} /> Active
+                  </span>
+                )}
+              </label>
+
+              <input 
+                ref={logoInputRef}
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    try {
+                      const compressed = await compressImageFile(file, 360, 360, 0.9);
+                      updateSmsConfig({
+                        ...smsConfig,
+                        receiptLogo: compressed,
+                        companyLogo: compressed
+                      });
+                      showNotification('Company logo updated and applied across navbar and documents!');
+                    } catch (err) {
+                      showNotification('Could not process image: ' + err.message, 'warning');
                     }
-                  }}
-                />
-              </div>
-              {smsConfig.receiptLogo && (
-                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img src={smsConfig.receiptLogo} alt="Receipt Logo" style={{ height: '40px', borderRadius: '4px' }} />
-                  <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px' }}
-                    onClick={() => updateSmsConfig({ ...smsConfig, receiptLogo: '' })}>Remove</button>
+                  }
+                }}
+              />
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '14px 18px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px dashed rgba(255, 255, 255, 0.16)',
+                borderRadius: '14px',
+                transition: 'border-color 0.2s'
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '12px',
+                  background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}>
+                  {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
+                    <img 
+                      src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                      alt="Company Logo" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} 
+                    />
+                  ) : (
+                    <ImageIcon size={24} style={{ color: 'var(--accent-primary)', opacity: 0.7 }} />
+                  )}
                 </div>
-              )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {(smsConfig.receiptLogo || smsConfig.companyLogo) ? 'Custom Brand Logo Uploaded' : 'Upload Brand Logo'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    PNG, JPG, WebP or SVG up to 10MB (automatically web-optimized)
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    <Upload size={14} /> {(smsConfig.receiptLogo || smsConfig.companyLogo) ? 'Change' : 'Upload'}
+                  </button>
+
+                  {(smsConfig.receiptLogo || smsConfig.companyLogo) && (
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
+                      onClick={() => {
+                        updateSmsConfig({ ...smsConfig, receiptLogo: '', companyLogo: '' });
+                        if (logoInputRef.current) logoInputRef.current.value = '';
+                        showNotification('Company logo removed.');
+                      }}
+                      title="Remove Logo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '12px' }}>
-              <label className="form-label">Application Favicon</label>
-              <div style={{ position: 'relative' }}>
-                <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                <input type="file" accept="image/*" className="form-input" style={{ paddingLeft: '40px' }}
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        updateSmsConfig({ ...smsConfig, appFavicon: reader.result });
-                      };
-                      reader.readAsDataURL(file);
+            {/* Application Favicon */}
+            <div className="form-group" style={{ marginTop: '16px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Application Favicon <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>(Browser Tab Icon)</span></span>
+                {smsConfig.appFavicon && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={13} /> Active
+                  </span>
+                )}
+              </label>
+
+              <input 
+                ref={faviconInputRef}
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    try {
+                      const compressed = await compressImageFile(file, 64, 64, 0.95);
+                      updateSmsConfig({
+                        ...smsConfig,
+                        appFavicon: compressed
+                      });
+                      showNotification('Application favicon updated!');
+                    } catch (err) {
+                      showNotification('Could not process favicon: ' + err.message, 'warning');
                     }
-                  }}
-                />
-              </div>
-              {smsConfig.appFavicon && (
-                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img src={smsConfig.appFavicon} alt="Favicon preview" style={{ height: '32px', width: '32px', objectFit: 'contain', borderRadius: '4px' }} />
-                  <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px' }}
-                    onClick={() => updateSmsConfig({ ...smsConfig, appFavicon: '' })}>Remove</button>
+                  }
+                }}
+              />
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '14px 18px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px dashed rgba(255, 255, 255, 0.16)',
+                borderRadius: '14px',
+                transition: 'border-color 0.2s'
+              }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: smsConfig.appFavicon ? 'rgba(255, 255, 255, 0.08)' : 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}>
+                  {smsConfig.appFavicon ? (
+                    <img 
+                      src={smsConfig.appFavicon} 
+                      alt="Favicon" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} 
+                    />
+                  ) : (
+                    <Globe size={20} style={{ color: 'var(--accent-secondary)', opacity: 0.7 }} />
+                  )}
                 </div>
-              )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {smsConfig.appFavicon ? 'Custom Tab Favicon Set' : 'Upload Browser Favicon'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Square icon displayed on browser tab (32x32 or 64x64 px)
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => faviconInputRef.current?.click()}
+                  >
+                    <Upload size={14} /> {smsConfig.appFavicon ? 'Change' : 'Upload'}
+                  </button>
+
+                  {smsConfig.appFavicon && (
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
+                      onClick={() => {
+                        updateSmsConfig({ ...smsConfig, appFavicon: '' });
+                        if (faviconInputRef.current) faviconInputRef.current.value = '';
+                        showNotification('Favicon reset to default.');
+                      }}
+                      title="Remove Favicon"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

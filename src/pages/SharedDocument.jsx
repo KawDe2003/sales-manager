@@ -233,12 +233,22 @@ const SharedDocument = () => {
             <div style={{ textAlign: 'left' }}>
               <div style={{ 
                 width: '56px', height: '56px', borderRadius: '16px', 
-                background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '14px', border: '1px solid #e2e8f0'
+                background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '#ffffff' : '#f1f5f9', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '14px', border: '1px solid #e2e8f0',
+                overflow: 'hidden'
               }}>
-                {isQuote ? <FileText size={28} color="#0f172a" /> : 
-                 isReceipt ? <CheckCircle size={28} color="#10b981" /> : 
-                 <Receipt size={28} color="#0f172a" />}
+                {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
+                  <img 
+                    src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                    alt="Logo" 
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} 
+                  />
+                ) : (
+                  isQuote ? <FileText size={28} color="#0f172a" /> : 
+                  isReceipt ? <CheckCircle size={28} color="#10b981" /> : 
+                  <Receipt size={28} color="#0f172a" />
+                )}
               </div>
               <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.1rem', marginBottom: '2px' }}>
                 {smsConfig.companyName || 'Seynex Technology'}

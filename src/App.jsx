@@ -34,12 +34,15 @@ import Login from './pages/Login';
 import Features from './pages/Features';
 
 const LoadingFallback = () => {
-  const brandName = (() => {
+  const { brandName, logo } = (() => {
     try {
       const saved = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-      return saved.dashboardName || saved.companyName || 'GymSales Pro';
+      return {
+        brandName: saved.dashboardName || saved.companyName || 'GymSales Pro',
+        logo: saved.receiptLogo || saved.companyLogo || ''
+      };
     } catch {
-      return 'GymSales Pro';
+      return { brandName: 'GymSales Pro', logo: '' };
     }
   })();
 
@@ -50,8 +53,12 @@ const LoadingFallback = () => {
       position: 'fixed', top: 0, left: 0, zIndex: 9999
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '22px' }}>
-        <div className="brand-loader-logo">
-          {brandName.charAt(0).toUpperCase()}
+        <div className="brand-loader-logo" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {logo ? (
+            <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+          ) : (
+            brandName.charAt(0).toUpperCase()
+          )}
         </div>
 
         <div className="spinner-outer">
@@ -428,14 +435,25 @@ const AppContent = () => {
           
           <Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
             <div style={{ 
-              width: '36px', height: '36px', borderRadius: '11px', 
-              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+              width: '38px', height: '38px', borderRadius: '11px', 
+              background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+              border: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 16px rgba(99, 102, 241, 0.25)'
+              boxShadow: '0 6px 16px rgba(99, 102, 241, 0.25)',
+              overflow: 'hidden',
+              flexShrink: 0
             }}>
-              <span style={{ color: 'white', fontWeight: '900', fontSize: '18px', fontFamily: 'var(--font-display)' }}>
-                {brandName.charAt(0).toUpperCase()}
-              </span>
+              {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
+                <img 
+                  src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                  alt={brandName} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }} 
+                />
+              ) : (
+                <span style={{ color: 'white', fontWeight: '900', fontSize: '18px', fontFamily: 'var(--font-display)' }}>
+                  {brandName.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="hidden-mobile">
               <h1 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>

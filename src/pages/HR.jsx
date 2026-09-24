@@ -3168,10 +3168,18 @@ const HR = () => {
           }}>
             {/* Payslip Header */}
             <div style={{ padding: '24px 28px', borderBottom: '2px solid #0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                  {smsConfig.companyName || 'GYMSALES PRO FITNESS LTD'}
-                </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                {(smsConfig.receiptLogo || smsConfig.companyLogo) && (
+                  <img 
+                    src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                    alt="Logo" 
+                    style={{ height: '46px', maxWidth: '110px', objectFit: 'contain' }} 
+                  />
+                )}
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                    {smsConfig.companyName || 'GYMSALES PRO FITNESS LTD'}
+                  </h2>
                 <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px' }}>
                   {smsConfig.companyAddress || '42/A Galle Road, Colombo 03, Sri Lanka'}
                 </div>
@@ -3179,6 +3187,7 @@ const HR = () => {
                   Email: {smsConfig.companyEmail || 'payroll@gymsales.lk'} · Hotline: {smsConfig.companyPhone || '0112345678'}
                 </div>
               </div>
+            </div>
 
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '6px', background: '#059669', color: '#ffffff', letterSpacing: '0.08em' }}>
