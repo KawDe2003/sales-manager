@@ -1318,10 +1318,10 @@ END $$;`;
 
       {/* TAB 5: SMS & MESSAGING API */}
       {activeSettingsTab === 'sms' && (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Left Column: Gateway & Protocols */}
-        <div className="lg:col-span-6 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
           
           {/* SMS Gateway */}
           <div className="glass-panel">
@@ -1504,7 +1504,7 @@ END $$;`;
         </div>
 
         {/* Right Column: Workflows & Smart Templates */}
-        <div className="lg:col-span-6 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
           
           {/* Automation Rules */}
           <div className="glass-panel">
@@ -1682,10 +1682,10 @@ END $$;`;
 
       {/* TAB 6: BANK & PAYMENTS */}
       {activeSettingsTab === 'bank' && (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Left Column: Bank Accounts & Security */}
-        <div className="lg:col-span-6 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
           
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
@@ -1788,7 +1788,7 @@ END $$;`;
         </div>
 
         {/* Right Column: Payment Instructions & Policies */}
-        <div className="lg:col-span-6 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
           
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
