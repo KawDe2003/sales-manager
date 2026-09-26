@@ -207,6 +207,7 @@ const AppContent = () => {
     isStoreLoading, systemNotifications = [], markNotificationsRead, 
     customers = [], invoices = [], leads = [], teamMembers = [], 
     customRoles = [], featureToggles = {},
+    inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges
   } = useContext(StoreContext) || {};
@@ -806,7 +807,7 @@ const AppContent = () => {
               <NavItem to="/sms" icon={<MessageSquare size={18} />} label="SMS Portal & Broadcast" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {checkPerm(['manage_users']) && (
-              <NavItem to="/settings" icon={<Users size={18} />} label="User Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/settings?tab=users" icon={<Users size={18} />} label="User Management" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {checkPerm(['view_logs', 'manage_users']) && (
               <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />

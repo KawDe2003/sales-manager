@@ -876,15 +876,20 @@ export default function StoreContextProvider({ children }) {
     }
   }, [smsConfig]);
 
-  // Track unsaved local changes to toggle Save button
+  // Change tracking: count actual state changes after hydration and initial cloud load
+  const isHydratingCloudRef = useRef(false);
+  const dataVersionRef = useRef(0);
+
   useEffect(() => {
-    if (isInitialMountRef.current) {
-      isInitialMountRef.current = false;
+    // Increment change counter
+    dataVersionRef.current += 1;
+
+    // Skip the first 2 renders (mount + initial load) and whenever cloud is actively hydrating
+    if (dataVersionRef.current <= 2 || isHydratingCloudRef.current) {
       return;
     }
-    if (isHydratedRef.current) {
-      setHasUnsavedChanges(true);
-    }
+
+    setHasUnsavedChanges(true);
   }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   const [theme, setTheme] = useState(() => {
@@ -1720,6 +1725,7 @@ export default function StoreContextProvider({ children }) {
   const fetchCloudData = async (forcePushLocalIfEmpty = false) => {
     setIsStoreLoading(true);
     setCloudSyncStatus('syncing');
+    isHydratingCloudRef.current = true;
     
     try {
       console.log('[Supabase Sync] Fetching all business records from cloud...');
@@ -1950,13 +1956,18 @@ export default function StoreContextProvider({ children }) {
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch(e) {}
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
-      setTimeout(() => { isHydratedRef.current = true; }, 100);
+      setTimeout(() => { 
+        isHydratedRef.current = true; 
+        isHydratingCloudRef.current = false;
+        setHasUnsavedChanges(false);
+      }, 300);
       console.log('[Supabase Sync] Cloud data hydration completed successfully.');
     } catch (err) {
       console.error('[Supabase Sync] Global Fetch Exception:', err);
       setCloudSyncStatus('error');
     } finally {
       setIsStoreLoading(false);
+      setTimeout(() => { isHydratingCloudRef.current = false; }, 400);
     }
   };
 

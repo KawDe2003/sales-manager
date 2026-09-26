@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
 import { 
@@ -68,7 +69,7 @@ const Settings = () => {
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
-    resetEverythingWithConfirmation,
+    resetEverythingWithConfirmation, hasUnsavedChanges,
     customers = [], quotes = [], invoices = [], inventory = [], leads = []
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -80,7 +81,24 @@ const Settings = () => {
   
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [activeSettingsTab, setActiveSettingsTab] = useState('users'); // 'users', 'company', 'sms', 'bank'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeSettingsTab, setActiveSettingsTab] = useState(tabParam || 'users');
+
+  useEffect(() => {
+    if (tabParam && ['users', 'modules', 'cloud', 'company', 'sms', 'bank'].includes(tabParam)) {
+      setActiveSettingsTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tabId) => {
+    setActiveSettingsTab(tabId);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabId);
+      return next;
+    }, { replace: true });
+  };
 
   const logoInputRef = useRef(null);
   const faviconInputRef = useRef(null);
@@ -109,15 +127,17 @@ const Settings = () => {
           <h1 className="h1 mb-2">System Settings</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage team member accounts, corporate branding, SMS API integrations, and payment details.</p>
         </div>
-        <button className="btn btn-primary" style={{ height: '44px', padding: '0 24px' }} onClick={handleSave}>
-          <Save size={18} /> Save All Changes
-        </button>
+        {(hasUnsavedChanges || cloudSyncStatus === 'syncing') && (
+          <button className="btn btn-primary" style={{ height: '44px', padding: '0 24px' }} onClick={handleSave}>
+            <Save size={18} /> Save All Changes
+          </button>
+        )}
       </div>
 
       {/* TOP TAB NAVIGATION BAR */}
       <div className="glass-panel flex flex-wrap gap-2 mb-8" style={{ padding: '8px 12px' }}>
         {[
-          { id: 'users', label: 'Team & User Roles', icon: <Users size={16} /> },
+          { id: 'users', label: 'User Management', icon: <Users size={16} /> },
           { id: 'modules', label: 'Module Feature Controls', icon: <Sliders size={16} /> },
           { id: 'cloud', label: 'Cloud Sync (Supabase)', icon: <Cloud size={16} /> },
           { id: 'company', label: 'Corporate Identity', icon: <Building2 size={16} /> },
@@ -126,7 +146,7 @@ const Settings = () => {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveSettingsTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={`btn ${activeSettingsTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
             style={{
               padding: '10px 18px',
@@ -600,34 +620,17 @@ const Settings = () => {
                   <RefreshCw size={16} className={cloudSyncStatus === 'syncing' ? 'animate-spin' : ''} />
                   Restore / Pull Cloud Data
                 </button>
-                <button 
-                  className="btn btn-primary"
-                  style={{ height: '42px', padding: '0 20px', gap: '8px', fontSize: '0.86rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
-                  onClick={() => syncAllToCloud()}
-                  disabled={cloudSyncStatus === 'syncing'}
-                >
-                  <Save size={16} />
-                  {cloudSyncStatus === 'syncing' ? 'Saving Data...' : 'Save Data to Cloud'}
-                </button>
-                <button 
-                  id="settings-cloud-erase-btn"
-                  className="btn"
-                  style={{ 
-                    height: '42px', padding: '0 18px', gap: '8px', fontSize: '0.86rem', 
-                    color: '#ffffff', 
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-                    cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer'
-                  }}
-                  onClick={resetEverythingWithConfirmation}
-                  disabled={cloudSyncStatus === 'syncing'}
-                  title="Permanently wipe all records from local storage and Supabase cloud"
-                >
-                  <Trash2 size={16} />
-                  Erase All Data
-                </button>
+                {(hasUnsavedChanges || cloudSyncStatus === 'syncing') && (
+                  <button 
+                    className="btn btn-primary"
+                    style={{ height: '42px', padding: '0 20px', gap: '8px', fontSize: '0.86rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+                    onClick={() => syncAllToCloud()}
+                    disabled={cloudSyncStatus === 'syncing'}
+                  >
+                    <Save size={16} />
+                    {cloudSyncStatus === 'syncing' ? 'Saving Data...' : 'Save Data to Cloud'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
