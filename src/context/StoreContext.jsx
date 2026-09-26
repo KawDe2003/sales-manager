@@ -621,17 +621,6 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { try { localStorage.setItem('gym_tasks', JSON.stringify(tasks)); } catch (e) {} }, [tasks]);
   useEffect(() => { try { localStorage.setItem('gym_activity_logs', JSON.stringify(activityLogs)); } catch (e) {} }, [activityLogs]);
 
-  // Track unsaved local changes to toggle Save button
-  useEffect(() => {
-    if (isInitialMountRef.current) {
-      isInitialMountRef.current = false;
-      return;
-    }
-    if (isHydratedRef.current) {
-      setHasUnsavedChanges(true);
-    }
-  }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
-
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
     { id: '1010', code: '1010', name: 'Cash on Hand', type: 'asset', statement_category: 'cash_and_equivalents', is_current: true, parentId: null },
@@ -886,6 +875,17 @@ export default function StoreContextProvider({ children }) {
       console.warn('Failed to mirror gym_sms_config to localStorage', e);
     }
   }, [smsConfig]);
+
+  // Track unsaved local changes to toggle Save button
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    if (isHydratedRef.current) {
+      setHasUnsavedChanges(true);
+    }
+  }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('gym_theme');
