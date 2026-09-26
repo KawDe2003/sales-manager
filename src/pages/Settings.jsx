@@ -680,16 +680,50 @@ const Settings = () => {
                 overflowX: 'auto',
                 lineHeight: 1.5
               }}>
-{`-- CLOUD SYNC PERMISSION MIGRATION (COPY & RUN IN SUPABASE SQL EDITOR)
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE quotations DISABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
-ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;`}
+{`-- 1. Create any missing auxiliary tables
+CREATE TABLE IF NOT EXISTS fixed_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    asset_code TEXT,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'Gym Equipment',
+    purchase_date DATE,
+    purchase_cost NUMERIC DEFAULT 0,
+    useful_life_years NUMERIC DEFAULT 5,
+    salvage_value NUMERIC DEFAULT 0,
+    depreciation_method TEXT DEFAULT 'Straight Line (SLM)',
+    depreciation_rate NUMERIC DEFAULT 0,
+    location TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    title TEXT NOT NULL,
+    description TEXT,
+    due_date DATE,
+    status TEXT DEFAULT 'Pending',
+    priority TEXT DEFAULT 'Medium',
+    related_to TEXT,
+    related_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. Safely disable RLS on all existing tables
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables 
+        WHERE schemaname = 'public' 
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles')
+    LOOP
+        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', tbl);
+    END LOOP;
+END $$;`}
               </pre>
               <button
                 type="button"
@@ -700,15 +734,48 @@ ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;`}
                   background: 'rgba(255, 255, 255, 0.08)'
                 }}
                 onClick={() => {
-                  const sql = `ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE quotations DISABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
-ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;`;
+                  const sql = `CREATE TABLE IF NOT EXISTS fixed_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    asset_code TEXT,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'Gym Equipment',
+    purchase_date DATE,
+    purchase_cost NUMERIC DEFAULT 0,
+    useful_life_years NUMERIC DEFAULT 5,
+    salvage_value NUMERIC DEFAULT 0,
+    depreciation_method TEXT DEFAULT 'Straight Line (SLM)',
+    depreciation_rate NUMERIC DEFAULT 0,
+    location TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    title TEXT NOT NULL,
+    description TEXT,
+    due_date DATE,
+    status TEXT DEFAULT 'Pending',
+    priority TEXT DEFAULT 'Medium',
+    related_to TEXT,
+    related_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables 
+        WHERE schemaname = 'public' 
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles')
+    LOOP
+        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', tbl);
+    END LOOP;
+END $$;`;
                   navigator.clipboard.writeText(sql);
                   showNotification('SQL copied to clipboard! Paste it into Supabase SQL Editor.');
                 }}

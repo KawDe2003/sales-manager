@@ -157,17 +157,18 @@ ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 -- =========================================================================
 -- CLOUD SYNCHRONIZATION POLICIES (RUN THIS IN SUPABASE SQL EDITOR TO ENABLE CLOUD SYNC)
 -- =========================================================================
--- Allows both authenticated web users and the application API to automatically 
--- synchronize business data without session dropouts or RLS blockages:
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE quotations DISABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
-ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables 
+        WHERE schemaname = 'public' 
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles')
+    LOOP
+        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', tbl);
+    END LOOP;
+END $$;
 
 -- If you prefer keeping RLS enabled, alternative permissive policies:
 -- CREATE POLICY "App sync all customers" ON customers FOR ALL USING (true) WITH CHECK (true);
