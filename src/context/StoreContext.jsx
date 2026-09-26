@@ -1117,6 +1117,7 @@ export default function StoreContextProvider({ children }) {
   // --- SUPABASE CLOUD SYNC ENGINE ---
   const syncQuoteToSupabase = async (quote) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('quotations')
@@ -1132,15 +1133,22 @@ export default function StoreContextProvider({ children }) {
           status: quote.status || 'Pending',
           items: quote.items || []
         }, { onConflict: 'id' });
-      if (error) console.warn('[Supabase Sync] Quote Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Quote Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Quote Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncInvoiceToSupabase = async (invoice) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('invoices')
@@ -1160,15 +1168,22 @@ export default function StoreContextProvider({ children }) {
           reminder_sent: !!invoice.reminderSent,
           installment_plan: invoice.installmentPlan || {}
         }, { onConflict: 'id' });
-      if (error) console.warn('[Supabase Sync] Invoice Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Invoice Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Invoice Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncCustomerToSupabase = async (customer) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('customers')
@@ -1188,16 +1203,20 @@ export default function StoreContextProvider({ children }) {
         }, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase Sync] Customer Warning:', error.message);
+        setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
       }
     } catch (err) {
       console.warn('[Supabase Sync] Customer Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncInventoryToSupabase = async (item) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const fullPayload = {
         id: toUuid(item.id),
@@ -1229,16 +1248,20 @@ export default function StoreContextProvider({ children }) {
 
       if (error) {
         console.warn('[Supabase Sync] Inventory Warning:', error.message);
+        setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
       }
     } catch (err) {
       console.warn('[Supabase Sync] Inventory Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncLeadToSupabase = async (lead) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('leads')
@@ -1253,15 +1276,22 @@ export default function StoreContextProvider({ children }) {
           date: lead.date || new Date().toISOString(),
           notes: lead.notes || ''
         }, { onConflict: 'id' });
-      if (error) console.warn('[Supabase Sync] Lead Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Lead Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Lead Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncExpenseToSupabase = async (expense) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('expenses')
@@ -1273,15 +1303,22 @@ export default function StoreContextProvider({ children }) {
           date: expense.date || new Date().toISOString().split('T')[0],
           description: expense.description || ''
         }, { onConflict: 'id' });
-      if (error) console.warn('[Supabase Sync] Expense Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Expense Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Expense Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncPaymentToSupabase = async (payment) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('payments')
@@ -1294,15 +1331,22 @@ export default function StoreContextProvider({ children }) {
           payment_type: payment.type || 'Cash',
           payment_timestamp: payment.timestamp || new Date().toISOString()
         }, { onConflict: 'id' });
-      if (error) console.warn('[Supabase Sync] Payment Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Payment Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Payment Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
   const syncFixedAssetToSupabase = async (asset) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const assetUuid = toUuid(asset.id);
       const fullPayload = {
@@ -1340,10 +1384,16 @@ export default function StoreContextProvider({ children }) {
         error = fallbackRes.error;
       }
 
-      if (error) console.warn('[Supabase Sync] Fixed Asset Warning:', error.message);
-      else setCloudSyncStatus('synced');
+      if (error) {
+        console.warn('[Supabase Sync] Fixed Asset Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Fixed Asset Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
@@ -1411,8 +1461,14 @@ export default function StoreContextProvider({ children }) {
   const deleteFixedAsset = async (id) => {
     const asset = fixedAssets.find(a => a.id === id);
     setFixedAssets(prev => prev.filter(a => a.id !== id));
-    if (user) {
-      await supabase.from('fixed_assets').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('fixed_assets').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete asset error:', e);
+      setCloudSyncStatus('error');
     }
     if (asset) addLog('FixedAsset', `Deleted fixed asset: ${asset.name}`);
     showNotification(`Fixed asset "${asset?.name || 'Asset'}" deleted.`, 'info');
@@ -1459,8 +1515,14 @@ export default function StoreContextProvider({ children }) {
   const deleteExpense = async (id) => {
     const expense = expenses.find(e => e.id === id);
     setExpenses(prev => prev.filter(e => e.id !== id));
-    if (user) {
-      await supabase.from('expenses').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('expenses').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete expense error:', e);
+      setCloudSyncStatus('error');
     }
     if (expense) addLog('Expense', `Deleted expense: ${expense.category}`);
     showNotification(`Expense deleted.`, 'info');
@@ -1508,8 +1570,14 @@ export default function StoreContextProvider({ children }) {
   const deleteTask = async (id) => {
     const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
-    if (user) {
-      await supabase.from('tasks').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('tasks').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete task error:', e);
+      setCloudSyncStatus('error');
     }
     if (task) addLog('Task', `Deleted task: ${task.title}`);
     showNotification(`Task deleted.`, 'info');
@@ -1536,6 +1604,7 @@ export default function StoreContextProvider({ children }) {
 
   const syncConfigToSupabase = async (config) => {
     try {
+      setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('user_profiles')
@@ -1544,9 +1613,16 @@ export default function StoreContextProvider({ children }) {
           config,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
-      if (error) console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
+      if (error) {
+        console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
+        setCloudSyncStatus('error');
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Config Exception:', err.message);
+      setCloudSyncStatus('error');
     }
   };
 
@@ -1979,8 +2055,14 @@ export default function StoreContextProvider({ children }) {
   const deleteCustomer = async (id) => {
     const target = customers.find(c => c.id === id);
     setCustomers(customers.filter(c => c.id !== id));
-    if (user) {
-      await supabase.from('customers').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('customers').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete customer error:', e);
+      setCloudSyncStatus('error');
     }
     showNotification(`Client "${target?.gymName || 'Client'}" removed.`, 'info');
   };
@@ -2039,8 +2121,14 @@ export default function StoreContextProvider({ children }) {
   const deleteInventoryItem = async (id) => {
     const item = inventory.find(i => i.id === id);
     setInventory(inventory.filter(i => i.id !== id));
-    if (user) {
-      await supabase.from('inventory').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('inventory').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete inventory error:', e);
+      setCloudSyncStatus('error');
     }
     showNotification(`Inventory item "${item?.name || 'Item'}" deleted.`, 'info');
   };
@@ -2134,8 +2222,14 @@ export default function StoreContextProvider({ children }) {
       restoreStockForInvoice(inv.items);
     }
     setInvoices(invoices.filter(i => i.id !== id));
-    if (user) {
-      await supabase.from('invoices').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('invoices').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete invoice error:', e);
+      setCloudSyncStatus('error');
     }
     showNotification(`Invoice #${inv?.invoiceNumber || ''} deleted.`, 'info');
   };
@@ -2267,8 +2361,14 @@ export default function StoreContextProvider({ children }) {
   const deleteQuote = async (id) => {
     const q = quotes.find(item => item.id === id);
     setQuotes(quotes.filter(q => q.id !== id));
-    if (user) {
-      await supabase.from('quotations').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('quotations').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete quote error:', e);
+      setCloudSyncStatus('error');
     }
     showNotification(`Quotation #${q?.quoteNumber || ''} deleted.`, 'info');
   };
@@ -2289,11 +2389,21 @@ export default function StoreContextProvider({ children }) {
     setQuotes(prev => prev.map(q => q.id === id ? { ...q, status } : q));
     
     // Cloud Sync
-    const { error } = await supabase.from('quotations').update({ status }).eq('id', id);
-    if (error) {
-      console.error('[Supabase Sync] Quote Status Error:', error);
-      showNotification('Could not update status in cloud.', 'error');
-      return;
+    try {
+      setCloudSyncStatus('syncing');
+      const { error } = await supabase.from('quotations').update({ status }).eq('id', toUuid(id));
+      if (error) {
+        console.warn('[Supabase Sync] Quote Status Error:', error.message);
+        setCloudSyncStatus('error');
+        showNotification('Could not update status in cloud.', 'error');
+        return;
+      } else {
+        setCloudSyncStatus('synced');
+        setLastSyncTime(new Date());
+      }
+    } catch (e) {
+      console.warn('[Supabase Sync] Quote Status Exception:', e.message);
+      setCloudSyncStatus('error');
     }
 
     // MANAGER NOTIFICATION ON ACCEPTANCE
@@ -2497,8 +2607,14 @@ export default function StoreContextProvider({ children }) {
   const deleteLead = async (id) => {
     const target = leads.find(l => l.id === id);
     setLeads(leads.filter(l => l.id !== id));
-    if (user) {
-        await supabase.from('leads').delete().eq('id', id);
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('leads').delete().eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      console.warn('[Supabase Sync] Delete lead error:', e);
+      setCloudSyncStatus('error');
     }
     showNotification(`Lead "${target?.gymName || 'Lead'}" removed.`, 'info');
   };
