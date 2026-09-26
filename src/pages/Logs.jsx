@@ -4,7 +4,7 @@ import { StoreContext } from '../context/StoreContext';
 import { ClipboardList, Smartphone, Info, AlertCircle, Calendar, Trash2, Clock, Activity, ShieldCheck } from 'lucide-react';
 
 const Logs = () => {
-  const { activityLogs = [], confirmAction } = useContext(StoreContext) || {};
+  const { activityLogs = [], confirmAction, clearActivityLogs } = useContext(StoreContext) || {};
   const [filterType, setFilterType] = useState('All');
 
   const filteredLogs = filterType === 'All' 
@@ -23,20 +23,21 @@ const Logs = () => {
   };
 
   const clearLogs = () => {
-    const executeClear = () => {
-      localStorage.removeItem('gym_logs');
-      window.location.reload(); 
-    };
-
     if (confirmAction) {
       confirmAction({
-        title: 'Clear Activity Logs',
-        message: 'This will permanently delete all historical activity and audit logs. Proceed?',
-        confirmText: 'Clear All Logs',
-        onConfirm: executeClear
+        title: 'Clear All Activity Logs?',
+        message: 'This will permanently wipe all system activity, SMS records, and audit logs from both local storage and the cloud database. Proceed?',
+        confirmText: 'Yes, Clear All Logs',
+        cancelText: 'Cancel',
+        variant: 'danger',
+        onConfirm: async () => {
+          if (clearActivityLogs) {
+            await clearActivityLogs();
+          }
+        }
       });
     } else if (window.confirm('This will permanently delete all historical activity logs. Proceed?')) {
-      executeClear();
+      if (clearActivityLogs) clearActivityLogs();
     }
   };
 

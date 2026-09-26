@@ -1179,7 +1179,7 @@ END $$;`;
               <button 
                 type="button" 
                 className="btn btn-secondary" 
-                onClick={resetToSeynexDefaults}
+                onClick={resetEverythingWithConfirmation}
                 style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
               >
                 <Trash2 size={16} /> Clear Workspace Data
@@ -1383,9 +1383,9 @@ END $$;`;
 
             <button className="btn btn-secondary" 
               style={{ width: '100%', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', height: '48px' }} 
-              onClick={resetToSeynexDefaults}
+              onClick={resetEverythingWithConfirmation}
             >
-              <RefreshCw size={18} /> Reset to Seynex Defaults
+              <RefreshCw size={18} /> Reset to Clean State
             </button>
           </div>
         </div>

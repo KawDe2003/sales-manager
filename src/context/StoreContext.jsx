@@ -133,42 +133,75 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('gym_customers');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleCustomers;
+    try {
+      const saved = localStorage.getItem('gym_customers');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [inventory, setInventory] = useState(() => {
-    const saved = localStorage.getItem('gym_inventory');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleInventory;
+    try {
+      const saved = localStorage.getItem('gym_inventory');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem('gym_invoices');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleInvoices;
+    try {
+      const saved = localStorage.getItem('gym_invoices');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [quotes, setQuotes] = useState(() => {
-    const saved = localStorage.getItem('gym_quotes');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleQuotes;
+    try {
+      const saved = localStorage.getItem('gym_quotes');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [leads, setLeads] = useState(() => {
-    const saved = localStorage.getItem('gym_leads');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleLeads;
+    try {
+      const saved = localStorage.getItem('gym_leads');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
-  const [activityLogs, setActivityLogs] = useState([]);
+  const [activityLogs, setActivityLogs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_activity_logs');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
 
   const [expenses, setExpenses] = useState(() => {
-    const saved = localStorage.getItem('gym_expenses');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenses;
+    try {
+      const saved = localStorage.getItem('gym_expenses');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_payments');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
 
   const [fixedAssets, setFixedAssets] = useState(() => {
-    const saved = localStorage.getItem('gym_fixed_assets');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleFixedAssets;
+    try {
+      const saved = localStorage.getItem('gym_fixed_assets');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [tasks, setTasks] = useState([]);
@@ -211,13 +244,19 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const [suppliers, setSuppliers] = useState(() => {
-    const saved = localStorage.getItem('gym_suppliers');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSuppliers;
+    try {
+      const saved = localStorage.getItem('gym_suppliers');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
-    const saved = localStorage.getItem('gym_purchase_orders');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePurchaseOrders;
+    try {
+      const saved = localStorage.getItem('gym_purchase_orders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   // --- HR & PAYROLL ERP STATE ---
@@ -427,23 +466,35 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const [employees, setEmployees] = useState(() => {
-    const saved = localStorage.getItem('gym_employees');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleEmployees;
+    try {
+      const saved = localStorage.getItem('gym_employees');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [payruns, setPayruns] = useState(() => {
-    const saved = localStorage.getItem('gym_payruns');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePayruns;
+    try {
+      const saved = localStorage.getItem('gym_payruns');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [attendanceLogs, setAttendanceLogs] = useState(() => {
-    const saved = localStorage.getItem('gym_attendance_logs');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleAttendanceLogs;
+    try {
+      const saved = localStorage.getItem('gym_attendance_logs');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [leaveRequests, setLeaveRequests] = useState(() => {
-    const saved = localStorage.getItem('gym_leave_requests');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleLeaveRequests;
+    try {
+      const saved = localStorage.getItem('gym_leave_requests');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const sampleStockTransfers = [
@@ -493,28 +544,43 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const [salaryAdvances, setSalaryAdvances] = useState(() => {
-    const saved = localStorage.getItem('gym_salary_advances');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleSalaryAdvances;
+    try {
+      const saved = localStorage.getItem('gym_salary_advances');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [stockTransfers, setStockTransfers] = useState(() => {
-    const saved = localStorage.getItem('gym_stock_transfers');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleStockTransfers;
+    try {
+      const saved = localStorage.getItem('gym_stock_transfers');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [performanceReviews, setPerformanceReviews] = useState(() => {
-    const saved = localStorage.getItem('gym_performance_reviews');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : samplePerformanceReviews;
+    try {
+      const saved = localStorage.getItem('gym_performance_reviews');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [expenseClaims, setExpenseClaims] = useState(() => {
-    const saved = localStorage.getItem('gym_expense_claims');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleExpenseClaims;
+    try {
+      const saved = localStorage.getItem('gym_expense_claims');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [hrLetters, setHrLetters] = useState(() => {
-    const saved = localStorage.getItem('gym_hr_letters');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleHrLetters;
+    try {
+      const saved = localStorage.getItem('gym_hr_letters');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [currentPlan, setCurrentPlan] = useState(() => {
@@ -549,6 +615,8 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { try { localStorage.setItem('gym_expenses', JSON.stringify(expenses)); } catch (e) {} }, [expenses]);
   useEffect(() => { try { localStorage.setItem('gym_fixed_assets', JSON.stringify(fixedAssets)); } catch (e) {} }, [fixedAssets]);
   useEffect(() => { try { localStorage.setItem('gym_payments', JSON.stringify(payments)); } catch (e) {} }, [payments]);
+  useEffect(() => { try { localStorage.setItem('gym_tasks', JSON.stringify(tasks)); } catch (e) {} }, [tasks]);
+  useEffect(() => { try { localStorage.setItem('gym_activity_logs', JSON.stringify(activityLogs)); } catch (e) {} }, [activityLogs]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
@@ -604,13 +672,19 @@ export default function StoreContextProvider({ children }) {
   });
 
   const [journalEntries, setJournalEntries] = useState(() => {
-    const saved = localStorage.getItem('gym_journal_entries');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleJournalEntries;
+    try {
+      const saved = localStorage.getItem('gym_journal_entries');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [journalLines, setJournalLines] = useState(() => {
-    const saved = localStorage.getItem('gym_journal_lines');
-    return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : sampleJournalLines;
+    try {
+      const saved = localStorage.getItem('gym_journal_lines');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   const [paymentAllocations, setPaymentAllocations] = useState(() => {
@@ -1035,6 +1109,9 @@ export default function StoreContextProvider({ children }) {
     setFixedAssets(sampleFixedAssets);
     setJournalEntries(sampleJournalEntries);
     setJournalLines(sampleJournalLines);
+    setSuppliers(sampleSuppliers);
+    setPurchaseOrders(samplePurchaseOrders);
+    setEmployees(sampleEmployees);
 
     localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
     localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
@@ -1045,31 +1122,30 @@ export default function StoreContextProvider({ children }) {
     localStorage.setItem('gym_fixed_assets', JSON.stringify(sampleFixedAssets));
     localStorage.setItem('gym_journal_entries', JSON.stringify(sampleJournalEntries));
     localStorage.setItem('gym_journal_lines', JSON.stringify(sampleJournalLines));
+    localStorage.setItem('gym_suppliers', JSON.stringify(sampleSuppliers));
+    localStorage.setItem('gym_purchase_orders', JSON.stringify(samplePurchaseOrders));
+    localStorage.setItem('gym_employees', JSON.stringify(sampleEmployees));
 
-    showNotification('Loaded full enterprise demo dataset successfully!');
+    showNotification('Loaded enterprise demo dataset successfully!');
   };
 
   const resetToSeynexDefaults = async () => {
-    if (window.confirm("This will permanently remove your cloud account data. Proceed?")) {
-      if (!user) return;
-      try {
-          await Promise.all([
-            supabase.from('customers').delete().eq('user_id', user.id),
-            supabase.from('inventory').delete().eq('user_id', user.id),
-            supabase.from('quotations').delete().eq('user_id', user.id),
-            supabase.from('invoices').delete().eq('user_id', user.id),
-            supabase.from('leads').delete().eq('user_id', user.id),
-            supabase.from('expenses').delete().eq('user_id', user.id),
-            supabase.from('payments').delete().eq('user_id', user.id),
-            supabase.from('activity_logs').delete().eq('user_id', user.id),
-            supabase.from('user_profiles').delete().eq('user_id', user.id)
-          ]);
-          localStorage.clear();
-          window.location.reload();
-      } catch (err) {
-          console.error('Reset error:', err);
-      }
+    await executeResetEverything();
+  };
+
+  const clearActivityLogs = async () => {
+    setActivityLogs([]);
+    try {
+      localStorage.removeItem('gym_activity_logs');
+      localStorage.removeItem('gym_logs');
+      setCloudSyncStatus('syncing');
+      await supabase.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      setCloudSyncStatus('synced');
+    } catch (e) {
+      console.warn('[Logs] Clear error:', e);
+      setCloudSyncStatus('error');
     }
+    showNotification('All activity and audit logs have been permanently cleared!', 'success');
   };
 
   const generateShareKey = () => {
@@ -1667,7 +1743,7 @@ export default function StoreContextProvider({ children }) {
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
       // 1. Fixed Assets
-      if (faData && faData.length > 0) {
+      if (Array.isArray(faData)) {
         const loadedAssets = faData.map(a => ({
           id: a.id,
           assetCode: a.asset_code,
@@ -1697,7 +1773,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 3. Customers
-      if (cData && cData.length > 0) {
+      if (Array.isArray(cData)) {
         const loadedCustomers = cData.map(c => ({
           id: c.id,
           gymName: c.gym_name,
@@ -1716,7 +1792,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 4. Inventory
-      if (invData && invData.length > 0) {
+      if (Array.isArray(invData)) {
         const loadedInventory = invData.map(i => ({
           id: i.id,
           name: i.name,
@@ -1732,7 +1808,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 5. Quotations
-      if (qData && qData.length > 0) {
+      if (Array.isArray(qData)) {
         const loadedQuotes = qData.map(q => ({
           id: q.id,
           shareKey: q.share_key,
@@ -1749,7 +1825,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 6. Invoices
-      if (iData && iData.length > 0) {
+      if (Array.isArray(iData)) {
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
 
@@ -1785,7 +1861,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 7. Leads
-      if (lData && lData.length > 0) {
+      if (Array.isArray(lData)) {
         const loadedLeads = lData.map(l => ({
           id: l.id,
           gymName: l.gym_name,
@@ -1800,7 +1876,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 8. Expenses
-      if (eData && eData.length > 0) {
+      if (Array.isArray(eData)) {
         const loadedExpenses = eData.map(e => ({
           id: e.id,
           category: e.category,
@@ -1813,7 +1889,7 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 9. Payments
-      if (pData && pData.length > 0) {
+      if (Array.isArray(pData)) {
         const loadedPayments = pData.map(p => ({
           id: p.id,
           customerId: p.customer_id,
@@ -1827,8 +1903,8 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 10. Tasks
-      if (tData && tData.length > 0) {
-        setTasks(tData.map(t => ({
+      if (Array.isArray(tData)) {
+        const loadedTasks = tData.map(t => ({
           id: t.id,
           title: t.title,
           description: t.description,
@@ -1837,18 +1913,22 @@ export default function StoreContextProvider({ children }) {
           priority: t.priority,
           relatedTo: t.related_to,
           relatedId: t.related_id
-        })));
+        }));
+        setTasks(loadedTasks);
+        try { localStorage.setItem('gym_tasks', JSON.stringify(loadedTasks)); } catch(e) {}
       }
 
       // 11. Activity Logs
-      if (logData && logData.length > 0) {
-        setActivityLogs(logData.map(l => ({
+      if (Array.isArray(logData)) {
+        const loadedLogs = logData.map(l => ({
           id: l.id,
           type: l.log_type,
           message: l.message,
           details: l.details,
           timestamp: l.log_timestamp
-        })));
+        }));
+        setActivityLogs(loadedLogs);
+        try { localStorage.setItem('gym_activity_logs', JSON.stringify(loadedLogs)); } catch(e) {}
       }
 
       const syncTimeStr = new Date().toISOString();
@@ -2012,7 +2092,47 @@ export default function StoreContextProvider({ children }) {
         });
       }
 
-      // 8. Config / Profile
+      // 8. Payments
+      for (const p of (payments || [])) {
+        await safeUpsert('payments', {
+          id: toUuid(p.id),
+          user_id: effId,
+          customer_id: isUuid(p.customerId) ? p.customerId : null,
+          document_id: isUuid(p.documentId) ? p.documentId : null,
+          amount: Number(p.amount) || 0,
+          payment_type: p.type || 'Cash',
+          payment_timestamp: p.timestamp || new Date().toISOString()
+        });
+      }
+
+      // 9. Tasks
+      for (const t of (tasks || [])) {
+        await safeUpsert('tasks', {
+          id: toUuid(t.id),
+          user_id: effId,
+          title: t.title || 'Task',
+          description: t.description || '',
+          due_date: t.dueDate || null,
+          status: t.status || 'Pending',
+          priority: t.priority || 'Medium',
+          related_to: t.relatedTo || '',
+          related_id: t.relatedId || ''
+        });
+      }
+
+      // 10. Activity Logs (last 50)
+      for (const l of (activityLogs || []).slice(0, 50)) {
+        await safeUpsert('activity_logs', {
+          id: toUuid(l.id),
+          user_id: effId,
+          log_type: l.type || 'System',
+          message: l.message || '',
+          details: typeof l.details === 'object' ? JSON.stringify(l.details) : String(l.details || ''),
+          log_timestamp: l.timestamp || new Date().toISOString()
+        });
+      }
+
+      // 11. Config / Profile
       await safeUpsert('user_profiles', {
         user_id: effId,
         config: smsConfig,
@@ -2072,8 +2192,11 @@ export default function StoreContextProvider({ children }) {
       const keys = [
         'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
         'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
-        'gym_tasks', 'gym_activity_logs', 'gym_journal_entries', 'gym_journal_lines',
-        'gym_payment_allocations', 'gym_depreciation_schedule', 'gym_last_sync_time'
+        'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
+        'gym_payment_allocations', 'gym_depreciation_schedule', 'gym_last_sync_time',
+        'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
+        'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
+        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters'
       ];
       keys.forEach(k => {
         try { localStorage.removeItem(k); } catch (e) {}
@@ -2094,6 +2217,17 @@ export default function StoreContextProvider({ children }) {
       setJournalEntries([]);
       setJournalLines([]);
       setDepreciationSchedule([]);
+      setSuppliers([]);
+      setPurchaseOrders([]);
+      setEmployees([]);
+      setPayruns([]);
+      setAttendanceLogs([]);
+      setLeaveRequests([]);
+      setSalaryAdvances([]);
+      setStockTransfers([]);
+      setPerformanceReviews([]);
+      setExpenseClaims([]);
+      setHrLetters([]);
 
       setCloudSyncStatus('synced');
       setLastSyncTime(new Date().toISOString());
@@ -3653,7 +3787,7 @@ export default function StoreContextProvider({ children }) {
       payments, recordCashDeposit,
       accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
       createJournalEntry, addAccount, updateAccount, deleteAccount, deleteJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
-      activityLogs, addLog, recordAuditLog,
+      activityLogs, addLog, recordAuditLog, clearActivityLogs,
       addCustomerNote,
       deleteInvoice, deleteQuote,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
