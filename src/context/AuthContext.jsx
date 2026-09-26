@@ -12,37 +12,71 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('gym_auth_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.email) {
+          const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+          if (!isUuid(parsed.id)) {
+            parsed.id = '76bb4580-2006-464f-aab8-64029dbe9540';
+            localStorage.setItem('gym_auth_user', JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('[Auth] Failed to initialize local user:', e);
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('gym_auth_user');
+      return !savedUser;
+    } catch (e) {
+      return true;
+    }
+  });
 
   useEffect(() => {
     // Check active sessions and sets the user
     const getSession = async () => {
       try {
-        if (supabase?.auth) {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          if (session?.user) {
-            setUser(session.user);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Fallback: Check local storage for authenticated user
+        // PRIORITY 1: Check local storage for authenticated user first
+        // This ensures locally-created users always work regardless of Supabase state
         const savedUser = localStorage.getItem('gym_auth_user');
         if (savedUser) {
           try {
             const parsed = JSON.parse(savedUser);
-            if (parsed) {
+            if (parsed && parsed.email) {
               const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
               if (!isUuid(parsed.id)) {
                 parsed.id = '76bb4580-2006-464f-aab8-64029dbe9540';
                 localStorage.setItem('gym_auth_user', JSON.stringify(parsed));
               }
               setUser(parsed);
+              setLoading(false);
+              return; // Local user found — no need to check Supabase
             }
           } catch (e) {
             console.error('[Auth] Failed to parse saved local user:', e);
+          }
+        }
+
+        // PRIORITY 2: Check Supabase session only if no local user exists
+        if (supabase?.auth) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              setUser(session.user);
+              setLoading(false);
+              return;
+            }
+          } catch (sbErr) {
+            console.warn('[Auth] Supabase getSession failed (offline?):', sbErr?.message);
           }
         }
       } catch (err) {
@@ -59,11 +93,16 @@ export const AuthProvider = ({ children }) => {
 
     getSession();
 
+    // Listen for Supabase auth changes — but only update user if we don't have a local user
+    // This prevents supabase.auth.signUp() (called when admin creates a team member)
+    // from hijacking the current admin session
     let subscription = null;
     try {
       if (supabase?.auth) {
         const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (session?.user) {
+          // Only auto-update user from Supabase if there's no locally-managed user
+          const localUser = localStorage.getItem('gym_auth_user');
+          if (!localUser && session?.user) {
             setUser(session.user);
           }
           setLoading(false);
@@ -86,6 +125,8 @@ export const AuthProvider = ({ children }) => {
   const signIn = async ({ email, password }) => {
     const cleanEmail = email?.trim().toLowerCase();
     const cleanPassword = password != null ? String(password).trim() : '';
+
+    console.log('[Auth signIn] Attempting login for:', cleanEmail);
 
     const DEFAULT_UUIDS = {
       'admin@company.com': '76bb4580-2006-464f-aab8-64029dbe9540',
@@ -114,9 +155,27 @@ export const AuthProvider = ({ children }) => {
       try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
     }
 
+    // Also ensure default members have passwords even if they were saved without them
+    teamMembers = teamMembers.map(m => {
+      if (!m.password) {
+        const defaultMatch = defaultMembers.find(d => d.email === m.email?.trim().toLowerCase());
+        if (defaultMatch) {
+          return { ...m, password: defaultMatch.password, id: defaultMatch.id };
+        }
+      }
+      return m;
+    });
+
     const matchedMember = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
 
+    console.log('[Auth signIn] Matched member:', matchedMember ? `${matchedMember.name} (${matchedMember.email}), has password: ${!!matchedMember.password}` : 'NOT FOUND');
+
     if (matchedMember) {
+      // Check if user is suspended
+      if (matchedMember.status === 'Suspended') {
+        return { data: null, error: new Error('This account has been suspended. Contact your administrator.') };
+      }
+
       // Validate password
       const acceptedPasswords = [
         matchedMember.password,
@@ -133,6 +192,8 @@ export const AuthProvider = ({ children }) => {
         acceptedPasswords.includes(password) || 
         acceptedPasswords.includes(cleanPassword);
 
+      console.log('[Auth signIn] Password valid:', isPasswordValid, '| Stored password exists:', !!matchedMember.password);
+
       if (isPasswordValid) {
         const resolvedId = isUuid(matchedMember.id) 
           ? matchedMember.id 
@@ -148,19 +209,23 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(authUser);
         localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+        console.log('[Auth signIn] ✅ Login successful for:', cleanEmail);
         return { data: { user: authUser }, error: null };
       } else {
+        console.log('[Auth signIn] ❌ Password mismatch for:', cleanEmail);
         return { data: null, error: new Error('Invalid login credentials') };
       }
     }
 
-    // 2. Try Supabase Auth if user not found in local team members or if Supabase is active
+    // 2. Try Supabase Auth if user not found in local team members
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
       try {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
-          setUser(res.data.user);
-          localStorage.setItem('gym_auth_user', JSON.stringify(res.data.user));
+          const authUser = res.data.user;
+          setUser(authUser);
+          localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+          console.log('[Auth signIn] ✅ Supabase cloud login for:', cleanEmail);
           return res;
         }
       } catch (err) {
@@ -180,6 +245,7 @@ export const AuthProvider = ({ children }) => {
       return { data: { user: authUser }, error: null };
     }
 
+    console.log('[Auth signIn] ❌ No matching user found for:', cleanEmail);
     return { data: null, error: new Error('Invalid login credentials. Please check your email and password.') };
   };
 
@@ -254,25 +320,31 @@ export const AuthProvider = ({ children }) => {
     setUser(authUser);
     localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
 
-    // Also attempt Supabase cloud registration in background if active
+    // Attempt Supabase cloud registration in background — but DON'T await it
+    // to prevent the signUp from hijacking the current session
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
-      try {
-        const { data: sbData } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: cleanPassword,
-          options: {
-            data: { name: newMember.name, role: newMember.role }
-          }
-        });
-        if (sbData?.user?.id) {
-          authUser.id = sbData.user.id;
-          newMember.id = sbData.user.id;
-          localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-          localStorage.setItem('gym_team_members', JSON.stringify(teamMembers));
+      supabase.auth.signUp({
+        email: cleanEmail,
+        password: cleanPassword,
+        options: {
+          data: { name: newMember.name, role: newMember.role }
         }
-      } catch (err) {
+      }).then(({ data: sbData }) => {
+        if (sbData?.user?.id) {
+          newMember.id = sbData.user.id;
+          // Update localStorage silently — don't change current auth user
+          try {
+            const currentMembers = JSON.parse(localStorage.getItem('gym_team_members') || '[]');
+            const idx = currentMembers.findIndex(m => m.email === cleanEmail);
+            if (idx >= 0) {
+              currentMembers[idx].id = sbData.user.id;
+              localStorage.setItem('gym_team_members', JSON.stringify(currentMembers));
+            }
+          } catch (e) {}
+        }
+      }).catch(err => {
         console.warn('[Auth] Supabase cloud signup deferred:', err?.message);
-      }
+      });
     }
 
     return { data: { user: authUser }, error: null };
@@ -300,4 +372,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-

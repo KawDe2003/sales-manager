@@ -913,9 +913,9 @@ export default function StoreContextProvider({ children }) {
       try { return JSON.parse(saved); } catch (e) {}
     }
     return [
-      { id: '1', name: 'System Administrator', email: user?.email || 'admin@company.com', role: 'Admin', status: 'Active', addedAt: new Date().toISOString() },
-      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', addedAt: new Date().toISOString() },
-      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', addedAt: new Date().toISOString() }
+      { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'System Administrator', email: user?.email || 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123', addedAt: new Date().toISOString() },
+      { id: 'e2a87062-8e1e-4509-91a5-e362fa91901a', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123', addedAt: new Date().toISOString() },
+      { id: 'b4317154-8c88-4660-84cf-cb864b22b7a9', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123', addedAt: new Date().toISOString() }
     ];
   });
 
@@ -1005,16 +1005,10 @@ export default function StoreContextProvider({ children }) {
       return updated;
     });
 
-    // Also attempt Supabase sign-up in the background so cloud auth is in sync if online
-    if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
-      supabase.auth.signUp({
-        email: cleanEmail,
-        password: cleanPassword,
-        options: {
-          data: { name: newMember.name, role: newMember.role }
-        }
-      }).catch(err => console.log('[StoreContext] Cloud auth sync deferred:', err?.message));
-    }
+    // NOTE: We intentionally do NOT call supabase.auth.signUp() here because it
+    // would hijack the current admin's Supabase session via onAuthStateChange.
+    // Team members are managed locally via localStorage. Cloud auth registration
+    // happens separately if the user signs up through the login page.
 
     showNotification(`Added team member ${newMember.name} as ${newMember.role}`);
   };
@@ -3149,7 +3143,7 @@ export default function StoreContextProvider({ children }) {
     if (limitType === 'maxCustomers') currentCount = (customers || []).length;
     else if (limitType === 'maxUsers') currentCount = (teamMembers || []).length;
     else if (limitType === 'maxBranches') currentCount = 1;
-    else if (limitType === 'maxQuotations') currentCount = (quotations || []).length;
+    else if (limitType === 'maxQuotations') currentCount = (quotes || []).length;
     else if (limitType === 'maxSmsCredits') currentCount = smsConfig?.balance || 0;
 
     const allowed = currentCount < maxLimit;

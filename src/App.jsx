@@ -169,8 +169,12 @@ const hasPermission = (userPermissions = [], required) => {
 };
 
 const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;

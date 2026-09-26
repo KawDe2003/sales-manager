@@ -2,10 +2,11 @@ import React, { useContext, useState } from 'react';
 import { 
   ShoppingBag, Truck, Plus, Search, Filter, CheckCircle2, Clock, 
   AlertTriangle, ArrowUpRight, DollarSign, PackageCheck, Building2, 
-  Trash2, Edit, X, ArrowRight, RefreshCw, FileText, Printer
+  Trash2, Edit, X, ArrowRight, RefreshCw, FileText, Printer, Download
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
+import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
 
 const Procurement = () => {
   const { 
@@ -428,9 +429,9 @@ const Procurement = () => {
                             <button 
                               className="btn btn-secondary btn-sm"
                               onClick={() => setViewingPO(po)}
-                              title="Print / View Purchase Order"
+                              title="View Purchase Order"
                             >
-                              <FileText size={14} /> Print PO
+                              <FileText size={14} /> View PO
                             </button>
                             {!isReceived && po.status !== 'Cancelled' && (
                               <button 
@@ -819,8 +820,8 @@ const Procurement = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
-                  <Printer size={14} /> Print
+                <button className="btn btn-primary btn-sm" onClick={() => generatePurchaseOrderPDF(viewingPO)} title="Download as PDF">
+                  <Download size={14} /> Download PDF
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setViewingPO(null)}>
                   <X size={14} />

@@ -1032,3 +1032,247 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
     console.error('Failed to export Trial Balance PDF:', err);
   }
 };
+
+// Official Purchase Order PDF Generator
+export const generatePurchaseOrderPDF = (poData) => {
+  try {
+    const doc = new jsPDF();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyAddress = savedConfig.companyAddress || '';
+    const companyEmail = savedConfig.companyEmail || '';
+    const companyPhone = savedConfig.companyPhone || '';
+
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#059669', [5, 150, 105]);
+    const textColor = [40, 40, 40];
+    const lightGray = [248, 250, 252];
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // ── Company Logo / Name ──────────────────────────────────────────────────
+    if (savedConfig.receiptLogo) {
+      try {
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 10, 32, 32);
+      } catch (e) {
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(companyName, 14, 22);
+      }
+    } else {
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(companyName, 14, 22);
+    }
+
+    // Company details below logo
+    let companyY = 28;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    if (companyAddress) { doc.text(companyAddress, 14, companyY); companyY += 4.5; }
+    if (companyEmail) { doc.text(`Email: ${companyEmail}`, 14, companyY); companyY += 4.5; }
+    if (companyPhone) { doc.text(`Phone: ${companyPhone}`, 14, companyY); companyY += 4.5; }
+
+    // ── Title (right side) ───────────────────────────────────────────────────
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('PURCHASE ORDER', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(11);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`#${poData.poNumber || 'PO-0001'}`, pageWidth - 14, 28, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Order Date: ${poData.date || new Date().toISOString().split('T')[0]}`, pageWidth - 14, 35, { align: 'right' });
+    if (poData.expectedDelivery) {
+      doc.text(`Expected Delivery: ${poData.expectedDelivery}`, pageWidth - 14, 40, { align: 'right' });
+    }
+
+    // ── Horizontal rule ──────────────────────────────────────────────────────
+    const sectionStartY = Math.max(companyY + 4, 48);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(14, sectionStartY, pageWidth - 14, sectionStartY);
+
+    // ── Supplier Info & PO Status ────────────────────────────────────────────
+    const infoY = sectionStartY + 8;
+
+    // Left: Supplier
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.rect(14, infoY - 4, 85, 8, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('ISSUED TO (SUPPLIER)', 16, infoY + 1);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(poData.supplierName || 'Supplier', 16, infoY + 12);
+
+    // If supplier address/contact available
+    let supplierDetailY = infoY + 17;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    if (poData.supplierContact) {
+      doc.text(`Contact: ${poData.supplierContact}`, 16, supplierDetailY);
+      supplierDetailY += 4.5;
+    }
+    if (poData.supplierPhone) {
+      doc.text(`Phone: ${poData.supplierPhone}`, 16, supplierDetailY);
+      supplierDetailY += 4.5;
+    }
+    if (poData.supplierEmail) {
+      doc.text(`Email: ${poData.supplierEmail}`, 16, supplierDetailY);
+      supplierDetailY += 4.5;
+    }
+
+    // Right: Status Badge
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.rect(pageWidth - 99, infoY - 4, 85, 8, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('ORDER STATUS', pageWidth - 97, infoY + 1);
+
+    const status = poData.status || 'Ordered';
+    const statusColors = {
+      'Ordered': [59, 130, 246],
+      'Delivered': [16, 185, 129],
+      'Cancelled': [239, 68, 68],
+      'Partial': [245, 158, 11]
+    };
+    const statusColor = statusColors[status] || [100, 116, 139];
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.text(status.toUpperCase(), pageWidth - 97, infoY + 12);
+
+    // ── Line Items Table ─────────────────────────────────────────────────────
+    const tableStartY = Math.max(supplierDetailY + 6, infoY + 28);
+
+    const items = Array.isArray(poData.items) ? poData.items : [];
+    const tableBody = items.map((item, i) => {
+      const qty = Number(item.quantity) || 1;
+      const unitCost = Number(item.unitCost) || 0;
+      const lineTotal = qty * unitCost;
+      return [
+        String(i + 1),
+        item.name || 'Item',
+        String(qty),
+        `LKR ${unitCost.toLocaleString()}`,
+        `LKR ${lineTotal.toLocaleString()}`
+      ];
+    });
+
+    // If no items, add a placeholder row
+    if (tableBody.length === 0) {
+      tableBody.push(['1', 'Purchase Items', '1', `LKR ${Number(poData.totalAmount || 0).toLocaleString()}`, `LKR ${Number(poData.totalAmount || 0).toLocaleString()}`]);
+    }
+
+    autoTable(doc, {
+      startY: tableStartY,
+      head: [['#', 'Item Description', 'Qty', 'Unit Cost', 'Line Total']],
+      body: tableBody,
+      theme: 'grid',
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 5
+      },
+      bodyStyles: {
+        fontSize: 9,
+        cellPadding: 5,
+        textColor: textColor
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        2: { halign: 'center', cellWidth: 18 },
+        3: { halign: 'right', cellWidth: 35 },
+        4: { halign: 'right', cellWidth: 38 }
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      styles: { lineColor: [226, 232, 240], lineWidth: 0.3 }
+    });
+
+    // ── Grand Total ──────────────────────────────────────────────────────────
+    const totalY = (doc.lastAutoTable?.finalY || tableStartY + 30) + 8;
+    const totalAmount = Number(poData.totalAmount) || items.reduce((sum, item) => sum + ((Number(item.quantity) || 1) * (Number(item.unitCost) || 0)), 0);
+
+    // Total box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, totalY, pageWidth - 28, 20, 3, 3, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, totalY, pageWidth - 28, 20, 3, 3, 'S');
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Total Purchase Order Value:', 20, totalY + 13);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`LKR ${totalAmount.toLocaleString()}`, pageWidth - 20, totalY + 13, { align: 'right' });
+
+    // ── Notes / Terms ────────────────────────────────────────────────────────
+    let notesY = totalY + 32;
+    if (poData.notes) {
+      if (notesY + 20 > pageHeight - 40) { doc.addPage(); notesY = 20; }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.text('Notes / Remarks:', 14, notesY);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      const splitNotes = doc.splitTextToSize(poData.notes, pageWidth - 28);
+      doc.text(splitNotes, 14, notesY + 6);
+      notesY += 6 + (splitNotes.length * 4.5);
+    }
+
+    // ── Authorisation Lines ──────────────────────────────────────────────────
+    const sigY = Math.min(notesY + 15, pageHeight - 45);
+    if (sigY > pageHeight - 60) { doc.addPage(); }
+    const finalSigY = sigY > pageHeight - 60 ? 40 : sigY;
+
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.4);
+    // Left signature
+    doc.line(14, finalSigY + 15, 85, finalSigY + 15);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Authorized Signature', 14, finalSigY + 20);
+    doc.text('Procurement Officer / Manager', 14, finalSigY + 24);
+
+    // Right signature
+    doc.line(pageWidth - 85, finalSigY + 15, pageWidth - 14, finalSigY + 15);
+    doc.text('Approved By', pageWidth - 85, finalSigY + 20);
+    doc.text('Management / Director', pageWidth - 85, finalSigY + 24);
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 170, 185);
+    doc.setFont('helvetica', 'normal');
+    doc.text('This is a computer-generated purchase order. Official company stamp or signature required for validation.', 14, pageHeight - 12);
+    doc.text(`Generated by ${companyName} Management System on ${new Date().toLocaleDateString()}`, 14, pageHeight - 8);
+
+    // ── Save PDF ─────────────────────────────────────────────────────────────
+    const safeFileName = `Purchase_Order_${(poData.poNumber || 'PO').replace(/[^a-zA-Z0-9-]/g, '_')}_${(poData.supplierName || 'Supplier').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    doc.save(safeFileName);
+
+  } catch (err) {
+    console.error('Purchase Order PDF generation error:', err);
+    alert(`Could not generate Purchase Order PDF: ${err.message || 'Unknown error'}`);
+  }
+};
