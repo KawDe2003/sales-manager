@@ -32,7 +32,15 @@ export const AuthProvider = ({ children }) => {
         const savedUser = localStorage.getItem('gym_auth_user');
         if (savedUser) {
           try {
-            setUser(JSON.parse(savedUser));
+            const parsed = JSON.parse(savedUser);
+            if (parsed) {
+              const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+              if (!isUuid(parsed.id)) {
+                parsed.id = '76bb4580-2006-464f-aab8-64029dbe9540';
+                localStorage.setItem('gym_auth_user', JSON.stringify(parsed));
+              }
+              setUser(parsed);
+            }
           } catch (e) {
             console.error('[Auth] Failed to parse saved local user:', e);
           }
@@ -79,6 +87,14 @@ export const AuthProvider = ({ children }) => {
     const cleanEmail = email?.trim().toLowerCase();
     const cleanPassword = password != null ? String(password).trim() : '';
 
+    const DEFAULT_UUIDS = {
+      'admin@company.com': '76bb4580-2006-464f-aab8-64029dbe9540',
+      'sales@company.com': 'e2a87062-8e1e-4509-91a5-e362fa91901a',
+      'accounts@company.com': 'b4317154-8c88-4660-84cf-cb864b22b7a9'
+    };
+
+    const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
     // 1. Check local team members array stored in localStorage
     const savedMembers = localStorage.getItem('gym_team_members');
     let teamMembers = [];
@@ -87,9 +103,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     const defaultMembers = [
-      { id: '1', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
-      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
-      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
+      { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
+      { id: 'e2a87062-8e1e-4509-91a5-e362fa91901a', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
+      { id: 'b4317154-8c88-4660-84cf-cb864b22b7a9', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
     ];
 
     // Default fallback members if list empty or not saved yet
@@ -118,8 +134,12 @@ export const AuthProvider = ({ children }) => {
         acceptedPasswords.includes(cleanPassword);
 
       if (isPasswordValid) {
+        const resolvedId = isUuid(matchedMember.id) 
+          ? matchedMember.id 
+          : (DEFAULT_UUIDS[cleanEmail] || '76bb4580-2006-464f-aab8-64029dbe9540');
+
         const authUser = {
-          id: matchedMember.id,
+          id: resolvedId,
           email: matchedMember.email,
           user_metadata: {
             name: matchedMember.name,
@@ -151,7 +171,7 @@ export const AuthProvider = ({ children }) => {
     // 3. System Admin universal fallback check
     if (cleanEmail === 'admin@company.com') {
       const authUser = {
-        id: '1',
+        id: '76bb4580-2006-464f-aab8-64029dbe9540',
         email: 'admin@company.com',
         user_metadata: { name: 'System Administrator', role: 'Admin' }
       };

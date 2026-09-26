@@ -5,7 +5,8 @@ import {
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
-  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles
+  Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
+  Cloud, RefreshCw
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -201,7 +202,13 @@ const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
 };
 
 const AppContent = () => {
-  const { notification, theme, toggleTheme, smsConfig = {}, showNotification, isStoreLoading, systemNotifications = [], markNotificationsRead, customers = [], invoices = [], leads = [], teamMembers = [], customRoles = [], featureToggles = {} } = useContext(StoreContext) || {};
+  const { 
+    notification, theme, toggleTheme, smsConfig = {}, showNotification, 
+    isStoreLoading, systemNotifications = [], markNotificationsRead, 
+    customers = [], invoices = [], leads = [], teamMembers = [], 
+    customRoles = [], featureToggles = {},
+    cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud
+  } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
 
@@ -483,6 +490,34 @@ const AppContent = () => {
             title="Search (Ctrl+K)"
           >
             <Search size={16} className="text-secondary" />
+          </button>
+
+          {/* Cloud Sync Status Indicator */}
+          <button
+            onClick={() => fetchCloudData()}
+            className="btn btn-secondary hidden-mobile"
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: cloudSyncStatus === 'error' 
+                ? '1px solid rgba(244, 63, 94, 0.4)' 
+                : '1px solid var(--panel-border)',
+              background: cloudSyncStatus === 'syncing' 
+                ? 'rgba(99, 102, 241, 0.08)' 
+                : 'var(--subtle-bg)'
+            }}
+            title={lastSyncTime ? `Last synced: ${new Date(lastSyncTime).toLocaleTimeString()} (Click to refresh from Cloud)` : 'Click to sync with Supabase cloud'}
+          >
+            <Cloud size={15} style={{
+              color: cloudSyncStatus === 'error' ? 'var(--danger)' : cloudSyncStatus === 'syncing' ? 'var(--accent-primary)' : 'var(--success)'
+            }} className={cloudSyncStatus === 'syncing' ? 'animate-spin' : ''} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {cloudSyncStatus === 'syncing' ? 'Syncing...' : cloudSyncStatus === 'error' ? 'Sync Warning' : 'Cloud Synced'}
+            </span>
           </button>
 
           {/* Theme Toggle */}

@@ -6,7 +6,8 @@ import {
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
-  AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon
+  AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
+  Cloud, CloudUpload, Database
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -65,7 +66,9 @@ const Settings = () => {
     handleTestSms, resetToSeynexDefaults, seedDummyData,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
-    featureToggles = {}, updateFeatureToggle, applyPlanPreset
+    featureToggles = {}, updateFeatureToggle, applyPlanPreset,
+    cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
+    customers = [], quotes = [], invoices = [], inventory = [], leads = []
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -115,6 +118,7 @@ const Settings = () => {
         {[
           { id: 'users', label: 'Team & User Roles', icon: <Users size={16} /> },
           { id: 'modules', label: 'Module Feature Controls', icon: <Sliders size={16} /> },
+          { id: 'cloud', label: 'Cloud Sync (Supabase)', icon: <Cloud size={16} /> },
           { id: 'company', label: 'Corporate Identity', icon: <Building2 size={16} /> },
           { id: 'sms', label: 'SMS & Messaging API', icon: <MessageSquare size={16} /> },
           { id: 'bank', label: 'Bank & Payments', icon: <CreditCard size={16} /> }
@@ -544,7 +548,169 @@ const Settings = () => {
         </div>
       )}
 
-      {activeSettingsTab !== 'users' && (
+      {/* TAB: CLOUD SYNCHRONIZATION (SUPABASE) */}
+      {activeSettingsTab === 'cloud' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Status Header Panel */}
+          <div className="glass-panel" style={{ padding: '28px 32px' }}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(99, 102, 241, 0.2))',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--success)', flexShrink: 0
+                }}>
+                  <Cloud size={28} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="h2" style={{ margin: 0 }}>Supabase Cloud Database Sync</h2>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800,
+                      background: cloudSyncStatus === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                      color: cloudSyncStatus === 'error' ? 'var(--danger)' : 'var(--success)',
+                      border: cloudSyncStatus === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
+                    }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cloudSyncStatus === 'error' ? 'var(--danger)' : 'var(--success)' }}></span>
+                      {cloudSyncStatus === 'syncing' ? 'Syncing...' : cloudSyncStatus === 'error' ? 'Sync Attention Needed' : 'Connected & Active'}
+                    </span>
+                  </div>
+                  <p className="text-secondary" style={{ margin: '6px 0 0 0', fontSize: '0.88rem' }}>
+                    Project URL: <code style={{ color: 'var(--accent-primary)', background: 'var(--subtle-bg)', padding: '2px 8px', borderRadius: '6px' }}>https://cavehtshlvorbzlgqmxs.supabase.co</code>
+                    {lastSyncTime && (
+                      <span style={{ marginLeft: '12px', color: 'var(--text-muted)' }}>
+                        · Last Synced: <strong>{new Date(lastSyncTime).toLocaleTimeString()} ({new Date(lastSyncTime).toLocaleDateString()})</strong>
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button 
+                  className="btn btn-secondary"
+                  style={{ height: '42px', padding: '0 18px', gap: '8px', fontSize: '0.86rem' }}
+                  onClick={() => fetchCloudData()}
+                  disabled={cloudSyncStatus === 'syncing'}
+                >
+                  <RefreshCw size={16} className={cloudSyncStatus === 'syncing' ? 'animate-spin' : ''} />
+                  Restore / Pull Cloud Data
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  style={{ height: '42px', padding: '0 20px', gap: '8px', fontSize: '0.86rem' }}
+                  onClick={() => syncAllToCloud()}
+                  disabled={cloudSyncStatus === 'syncing'}
+                >
+                  <CloudUpload size={16} />
+                  Push Local Data to Cloud
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sync Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>
+                {customers.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '4px' }}>Clients / Gyms</div>
+            </div>
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-emerald)', fontFamily: 'var(--font-display)' }}>
+                {invoices.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '4px' }}>Invoices</div>
+            </div>
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-secondary)', fontFamily: 'var(--font-display)' }}>
+                {quotes.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '4px' }}>Quotations</div>
+            </div>
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>
+                {inventory.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '4px' }}>Inventory Items</div>
+            </div>
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--info)', fontFamily: 'var(--font-display)' }}>
+                {leads.length}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '4px' }}>Leads Pipeline</div>
+            </div>
+          </div>
+
+          {/* Database Setup & RLS Instructions */}
+          <div className="glass-panel" style={{ padding: '28px 32px' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '10px', color: 'var(--accent-primary)' }}>
+                <Database size={20} />
+              </div>
+              <h3 className="h3" style={{ margin: 0 }}>Supabase Permission Settings (Row Level Security)</h3>
+            </div>
+            <p className="text-secondary" style={{ fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '16px' }}>
+              To ensure all changes you make in this application automatically sync to your Supabase cloud without getting blocked by authentication tokens or session expirations, run this SQL script in your <strong>Supabase Dashboard → SQL Editor</strong>:
+            </p>
+
+            <div style={{ position: 'relative' }}>
+              <pre style={{
+                background: 'rgba(0, 0, 0, 0.4)',
+                border: '1px solid var(--panel-border)',
+                borderRadius: '12px',
+                padding: '18px 20px',
+                fontSize: '0.82rem',
+                fontFamily: 'monospace',
+                color: '#38bdf8',
+                overflowX: 'auto',
+                lineHeight: 1.5
+              }}>
+{`-- CLOUD SYNC PERMISSION MIGRATION (COPY & RUN IN SUPABASE SQL EDITOR)
+ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE quotations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices DISABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
+ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;`}
+              </pre>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{
+                  position: 'absolute', top: '12px', right: '12px',
+                  fontSize: '0.75rem', padding: '6px 14px', gap: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)'
+                }}
+                onClick={() => {
+                  const sql = `ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE quotations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices DISABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
+ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;`;
+                  navigator.clipboard.writeText(sql);
+                  showNotification('SQL copied to clipboard! Paste it into Supabase SQL Editor.');
+                }}
+              >
+                <Copy size={13} /> Copy SQL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSettingsTab !== 'users' && activeSettingsTab !== 'modules' && activeSettingsTab !== 'cloud' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Company & API */}

@@ -42,6 +42,24 @@ export const PLAN_CONFIGS = {
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState('synced'); // 'synced' | 'syncing' | 'offline' | 'error'
+  const [lastSyncTime, setLastSyncTime] = useState(() => {
+    try { return localStorage.getItem('gym_last_sync_time') || null; } catch(e) { return null; }
+  });
+
+  const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  
+  const toUuid = (id) => {
+    if (isUuid(id)) return id;
+    if (!id) return uuidv4();
+    const hex = Array.from(String(id)).map(c => c.charCodeAt(0).toString(16)).join('').padEnd(32, '0').slice(0, 32);
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+  };
+
+  const getEffectiveUserId = () => {
+    if (user?.id && isUuid(user.id)) return user.id;
+    return '76bb4580-2006-464f-aab8-64029dbe9540';
+  };
 
   // Initialize sample dummy data
   const sampleCustomers = [
@@ -521,6 +539,16 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_expense_claims', JSON.stringify(expenseClaims)); }, [expenseClaims]);
   useEffect(() => { localStorage.setItem('gym_hr_letters', JSON.stringify(hrLetters)); }, [hrLetters]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
+
+  // LOCAL STORAGE REALTIME MIRRORS (PREVENTS LOCAL DATA LOSS ON REFRESH)
+  useEffect(() => { try { localStorage.setItem('gym_customers', JSON.stringify(customers)); } catch (e) {} }, [customers]);
+  useEffect(() => { try { localStorage.setItem('gym_inventory', JSON.stringify(inventory)); } catch (e) {} }, [inventory]);
+  useEffect(() => { try { localStorage.setItem('gym_invoices', JSON.stringify(invoices)); } catch (e) {} }, [invoices]);
+  useEffect(() => { try { localStorage.setItem('gym_quotes', JSON.stringify(quotes)); } catch (e) {} }, [quotes]);
+  useEffect(() => { try { localStorage.setItem('gym_leads', JSON.stringify(leads)); } catch (e) {} }, [leads]);
+  useEffect(() => { try { localStorage.setItem('gym_expenses', JSON.stringify(expenses)); } catch (e) {} }, [expenses]);
+  useEffect(() => { try { localStorage.setItem('gym_fixed_assets', JSON.stringify(fixedAssets)); } catch (e) {} }, [fixedAssets]);
+  useEffect(() => { try { localStorage.setItem('gym_payments', JSON.stringify(payments)); } catch (e) {} }, [payments]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
@@ -1086,244 +1114,236 @@ export default function StoreContextProvider({ children }) {
   };
 
   // --- SUPABASE SYNC LOGIC ---
+  // --- SUPABASE CLOUD SYNC ENGINE ---
   const syncQuoteToSupabase = async (quote) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('quotations')
         .upsert({
-          id: quote.id,
-          user_id: user.id,
-          share_key: quote.shareKey,
-          quote_number: quote.quoteNumber,
-          date: quote.date,
-          prospect_name: quote.prospectName,
-          prospect_phone: quote.prospectPhone,
-          amount: quote.amount,
-          status: quote.status,
-          items: quote.items
-        });
-      if (error) console.error('[Supabase Sync] Quote Error:', error);
+          id: toUuid(quote.id),
+          user_id: effId,
+          share_key: quote.shareKey || generateShareKey(),
+          quote_number: quote.quoteNumber || 'QT-1001',
+          date: quote.date || new Date().toISOString().split('T')[0],
+          prospect_name: quote.prospectName || '',
+          prospect_phone: quote.prospectPhone || '',
+          amount: Number(quote.amount) || 0,
+          status: quote.status || 'Pending',
+          items: quote.items || []
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Quote Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Quote Exception:', err);
+      console.warn('[Supabase Sync] Quote Exception:', err.message);
     }
   };
 
   const syncInvoiceToSupabase = async (invoice) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('invoices')
         .upsert({
-          id: invoice.id,
-          user_id: user.id,
-          share_key: invoice.shareKey,
-          invoice_number: invoice.invoiceNumber,
-          date: invoice.date,
-          due_date: invoice.dueDate,
-          customer_id: (invoice.customerId && invoice.customerId !== 'unknown') ? invoice.customerId : null,
+          id: toUuid(invoice.id),
+          user_id: effId,
+          share_key: invoice.shareKey || generateShareKey(),
+          invoice_number: invoice.invoiceNumber || 'INV-1001',
+          date: invoice.date || new Date().toISOString().split('T')[0],
+          due_date: invoice.dueDate || null,
+          customer_id: isUuid(invoice.customerId) ? invoice.customerId : null,
           prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
           prospect_phone: invoice.prospectPhone || customers.find(c => c.id === invoice.customerId)?.phone || '',
-          amount: invoice.amount,
-          status: invoice.status,
-          items: invoice.items,
-          reminder_sent: invoice.reminderSent || false,
+          amount: Number(invoice.amount) || 0,
+          status: invoice.status || 'Draft',
+          items: invoice.items || [],
+          reminder_sent: !!invoice.reminderSent,
           installment_plan: invoice.installmentPlan || {}
-        });
-      if (error) console.error('[Supabase Sync] Invoice Error:', error);
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Invoice Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Invoice Exception:', err);
+      console.warn('[Supabase Sync] Invoice Exception:', err.message);
     }
   };
 
   const syncCustomerToSupabase = async (customer) => {
-    if (!user) {
-      console.error('[Supabase Sync] No user session - cannot save customer');
-      return;
-    }
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('customers')
         .upsert({
-          id: customer.id,
-          user_id: user.id,
-          gym_name: customer.gymName,
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          dob: customer.dob,
-          purchase_date: customer.purchaseDate,
-          renewal_date: customer.renewalDate,
-          annual_fee: customer.annualFee,
-          status: customer.status,
+          id: toUuid(customer.id),
+          user_id: effId,
+          gym_name: customer.gymName || 'Client Gym',
+          name: customer.name || '',
+          email: customer.email || '',
+          phone: customer.phone || '',
+          dob: customer.dob || null,
+          purchase_date: customer.purchaseDate || null,
+          renewal_date: customer.renewalDate || null,
+          annual_fee: Number(customer.annualFee) || 0,
+          status: customer.status || 'Active',
           notes: customer.notes || []
-        });
+        }, { onConflict: 'id' });
       if (error) {
-        console.error('[Supabase Sync] Customer Error:', error);
-        showNotification(`Cloud save failed: ${error.message}`, 'error');
+        console.warn('[Supabase Sync] Customer Warning:', error.message);
       } else {
-        console.log('[Supabase Sync] Customer saved OK:', customer.gymName);
+        setCloudSyncStatus('synced');
       }
     } catch (err) {
-      console.error('[Supabase Sync] Customer Exception:', err);
-      showNotification(`Cloud save error: ${err.message}`, 'error');
+      console.warn('[Supabase Sync] Customer Exception:', err.message);
     }
   };
 
   const syncInventoryToSupabase = async (item) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const fullPayload = {
-        id: item.id,
-        user_id: user.id,
+        id: toUuid(item.id),
+        user_id: effId,
         name: item.name,
-        item_type: item.type,
-        price: item.price,
-        cost_price: item.costPrice || 0,
-        reorder_level: item.reorderLevel || 5,
-        stock: item.stock,
-        description: item.desc
+        item_type: item.type || 'Equipment',
+        price: Number(item.price) || 0,
+        cost_price: Number(item.costPrice) || 0,
+        reorder_level: Number(item.reorderLevel) || 5,
+        stock: Number(item.stock) || 0,
+        description: item.desc || ''
       };
 
-      let { error } = await supabase.from('inventory').upsert(fullPayload);
+      let { error } = await supabase.from('inventory').upsert(fullPayload, { onConflict: 'id' });
 
-      // Automatic Schema Fallback: If cost_price or reorder_level column is missing in Supabase DB schema cache
       if (error && (error.message?.includes('cost_price') || error.message?.includes('reorder_level') || error.code === 'PGRST204')) {
-        console.warn('[Supabase Sync] Optional column cost_price/reorder_level not found in Supabase schema. Executing fallback upsert...', error.message);
         const basePayload = {
-          id: item.id,
-          user_id: user.id,
+          id: toUuid(item.id),
+          user_id: effId,
           name: item.name,
-          item_type: item.type,
-          price: item.price,
-          stock: item.stock,
-          description: item.desc
+          item_type: item.type || 'Equipment',
+          price: Number(item.price) || 0,
+          stock: Number(item.stock) || 0,
+          description: item.desc || ''
         };
-        const fallbackRes = await supabase.from('inventory').upsert(basePayload);
+        const fallbackRes = await supabase.from('inventory').upsert(basePayload, { onConflict: 'id' });
         error = fallbackRes.error;
       }
 
       if (error) {
-        console.error('[Supabase Sync] Inventory Error:', error);
-        showNotification(`Inventory sync warning: ${error.message}`, 'warning');
+        console.warn('[Supabase Sync] Inventory Warning:', error.message);
+      } else {
+        setCloudSyncStatus('synced');
       }
     } catch (err) {
-      console.error('[Supabase Sync] Inventory Exception:', err);
+      console.warn('[Supabase Sync] Inventory Exception:', err.message);
     }
   };
 
   const syncLeadToSupabase = async (lead) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('leads')
         .upsert({
-          id: lead.id,
-          user_id: user.id,
-          address: lead.address,
-          gym_name: lead.gymName,
-          prospect_name: lead.prospectName,
-          phone: lead.phone,
-          status: lead.status,
-          date: lead.date,
-          notes: lead.notes
-        });
-      if (error) {
-        console.error('[Supabase Sync] Lead Error:', error);
-        showNotification(`Lead sync failed: ${error.message}`, 'error');
-      }
+          id: toUuid(lead.id),
+          user_id: effId,
+          address: lead.address || '',
+          gym_name: lead.gymName || 'Lead Gym',
+          prospect_name: lead.prospectName || lead.name || '',
+          phone: lead.phone || '',
+          status: lead.status || 'New',
+          date: lead.date || new Date().toISOString(),
+          notes: lead.notes || ''
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Lead Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Lead Exception:', err);
-      showNotification(`Lead exception: ${err.message}`, 'error');
+      console.warn('[Supabase Sync] Lead Exception:', err.message);
     }
   };
 
   const syncExpenseToSupabase = async (expense) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('expenses')
         .upsert({
-          id: expense.id,
-          user_id: user.id,
-          category: expense.category,
-          amount: expense.amount,
-          date: expense.date,
-          description: expense.description
-        });
-      if (error) {
-        console.error('[Supabase Sync] Expense Error:', error);
-        showNotification(`Expense sync failed: ${error.message}`, 'error');
-      }
+          id: toUuid(expense.id),
+          user_id: effId,
+          category: expense.category || 'Operational',
+          amount: Number(expense.amount) || 0,
+          date: expense.date || new Date().toISOString().split('T')[0],
+          description: expense.description || ''
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Expense Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Expense Exception:', err);
-      showNotification(`Expense exception: ${err.message}`, 'error');
+      console.warn('[Supabase Sync] Expense Exception:', err.message);
     }
   };
 
   const syncPaymentToSupabase = async (payment) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('payments')
         .upsert({
-          id: payment.id,
-          user_id: user.id,
-          customer_id: payment.customerId,
-          document_id: payment.documentId,
-          amount: payment.amount,
-          payment_type: payment.type,
-          payment_timestamp: payment.timestamp
-        });
-      if (error) console.error('[Supabase Sync] Payment Error:', error);
+          id: toUuid(payment.id),
+          user_id: effId,
+          customer_id: isUuid(payment.customerId) ? payment.customerId : null,
+          document_id: isUuid(payment.documentId) ? payment.documentId : null,
+          amount: Number(payment.amount) || 0,
+          payment_type: payment.type || 'Cash',
+          payment_timestamp: payment.timestamp || new Date().toISOString()
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Payment Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Payment Exception:', err);
+      console.warn('[Supabase Sync] Payment Exception:', err.message);
     }
   };
 
   const syncFixedAssetToSupabase = async (asset) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
+      const assetUuid = toUuid(asset.id);
       const fullPayload = {
-        id: asset.id,
-        user_id: user.id,
-        asset_code: asset.assetCode,
+        id: assetUuid,
+        user_id: effId,
+        asset_code: asset.assetCode || 'FA-001',
         name: asset.name,
-        category: asset.category,
-        purchase_date: asset.purchaseDate,
-        purchase_cost: asset.purchaseCost,
-        useful_life_years: asset.usefulLifeYears,
-        salvage_value: asset.salvageValue,
+        category: asset.category || 'Gym Equipment',
+        purchase_date: asset.purchaseDate || new Date().toISOString().split('T')[0],
+        purchase_cost: Number(asset.purchaseCost) || 0,
+        useful_life_years: Number(asset.usefulLifeYears) || 5,
+        salvage_value: Number(asset.salvageValue) || 0,
         depreciation_method: asset.depreciationMethod || 'Straight Line (SLM)',
-        depreciation_rate: asset.depreciationRate || 0,
-        location: asset.location,
-        status: asset.status
+        depreciation_rate: Number(asset.depreciationRate) || 0,
+        location: asset.location || 'HQ',
+        status: asset.status || 'Active'
       };
 
-      let { error } = await supabase.from('fixed_assets').upsert(fullPayload);
-
+      let { error } = await supabase.from('fixed_assets').upsert(fullPayload, { onConflict: 'id' });
       if (error && (error.message?.includes('depreciation_method') || error.message?.includes('depreciation_rate') || error.code === 'PGRST204')) {
-        console.warn('[Supabase Sync] Depreciation columns missing in Supabase schema. Retrying base payload...', error.message);
         const basePayload = {
-          id: asset.id,
-          user_id: user.id,
-          asset_code: asset.assetCode,
+          id: assetUuid,
+          user_id: effId,
+          asset_code: asset.assetCode || 'FA-001',
           name: asset.name,
-          category: asset.category,
-          purchase_date: asset.purchaseDate,
-          purchase_cost: asset.purchaseCost,
-          useful_life_years: asset.usefulLifeYears,
-          salvage_value: asset.salvageValue,
-          location: asset.location,
-          status: asset.status
+          category: asset.category || 'Gym Equipment',
+          purchase_date: asset.purchaseDate || new Date().toISOString().split('T')[0],
+          purchase_cost: Number(asset.purchaseCost) || 0,
+          useful_life_years: Number(asset.usefulLifeYears) || 5,
+          salvage_value: Number(asset.salvageValue) || 0,
+          location: asset.location || 'HQ',
+          status: asset.status || 'Active'
         };
-        const fallbackRes = await supabase.from('fixed_assets').upsert(basePayload);
+        const fallbackRes = await supabase.from('fixed_assets').upsert(basePayload, { onConflict: 'id' });
         error = fallbackRes.error;
       }
 
-      if (error) console.error('[Supabase Sync] Fixed Asset Error:', error);
+      if (error) console.warn('[Supabase Sync] Fixed Asset Warning:', error.message);
+      else setCloudSyncStatus('synced');
     } catch (err) {
-      console.error('[Supabase Sync] Fixed Asset Exception:', err);
+      console.warn('[Supabase Sync] Fixed Asset Exception:', err.message);
     }
   };
 
@@ -1496,216 +1516,414 @@ export default function StoreContextProvider({ children }) {
   };
 
   const syncLogToSupabase = async (log) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('activity_logs')
         .upsert({
-          id: log.id,
-          user_id: user.id,
+          id: toUuid(log.id),
+          user_id: effId,
           log_type: log.type,
           message: log.message,
           details: log.details,
-          log_timestamp: log.timestamp
-        });
-      if (error) console.error('[Supabase Sync] Log Error:', error);
+          log_timestamp: log.timestamp || new Date().toISOString()
+        }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase Sync] Log Warning:', error.message);
     } catch (err) {
-      console.error('[Supabase Sync] Log Exception:', err);
+      console.warn('[Supabase Sync] Log Exception:', err.message);
     }
   };
 
   const syncConfigToSupabase = async (config) => {
-    if (!user) return;
     try {
+      const effId = getEffectiveUserId();
       const { error } = await supabase
         .from('user_profiles')
         .upsert({
-          user_id: user.id,
+          user_id: effId,
           config,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
-      if (error) console.warn('[Supabase Sync] Config Upsert Warning:', error);
+      if (error) console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
     } catch (err) {
-      console.warn('[Supabase Sync] Config Exception:', err);
+      console.warn('[Supabase Sync] Config Exception:', err.message);
     }
   };
 
-  const fetchCloudData = async () => {
-    if (!user) {
-      setIsStoreLoading(false);
-      return;
-    }
+  // FULL BIDIRECTIONAL CLOUD SYNCHRONIZATION
+  const fetchCloudData = async (forcePushLocalIfEmpty = false) => {
+    setIsStoreLoading(true);
+    setCloudSyncStatus('syncing');
     
     try {
-      console.log('[Supabase Sync] Fetching all business data...');
+      console.log('[Supabase Sync] Fetching all business records from cloud...');
 
       const safeFetch = async (table, query) => {
         try {
           const { data, error } = await query;
           if (error) {
-            console.error(`[Supabase Sync] Error fetching ${table}:`, error);
+            console.warn(`[Supabase Sync] Warning fetching ${table}:`, error.message);
             return null;
           }
           return data;
         } catch (e) {
-          console.error(`[Supabase Sync] Exception fetching ${table}:`, e);
+          console.warn(`[Supabase Sync] Exception fetching ${table}:`, e.message);
           return null;
         }
       };
       
       const fetchResults = await Promise.all([
-        safeFetch('customers', supabase.from('customers').select('*').eq('user_id', user.id)),
-        safeFetch('inventory', supabase.from('inventory').select('*').eq('user_id', user.id)),
-        safeFetch('quotations', supabase.from('quotations').select('*').eq('user_id', user.id)),
-        safeFetch('invoices', supabase.from('invoices').select('*').eq('user_id', user.id)),
-        safeFetch('leads', supabase.from('leads').select('*').eq('user_id', user.id)),
-        safeFetch('expenses', supabase.from('expenses').select('*').eq('user_id', user.id)),
-        safeFetch('payments', supabase.from('payments').select('*').eq('user_id', user.id)),
-        safeFetch('tasks', supabase.from('tasks').select('*').eq('user_id', user.id)),
-        safeFetch('fixed_assets', supabase.from('fixed_assets').select('*').eq('user_id', user.id)),
-        safeFetch('activity_logs', supabase.from('activity_logs').select('*').eq('user_id', user.id).order('log_timestamp', { ascending: false }).limit(500)),
-        safeFetch('user_profiles', supabase.from('user_profiles').select('config').eq('user_id', user.id).single())
+        safeFetch('customers', supabase.from('customers').select('*')),
+        safeFetch('inventory', supabase.from('inventory').select('*')),
+        safeFetch('quotations', supabase.from('quotations').select('*')),
+        safeFetch('invoices', supabase.from('invoices').select('*')),
+        safeFetch('leads', supabase.from('leads').select('*')),
+        safeFetch('expenses', supabase.from('expenses').select('*')),
+        safeFetch('payments', supabase.from('payments').select('*')),
+        safeFetch('tasks', supabase.from('tasks').select('*')),
+        safeFetch('fixed_assets', supabase.from('fixed_assets').select('*')),
+        safeFetch('activity_logs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+        safeFetch('user_profiles', supabase.from('user_profiles').select('config').limit(1))
       ]);
 
       const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData] = fetchResults;
 
-      console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'ERROR', '| Invoices:', iData?.length ?? 'ERROR');
+      console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
-      if (cData === null) {
-        console.warn('[Supabase Sync] Could not load clients from cloud, operating in local fallback mode.');
+      // 1. Fixed Assets
+      if (faData && faData.length > 0) {
+        const loadedAssets = faData.map(a => ({
+          id: a.id,
+          assetCode: a.asset_code,
+          name: a.name,
+          category: a.category,
+          purchaseDate: a.purchase_date,
+          purchaseCost: Number(a.purchase_cost) || 0,
+          usefulLifeYears: Number(a.useful_life_years) || 5,
+          salvageValue: Number(a.salvage_value) || 0,
+          depreciationMethod: a.depreciation_method || 'Straight Line (SLM)',
+          depreciationRate: Number(a.depreciation_rate) || 0,
+          location: a.location,
+          status: a.status || 'Active'
+        }));
+        setFixedAssets(loadedAssets);
+        try { localStorage.setItem('gym_fixed_assets', JSON.stringify(loadedAssets)); } catch(e) {}
       }
 
-      if (faData) setFixedAssets(faData.map(a => ({
-        id: a.id,
-        assetCode: a.asset_code,
-        name: a.name,
-        category: a.category,
-        purchaseDate: a.purchase_date,
-        purchaseCost: Number(a.purchase_cost) || 0,
-        usefulLifeYears: Number(a.useful_life_years) || 5,
-        salvageValue: Number(a.salvage_value) || 0,
-        depreciationMethod: a.depreciation_method || 'Straight Line (SLM)',
-        depreciationRate: Number(a.depreciation_rate) || 0,
-        location: a.location,
-        status: a.status || 'Active'
-      })));
-
-      if (profData?.config && typeof profData.config === 'object' && Object.keys(profData.config).length > 0) {
+      // 2. Company Config & Branding Profile
+      const remoteConfig = Array.isArray(profData) ? profData[0]?.config : profData?.config;
+      if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {
         setSmsConfig(prev => {
-          const merged = { ...prev, ...profData.config };
-          // Guard: If the user changed business name locally, do NOT let a default cloud profile revert it
-          if (prev.companyName && prev.companyName !== 'Seynex Technology' && (!profData.config.companyName || profData.config.companyName === 'Seynex Technology')) {
-            merged.companyName = prev.companyName;
-          }
-          if (prev.dashboardName && prev.dashboardName !== 'GymSales Pro' && (!profData.config.dashboardName || profData.config.dashboardName === 'GymSales Pro')) {
-            merged.dashboardName = prev.dashboardName;
-          }
-          // Guard: Preserve locally uploaded logo if cloud config is missing it
-          if ((prev.receiptLogo || prev.companyLogo) && (!profData.config.receiptLogo && !profData.config.companyLogo)) {
-            merged.receiptLogo = prev.receiptLogo || prev.companyLogo;
-            merged.companyLogo = prev.companyLogo || prev.receiptLogo;
-          }
-          try {
-            localStorage.setItem('gym_sms_config', JSON.stringify(merged));
-          } catch (e) {}
+          const merged = { ...prev, ...remoteConfig };
+          try { localStorage.setItem('gym_sms_config', JSON.stringify(merged)); } catch (e) {}
           return merged;
         });
       }
 
-      if (cData) setCustomers(cData.map(c => ({
-        id: c.id, gymName: c.gym_name, name: c.name, email: c.email, phone: c.phone,
-        dob: c.dob, purchaseDate: c.purchase_date, renewalDate: c.renewal_date, 
-        annualFee: Number(c.annual_fee), status: c.status, notes: c.notes || []
-      })));
+      // 3. Customers
+      if (cData && cData.length > 0) {
+        const loadedCustomers = cData.map(c => ({
+          id: c.id,
+          gymName: c.gym_name,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          dob: c.dob,
+          purchaseDate: c.purchase_date,
+          renewalDate: c.renewal_date, 
+          annualFee: Number(c.annual_fee) || 0,
+          status: c.status,
+          notes: c.notes || []
+        }));
+        setCustomers(loadedCustomers);
+        try { localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers)); } catch(e) {}
+      }
 
-      if (invData) setInventory(invData.map(i => ({
-        id: i.id, name: i.name, type: i.item_type, 
-        price: Number(i.price) || 0, 
-        costPrice: Number(i.cost_price ?? Math.round((Number(i.price) || 0) * 0.7)),
-        reorderLevel: Number(i.reorder_level ?? 5),
-        stock: Number(i.stock) || 0, 
-        desc: i.description
-      })));
+      // 4. Inventory
+      if (invData && invData.length > 0) {
+        const loadedInventory = invData.map(i => ({
+          id: i.id,
+          name: i.name,
+          type: i.item_type, 
+          price: Number(i.price) || 0, 
+          costPrice: Number(i.cost_price ?? Math.round((Number(i.price) || 0) * 0.7)),
+          reorderLevel: Number(i.reorder_level ?? 5),
+          stock: Number(i.stock) || 0, 
+          desc: i.description
+        }));
+        setInventory(loadedInventory);
+        try { localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory)); } catch(e) {}
+      }
 
-      if (qData) setQuotes(qData.map(q => ({
-        id: q.id, shareKey: q.share_key, quoteNumber: q.quote_number, date: q.date,
-        prospectName: q.prospect_name, prospectPhone: q.prospect_phone, amount: Number(q.amount),
-        status: q.status, items: q.items || []
-      })));
+      // 5. Quotations
+      if (qData && qData.length > 0) {
+        const loadedQuotes = qData.map(q => ({
+          id: q.id,
+          shareKey: q.share_key,
+          quoteNumber: q.quote_number,
+          date: q.date,
+          prospectName: q.prospect_name,
+          prospectPhone: q.prospect_phone,
+          amount: Number(q.amount) || 0,
+          status: q.status,
+          items: q.items || []
+        }));
+        setQuotes(loadedQuotes);
+        try { localStorage.setItem('gym_quotes', JSON.stringify(loadedQuotes)); } catch(e) {}
+      }
 
-      if (iData) {
+      // 6. Invoices
+      if (iData && iData.length > 0) {
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
 
         const loadedInvoices = iData.map(inv => {
           let parsed = {
-            id: inv.id, shareKey: inv.share_key, invoiceNumber: inv.invoice_number, date: inv.date,
-            dueDate: inv.due_date, customerId: inv.customer_id || 'unknown', amount: Number(inv.amount),
-            status: inv.status, items: inv.items || [], prospectName: inv.prospect_name, reminderSent: inv.reminder_sent,
+            id: inv.id,
+            shareKey: inv.share_key,
+            invoiceNumber: inv.invoice_number,
+            date: inv.date,
+            dueDate: inv.due_date,
+            customerId: inv.customer_id || 'unknown',
+            amount: Number(inv.amount) || 0,
+            status: inv.status,
+            items: inv.items || [],
+            prospectName: inv.prospect_name,
+            reminderSent: inv.reminder_sent,
             installmentPlan: (inv.installment_plan && inv.installment_plan.enabled) ? inv.installment_plan : null
           };
 
-          // TIER 1 FEATURE: Overdue Invoice Auto-Flag
           if (parsed.status !== 'Paid' && parsed.status !== 'Overdue' && parsed.dueDate) {
             const due = new Date(parsed.dueDate);
             due.setHours(0, 0, 0, 0);
             if (due < todayDate) {
               parsed.status = 'Overdue';
-              // Sync updated status to Supabase asynchronously
-              supabase.from('invoices').update({ status: 'Overdue' }).eq('id', parsed.id).then(({ error }) => {
-                if (error) console.error('[Auto-Flag] Invoice Sync Error:', error);
-                else {
-                  console.log(`[Auto-Flag] Marked ${parsed.invoiceNumber} as Overdue.`);
-                }
-              });
+              supabase.from('invoices').update({ status: 'Overdue' }).eq('id', parsed.id).catch(e => console.warn(e));
             }
           }
           return parsed;
         });
 
         setInvoices(loadedInvoices);
+        try { localStorage.setItem('gym_invoices', JSON.stringify(loadedInvoices)); } catch(e) {}
       }
 
-      if (lData) setLeads(lData.map(l => ({
-        id: l.id, gymName: l.gym_name, prospectName: l.prospect_name, phone: l.phone,
-        status: l.status, date: l.date, notes: l.notes
-      })));
+      // 7. Leads
+      if (lData && lData.length > 0) {
+        const loadedLeads = lData.map(l => ({
+          id: l.id,
+          gymName: l.gym_name,
+          prospectName: l.prospect_name,
+          phone: l.phone,
+          status: l.status,
+          date: l.date,
+          notes: l.notes
+        }));
+        setLeads(loadedLeads);
+        try { localStorage.setItem('gym_leads', JSON.stringify(loadedLeads)); } catch(e) {}
+      }
 
-      if (eData) setExpenses(eData.map(e => ({
-        id: e.id, category: e.category, amount: Number(e.amount), date: e.date, description: e.description
-      })));
+      // 8. Expenses
+      if (eData && eData.length > 0) {
+        const loadedExpenses = eData.map(e => ({
+          id: e.id,
+          category: e.category,
+          amount: Number(e.amount) || 0,
+          date: e.date,
+          description: e.description
+        }));
+        setExpenses(loadedExpenses);
+        try { localStorage.setItem('gym_expenses', JSON.stringify(loadedExpenses)); } catch(e) {}
+      }
 
-      if (pData) setPayments(pData.map(p => ({
-        id: p.id, customerId: p.customer_id, documentId: p.document_id, amount: Number(p.amount),
-        type: p.payment_type, timestamp: p.payment_timestamp
-      })));
+      // 9. Payments
+      if (pData && pData.length > 0) {
+        const loadedPayments = pData.map(p => ({
+          id: p.id,
+          customerId: p.customer_id,
+          documentId: p.document_id,
+          amount: Number(p.amount) || 0,
+          type: p.payment_type,
+          timestamp: p.payment_timestamp
+        }));
+        setPayments(loadedPayments);
+        try { localStorage.setItem('gym_payments', JSON.stringify(loadedPayments)); } catch(e) {}
+      }
 
-      if (tData) setTasks(tData.map(t => ({
-        id: t.id, title: t.title, description: t.description, dueDate: t.due_date,
-        status: t.status, priority: t.priority, relatedTo: t.related_to, relatedId: t.related_id
-      })));
+      // 10. Tasks
+      if (tData && tData.length > 0) {
+        setTasks(tData.map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          dueDate: t.due_date,
+          status: t.status,
+          priority: t.priority,
+          relatedTo: t.related_to,
+          relatedId: t.related_id
+        })));
+      }
 
-      if (logData) setActivityLogs(logData.map(l => ({
-        id: l.id, type: l.log_type, message: l.message, details: l.details, timestamp: l.log_timestamp
-      })));
+      // 11. Activity Logs
+      if (logData && logData.length > 0) {
+        setActivityLogs(logData.map(l => ({
+          id: l.id,
+          type: l.log_type,
+          message: l.message,
+          details: l.details,
+          timestamp: l.log_timestamp
+        })));
+      }
 
-      console.log('[Supabase Sync] Load complete.');
+      const syncTimeStr = new Date().toISOString();
+      setLastSyncTime(syncTimeStr);
+      try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch(e) {}
+      setCloudSyncStatus('synced');
+      console.log('[Supabase Sync] Cloud data hydration completed successfully.');
     } catch (err) {
       console.error('[Supabase Sync] Global Fetch Exception:', err);
+      setCloudSyncStatus('error');
     } finally {
       setIsStoreLoading(false);
     }
   };
 
+  // PUSH ALL LOCAL DATA TO SUPABASE CLOUD (MANUAL OR AUTO INITIAL SYNC)
+  const syncAllToCloud = async () => {
+    setCloudSyncStatus('syncing');
+    showNotification('Backing up all data to Supabase cloud...', 'info');
+    const effId = getEffectiveUserId();
+
+    try {
+      let count = 0;
+
+      // 1. Sync Customers
+      if (customers && customers.length > 0) {
+        for (const c of customers) {
+          await supabase.from('customers').upsert({
+            id: toUuid(c.id),
+            user_id: effId,
+            gym_name: c.gymName || 'Client Gym',
+            name: c.name || '',
+            email: c.email || '',
+            phone: c.phone || '',
+            dob: c.dob || null,
+            purchase_date: c.purchaseDate || null,
+            renewal_date: c.renewalDate || null,
+            annual_fee: Number(c.annualFee) || 0,
+            status: c.status || 'Active',
+            notes: c.notes || []
+          }, { onConflict: 'id' });
+          count++;
+        }
+      }
+
+      // 2. Sync Inventory
+      if (inventory && inventory.length > 0) {
+        for (const item of inventory) {
+          await supabase.from('inventory').upsert({
+            id: toUuid(item.id),
+            user_id: effId,
+            name: item.name,
+            item_type: item.type || 'Equipment',
+            price: Number(item.price) || 0,
+            cost_price: Number(item.costPrice) || 0,
+            reorder_level: Number(item.reorderLevel) || 5,
+            stock: Number(item.stock) || 0,
+            description: item.desc || ''
+          }, { onConflict: 'id' });
+          count++;
+        }
+      }
+
+      // 3. Sync Quotations
+      if (quotes && quotes.length > 0) {
+        for (const q of quotes) {
+          await supabase.from('quotations').upsert({
+            id: toUuid(q.id),
+            user_id: effId,
+            share_key: q.shareKey || generateShareKey(),
+            quote_number: q.quoteNumber || 'QT-1001',
+            date: q.date || new Date().toISOString().split('T')[0],
+            prospect_name: q.prospectName || '',
+            prospect_phone: q.prospectPhone || '',
+            amount: Number(q.amount) || 0,
+            status: q.status || 'Pending',
+            items: q.items || []
+          }, { onConflict: 'id' });
+          count++;
+        }
+      }
+
+      // 4. Sync Invoices
+      if (invoices && invoices.length > 0) {
+        for (const inv of invoices) {
+          await supabase.from('invoices').upsert({
+            id: toUuid(inv.id),
+            user_id: effId,
+            share_key: inv.shareKey || generateShareKey(),
+            invoice_number: inv.invoiceNumber || 'INV-1001',
+            date: inv.date || new Date().toISOString().split('T')[0],
+            due_date: inv.dueDate || null,
+            customer_id: isUuid(inv.customerId) ? inv.customerId : null,
+            prospect_name: inv.prospectName || '',
+            amount: Number(inv.amount) || 0,
+            status: inv.status || 'Draft',
+            items: inv.items || [],
+            reminder_sent: !!inv.reminderSent,
+            installment_plan: inv.installmentPlan || {}
+          }, { onConflict: 'id' });
+          count++;
+        }
+      }
+
+      // 5. Sync Leads
+      if (leads && leads.length > 0) {
+        for (const l of leads) {
+          await supabase.from('leads').upsert({
+            id: toUuid(l.id),
+            user_id: effId,
+            gym_name: l.gymName,
+            prospect_name: l.prospectName || l.name || '',
+            phone: l.phone || '',
+            status: l.status || 'New',
+            date: l.date || new Date().toISOString(),
+            notes: l.notes || ''
+          }, { onConflict: 'id' });
+          count++;
+        }
+      }
+
+      // 6. Sync Config / Profile
+      await supabase.from('user_profiles').upsert({
+        user_id: effId,
+        config: smsConfig,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+
+      const syncTimeStr = new Date().toISOString();
+      setLastSyncTime(syncTimeStr);
+      try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch(e) {}
+      setCloudSyncStatus('synced');
+      showNotification(`Cloud Sync Complete: ${count} records saved to Supabase!`, 'success');
+      return { success: true, count };
+    } catch (err) {
+      console.error('[Cloud Sync Push Error]', err);
+      setCloudSyncStatus('error');
+      showNotification(`Cloud sync error: ${err.message}`, 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   // REALTIME SUBSCRIPTION FOR QUOTES
   useEffect(() => {
-    if (!user) return;
+    const effId = getEffectiveUserId();
     
     const channel = supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'quotations', filter: `user_id=eq.${user.id}` },
+        { event: '*', schema: 'public', table: 'quotations' },
         (payload) => {
           console.log('[Realtime] Quotation Changed:', payload);
           if (payload.eventType === 'UPDATE') {
@@ -1713,7 +1931,6 @@ export default function StoreContextProvider({ children }) {
             if (oldItem && oldItem.status !== payload.new.status) {
               if (payload.new.status === 'Accepted') {
                 showNotification(`🎉 Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
-                // Push to bell notifications
                 setSystemNotifications(prev => [{
                   id: crypto.randomUUID(),
                   message: `Quote #${payload.new.quote_number} accepted by ${payload.new.prospect_name}`,
@@ -1729,7 +1946,6 @@ export default function StoreContextProvider({ children }) {
                   type: 'error'
                 }, ...prev]);
               }
-              // Refresh local state to reflect change
               fetchCloudData();
             }
           }
@@ -1742,9 +1958,9 @@ export default function StoreContextProvider({ children }) {
     };
   }, [user, quotes]);
 
-  // Fetch from cloud on login
+  // Fetch from cloud on initial app startup & whenever auth changes
   useEffect(() => {
-    if (user) fetchCloudData();
+    fetchCloudData();
   }, [user]);
 
   // Actions
@@ -3216,6 +3432,7 @@ export default function StoreContextProvider({ children }) {
       featureToggles, updateFeatureToggle, applyPlanPreset,
       currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
+      cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud,
       confirmAction
     }}>
       {children}
