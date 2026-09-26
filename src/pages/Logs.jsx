@@ -41,13 +41,13 @@ const Logs = () => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <div style={{ paddingBottom: '90px', animation: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h1 className="h1 mb-2">Activity Logs</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Track system notifications, automated SMS reminders, and user activity history.</p>
         </div>
-        <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.1)', height: '44px' }} onClick={clearLogs}>
+        <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', height: '44px' }} onClick={clearLogs}>
           <Trash2 size={18} /> Clear All Logs
         </button>
       </div>
@@ -57,28 +57,38 @@ const Logs = () => {
           padding: '20px 24px', background: 'var(--subtle-bg)', 
           borderBottom: '1px solid var(--panel-border)', display: 'flex', gap: '8px', flexWrap: 'wrap' 
         }}>
-          {['All', 'SMS', 'Status', 'System', 'Access', 'Error'].map(type => (
-            <button 
-              key={type}
-              onClick={() => setFilterType(type)}
-              style={{
-                background: filterType === type ? 'var(--accent-primary)' : 'rgba(255,255,255,0.03)',
-                color: filterType === type ? 'white' : 'var(--text-secondary)',
-                border: '1px solid rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-                fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                flex: '1 1 auto', textAlign: 'center', minWidth: '80px'
-              }}
-            >
-              {type}
-            </button>
-          ))}
+          {['All', 'SMS', 'Status', 'System', 'Access', 'Error'].map(type => {
+            const isActive = filterType === type;
+            return (
+              <button 
+                key={type}
+                onClick={() => setFilterType(type)}
+                className={`tab-btn ${isActive ? 'active' : ''}`}
+                style={{
+                  background: isActive ? 'var(--accent-primary)' : 'rgba(255,255,255,0.03)',
+                  color: isActive ? 'white' : 'var(--text-secondary)',
+                  border: isActive ? '1px solid var(--accent-primary)' : '1px solid rgba(255,255,255,0.08)', 
+                  padding: '8px 16px', 
+                  borderRadius: '10px', 
+                  cursor: 'pointer',
+                  fontSize: '0.8rem', 
+                  fontWeight: 700,
+                  flex: '1 1 auto', 
+                  textAlign: 'center', 
+                  minWidth: '80px'
+                }}
+              >
+                {type}
+              </button>
+            );
+          })}
         </div>
 
         <div className="table-container" style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
           {/* Desktop Table */}
-          <table className="sm-hidden">
+          <table className="sm-hidden interactive-table">
             <thead>
-              <tr style={{ position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10 }}>
+              <tr style={{ position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10, backdropFilter: 'blur(10px)' }}>
                 <th>Timestamp</th>
                 <th>Classification</th>
                 <th>Primary Action</th>
@@ -95,7 +105,7 @@ const Logs = () => {
                 </tr>
               ) : (
                 [...filteredLogs].reverse().map(log => (
-                  <tr key={log.id} className="hover-lift">
+                  <tr key={log.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <div className="flex items-center gap-2 text-secondary" style={{ fontSize: '0.8rem' }}>
                         <Clock size={13} />

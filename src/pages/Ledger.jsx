@@ -414,7 +414,7 @@ const Ledger = () => {
   };
 
   return (
-    <div style={{ paddingBottom: '60px', animation: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+    <div style={{ paddingBottom: '100px', animation: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
       
       {/* HERO HEADER GLASS PANEL */}
       <div style={{ 
@@ -544,18 +544,19 @@ const Ledger = () => {
           marginTop: '28px' 
         }}>
           {/* Card 1: Chart of Accounts */}
-          <div style={{ 
+          <div className="stat-card" style={{ 
             padding: '18px 22px', 
             background: 'rgba(15, 23, 42, 0.65)', 
             border: '1px solid rgba(255, 255, 255, 0.08)', 
             borderRadius: '16px',
-            backdropFilter: 'blur(12px)'
+            backdropFilter: 'blur(12px)',
+            cursor: 'default'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 CHART OF ACCOUNTS
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="stat-icon" style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <BookOpen size={16} color="#818cf8" />
               </div>
             </div>
@@ -568,18 +569,19 @@ const Ledger = () => {
           </div>
 
           {/* Card 2: Total Ledger Debits */}
-          <div style={{ 
+          <div className="stat-card" style={{ 
             padding: '18px 22px', 
             background: 'rgba(15, 23, 42, 0.65)', 
             border: '1px solid rgba(255, 255, 255, 0.08)', 
             borderRadius: '16px',
-            backdropFilter: 'blur(12px)'
+            backdropFilter: 'blur(12px)',
+            cursor: 'default'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 TOTAL LEDGER DEBITS
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="stat-icon" style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ArrowUpRight size={16} color="#34d399" />
               </div>
             </div>
@@ -592,18 +594,19 @@ const Ledger = () => {
           </div>
 
           {/* Card 3: Total Ledger Credits */}
-          <div style={{ 
+          <div className="stat-card" style={{ 
             padding: '18px 22px', 
             background: 'rgba(15, 23, 42, 0.65)', 
             border: '1px solid rgba(255, 255, 255, 0.08)', 
             borderRadius: '16px',
-            backdropFilter: 'blur(12px)'
+            backdropFilter: 'blur(12px)',
+            cursor: 'default'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 TOTAL LEDGER CREDITS
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="stat-icon" style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ArrowDownRight size={16} color="#38bdf8" />
               </div>
             </div>
@@ -616,18 +619,19 @@ const Ledger = () => {
           </div>
 
           {/* Card 4: Journal Vouchers */}
-          <div style={{ 
+          <div className="stat-card" style={{ 
             padding: '18px 22px', 
             background: 'rgba(15, 23, 42, 0.65)', 
             border: '1px solid rgba(255, 255, 255, 0.08)', 
             borderRadius: '16px',
-            backdropFilter: 'blur(12px)'
+            backdropFilter: 'blur(12px)',
+            cursor: 'default'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 JOURNAL VOUCHERS
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="stat-icon" style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Layers size={16} color="#fbbf24" />
               </div>
             </div>
@@ -665,11 +669,12 @@ const Ledger = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              className={`tab-btn ${isActive ? 'active' : ''}`}
               style={{
                 flex: '1 1 auto',
                 padding: '12px 18px',
-                background: isActive ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.28), rgba(79, 70, 229, 0.32))' : 'transparent',
-                border: isActive ? '1px solid rgba(99, 102, 241, 0.45)' : '1px solid transparent',
+                background: isActive ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(79, 70, 229, 0.4))' : 'transparent',
+                border: isActive ? '1px solid rgba(99, 102, 241, 0.55)' : '1px solid transparent',
                 color: isActive ? '#ffffff' : '#94a3b8',
                 fontWeight: isActive ? 800 : 600,
                 fontSize: '0.88rem',
@@ -678,9 +683,7 @@ const Ledger = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.25s ease',
-                boxShadow: isActive ? '0 4px 14px rgba(99, 102, 241, 0.25)' : 'none'
+                gap: '8px'
               }}
             >
               <Icon size={17} color={isActive ? '#ffffff' : '#94a3b8'} />
@@ -692,12 +695,13 @@ const Ledger = () => {
 
       {/* TAB 1: CHART OF ACCOUNTS */}
       {activeTab === 'coa' && (
-        <div style={{ 
+        <div className="tab-content-enter" style={{ 
           background: 'rgba(15, 23, 42, 0.75)', 
           border: '1px solid rgba(255, 255, 255, 0.1)', 
           borderRadius: '24px', 
           padding: '28px',
-          backdropFilter: 'blur(16px)'
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.45)'
         }}>
           {/* SEARCH & FILTER CONTROLS BAR */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
@@ -717,7 +721,16 @@ const Ledger = () => {
                     borderRadius: '14px', 
                     color: '#ffffff',
                     fontSize: '0.9rem',
-                    outline: 'none'
+                    outline: 'none',
+                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--accent-secondary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.25)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -760,10 +773,24 @@ const Ledger = () => {
           </div>
 
           {/* ACCOUNTS TABLE */}
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(15, 23, 42, 0.5)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+            <table className="interactive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                <tr style={{ 
+                  background: 'rgba(15, 23, 42, 0.98)', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                  color: '#94a3b8',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(12px)'
+                }}>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '100px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' }}>CODE</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' }}>ACCOUNT NAME</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', width: '110px' }}>TYPE</th>
@@ -880,7 +907,7 @@ const Ledger = () => {
                                 cursor: 'pointer'
                               }}
                               title="View Account T-Account History"
-                              className="hover-lift"
+                              className="action-btn"
                             >
                               <Eye size={15} />
                             </button>
@@ -896,7 +923,7 @@ const Ledger = () => {
                                 cursor: 'pointer'
                               }}
                               title="Edit Account"
-                              className="hover-lift"
+                              className="action-btn"
                             >
                               <Edit2 size={15} />
                             </button>
@@ -912,7 +939,7 @@ const Ledger = () => {
                                 cursor: 'pointer'
                               }}
                               title="Delete Account"
-                              className="hover-lift"
+                              className="action-btn"
                             >
                               <Trash2 size={15} />
                             </button>
@@ -930,12 +957,13 @@ const Ledger = () => {
 
       {/* TAB 2: ACCOUNT LEDGER STATEMENT */}
       {activeTab === 'statement' && (
-        <div style={{ 
+        <div className="tab-content-enter" style={{ 
           background: 'rgba(15, 23, 42, 0.75)', 
           border: '1px solid rgba(255, 255, 255, 0.1)', 
           borderRadius: '24px', 
           padding: '28px',
-          backdropFilter: 'blur(16px)'
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.45)'
         }}>
           {/* CONTROL BAR */}
           <div style={{ 
@@ -1038,7 +1066,7 @@ const Ledger = () => {
 
           {/* TARGET ACCOUNT SUMMARY HEADER */}
           {targetAccount && (
-            <div style={{ 
+            <div className="stat-card" style={{ 
               padding: '22px 28px', 
               background: 'rgba(15, 23, 42, 0.9)', 
               borderRadius: '18px', 
@@ -1069,10 +1097,24 @@ const Ledger = () => {
           )}
 
           {/* LEDGER TRANSACTION TABLE */}
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(15, 23, 42, 0.5)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+            <table className="interactive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                <tr style={{ 
+                  background: 'rgba(15, 23, 42, 0.98)', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                  color: '#94a3b8',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(12px)'
+                }}>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '110px', fontSize: '0.72rem', fontWeight: 800 }}>DATE</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '130px', fontSize: '0.72rem', fontWeight: 800 }}>VOUCHER REF</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>PARTICULARS / NARRATION</th>
@@ -1147,12 +1189,13 @@ const Ledger = () => {
 
       {/* TAB 3: JOURNAL VOUCHERS */}
       {activeTab === 'vouchers' && (
-        <div style={{ 
+        <div className="tab-content-enter" style={{ 
           background: 'rgba(15, 23, 42, 0.75)', 
           border: '1px solid rgba(255, 255, 255, 0.1)', 
           borderRadius: '24px', 
           padding: '28px',
-          backdropFilter: 'blur(16px)'
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.45)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
@@ -1173,10 +1216,24 @@ const Ledger = () => {
             </button>
           </div>
 
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(15, 23, 42, 0.5)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+            <table className="interactive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                <tr style={{ 
+                  background: 'rgba(15, 23, 42, 0.98)', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                  color: '#94a3b8',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(12px)'
+                }}>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '130px', fontSize: '0.72rem', fontWeight: 800 }}>VOUCHER REF</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '110px', fontSize: '0.72rem', fontWeight: 800 }}>DATE</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>NARRATION / DESCRIPTION</th>
@@ -1307,12 +1364,13 @@ const Ledger = () => {
 
       {/* TAB: BANK RECONCILIATION */}
       {activeTab === 'reconciliation' && (
-        <div style={{ 
+        <div className="tab-content-enter" style={{ 
           background: 'rgba(15, 23, 42, 0.75)', 
           border: '1px solid rgba(255, 255, 255, 0.1)', 
           borderRadius: '24px', 
           padding: '28px',
-          backdropFilter: 'blur(16px)'
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.45)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
@@ -1340,19 +1398,19 @@ const Ledger = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="stat-card" style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>GL BOOK BALANCE</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', fontFamily: 'monospace', marginTop: '4px' }}>
                 LKR {(accountBalances.get(selectedAccountId)?.net || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="stat-card" style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>RECONCILED CLEARED</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#34d399', fontFamily: 'monospace', marginTop: '4px' }}>
                 LKR {selectedAccountLines.filter(l => reconciledLineIds.has(l.id)).reduce((s, l) => s + (Number(l.debit || 0) - Number(l.credit || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="stat-card" style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>UNRECONCILED DIFFERENCE</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', marginTop: '4px' }}>
                 LKR {selectedAccountLines.filter(l => !reconciledLineIds.has(l.id)).reduce((s, l) => s + (Number(l.debit || 0) - Number(l.credit || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1360,10 +1418,24 @@ const Ledger = () => {
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(15, 23, 42, 0.5)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+            <table className="interactive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                <tr style={{ 
+                  background: 'rgba(15, 23, 42, 0.98)', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                  color: '#94a3b8',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(12px)'
+                }}>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>DATE</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>VOUCHER REF</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>NARRATION / PARTICULARS</th>
@@ -1417,12 +1489,13 @@ const Ledger = () => {
 
       {/* TAB 4: TRIAL BALANCE */}
       {activeTab === 'trial' && (
-        <div style={{ 
+        <div className="tab-content-enter" style={{ 
           background: 'rgba(15, 23, 42, 0.75)', 
           border: '1px solid rgba(255, 255, 255, 0.1)', 
           borderRadius: '24px', 
           padding: '28px',
-          backdropFilter: 'blur(16px)'
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.45)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
@@ -1466,10 +1539,24 @@ const Ledger = () => {
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(15, 23, 42, 0.5)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+            <table className="interactive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
+                <tr style={{ 
+                  background: 'rgba(15, 23, 42, 0.98)', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                  color: '#94a3b8',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(12px)'
+                }}>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '100px', fontSize: '0.72rem', fontWeight: 800 }}>CODE</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800 }}>ACCOUNT NAME</th>
                   <th style={{ padding: '14px 18px', textAlign: 'left', width: '110px', fontSize: '0.72rem', fontWeight: 800 }}>TYPE</th>
