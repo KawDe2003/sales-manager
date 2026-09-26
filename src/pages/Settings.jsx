@@ -8,7 +8,7 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database, RotateCcw
+  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -853,10 +853,11 @@ END $$;`;
         </div>
       )}
 
-      {activeSettingsTab !== 'users' && activeSettingsTab !== 'modules' && activeSettingsTab !== 'cloud' && (
+      {/* TAB 4: CORPORATE IDENTITY */}
+      {activeSettingsTab === 'company' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Column: Company & API */}
+        {/* Left Column: Company Profile & Document Sequencing */}
         <div className="lg:col-span-7 flex flex-col gap-8">
           
           {/* Company Profile */}
@@ -865,7 +866,10 @@ END $$;`;
               <div style={{ padding: '10px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '12px' }}>
                 <Building2 size={22} color="var(--success)" />
               </div>
-              <h2 className="h2" style={{ margin: 0 }}>Corporate Identity</h2>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Corporate Identity</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Business legal identity, official communication channels, and location profile.</p>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -941,34 +945,110 @@ END $$;`;
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-panel">
-              <div className="form-group">
-                <label className="form-label">Bank Name</label>
-                <input type="text" className="form-input" value={smsConfig.bankDetails?.bank || ''}
-                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), bank: e.target.value}})} />
+          {/* Document Numbering & Sequence */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <Settings2 size={22} color="var(--accent-primary)" />
               </div>
-              <div className="form-group">
-                <label className="form-label">Branch Location</label>
-                <input type="text" className="form-input" value={smsConfig.bankDetails?.branch || ''}
-                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), branch: e.target.value}})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Name</label>
-                <input type="text" className="form-input" value={smsConfig.bankDetails?.accountName || ''}
-                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), accountName: e.target.value}})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Number</label>
-                <input type="text" className="form-input" value={smsConfig.bankDetails?.accountNumber || ''}
-                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), accountNumber: e.target.value}})} />
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Document Sequencing</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Define automatic serial prefixes and starting reference numbers for commercial documents.</p>
               </div>
             </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Invoice Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. INV-" />
+                </label>
+                <input type="text" className="form-input" 
+                  value={smsConfig.invoicePrefix || ''}
+                  placeholder="INV-"
+                  onChange={e => updateSmsConfig({...smsConfig, invoicePrefix: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Starting Invoice #</label>
+                <input type="number" className="form-input" 
+                  value={smsConfig.nextInvoiceNumber || 1001}
+                  onChange={e => updateSmsConfig({...smsConfig, nextInvoiceNumber: Number(e.target.value)})} />
+              </div>
+              
+              <div style={{ height: '1px', background: 'var(--panel-border)', gridColumn: 'span 2' }}></div>
+              
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Quotation Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. QT-" />
+                </label>
+                <input type="text" className="form-input" 
+                  value={smsConfig.quotePrefix || ''}
+                  placeholder="QT-"
+                  onChange={e => updateSmsConfig({...smsConfig, quotePrefix: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Starting Quotation #</label>
+                <input type="number" className="form-input" 
+                  value={smsConfig.nextQuoteNumber || 1001}
+                  onChange={e => updateSmsConfig({...smsConfig, nextQuoteNumber: Number(e.target.value)})} />
+              </div>
+            </div>
+          </div>
+
+          {/* Demo Data & System Utilities */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+              <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px' }}>
+                <Zap size={22} color="var(--success)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Demo Data & Sample Records</h2>
+                <p className="text-secondary" style={{ fontSize: '0.82rem', margin: 0 }}>Populate full sample enterprise records across clients, invoices, inventory, and general ledger journal lines.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={seedDummyData}
+                style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px' }}
+              >
+                <Zap size={16} /> Seed Sample Enterprise Dataset
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={resetEverythingWithConfirmation}
+                style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
+              >
+                <Trash2 size={16} /> Erase All Data
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Logos & PDF Branding */}
+        <div className="lg:col-span-5 flex flex-col gap-8">
+          
+          {/* Brand Logos */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <ImageIcon size={22} color="var(--accent-primary)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Branding Assets & Logos</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>High-resolution brand logos displayed in UI headers and official PDF reports.</p>
+              </div>
+            </div>
+
             {/* Company / Brand Logo */}
             <div className="form-group" style={{ marginTop: '16px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Company / Brand Logo <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>(Dashboard Navbar, Invoices, Receipts & Quotes)</span></span>
+                <span>Company / Brand Logo <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>(Navbar, Invoices, Receipts & Quotes)</span></span>
                 {(smsConfig.receiptLogo || smsConfig.companyLogo) && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <CheckCircle2 size={13} /> Active
@@ -1175,97 +1255,91 @@ END $$;`;
             </div>
           </div>
 
-          {/* Document Numbering & Sequence */}
+          {/* PDF Branding Section */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
-                <Settings2 size={22} color="var(--accent-primary)" />
-              </div>
-              <h2 className="h2" style={{ margin: 0 }}>Document Sequencing</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Invoice Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. INV-" />
-                </label>
-                <input type="text" className="form-input" 
-                  value={smsConfig.invoicePrefix || ''}
-                  placeholder="INV-"
-                  onChange={e => updateSmsConfig({...smsConfig, invoicePrefix: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Starting Invoice #</label>
-                <input type="number" className="form-input" 
-                  value={smsConfig.nextInvoiceNumber || 1001}
-                  onChange={e => updateSmsConfig({...smsConfig, nextInvoiceNumber: Number(e.target.value)})} />
-              </div>
-              
-              <div style={{ height: '1px', background: 'var(--panel-border)', gridColumn: 'span 2' }}></div>
-              
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Quotation Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. QT-" />
-                </label>
-                <input type="text" className="form-input" 
-                  value={smsConfig.quotePrefix || ''}
-                  placeholder="QT-"
-                  onChange={e => updateSmsConfig({...smsConfig, quotePrefix: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Starting Quotation #</label>
-                <input type="number" className="form-input" 
-                  value={smsConfig.nextQuoteNumber || 1001}
-                  onChange={e => updateSmsConfig({...smsConfig, nextQuoteNumber: Number(e.target.value)})} />
-              </div>
-            </div>
-          </div>
-
-          {/* Demo Data & System Utilities */}
-          <div className="glass-panel">
-            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
-              <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px' }}>
-                <Zap size={22} color="var(--success)" />
+              <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
+                <Layout size={22} color="var(--accent-primary)" />
               </div>
               <div>
-                <h2 className="h2" style={{ margin: 0 }}>Demo Data & Sample Records</h2>
-                <p className="text-secondary" style={{ fontSize: '0.82rem', margin: 0 }}>Populate full sample enterprise records across clients, invoices, inventory, and general ledger journal lines.</p>
+                <h2 className="h2" style={{ margin: 0 }}>PDF Document Branding</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Visual theme and disclaimers rendered on printable PDF quotes and invoices.</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                onClick={seedDummyData}
-                style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px' }}
-              >
-                <Zap size={16} /> Seed Sample Enterprise Dataset
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={resetEverythingWithConfirmation}
-                style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
-              >
-                <Trash2 size={16} /> Erase All Data
-              </button>
+            <div className="form-group">
+              <label className="form-label">Document Theme Color</label>
+              <div className="flex items-center gap-4">
+                <input type="color" 
+                  style={{ width: '60px', height: '42px', padding: '0', border: '1px solid var(--panel-border)', borderRadius: '8px', cursor: 'pointer' }}
+                  value={smsConfig.pdfColor || '#3b82f6'} 
+                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
+                />
+                <input type="text" className="form-input" 
+                  style={{ flex: 1 }}
+                  value={smsConfig.pdfColor || '#3b82f6'} 
+                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">PDF Master Footer Text</label>
+              <textarea 
+                className="form-input" 
+                style={{ minHeight: '60px', fontSize: '0.85rem' }}
+                placeholder="e.g. Thank you for your business. Please process payment promptly."
+                value={smsConfig.pdfFooterText || ''} 
+                onChange={e => updateSmsConfig({...smsConfig, pdfFooterText: e.target.value})} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Default Document Notes (T&C)</label>
+              <textarea 
+                className="form-input" 
+                style={{ minHeight: '100px', fontSize: '0.85rem' }}
+                placeholder="e.g. This document is generated by GymSales Pro Management System."
+                value={smsConfig.pdfNotes || ''} 
+                onChange={e => updateSmsConfig({...smsConfig, pdfNotes: e.target.value})} 
+              />
+            </div>
+            
+            <div style={{ padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--panel-border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Pro Tip:</div>
+              Branding changes apply instantly to all generated Quotations, Invoices, and Payment Receipts.
             </div>
           </div>
 
+        </div>
+
+      </div>
+      )}
+
+      {/* TAB 5: SMS & MESSAGING API */}
+      {activeSettingsTab === 'sms' && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Gateway & Protocols */}
+        <div className="lg:col-span-6 flex flex-col gap-8">
+          
           {/* SMS Gateway */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
               <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
                 <Globe size={22} color="var(--accent-primary)" />
               </div>
-              <h2 className="h2" style={{ margin: 0 }}>Communications Gateway</h2>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Communications Gateway</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Connect your QuickSend.lk or Notify.lk SMS API for automated notifications.</p>
+              </div>
             </div>
 
             <div className="form-group">
               <label className="form-label">API Infrastructure URL</label>
               <input type="text" className="form-input" 
                 value={smsConfig.apiUrl || ''} 
+                placeholder="https://quicksend.lk/api/v1/send"
                 onChange={e => updateSmsConfig({...smsConfig, apiUrl: e.target.value})} 
               />
             </div>
@@ -1275,6 +1349,7 @@ END $$;`;
                 <label className="form-label">Gateway Username</label>
                 <input type="text" className="form-input" 
                   value={smsConfig.email || ''} 
+                  placeholder="account@company.com"
                   onChange={e => updateSmsConfig({...smsConfig, email: e.target.value})} 
                 />
               </div>
@@ -1282,6 +1357,7 @@ END $$;`;
                 <label className="form-label">Cryptographic API Key</label>
                 <input type="password" className="form-input" 
                   value={smsConfig.apiKey || ''} 
+                  placeholder="••••••••••••••••"
                   onChange={e => updateSmsConfig({...smsConfig, apiKey: e.target.value})} 
                 />
               </div>
@@ -1359,7 +1435,7 @@ END $$;`;
               </div>
 
               <a 
-                href={`https://quicksend.lk/Client/topup.php?email=${smsConfig.email}`} 
+                href={'https://quicksend.lk/Client/topup.php?email=' + smsConfig.email} 
                 target="_blank" 
                 rel="noreferrer"
                 className="btn btn-primary" 
@@ -1384,139 +1460,145 @@ END $$;`;
             </div>
           </div>
 
-          {/* PDF Branding Section */}
+          {/* Advanced SMS Protocols */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
-                <Layout size={22} color="var(--accent-primary)" />
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <Radio size={22} color="var(--accent-primary)" />
               </div>
-              <h2 className="h2" style={{ margin: 0 }}>PDF Document Branding</h2>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Document Theme Color</label>
-              <div className="flex items-center gap-4">
-                <input type="color" 
-                  style={{ width: '60px', height: '42px', padding: '0', border: '1px solid var(--panel-border)', borderRadius: '8px', cursor: 'pointer' }}
-                  value={smsConfig.pdfColor || '#3b82f6'} 
-                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
-                />
-                <input type="text" className="form-input" 
-                  style={{ flex: 1 }}
-                  value={smsConfig.pdfColor || '#3b82f6'} 
-                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
-                />
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Advanced SMS Protocols</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Network transmission routing, encoding parameters, and retry rules.</p>
               </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">PDF Master Footer Text</label>
-              <textarea 
-                className="form-input" 
-                style={{ minHeight: '60px', fontSize: '0.85rem' }}
-                placeholder="e.g. Thank you for your business. Please process payment promptly."
-                value={smsConfig.pdfFooterText || ''} 
-                onChange={e => updateSmsConfig({...smsConfig, pdfFooterText: e.target.value})} 
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Default Document Notes (T&C)</label>
-              <textarea 
-                className="form-input" 
-                style={{ minHeight: '100px', fontSize: '0.85rem' }}
-                placeholder="e.g. This document is generated by GymSales Pro Management System."
-                value={smsConfig.pdfNotes || ''} 
-                onChange={e => updateSmsConfig({...smsConfig, pdfNotes: e.target.value})} 
-              />
             </div>
             
-            <div style={{ padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--panel-border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Pro Tip:</div>
-              Branding changes apply instantly to all generated Quotations, Invoices, and Payment Receipts.
+            <div className="flex flex-col gap-4">
+              <label className="flex items-center gap-3" style={{ cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.deliveryReports !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, deliveryReports: e.target.checked})} 
+                />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Require Live Delivery Status (DLR)</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Request real-time network handset delivery acknowledgements</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3" style={{ cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.unicodeSupport !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, unicodeSupport: e.target.checked})} 
+                />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Unicode Auto-Detection (Sinhala & Tamil)</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Dynamically switch to UCS-2 encoding if non-ASCII characters are detected</div>
+                </div>
+              </label>
             </div>
           </div>
 
-          {/* System Maintenance */}
-          <div className="glass-panel" style={{ border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
-              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
-                <RefreshCw size={22} color="var(--danger)" />
-              </div>
-              <h2 className="h2" style={{ margin: 0 }}>System Maintenance</h2>
-            </div>
-            <p className="text-secondary" style={{ marginBottom: '24px', fontSize: '0.85rem' }}>Synchronize your application with the Seynex Technology business defaults. This will replace your current local data with the items and configurations from your business profile.</p>
-
-            <button className="btn btn-secondary" 
-              style={{ width: '100%', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', height: '48px' }} 
-              onClick={resetEverythingWithConfirmation}
-            >
-              <Trash2 size={18} /> Erase All System Data
-            </button>
-          </div>
         </div>
 
-        {/* Right Column: Templates & Branding */}
-        <div className="lg:col-span-5 flex flex-col gap-8">
+        {/* Right Column: Workflows & Smart Templates */}
+        <div className="lg:col-span-6 flex flex-col gap-8">
           
           {/* Automation Rules */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
               <div style={{ padding: '10px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '12px' }}>
-                <Zap size={22} color="#a855f7" />
+                <Clock size={22} color="var(--accent-secondary)" />
               </div>
-              <h2 className="h2" style={{ margin: 0 }}>Automated Workflows</h2>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Automated Workflows</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Trigger background SMS dispatches based on system schedule.</p>
+              </div>
             </div>
-            <p className="text-secondary" style={{ marginBottom: '24px', fontSize: '0.85rem' }}>Configure the system's background scheduler for automatic outbound reminders.</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="form-group" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
-                <div className="flex justify-between items-center mb-4">
-                  <span style={{ fontWeight: 600 }}>Unpaid Invoices</span>
-                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                    <input type="checkbox" style={{ accentColor: 'var(--accent-primary)', width: '18px', height: '18px' }} 
-                      checked={smsConfig.autoInvoiceEnabled || false} 
-                      onChange={e => updateSmsConfig({...smsConfig, autoInvoiceEnabled: e.target.checked})} 
-                    />
-                  </label>
+            
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Automated Invoice Reminders</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Send SMS before invoice due date</div>
                 </div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>Days Before Due:</label>
-                <input type="number" className="form-input" 
-                  value={smsConfig.autoInvoiceDays !== undefined ? smsConfig.autoInvoiceDays : 3} 
-                  onChange={e => updateSmsConfig({...smsConfig, autoInvoiceDays: Number(e.target.value)})} 
-                  disabled={!smsConfig.autoInvoiceEnabled}
+                <input 
+                  type="checkbox" 
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.autoInvoiceEnabled !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, autoInvoiceEnabled: e.target.checked})} 
                 />
               </div>
 
-              <div className="form-group" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
-                <div className="flex justify-between items-center mb-4">
-                  <span style={{ fontWeight: 600 }}>Annual Renewals</span>
-                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                    <input type="checkbox" style={{ accentColor: 'var(--accent-primary)', width: '18px', height: '18px' }} 
-                      checked={smsConfig.autoRenewalEnabled || false} 
-                      onChange={e => updateSmsConfig({...smsConfig, autoRenewalEnabled: e.target.checked})} 
-                    />
-                  </label>
+              {smsConfig.autoInvoiceEnabled !== false && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Days Before Due Date</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={smsConfig.autoInvoiceDays || 2} 
+                    onChange={e => updateSmsConfig({...smsConfig, autoInvoiceDays: parseInt(e.target.value) || 1})} 
+                  />
                 </div>
-                <input type="text" className="form-input" 
-                  placeholder="15, 7, 1"
-                  value={smsConfig.autoRenewalDays !== undefined ? smsConfig.autoRenewalDays : '7'} 
-                  onChange={e => updateSmsConfig({...smsConfig, autoRenewalDays: e.target.value})} 
-                  disabled={!smsConfig.autoRenewalEnabled}
+              )}
+
+              <div style={{ height: '1px', background: 'var(--panel-border)' }}></div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Annual / Monthly Renewal Notices</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Notify prospects when memberships or contracts expire</div>
+                </div>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.autoRenewalEnabled !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, autoRenewalEnabled: e.target.checked})} 
+                />
+              </div>
+
+              {smsConfig.autoRenewalEnabled !== false && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Days Before Expiration</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={smsConfig.autoRenewalDays || 3} 
+                    onChange={e => updateSmsConfig({...smsConfig, autoRenewalDays: parseInt(e.target.value) || 1})} 
+                  />
+                </div>
+              )}
+
+              <div style={{ height: '1px', background: 'var(--panel-border)' }}></div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Client Birthday Greetings</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Send warm automated birthday wishes at 09:00 AM</div>
+                </div>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.birthdayWishEnabled !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, birthdayWishEnabled: e.target.checked})} 
                 />
               </div>
             </div>
           </div>
 
+          {/* Smart Templates */}
           <div className="glass-panel">
-            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px' }}>
-                <MessageSquare size={22} color="var(--warning)" />
+            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <MessageSquare size={22} color="var(--accent-primary)" />
               </div>
-              <h2 className="h2" style={{ margin: 0 }}>Smart Templates</h2>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Smart Templates</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Use bracket variables for dynamic tag injection into outgoing messages.</p>
+              </div>
             </div>
-            
-            <p className="text-secondary" style={{ marginBottom: '24px', fontSize: '0.85rem' }}>Use bracket variables for dynamic injection.</p>
 
             <div className="flex flex-col gap-6">
               <div className="form-group">
@@ -1570,191 +1652,6 @@ END $$;`;
                   onChange={e => updateSmsConfig({...smsConfig, invoiceReminderTemplate: e.target.value})} 
                 />
               </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Birthday Greeting</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{smsConfig.birthdayTemplate?.length || 0}/160</span>
-                </label>
-                <textarea 
-                  className="form-input" 
-                  style={{ minHeight: '80px' }}
-                  value={smsConfig.birthdayTemplate || ''} 
-                  onChange={e => updateSmsConfig({...smsConfig, birthdayTemplate: e.target.value})} 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Debtor Collection Nudge</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{smsConfig.debtorNudgeTemplate?.length || 0}/160</span>
-                </label>
-                <textarea 
-                  className="form-input" 
-                  style={{ minHeight: '80px', borderColor: 'var(--danger)20' }}
-                  placeholder="e.g. Hi {name}, you have an outstanding balance of LKR {remainingBalance} for {invoiceNumber}..."
-                  value={smsConfig.debtorNudgeTemplate || ''} 
-                  onChange={e => updateSmsConfig({...smsConfig, debtorNudgeTemplate: e.target.value})} 
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderLeft: '3px solid var(--accent-primary)' }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: '8px' }}>
-                <ShieldCheck size={16} color="var(--accent-primary)" />
-                <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>Auto-Save Protocol</span>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Changes are automatically staged and persisted.</p>
-            </div>
-          </div>
-
-          {/* Advanced SMS Protocols */}
-          <div className="glass-panel">
-            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
-                <Settings2 size={22} color="var(--accent-primary)" />
-              </div>
-              <h2 className="h2" style={{ margin: 0 }}>Advanced SMS Protocols</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Global Header</label>
-                <input type="text" className="form-input" 
-                  value={smsConfig.smsHeader || ''} 
-                  onChange={e => updateSmsConfig({...smsConfig, smsHeader: e.target.value})} 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Global Footer</label>
-                <input type="text" className="form-input" 
-                  value={smsConfig.smsFooter || ''} 
-                  onChange={e => updateSmsConfig({...smsConfig, smsFooter: e.target.value})} 
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Security & Access */}
-          <div className="glass-panel">
-            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
-                <ShieldCheck size={22} color="var(--danger)" />
-              </div>
-              <h2 className="h2" style={{ margin: 0 }}>Security & Access</h2>
-            </div>
-            
-            <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Inactivity Session Timeout</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minutes</span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                <input 
-                  type="number" 
-                  className="form-input" 
-                  style={{ paddingLeft: '40px' }}
-                  min="1"
-                  max="1440"
-                  value={smsConfig.sessionTimeout || 5} 
-                  onChange={e => updateSmsConfig({...smsConfig, sessionTimeout: parseInt(e.target.value) || 1})} 
-                />
-              </div>
-              <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Automatically logout the user after the specified period of inactivity. This helps protect your data if you leave the dashboard open.
-              </p>
-            </div>
-          </div>
-
-          {/* TEAM & USER ROLES MANAGEMENT PANEL */}
-          <div className="glass-panel">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
-                  <Users size={22} color="var(--accent-primary)" />
-                </div>
-                <div>
-                  <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Team & User Role Management</h2>
-                  <p className="text-secondary" style={{ fontSize: '0.8rem', margin: 0 }}>Create system accounts and define access privileges.</p>
-                </div>
-              </div>
-              <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }} onClick={() => setShowAddUserModal(true)}>
-                <UserPlus size={16} /> Create User
-              </button>
-            </div>
-
-            <div className="table-container" style={{ background: 'transparent' }}>
-              <table style={{ fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Team Member</th>
-                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Assigned Role</th>
-                    <th style={{ padding: '10px 0', opacity: 0.7 }}>Status</th>
-                    <th style={{ padding: '10px 0', textAlign: 'right', opacity: 0.7 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamMembers.map(member => (
-                    <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
-                      <td style={{ padding: '12px 0' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{member.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{member.email}</div>
-                      </td>
-                      <td>
-                        <CustomSelect 
-                          value={member.role}
-                          onChange={val => updateTeamMemberRole && updateTeamMemberRole(member.id, val)}
-                          options={[
-                            { value: 'Admin', label: 'Admin (Full Access)' },
-                            { value: 'Sales Representative', label: 'Sales Representative' },
-                            { value: 'Accountant', label: 'Accountant (Read-Only)' }
-                          ]}
-                          size="sm"
-                          style={{ width: '180px' }}
-                          triggerStyle={{ height: '32px', fontSize: '0.78rem' }}
-                        />
-                      </td>
-                      <td>
-                        <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                          <Check size={10} /> Active
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '6px 10px', fontSize: '0.78rem', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
-                            onClick={() => setResetPasswordUser(member)}
-                            title="Reset Password"
-                          >
-                            <Key size={12} /> Reset Password
-                          </button>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '6px', color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)', border: 'none' }}
-                            onClick={() => {
-                              if (confirmAction) {
-                                confirmAction({
-                                  title: 'Revoke User Access',
-                                  message: `Are you sure you want to remove user account for ${member.name}?`,
-                                  confirmText: 'Remove Access',
-                                  onConfirm: () => deleteTeamMember && deleteTeamMember(member.id)
-                                });
-                              } else if (window.confirm(`Are you sure you want to remove user account for ${member.name}?`)) {
-                                deleteTeamMember && deleteTeamMember(member.id);
-                              }
-                            }}
-                            title="Revoke User Access"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
 
@@ -1777,10 +1674,170 @@ END $$;`;
               <VariableTag tag="{link}" desc="Online Document Link" />
             </div>
           </div>
+
         </div>
 
       </div>
       )}
+
+      {/* TAB 6: BANK & PAYMENTS */}
+      {activeSettingsTab === 'bank' && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Bank Accounts & Security */}
+        <div className="lg:col-span-6 flex flex-col gap-8">
+          
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
+                <CreditCard size={22} color="var(--accent-emerald)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Banking & Settlement Accounts</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Official account coordinates printed on client invoices and receipts for direct deposits.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group">
+                <label className="form-label">Bank Name</label>
+                <input type="text" className="form-input" 
+                  placeholder="e.g. Commercial Bank of Ceylon"
+                  value={smsConfig.bankDetails?.bank || ''}
+                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), bank: e.target.value}})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Branch Location & Code</label>
+                <input type="text" className="form-input" 
+                  placeholder="e.g. Colombo 03 (Branch Code 045)"
+                  value={smsConfig.bankDetails?.branch || ''}
+                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), branch: e.target.value}})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Account Beneficiary / Name</label>
+                <input type="text" className="form-input" 
+                  placeholder="e.g. Seynex Technology (Pvt) Ltd"
+                  value={smsConfig.bankDetails?.accountName || ''}
+                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), accountName: e.target.value}})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Account Number</label>
+                <input type="text" className="form-input" 
+                  placeholder="e.g. 1000234567"
+                  value={smsConfig.bankDetails?.accountNumber || ''}
+                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), accountNumber: e.target.value}})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">SWIFT / BIC Code (Optional)</label>
+                <input type="text" className="form-input" 
+                  placeholder="e.g. CCEYLKLX"
+                  value={smsConfig.bankDetails?.swiftCode || ''}
+                  onChange={e => updateSmsConfig({...smsConfig, bankDetails: {...(smsConfig.bankDetails || {}), swiftCode: e.target.value}})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Default Currency</label>
+                <input type="text" className="form-input" 
+                  placeholder="LKR"
+                  value={smsConfig.currency || 'LKR'}
+                  onChange={e => updateSmsConfig({...smsConfig, currency: e.target.value})} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Security & Access */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                <ShieldCheck size={22} color="var(--danger)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Security & Session Controls</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Configure access timeouts and session lifetime for financial data protection.</p>
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Inactivity Session Timeout</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minutes</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  style={{ paddingLeft: '40px' }}
+                  min="1"
+                  max="1440"
+                  value={smsConfig.sessionTimeout || 5} 
+                  onChange={e => updateSmsConfig({...smsConfig, sessionTimeout: parseInt(e.target.value) || 1})} 
+                />
+              </div>
+              <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Automatically logout the user after the specified period of inactivity to safeguard financial data.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Payment Instructions & Policies */}
+        <div className="lg:col-span-6 flex flex-col gap-8">
+          
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <Receipt size={22} color="var(--accent-primary)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Payment Instructions & Terms</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Deposit notes printed at the bottom of customer invoices and online payment links.</p>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Default Payment Terms</label>
+              <CustomSelect
+                value={smsConfig.paymentTerms || 'Net 14'}
+                onChange={val => updateSmsConfig({...smsConfig, paymentTerms: val})}
+                options={[
+                  { value: 'Due Upon Receipt', label: 'Due Upon Receipt (Immediate)' },
+                  { value: 'Net 7', label: 'Net 7 Days' },
+                  { value: 'Net 14', label: 'Net 14 Days' },
+                  { value: 'Net 30', label: 'Net 30 Days' },
+                  { value: 'Net 60', label: 'Net 60 Days' }
+                ]}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Invoice Bank Deposit Instructions</label>
+              <textarea 
+                className="form-input" 
+                style={{ minHeight: '120px', fontSize: '0.85rem' }}
+                placeholder="Please deposit all payments to the bank account on this invoice and email payment slip to billing@company.com with your Invoice Number as reference."
+                value={smsConfig.paymentInstructions || ''} 
+                onChange={e => updateSmsConfig({...smsConfig, paymentInstructions: e.target.value})} 
+              />
+            </div>
+
+            <div style={{ padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--panel-border)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>💡 Client Portal Integration</div>
+              These banking details and payment instructions are dynamically populated on the client self-service portal, email invoices, and downloadable PDF invoices.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+      )}
+
 
       {showAddUserModal && (
         <AddUserModal 
