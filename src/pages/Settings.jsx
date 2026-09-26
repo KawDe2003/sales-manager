@@ -7,7 +7,7 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database
+  Cloud, CloudUpload, Database, RotateCcw
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -68,6 +68,7 @@ const Settings = () => {
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
+    resetEverythingWithConfirmation,
     customers = [], quotes = [], invoices = [], inventory = [], leads = []
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -601,12 +602,21 @@ const Settings = () => {
                 </button>
                 <button 
                   className="btn btn-primary"
-                  style={{ height: '42px', padding: '0 20px', gap: '8px', fontSize: '0.86rem' }}
+                  style={{ height: '42px', padding: '0 20px', gap: '8px', fontSize: '0.86rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
                   onClick={() => syncAllToCloud()}
                   disabled={cloudSyncStatus === 'syncing'}
                 >
-                  <CloudUpload size={16} />
-                  Push Local Data to Cloud
+                  <Save size={16} />
+                  {cloudSyncStatus === 'syncing' ? 'Saving Data...' : 'Save Data to Cloud'}
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  style={{ height: '42px', padding: '0 18px', gap: '8px', fontSize: '0.86rem', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.08)' }}
+                  onClick={resetEverythingWithConfirmation}
+                  disabled={cloudSyncStatus === 'syncing'}
+                >
+                  <RotateCcw size={16} />
+                  Reset Everything
                 </button>
               </div>
             </div>

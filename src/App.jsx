@@ -6,7 +6,7 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -207,7 +207,8 @@ const AppContent = () => {
     isStoreLoading, systemNotifications = [], markNotificationsRead, 
     customers = [], invoices = [], leads = [], teamMembers = [], 
     customRoles = [], featureToggles = {},
-    cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud
+    cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
+    resetEverythingWithConfirmation
   } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -492,32 +493,65 @@ const AppContent = () => {
             <Search size={16} className="text-secondary" />
           </button>
 
-          {/* Cloud Sync Status Indicator */}
+          {/* SAVE BUTTON (INSTEAD OF SYNC) */}
           <button
-            onClick={() => fetchCloudData()}
-            className="btn btn-secondary hidden-mobile"
+            id="header-save-data-btn"
+            onClick={() => syncAllToCloud()}
+            disabled={cloudSyncStatus === 'syncing'}
+            className="btn"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: cloudSyncStatus === 'syncing' 
+                ? 'var(--accent-primary)' 
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+            title={lastSyncTime ? `Last saved: ${new Date(lastSyncTime).toLocaleTimeString()}. Click to Save All Data to Supabase` : 'Save all business data to Supabase Cloud'}
+          >
+            {cloudSyncStatus === 'syncing' ? (
+              <RefreshCw size={15} className="animate-spin" />
+            ) : (
+              <Save size={15} />
+            )}
+            <span>{cloudSyncStatus === 'syncing' ? 'Saving...' : 'Save Data'}</span>
+          </button>
+
+          {/* RESET EVERYTHING BUTTON (CONFIRMATION REQUIRED) */}
+          <button
+            id="header-reset-all-btn"
+            onClick={resetEverythingWithConfirmation}
+            disabled={cloudSyncStatus === 'syncing'}
+            className="btn btn-secondary"
             style={{
               height: '36px',
               padding: '0 12px',
               fontSize: '0.78rem',
+              fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              border: cloudSyncStatus === 'error' 
-                ? '1px solid rgba(244, 63, 94, 0.4)' 
-                : '1px solid var(--panel-border)',
-              background: cloudSyncStatus === 'syncing' 
-                ? 'rgba(99, 102, 241, 0.08)' 
-                : 'var(--subtle-bg)'
+              color: 'var(--danger)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              background: 'rgba(239, 68, 68, 0.08)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
             }}
-            title={lastSyncTime ? `Last synced: ${new Date(lastSyncTime).toLocaleTimeString()} (Click to refresh from Cloud)` : 'Click to sync with Supabase cloud'}
+            title="Reset all system data (Confirmation required)"
           >
-            <Cloud size={15} style={{
-              color: cloudSyncStatus === 'error' ? 'var(--danger)' : cloudSyncStatus === 'syncing' ? 'var(--accent-primary)' : 'var(--success)'
-            }} className={cloudSyncStatus === 'syncing' ? 'animate-spin' : ''} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              {cloudSyncStatus === 'syncing' ? 'Syncing...' : cloudSyncStatus === 'error' ? 'Sync Warning' : 'Cloud Synced'}
-            </span>
+            <RotateCcw size={14} />
+            <span className="hidden-mobile">Reset Everything</span>
           </button>
 
           {/* Theme Toggle */}
