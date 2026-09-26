@@ -610,13 +610,23 @@ const Settings = () => {
                   {cloudSyncStatus === 'syncing' ? 'Saving Data...' : 'Save Data to Cloud'}
                 </button>
                 <button 
-                  className="btn btn-secondary"
-                  style={{ height: '42px', padding: '0 18px', gap: '8px', fontSize: '0.86rem', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.08)' }}
+                  id="settings-cloud-erase-btn"
+                  className="btn"
+                  style={{ 
+                    height: '42px', padding: '0 18px', gap: '8px', fontSize: '0.86rem', 
+                    color: '#ffffff', 
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                    cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer'
+                  }}
                   onClick={resetEverythingWithConfirmation}
                   disabled={cloudSyncStatus === 'syncing'}
+                  title="Permanently wipe all records from local storage and Supabase cloud"
                 >
-                  <RotateCcw size={16} />
-                  Reset Everything
+                  <Trash2 size={16} />
+                  Erase All Data
                 </button>
               </div>
             </div>
@@ -781,6 +791,59 @@ END $$;`;
                 }}
               >
                 <Copy size={13} /> Copy SQL
+              </button>
+            </div>
+          </div>
+
+          {/* Danger Zone: Permanent Data Erase Card */}
+          <div className="glass-panel" style={{ 
+            padding: '24px 28px', 
+            border: '1px solid rgba(239, 68, 68, 0.35)', 
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, rgba(239, 68, 68, 0.02) 100%)',
+            borderRadius: '16px'
+          }}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+              <div className="flex items-center gap-4">
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: 'var(--danger)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Trash2 size={24} />
+                </div>
+                <div>
+                  <h3 className="h3" style={{ margin: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Danger Zone: Erase All Data
+                  </h3>
+                  <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
+                    Permanently wipe all clients, quotes, invoices, inventory, leads, expenses, and logs from both your browser and Supabase cloud. Confirmation is required.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="settings-danger-erase-btn"
+                className="btn"
+                onClick={resetEverythingWithConfirmation}
+                disabled={cloudSyncStatus === 'syncing'}
+                style={{
+                  height: '44px',
+                  padding: '0 22px',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  gap: '8px',
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 3px 12px rgba(239, 68, 68, 0.35)',
+                  flexShrink: 0
+                }}
+              >
+                <Trash2 size={16} /> Erase All Data
               </button>
             </div>
           </div>
@@ -1182,7 +1245,7 @@ END $$;`;
                 onClick={resetEverythingWithConfirmation}
                 style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
               >
-                <Trash2 size={16} /> Clear Workspace Data
+                <Trash2 size={16} /> Erase All Data
               </button>
             </div>
           </div>
@@ -1385,7 +1448,7 @@ END $$;`;
               style={{ width: '100%', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', height: '48px' }} 
               onClick={resetEverythingWithConfirmation}
             >
-              <RefreshCw size={18} /> Reset to Clean State
+              <Trash2 size={18} /> Erase All System Data
             </button>
           </div>
         </div>

@@ -208,7 +208,7 @@ const AppContent = () => {
     customers = [], invoices = [], leads = [], teamMembers = [], 
     customRoles = [], featureToggles = {},
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
-    resetEverythingWithConfirmation
+    resetEverythingWithConfirmation, hasUnsavedChanges
   } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -493,66 +493,42 @@ const AppContent = () => {
             <Search size={16} className="text-secondary" />
           </button>
 
-          {/* SAVE BUTTON (INSTEAD OF SYNC) */}
-          <button
-            id="header-save-data-btn"
-            onClick={() => syncAllToCloud()}
-            disabled={cloudSyncStatus === 'syncing'}
-            className="btn"
-            style={{
-              height: '36px',
-              padding: '0 14px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: cloudSyncStatus === 'syncing' 
-                ? 'var(--accent-primary)' 
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-              transition: 'all 0.2s ease'
-            }}
-            title={lastSyncTime ? `Last saved: ${new Date(lastSyncTime).toLocaleTimeString()}. Click to Save All Data to Supabase` : 'Save all business data to Supabase Cloud'}
-          >
-            {cloudSyncStatus === 'syncing' ? (
-              <RefreshCw size={15} className="animate-spin" />
-            ) : (
-              <Save size={15} />
-            )}
-            <span>{cloudSyncStatus === 'syncing' ? 'Saving...' : 'Save Data'}</span>
-          </button>
-
-          {/* RESET EVERYTHING BUTTON (CONFIRMATION REQUIRED) */}
-          <button
-            id="header-reset-all-btn"
-            onClick={resetEverythingWithConfirmation}
-            disabled={cloudSyncStatus === 'syncing'}
-            className="btn btn-secondary"
-            style={{
-              height: '36px',
-              padding: '0 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--danger)',
-              border: '1px solid rgba(239, 68, 68, 0.35)',
-              background: 'rgba(239, 68, 68, 0.08)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            title="Reset all system data (Confirmation required)"
-          >
-            <RotateCcw size={14} />
-            <span className="hidden-mobile">Reset Everything</span>
-          </button>
+          {/* SAVE BUTTON - APPEARS ONLY WHEN USER CHANGES SOMETHING OR IS SAVING */}
+          {(hasUnsavedChanges || cloudSyncStatus === 'syncing') && (
+            <button
+              id="header-save-data-btn"
+              onClick={() => syncAllToCloud()}
+              disabled={cloudSyncStatus === 'syncing'}
+              className="btn"
+              style={{
+                height: '36px',
+                padding: '0 14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: cloudSyncStatus === 'syncing' 
+                  ? 'var(--accent-primary)' 
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+                animation: 'pulse 2s infinite ease-in-out',
+                transition: 'all 0.2s ease'
+              }}
+              title={lastSyncTime ? `Unsaved changes. Click to Save Data to Supabase` : 'Save changes to Supabase Cloud'}
+            >
+              {cloudSyncStatus === 'syncing' ? (
+                <RefreshCw size={15} className="animate-spin" />
+              ) : (
+                <Save size={15} />
+              )}
+              <span>{cloudSyncStatus === 'syncing' ? 'Saving...' : 'Save Data'}</span>
+            </button>
+          )}
 
           {/* Theme Toggle */}
           <button

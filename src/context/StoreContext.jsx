@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -46,6 +46,9 @@ export default function StoreContextProvider({ children }) {
   const [lastSyncTime, setLastSyncTime] = useState(() => {
     try { return localStorage.getItem('gym_last_sync_time') || null; } catch(e) { return null; }
   });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const isHydratedRef = useRef(false);
+  const isInitialMountRef = useRef(true);
 
   const isUuid = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
   
@@ -617,6 +620,17 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { try { localStorage.setItem('gym_payments', JSON.stringify(payments)); } catch (e) {} }, [payments]);
   useEffect(() => { try { localStorage.setItem('gym_tasks', JSON.stringify(tasks)); } catch (e) {} }, [tasks]);
   useEffect(() => { try { localStorage.setItem('gym_activity_logs', JSON.stringify(activityLogs)); } catch (e) {} }, [activityLogs]);
+
+  // Track unsaved local changes to toggle Save button
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    if (isHydratedRef.current) {
+      setHasUnsavedChanges(true);
+    }
+  }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
@@ -1935,6 +1949,8 @@ export default function StoreContextProvider({ children }) {
       setLastSyncTime(syncTimeStr);
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch(e) {}
       setCloudSyncStatus('synced');
+      setHasUnsavedChanges(false);
+      setTimeout(() => { isHydratedRef.current = true; }, 100);
       console.log('[Supabase Sync] Cloud data hydration completed successfully.');
     } catch (err) {
       console.error('[Supabase Sync] Global Fetch Exception:', err);
@@ -2149,6 +2165,7 @@ export default function StoreContextProvider({ children }) {
       setLastSyncTime(syncTimeStr);
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch (e) {}
       setCloudSyncStatus('synced');
+      setHasUnsavedChanges(false);
       showNotification(`💾 Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
       return { success: true, count: savedCount };
     } catch (err) {
@@ -2230,6 +2247,7 @@ export default function StoreContextProvider({ children }) {
       setHrLetters([]);
 
       setCloudSyncStatus('synced');
+      setHasUnsavedChanges(false);
       setLastSyncTime(new Date().toISOString());
       showNotification('All data has been reset to a clean state!', 'success');
       return true;
@@ -3814,6 +3832,7 @@ export default function StoreContextProvider({ children }) {
       currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
       cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud,
+      hasUnsavedChanges, setHasUnsavedChanges,
       resetEverythingWithConfirmation, executeResetEverything,
       confirmAction
     }}>
