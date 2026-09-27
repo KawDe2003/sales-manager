@@ -41,7 +41,7 @@ export const formatDatePretty = (d) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 
-// Helper: Apply Professional Header & Repeating Page Footers
+// Helper: Apply Professional Header & Repeating Page Footers (Zero Overlap Guaranteed)
 export const applyPageHeaderFooter = (doc, { title, subtitle, docNumber, pageCount, companyConfig = {}, primaryColor = [16, 185, 129] }) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -50,18 +50,22 @@ export const applyPageHeaderFooter = (doc, { title, subtitle, docNumber, pageCou
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Page Footer on every page
+    // Page Footer Divider Line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.4);
-    doc.line(14, pageHeight - 16, pageWidth - 14, pageHeight - 16);
+    doc.line(14, pageHeight - 14, pageWidth - 14, pageHeight - 14);
 
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184);
-    const footerCompany = companyConfig.companyName || companyConfig.dashboardName || 'Seynex Technology';
-    doc.text(`${footerCompany} | Computer-Generated Audit Document`, 14, pageHeight - 10);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
-    doc.text(`Generated: ${formatDatePretty(new Date())}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    const rawCompany = companyConfig.companyName || companyConfig.dashboardName || 'Seynex Technology';
+    const footerCompany = rawCompany.replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology').trim();
+    
+    // Left: Company & Audit generation date (no center collision)
+    doc.text(`${footerCompany} • Audit Generated: ${formatDatePretty(new Date())}`, 14, pageHeight - 8);
+    // Right: Page counter cleanly right-aligned at margin
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
   }
 };
 
@@ -176,8 +180,9 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // Load company config from localStorage
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
-    const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
+    const rawCompanyName = savedConfig.companyName || savedConfig.dashboardName || 'Seynex Technology';
+    const companyName = rawCompanyName.replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology').trim();
+    const companyAddress = savedConfig.companyAddress || 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya';
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
     const companyPhone = savedConfig.companyPhone || '';
 
@@ -263,8 +268,17 @@ export const generateDocumentPDF = (type, documentData, items) => {
     doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
     doc.text(`Date: ${dateStr}`, pageWidth - 14, 36, { align: 'right' });
+    let rightMetaY = 41;
     if (isInvoice && dueDateStr !== '—') {
-      doc.text(`Due Date: ${dueDateStr}`, pageWidth - 14, 41, { align: 'right' });
+      doc.text(`Due Date: ${dueDateStr}`, pageWidth - 14, rightMetaY, { align: 'right' });
+      rightMetaY += 5;
+    }
+    const quoteRef = documentData?.quotationNumber || documentData?.quoteRef || documentData?.quotation_number;
+    if (isInvoice && quoteRef) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`Ref: #${quoteRef}`, pageWidth - 14, rightMetaY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
     }
 
     // PAID Watermark for Invoices marked as Paid
@@ -447,20 +461,23 @@ export const generateDocumentPDF = (type, documentData, items) => {
       doc.text(`Account No: ${savedConfig.bankDetails.accountNumber}`, 14, bankY + 14);
     }
 
-    // Default Notes & Footer
+    // Default Notes & Footer (Properly Spaced Above Divider Line)
     const footerMsg = isReceipt 
       ? 'This is a computer generated receipt. No signature required.' 
-      : (savedConfig.pdfFooterText || (isInvoice ? 'Thank you for your business.' : 'Valid for 30 days.'));
+      : (isInvoice 
+          ? (savedConfig.pdfFooterText || 'Thank you for your business. Please remit payment promptly.')
+          : 'Thank you for your interest. This proposal is valid for 30 days from issue date.');
 
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(150, 150, 150);
-    doc.text(footerMsg, 14, pageHeight - 20);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(footerMsg, 14, pageHeight - 24);
 
-    if (savedConfig.pdfNotes) {
-      doc.setFontSize(7);
-      doc.text(savedConfig.pdfNotes, 14, pageHeight - 14);
-    }
+    const rawNotes = savedConfig.pdfNotes || 'This document is computer-generated by Seynex Technology Sales Management Suite.';
+    const cleanNotes = rawNotes.replace(/GymSales\s*(Pro)?(\s*Management\s*System)?/gi, 'Seynex Technology Sales Management Suite').trim();
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(cleanNotes, 14, pageHeight - 18);
 
     applyPageHeaderFooter(doc, {
       title: isInvoice ? 'Tax Invoice' : 'Quotation Proposal',
@@ -552,7 +569,7 @@ export const generateStockReportPDF = (inventoryItems) => {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.setFont(undefined, 'normal');
-    doc.text('Professional Stock Report - Generated by GymSales Management System', 14, pageHeight - 15);
+    doc.text('Professional Stock Report - Generated by Seynex Technology Sales Management Suite', 14, pageHeight - 15);
 
     savePdfDoc(doc, `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`);
 
@@ -567,7 +584,7 @@ export const generateAccountingReportPDF = (data) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyName = (savedConfig.companyName || 'Seynex Technology').replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology');
     
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
@@ -706,7 +723,7 @@ export const generatePnLReportPDF = (pnlData) => {
     const finalY = (doc.lastAutoTable?.finalY || 180) + 12;
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text('This Profit & Loss Statement is automatically generated by GymSales Pro Management System.', 105, finalY, { align: 'center' });
+    doc.text('This Profit & Loss Statement is automatically generated by Seynex Technology Sales Management Suite.', 105, finalY, { align: 'center' });
 
     savePdfDoc(doc, `PnL_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (err) {
@@ -719,7 +736,7 @@ export const printPnLReportPDF = (pnlData) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyName = (savedConfig.companyName || 'Seynex Technology').replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology');
     const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
     const companyPhone = savedConfig.companyPhone || '';
@@ -782,7 +799,7 @@ export const printPnLReportPDF = (pnlData) => {
     const finalY = (doc.lastAutoTable?.finalY || 180) + 12;
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text('This Profit & Loss Statement is automatically generated by GymSales Pro Management System.', 105, finalY, { align: 'center' });
+    doc.text('This Profit & Loss Statement is automatically generated by Seynex Technology Sales Management Suite.', 105, finalY, { align: 'center' });
 
     doc.autoPrint();
     const blobUrl = doc.output('bloburl');
@@ -803,7 +820,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
     const doc = createPDFDoc();
     const primaryColor = [30, 41, 59]; // Slate 800
 
-    const cName = companyName || 'GymSales Pro Enterprise';
+    const cName = (companyName || 'Seynex Technology Enterprise').replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology');
     const fmt = (val) => {
       if (val === 0 || val === undefined || val === null) return '—';
       const num = Number(val);

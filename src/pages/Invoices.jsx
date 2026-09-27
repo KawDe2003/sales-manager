@@ -302,6 +302,19 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
             </div>
             <div className="flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>#{invoice.invoiceNumber}</span>
+              {(invoice.quoteRef || invoice.quotationNumber) && (
+                <span className="badge" style={{ 
+                  background: 'rgba(99, 102, 241, 0.12)', 
+                  color: 'var(--accent-primary)', 
+                  border: '1px solid rgba(99, 102, 241, 0.25)', 
+                  padding: '1px 8px', 
+                  borderRadius: '6px', 
+                  fontSize: '0.72rem', 
+                  fontWeight: 800 
+                }}>
+                  Ref: #{invoice.quoteRef || invoice.quotationNumber}
+                </span>
+              )}
               <span style={{ opacity: 0.3 }}>•</span>
               <span className="sm-hidden">{customer.name || 'No Contact'}</span>
               <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>

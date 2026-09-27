@@ -230,6 +230,20 @@ const SharedDocument = () => {
                 <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.2rem', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>
                   #{docNumber}
                 </span>
+                {(docData.quoteRef || docData.quotationNumber || docData.quotation_number) && (
+                  <span style={{ 
+                    background: '#ede9fe', 
+                    color: '#6d28d9', 
+                    padding: '4px 12px', 
+                    borderRadius: '16px', 
+                    fontSize: '0.72rem', 
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Ref: #{docData.quoteRef || docData.quotationNumber || docData.quotation_number}
+                  </span>
+                )}
               </div>
               
               <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 12px 0', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
@@ -500,9 +514,19 @@ const SharedDocument = () => {
                         setIsSubmitting(true);
                         try {
                           if (acceptQuote) {
-                            await acceptQuote(docData.id || id);
+                            const res = await acceptQuote(docData.id || id);
+                            if (res?.invoice) {
+                              setDocData(prev => ({ 
+                                ...prev, 
+                                status: 'Converted to Invoice', 
+                                convertedInvoiceNumber: res.invoice.invoiceNumber,
+                                convertedInvoiceId: res.invoice.id,
+                                acceptedAt: new Date().toISOString() 
+                              }));
+                            } else {
+                              setDocData(prev => ({ ...prev, status: 'Accepted', acceptedAt: new Date().toISOString() }));
+                            }
                           }
-                          setDocData(prev => ({ ...prev, status: 'Accepted', acceptedAt: new Date().toISOString() }));
                           setShowGratitude(true);
                         } finally {
                           setIsSubmitting(false);
