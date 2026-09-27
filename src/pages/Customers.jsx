@@ -1,18 +1,32 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, StickyNote, Send, Clock, Cake, Download } from 'lucide-react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
+import { 
+  Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, 
+  StickyNote, Send, Clock, Cake, Download, Tag, Compass, History, 
+  FileText, Receipt, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck, 
+  Phone, Mail, MapPin, DollarSign, Building, ExternalLink
+} from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
+import { generateCustomerStatementPDF } from '../utils/pdfGenerator';
 import CustomSelect from '../components/CustomSelect';
 
+const CUSTOMER_TAGS = ['All', 'Corporate', 'Individual', 'VIP', 'Student', 'Walk-in'];
+const LEAD_SOURCES = ['Walk-in', 'Referral', 'Social Media', 'Website', 'Phone Call', 'Other'];
+
 const Customers = () => {
-  const { customers = [], addCustomer, deleteCustomer, updateCustomer, sendBulkSMSArray, sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit } = useContext(StoreContext) || {};
+  const { 
+    customers = [], addCustomer, deleteCustomer, updateCustomer, 
+    quotes = [], invoices = [], payments = [],
+    sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit 
+  } = useContext(StoreContext) || {};
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [monthFilter, setMonthFilter] = useState('All');
+  const [tagFilter, setTagFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [activeNotesCustomer, setActiveNotesCustomer] = useState(null);
-  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [timelineCustomer, setTimelineCustomer] = useState(null);
 
   const handleOpenAddModal = () => {
     if (checkPlanLimit) {
@@ -27,7 +41,7 @@ const Customers = () => {
   };
 
   useEffect(() => {
-    const isAnyModalOpen = showModal || !!activeNotesCustomer || showBroadcastModal;
+    const isAnyModalOpen = showModal || !!activeNotesCustomer || !!timelineCustomer;
     if (isAnyModalOpen) {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
@@ -39,41 +53,43 @@ const Customers = () => {
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [showModal, activeNotesCustomer, showBroadcastModal]);
+  }, [showModal, activeNotesCustomer, timelineCustomer]);
 
-  const filteredCustomers = customers.filter(c => {
-    // Search match
-    const searchMatch = (c.gymName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Status match
-    const statusMatch = statusFilter === 'All' || c.status === statusFilter;
-    
-    // Month match
-    let monthMatch = true;
-    if (monthFilter !== 'All' && c.renewalDate) {
-      const d = new Date(c.renewalDate);
-      // monthFilter will be 0-11 index as string
-      monthMatch = d.getMonth().toString() === monthFilter;
-    } else if (monthFilter !== 'All') {
-      monthMatch = false;
-    }
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => {
+      if (!c) return false;
+      const searchStr = (searchTerm || '').toLowerCase();
+      const nameMatch = (c.gymName || '').toLowerCase().includes(searchStr) ||
+                        (c.name || '').toLowerCase().includes(searchStr) ||
+                        (c.code || '').toLowerCase().includes(searchStr) ||
+                        (c.phone || '').toLowerCase().includes(searchStr);
+      
+      const statusMatch = statusFilter === 'All' || c.status === statusFilter;
+      
+      const tagMatch = tagFilter === 'All' || 
+                       (Array.isArray(c.tags) && c.tags.includes(tagFilter)) ||
+                       c.tag === tagFilter;
 
-    return searchMatch && statusMatch && monthMatch;
-  });
+      return nameMatch && statusMatch && tagMatch;
+    });
+  }, [customers, searchTerm, statusFilter, tagFilter]);
 
   const handleExport = () => {
     const exportData = filteredCustomers.map(c => ({
-      ID: c.id,
-      GymName: c.gymName,
-      OwnerName: c.name,
-      Phone: c.phone,
-      Email: c.email,
-      Status: c.status,
-      AnnualFee: c.annualFee,
-      RenewalDate: c.renewalDate
+      'Customer ID': c.code || c.id,
+      'Company / Gym Name': c.gymName,
+      'Contact Person': c.name,
+      'Mobile Phone': c.phone,
+      'Email': c.email,
+      'Address': c.address,
+      'Tax / VAT Number': c.taxNumber,
+      'Tags': Array.isArray(c.tags) ? c.tags.join(', ') : (c.tag || ''),
+      'Lead Source': c.leadSource || 'Walk-in',
+      'Status': c.status,
+      'Renewal Frequency': c.renewalFrequency || 'None',
+      'Next Renewal Date': c.renewalDate || ''
     }));
-    exportToCSV('Customers_Export', exportData);
+    exportToCSV('Customers_Directory_Export', exportData);
   };
 
   return (
@@ -81,8 +97,10 @@ const Customers = () => {
       <div className="page-hero">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">Active Gyms</h1>
-            <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage and automate billing for your active gym software clients.</p>
+            <h1 className="h1 mb-2">Customer Management</h1>
+            <p className="text-secondary" style={{ fontSize: '1rem' }}>
+              Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.
+            </p>
           </div>
           <div className="btn-group flex gap-3">
             <button
@@ -98,7 +116,7 @@ const Customers = () => {
               style={{ padding: '12px 24px' }} 
               onClick={handleOpenAddModal}
             >
-              <Plus size={18} /> New Account
+              <Plus size={18} /> New Customer
             </button>
           </div>
         </div>
@@ -111,13 +129,20 @@ const Customers = () => {
           <input
             type="text"
             className="form-input"
-            placeholder="Search clients by gym name, owner, or ID..."
+            placeholder="Search by company name, contact person, ID (CUST-XXXX), or phone..."
             style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
+
+        <div className="flex gap-3 w-full md:w-auto flex-wrap">
+          <CustomSelect 
+            value={tagFilter}
+            onChange={(val) => setTagFilter(val)}
+            options={CUSTOMER_TAGS.map(t => ({ value: t, label: t === 'All' ? 'All Tags' : `Tag: ${t}` }))}
+            style={{ height: '42px', minWidth: '140px' }}
+          />
           <CustomSelect 
             value={statusFilter}
             onChange={(val) => setStatusFilter(val)}
@@ -128,78 +153,178 @@ const Customers = () => {
             ]}
             style={{ height: '42px', minWidth: '130px' }}
           />
-          <CustomSelect 
-            value={monthFilter}
-            onChange={(val) => setMonthFilter(val)}
-            options={[
-              { value: 'All', label: 'Any Month' },
-              ...Array.from({ length: 12 }).map((_, i) => ({
-                value: i.toString(),
-                label: new Date(0, i).toLocaleString('default', { month: 'long' })
-              }))
-            ]}
-            style={{ height: '42px', minWidth: '140px' }}
-          />
         </div>
       </div>
 
-      {/* Grid List View */}
-      <div className="flex flex-col gap-4">
+      {/* Customers List Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers.length === 0 ? (
-          <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px 0', textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--subtle-bg)', display: 'flex', alignItems: 'center', marginBottom: '24px', justifyContent: 'center' }}>
-              <Search size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-            </div>
-            <h3 className="h2" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>No Clients Found</h3>
-            <p className="text-secondary" style={{ fontSize: '0.95rem' }}>We couldn't find any active gyms matching your criteria.</p>
+          <div className="lg:col-span-3 glass-panel flex flex-col items-center justify-center" style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <User size={48} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: '16px' }} />
+            <h3 className="h3" style={{ marginBottom: '8px' }}>No Customers Found</h3>
+            <p className="text-secondary" style={{ maxWidth: '400px' }}>Try adjusting your search query, status, or tag filter.</p>
           </div>
         ) : (
-          filteredCustomers.map(gym => (
-            <CustomerCard
-              key={gym.id}
-              gym={gym}
-              onEdit={() => { setEditingCustomer(gym); setShowModal(true); }}
-              onDelete={() => {
-                if (confirmAction) {
-                  confirmAction({
-                    title: 'Remove Client',
-                    message: `Are you sure you want to remove ${gym.gymName} from your client list?`,
-                    confirmText: 'Remove Client',
-                    onConfirm: () => deleteCustomer && deleteCustomer(gym.id)
-                  });
-                } else if (window.confirm(`Remove ${gym.gymName} from your client list?`)) {
-                  deleteCustomer && deleteCustomer(gym.id);
-                }
-              }}
-              onSendReminder={() => {
-                if (!gym.phone) { 
-                  showNotification && showNotification(`No phone number saved for ${gym.gymName}.`, 'error'); 
-                  return; 
-                }
-                const msg = (smsConfig.renewalTemplate || '')
-                  .replace('{name}', gym.name || '')
-                  .replace('{gym}', gym.gymName || '')
-                  .replace('{amount}', gym.annualFee || '0')
-                  .replace('{date}', gym.renewalDate ? new Date(gym.renewalDate).toLocaleDateString() : 'N/A');
-                if (sendDirectSMS) sendDirectSMS(gym.phone, msg);
-              }}
-              onViewNotes={() => setActiveNotesCustomer(gym)}
-            />
-          ))
+          filteredCustomers.map(customer => {
+            const custInvoices = invoices.filter(i => i.customerId === customer.id || i.prospectName === customer.gymName);
+            const custQuotes = quotes.filter(q => (q.prospectName && q.prospectName === customer.gymName) || (q.prospectPhone && q.prospectPhone === customer.phone));
+            const custPayments = payments.filter(p => p.customerId === customer.id || custInvoices.some(i => i.id === p.documentId));
+            
+            const totalInvoiced = custInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+            const totalPaid = custPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+            const outstanding = Math.max(0, totalInvoiced - totalPaid);
+
+            return (
+              <div 
+                key={customer.id} 
+                className="glass-panel hover-lift" 
+                style={{ 
+                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                  padding: '24px', position: 'relative', borderLeft: `4px solid ${customer.status === 'Active' ? 'var(--success)' : 'var(--panel-border)'}`
+                }}
+              >
+                <div>
+                  {/* Top Customer Code & Status */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                        {customer.code || `CUST-${customer.id.slice(0, 4)}`}
+                      </span>
+                      {customer.leadSource && (
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Compass size={11} /> {customer.leadSource}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`badge ${customer.status === 'Active' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.68rem' }}>
+                      {customer.status || 'Active'}
+                    </span>
+                  </div>
+
+                  {/* Customer Company & Name */}
+                  <h3 className="h3" style={{ fontSize: '1.2rem', marginBottom: '4px', wordBreak: 'break-word' }}>
+                    {customer.gymName || 'Unnamed Business'}
+                  </h3>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                    Contact: <strong style={{ color: 'var(--text-primary)' }}>{customer.name || 'N/A'}</strong>
+                  </div>
+
+                  {/* Tags */}
+                  <div className="flex gap-1 flex-wrap mb-4">
+                    {Array.isArray(customer.tags) && customer.tags.length > 0 ? (
+                      customer.tags.map((t, idx) => (
+                        <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', border: '1px solid var(--panel-border)' }}>
+                          🏷️ {t}
+                        </span>
+                      ))
+                    ) : customer.tag ? (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)' }}>
+                        🏷️ {customer.tag}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Financial Stats Summary */}
+                  <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--subtle-bg)', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Total Invoiced</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        LKR {totalInvoiced.toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Outstanding</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: outstanding > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                        LKR {outstanding.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Contact Info */}
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                    {customer.phone && <div className="flex items-center gap-2"><Phone size={12} /> {customer.phone}</div>}
+                    {customer.email && <div className="flex items-center gap-2"><Mail size={12} /> {customer.email}</div>}
+                    {customer.renewalFrequency && customer.renewalFrequency !== 'None' && (
+                      <div className="flex items-center gap-2" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
+                        <Clock size={12} /> {customer.renewalFrequency} Renewal: {customer.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : 'Pending'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Actions */}
+                <div className="pt-3 border-t border-panel flex items-center justify-between gap-2">
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    style={{ flex: 1, height: '36px', fontSize: '0.75rem', fontWeight: 700, gap: '6px' }}
+                    onClick={() => setTimelineCustomer(customer)}
+                    title="View 360 History and Transaction Timeline"
+                  >
+                    <History size={14} className="text-accent" /> 360 History
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    style={{ width: '36px', height: '36px', padding: 0, position: 'relative' }} 
+                    onClick={() => setActiveNotesCustomer(customer)}
+                    title="Internal Staff Notes"
+                  >
+                    <StickyNote size={15} color="var(--warning)" />
+                    {customer.notes?.length > 0 && (
+                      <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--warning)', color: '#000', fontSize: '9px', fontWeight: 900, borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {customer.notes.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    style={{ width: '36px', height: '36px', padding: 0 }} 
+                    onClick={() => { setEditingCustomer(customer); setShowModal(true); }}
+                    title="Edit Customer"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    style={{ width: '36px', height: '36px', padding: 0, color: 'var(--danger)' }} 
+                    onClick={() => {
+                      confirmAction({
+                        title: 'Delete Customer Record',
+                        message: `Are you sure you want to delete "${customer.gymName}"? All related quotations and invoices will remain intact.`,
+                        onConfirm: () => deleteCustomer(customer.id)
+                      });
+                    }}
+                    title="Delete Customer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
+      {/* ADD / EDIT CUSTOMER MODAL */}
       {showModal && (
-        <CustomerModal
+        <CustomerModal 
           onClose={() => { setShowModal(false); setEditingCustomer(null); }}
           onSave={(data) => {
-            if (editingCustomer) updateCustomer && updateCustomer(editingCustomer.id, data);
-            else addCustomer && addCustomer(data);
+            if (editingCustomer) updateCustomer(editingCustomer.id, data);
+            else addCustomer(data);
           }}
           initialData={editingCustomer}
+          nextCustomerCode={`CUST-${(customers.length + 1001).toString()}`}
         />
       )}
 
+      {/* INTERNAL STAFF NOTES MODAL */}
       {activeNotesCustomer && (
         <NotesModal 
           customer={activeNotesCustomer} 
@@ -207,136 +332,180 @@ const Customers = () => {
         />
       )}
 
-      {showBroadcastModal && (
-        <BroadcastModal
-          onClose={() => setShowBroadcastModal(false)}
-          onSend={(msg) => {
-            const active = customers.filter(c => c.status === 'Active' && c.phone);
-            const phonesList = active.map(c => c.phone);
-            if (sendBulkSMSArray) sendBulkSMSArray(phonesList, msg);
+      {/* 360 TRANSACTION HISTORY & VERTICAL TIMELINE MODAL */}
+      {timelineCustomer && (
+        <Customer360Modal 
+          customer={timelineCustomer}
+          quotes={quotes}
+          invoices={invoices}
+          payments={payments}
+          onClose={() => setTimelineCustomer(null)}
+          onStatementPDF={() => {
+            const custInvoices = invoices.filter(i => i.customerId === timelineCustomer.id || i.prospectName === timelineCustomer.gymName);
+            const custPayments = payments.filter(p => p.customerId === timelineCustomer.id || custInvoices.some(i => i.id === p.documentId));
+            generateCustomerStatementPDF(timelineCustomer, custInvoices, custPayments);
           }}
-          activeCount={customers.filter(c => c.status === 'Active' && c.phone).length}
         />
       )}
     </div>
   );
 };
 
-const CustomerCard = ({ gym, onEdit, onDelete, onSendReminder, onViewNotes }) => {
-  const today = new Date();
-  const renewal = new Date(gym.renewalDate || today);
-  const diffTime = renewal - today;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const isApproaching = renewal > today && diffDays <= 30;
-  const isOverdue = renewal < today;
+// ADD / EDIT CUSTOMER MODAL COMPONENT
+const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
+  const [formData, setFormData] = useState({
+    code: initialData?.code || nextCustomerCode || 'CUST-1001',
+    gymName: initialData?.gymName || '',
+    name: initialData?.name || '',
+    phone: initialData?.phone || '',
+    email: initialData?.email || '',
+    address: initialData?.address || '',
+    taxNumber: initialData?.taxNumber || '',
+    status: initialData?.status || 'Active',
+    tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tag ? [initialData.tag] : ['Walk-in']),
+    leadSource: initialData?.leadSource || 'Walk-in',
+    renewalFrequency: initialData?.renewalFrequency || 'Annual',
+    annualFee: initialData?.annualFee || 350000,
+    renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
+  });
 
-  const noteCount = (gym.notes || []).length;
+  const toggleTag = (tag) => {
+    const current = formData.tags || [];
+    if (current.includes(tag)) {
+      setFormData({ ...formData, tags: current.filter(t => t !== tag) });
+    } else {
+      setFormData({ ...formData, tags: [...current, tag] });
+    }
+  };
 
   return (
-    <div className="glass-panel hover-lift" style={{ 
-      padding: '20px', 
-      display: 'flex', 
-      flexDirection: 'column',
-      gap: '20px',
-      borderLeft: `4px solid ${gym.status === 'Active' ? 'var(--success)' : 'var(--danger)'}`
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
     }}>
-      {/* Top Section: Identity & Primary Info */}
-      <div className="flex items-center gap-4 justify-between">
-        <div className="flex items-center gap-4">
-          {/* Avatar */}
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(129, 140, 248, 0.15), rgba(59, 130, 246, 0.05))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid rgba(129, 140, 248, 0.2)', flexShrink: 0,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}>
-            <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)' }}>
-              {(gym.gymName || 'G').charAt(0).toUpperCase()}
-            </span>
-          </div>
-
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '2px', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gym.gymName || 'Unnamed Entity'}</div>
-            <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              <User size={12} /> <span style={{ fontWeight: 600 }}>{gym.name || 'Owner'}</span>
-              <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
-              <span className="sm-hidden">{gym.phone || 'Phone'}</span>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', maxHeight: '92vh', overflowY: 'auto', padding: 0 }}>
+        <div className="modal-header">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>{initialData ? 'Edit Customer Record' : 'Create New Customer'}</h2>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Complete corporate information, lead origin, and renewal configuration.</p>
             </div>
+            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <span className={`badge badge-${gym.status === 'Active' ? 'success' : 'danger'}`} style={{ padding: '4px 10px', fontSize: '0.7rem' }}>
-            {gym.status || 'Active'}
-          </span>
-          {gym.dob && new Date(gym.dob).getMonth() === new Date().getMonth() && new Date(gym.dob).getDate() === new Date().getDate() && (
-            <div className="flex items-center gap-1" style={{ color: 'var(--accent-primary)', fontWeight: 800 }}>
-              <Cake size={14} />
+        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="form-group">
+              <label className="form-label">Customer ID / Code</label>
+              <input required type="text" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Middle/Bottom Section: Metadata & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-panel">
-        <div className="flex flex-wrap items-center gap-6">
-          {/* Fee Section (Hidden on small screens) */}
-          <div className="sm-hidden">
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Annual Fee</div>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-display)' }}>
-              <span style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', marginRight: '4px' }}>LKR</span>
-              {(gym.annualFee || 0).toLocaleString()}
+            <div className="form-group">
+              <label className="form-label">Status</label>
+              <CustomSelect 
+                value={formData.status} 
+                onChange={val => setFormData({...formData, status: val})}
+                options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
+              />
+            </div>
+
+            <div className="form-group md:col-span-2">
+              <label className="form-label">Customer / Company Name *</label>
+              <input required type="text" className="form-input" placeholder="e.g. High Octane Fitness Negombo" value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Contact Person Name</label>
+              <input required type="text" className="form-input" placeholder="e.g. Kasun Fernando" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Mobile Number (07X-XXXXXXX) *</label>
+              <input required type="tel" className="form-input" placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input type="email" className="form-input" placeholder="contact@company.lk" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tax / VAT Information</label>
+              <input type="text" className="form-input" placeholder="VAT-10293847-7000" value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})} />
+            </div>
+
+            <div className="form-group md:col-span-2">
+              <label className="form-label">Address</label>
+              <input type="text" className="form-input" placeholder="No. 123, Galle Road, Colombo 03" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Lead Source</label>
+              <CustomSelect 
+                value={formData.leadSource} 
+                onChange={val => setFormData({...formData, leadSource: val})}
+                options={LEAD_SOURCES.map(s => ({ value: s, label: s }))}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Renewal Frequency</label>
+              <CustomSelect 
+                value={formData.renewalFrequency} 
+                onChange={val => setFormData({...formData, renewalFrequency: val})}
+                options={[
+                  { value: 'One Time', label: 'One Time (No Recurrence)' },
+                  { value: 'Monthly', label: 'Monthly (+1 Month)' },
+                  { value: 'Bi-Annual', label: 'Bi-Annual (+6 Months)' },
+                  { value: 'Annual', label: 'Annual (+12 Months)' }
+                ]}
+              />
+            </div>
+
+            {/* Tags Selection */}
+            <div className="form-group md:col-span-2">
+              <label className="form-label">Customer Tags / Labels</label>
+              <div className="flex gap-2 flex-wrap">
+                {CUSTOMER_TAGS.filter(t => t !== 'All').map(tag => {
+                  const isSelected = (formData.tags || []).includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        border: '1px solid',
+                        borderColor: isSelected ? 'var(--accent-primary)' : 'var(--panel-border)',
+                        background: isSelected ? 'var(--accent-primary)20' : 'var(--subtle-bg)',
+                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🏷️ {tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Renewal Tracking */}
-          <div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Next Billing Review</div>
-            <div style={{ 
-              display: 'inline-flex', alignItems: 'center', gap: '8px', 
-              padding: '6px 12px', borderRadius: '10px',
-              background: isOverdue ? 'rgba(244, 63, 94, 0.08)' : isApproaching ? 'rgba(245, 158, 11, 0.08)' : 'var(--subtle-bg)',
-              color: isOverdue ? 'var(--danger)' : isApproaching ? 'var(--warning)' : 'var(--text-primary)',
-              border: `1px solid ${isOverdue ? 'rgba(244, 63, 94, 0.2)' : isApproaching ? 'rgba(245, 158, 11, 0.2)' : 'var(--subtle-border)'}`
-            }}>
-              <Calendar size={13} />
-              <span style={{ fontWeight: 800, fontSize: '0.8rem' }}>{gym.renewalDate ? new Date(gym.renewalDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
-            </div>
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-panel">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '0 24px' }}>Save Customer Record</button>
           </div>
-        </div>
-
-        {/* Improved Action Buttons Group */}
-        <div className="action-bar md:justify-end w-full">
-          <button 
-            className="btn btn-secondary" 
-            style={{ width: '40px', height: '40px', padding: 0, position: 'relative' }} 
-            onClick={onViewNotes}
-            title="Communication Log"
-          >
-            <StickyNote size={16} className="text-warning" />
-            {noteCount > 0 && (
-              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--accent-primary)', color: 'white', fontSize: '9px', fontWeight: 800, padding: '1px 4px', borderRadius: '6px', border: '2px solid var(--panel-bg)'}}>
-                {noteCount}
-              </span>
-            )}
-          </button>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendReminder} title="Direct SMS">
-            <MessageSquareText size={16} className="text-secondary" />
-          </button>
-          <div className="sm-hidden" style={{ width: '1px', height: '24px', background: 'var(--panel-border)', margin: '0 4px' }}></div>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Card">
-            <Edit2 size={16} />
-          </button>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0, color: 'var(--danger)', background: 'rgba(244, 63, 94, 0.05)' }} onClick={onDelete} title="Purge Record">
-            <Trash2 size={16} />
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );
 };
 
+// INTERNAL STAFF NOTES MODAL
 const NotesModal = ({ customer, onClose }) => {
   const { addCustomerNote, customers = [] } = useContext(StoreContext) || {};
   const [noteText, setNoteText] = useState('');
@@ -354,69 +523,59 @@ const NotesModal = ({ customer, onClose }) => {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100,
-      padding: '24px'
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
     }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', maxHeight: '88vh', overflowY: 'auto', padding: 0 }}>
         <div className="modal-header">
-          <div>
-            <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>Client Timeline</h2>
-            <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>Activity logs for {currentCustomer.gymName}</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--warning)', fontWeight: 800, textTransform: 'uppercase' }}>INTERNAL USE ONLY</div>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Staff Notes: {customer.gymName}</h2>
+            </div>
+            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
           </div>
-          <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="modal-body" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-          <form onSubmit={handleAddNote} style={{ marginBottom: '40px' }}>
-            <div style={{ position: 'relative' }}>
-              <textarea 
-                className="form-input" 
-                placeholder="Log a new update or interaction..."
-                style={{ paddingRight: '56px', minHeight: '90px', resize: 'none', background: 'var(--subtle-bg)', fontSize: '0.95rem' }}
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-              />
-              <button 
-                type="submit" 
-                className="btn btn-primary" 
-                style={{ position: 'absolute', right: '12px', bottom: '12px', padding: '10px', borderRadius: '10px' }}
-                disabled={!noteText.trim()}
-              >
-                <Send size={16} />
+        <div className="modal-body">
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            Internal notes are visible to all staff members but are <strong>never</strong> displayed on customer-facing links or generated PDFs.
+          </p>
+
+          <form onSubmit={handleAddNote} className="mb-6">
+            <textarea 
+              rows={3} 
+              className="form-input mb-3" 
+              placeholder="e.g. Called twice regarding enterprise add-ons. Follow up after quarterly meeting..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              required
+            />
+            <div className="flex justify-end">
+              <button type="submit" className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
+                <Plus size={16} /> Add Internal Note
               </button>
             </div>
           </form>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>
+            Note History ({notes.length})
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {notes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.4 }}>
-                <Clock size={36} style={{ marginBottom: '16px', margin: '0 auto' }} />
-                <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>No historical updates recorded.</p>
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--subtle-bg)', borderRadius: '10px' }}>
+                No internal notes recorded yet.
               </div>
             ) : (
-              notes.map((note, idx) => (
-                <div key={note.id} style={{ position: 'relative', paddingLeft: '32px' }}>
-                  {idx !== notes.length - 1 && (
-                    <div style={{ position: 'absolute', left: '4px', top: '28px', bottom: '-32px', width: '2px', background: 'linear-gradient(to bottom, rgba(129, 140, 248, 0.4), rgba(255,255,255,0.05))' }}></div>
-                  )}
-                  <div style={{ 
-                    position: 'absolute', left: '-1px', top: '8px', 
-                    width: '12px', height: '12px', borderRadius: '50%',
-                    background: idx === 0 ? 'var(--accent-primary)' : 'rgba(255,255,255,0.2)',
-                    boxShadow: idx === 0 ? '0 0 12px var(--accent-primary)' : 'none'
-                  }}></div>
-                  
-                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', marginBottom: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {new Date(note.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              notes.map((n, idx) => (
+                <div key={n.id || idx} style={{ padding: '14px', borderRadius: '10px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+                  <div className="flex justify-between items-center mb-1" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <span>By: <strong style={{ color: 'var(--accent-primary)' }}>{n.author || 'Staff'}</strong></span>
+                    <span>{n.timestamp || n.date ? new Date(n.timestamp || n.date).toLocaleString() : 'Recent'}</span>
                   </div>
-                  <div style={{ 
-                    padding: '16px 20px', background: 'var(--subtle-bg)', 
-                    borderRadius: '16px', color: 'var(--text-primary)', fontSize: '0.95rem', 
-                    lineHeight: '1.6', border: '1px solid var(--subtle-border)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }}>
-                    {note.text}
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                    {n.text}
                   </div>
                 </div>
               ))
@@ -428,156 +587,290 @@ const NotesModal = ({ customer, onClose }) => {
   );
 };
 
-const CustomerModal = ({ onClose, onSave, initialData }) => {
-  const [formData, setFormData] = useState(initialData || {
-    gymName: '', name: '', email: '', phone: '', dob: '', purchaseDate: '', renewalDate: '', annualFee: 1200, status: 'Active'
-  });
+// 360 TRANSACTION HISTORY & VERTICAL TIMELINE MODAL
+const Customer360Modal = ({ customer, quotes = [], invoices = [], payments = [], onClose, onStatementPDF }) => {
+  const [activeTab, setActiveTab] = useState('timeline'); // 'timeline' | 'quotes' | 'invoices' | 'payments'
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
-  };
+  const custInvoices = useMemo(() => invoices.filter(i => i.customerId === customer.id || i.prospectName === customer.gymName), [invoices, customer]);
+  const custQuotes = useMemo(() => quotes.filter(q => (q.prospectName && q.prospectName === customer.gymName) || (q.prospectPhone && q.prospectPhone === customer.phone)), [quotes, customer]);
+  const custPayments = useMemo(() => payments.filter(p => p.customerId === customer.id || custInvoices.some(i => i.id === p.documentId)), [payments, customer, custInvoices]);
 
-  const calculateRenewal = (dateString) => {
-    if (!dateString) return;
-    const date = new Date(dateString);
-    date.setFullYear(date.getFullYear() + 1);
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    setFormData(prev => ({ ...prev, purchaseDate: dateString, renewalDate: `${yyyy}-${mm}-${dd}` }));
-  };
+  const totalInvoiced = custInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const totalPaid = custPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const outstanding = Math.max(0, totalInvoiced - totalPaid);
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '720px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        
-        <div className="modal-header">
-           <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Configuration' : 'Onboard Client Suite'}</h2>
-             <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-           </div>
-        </div>
+  // BUILD COMPLETE VERTICAL TRANSACTION TIMELINE
+  const timelineEvents = useMemo(() => {
+    const events = [];
 
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Commercial Gym Name</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Primary Decision Maker</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Billing Email</label>
-              <input type="email" className="form-input" style={{ height: '44px' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Verified Phone Number</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Owner's Date of Birth</label>
-              <input type="date" className="form-input" style={{ height: '44px' }} value={formData.dob || ''} onChange={e => setFormData({...formData, dob: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Software Grant Date</label>
-              <input type="date" className="form-input" style={{ height: '44px' }} value={formData.purchaseDate} onChange={e => calculateRenewal(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Next Billing Cycle</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.renewalDate} onChange={e => setFormData({...formData, renewalDate: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Annual License Fee (LKR)</label>
-              <input required type="number" className="form-input" style={{ height: '44px' }} value={formData.annualFee} onChange={e => setFormData({...formData, annualFee: Number(e.target.value)})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Account Status</label>
-              <CustomSelect 
-                value={formData.status} 
-                onChange={(val) => setFormData({ ...formData, status: val })}
-                options={[
-                  { value: 'Active', label: 'Active Subscription' },
-                  { value: 'Inactive', label: 'Suspended / Deactivated' }
-                ]}
-                style={{ height: '44px', width: '100%' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
-
-          <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>
-              {initialData ? 'Commit Configuration' : 'Deploy Virtual Environment'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const BroadcastModal = ({ onClose, onSend, activeCount }) => {
-  const [msg, setMsg] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (msg.trim()) {
-      onSend(msg);
-      onClose();
+    // 1. Customer Created
+    if (customer.createdAt || customer.purchaseDate) {
+      events.push({
+        date: customer.createdAt || customer.purchaseDate,
+        title: 'Customer Profile Created',
+        desc: `Account initialized with ID ${customer.code || customer.id}. Status: ${customer.status}`,
+        badge: 'Profile',
+        icon: User,
+        color: '#6366f1'
+      });
     }
-  };
+
+    // 2. Quotations & Counter Offers
+    custQuotes.forEach(q => {
+      events.push({
+        date: q.date,
+        title: `Quotation #${q.quoteNumber} Issued`,
+        desc: `Net offer LKR ${(Number(q.amount) || 0).toLocaleString()} • Status: ${q.status}`,
+        badge: 'Quotation',
+        icon: FileText,
+        color: '#3b82f6'
+      });
+
+      if (q.counterOffers && q.counterOffers.length > 0) {
+        q.counterOffers.forEach(co => {
+          events.push({
+            date: co.createdAt,
+            title: `Budget Counter Offer: LKR ${(Number(co.proposedBudget) || 0).toLocaleString()}`,
+            desc: `Customer proposed budget with message: "${co.message || 'No note'}"`,
+            badge: 'Counter Offer',
+            icon: DollarSign,
+            color: '#f59e0b'
+          });
+        });
+      }
+
+      if (q.acceptedAt) {
+        events.push({
+          date: q.acceptedAt,
+          title: `Quotation #${q.quoteNumber} Accepted`,
+          desc: `Customer confirmed proposal acceptance.`,
+          badge: 'Accepted',
+          icon: CheckCircle,
+          color: '#10b981'
+        });
+      }
+    });
+
+    // 3. Invoices
+    custInvoices.forEach(inv => {
+      events.push({
+        date: inv.date,
+        title: `Invoice #${inv.invoiceNumber} Issued`,
+        desc: `Amount: LKR ${(Number(inv.amount) || 0).toLocaleString()} • Due Date: ${inv.dueDate || 'N/A'}`,
+        badge: 'Invoice',
+        icon: Receipt,
+        color: '#8b5cf6'
+      });
+
+      if (inv.paidAt) {
+        events.push({
+          date: inv.paidAt,
+          title: `Invoice #${inv.invoiceNumber} Paid & Closed`,
+          desc: `Full balance cleared. Invoice closed.`,
+          badge: 'Closed',
+          icon: CheckCircle,
+          color: '#10b981'
+        });
+      }
+    });
+
+    // 4. Payments
+    custPayments.forEach(p => {
+      events.push({
+        date: p.timestamp,
+        title: `Payment: LKR ${(Number(p.amount) || 0).toLocaleString()} (${p.method || 'Cash'})`,
+        desc: `Receipt #${p.receiptNumber || 'REC'} recorded by ${p.recordedBy || 'Staff'}. Ref: ${p.reference || 'None'}`,
+        badge: 'Payment',
+        icon: DollarSign,
+        color: '#10b981'
+      });
+    });
+
+    // 5. Renewal Tracking
+    if (customer.lastRenewalDate) {
+      events.push({
+        date: customer.lastRenewalDate,
+        title: `Renewal Completed (${customer.renewalFrequency || 'Annual'})`,
+        desc: `Contract renewed. Next review: ${customer.renewalDate || 'N/A'}`,
+        badge: 'Renewal',
+        icon: Clock,
+        color: '#0ea5e9'
+      });
+    }
+
+    // Sort newest first
+    return events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [customer, custQuotes, custInvoices, custPayments]);
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
+      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
     }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: 0, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '880px', maxHeight: '92vh', overflowY: 'auto', padding: 0 }}>
+        {/* Header */}
         <div className="modal-header">
-           <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Broadcast Message</h2>
-             <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-           </div>
-        </div>
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-group mb-6">
-            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>SMS Content</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{msg.length}/160</span>
-            </label>
-            <textarea 
-              required
-              className="form-input" 
-              style={{ minHeight: '120px', resize: 'vertical' }}
-              placeholder="Enter your message here..."
-              value={msg} 
-              onChange={e => setMsg(e.target.value)} 
-            />
-          </div>
-          <div className="flex justify-between items-center bg-gray-900/50 p-4 rounded-xl border border-gray-800 mb-8">
-            <div className="flex items-center gap-3 text-secondary">
-              <User size={18} /> <span style={{ fontSize: '0.85rem' }}>Total Recipients</span>
+          <div className="flex justify-between items-start flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                  {customer.code || `CUST-${customer.id.slice(0, 4)}`}
+                </span>
+                <span className="badge badge-success">{customer.status}</span>
+              </div>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{customer.gymName}</h2>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Contact: {customer.name} • Phone: {customer.phone} • Email: {customer.email || 'N/A'}
+              </div>
             </div>
-            <span style={{ fontWeight: 800, color: 'var(--accent-primary)', fontSize: '1.25rem' }}>{activeCount}</span>
+
+            <div className="flex items-center gap-2">
+              <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', gap: '6px' }} onClick={onStatementPDF}>
+                <Download size={15} /> Customer Statement PDF
+              </button>
+              <button type="button" className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
+            </div>
           </div>
-          <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px' }} onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px' }} disabled={!msg.trim()}>Send Broadcast</button>
+        </div>
+
+        <div className="modal-body">
+          {/* Key 360 Financial Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Quotations</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>{custQuotes.length}</div>
+            </div>
+            <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Invoiced</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>LKR {totalInvoiced.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Total Paid</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--success)', marginTop: '2px' }}>LKR {totalPaid.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Outstanding</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: outstanding > 0 ? 'var(--danger)' : 'var(--success)', marginTop: '2px' }}>
+                LKR {outstanding.toLocaleString()}
+              </div>
+            </div>
           </div>
-        </form>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 border-b border-panel pb-3 mb-6">
+            {[
+              { id: 'timeline', label: 'Vertical Timeline', icon: History },
+              { id: 'quotes', label: `Quotations (${custQuotes.length})`, icon: FileText },
+              { id: 'invoices', label: `Invoices (${custInvoices.length})`, icon: Receipt },
+              { id: 'payments', label: `Payments (${custPayments.length})`, icon: DollarSign }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '8px 16px', fontSize: '0.8rem', gap: '6px' }}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <tab.icon size={14} /> {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB 1: VERTICAL TIMELINE */}
+          {activeTab === 'timeline' && (
+            <div style={{ position: 'relative', paddingLeft: '32px', borderLeft: '2px dashed var(--panel-border)', marginLeft: '12px' }}>
+              {timelineEvents.map((ev, idx) => (
+                <div key={idx} style={{ position: 'relative', marginBottom: '24px' }}>
+                  {/* Timeline Node Point */}
+                  <div style={{
+                    position: 'absolute', left: '-41px', top: '2px', width: '18px', height: '18px',
+                    borderRadius: '50%', background: ev.color, border: '3px solid #0f172a',
+                    boxShadow: `0 0 10px ${ev.color}40`
+                  }} />
+
+                  <div style={{ padding: '14px 18px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+                    <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{ev.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {new Date(ev.date).toLocaleDateString()} • {new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      {ev.desc}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TAB 2: QUOTATIONS LIST */}
+          {activeTab === 'quotes' && (
+            <div className="flex flex-col gap-3">
+              {custQuotes.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No quotations for this client.</div>
+              ) : (
+                custQuotes.map(q => (
+                  <div key={q.id} style={{ padding: '14px', borderRadius: '10px', background: 'var(--subtle-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>#{q.quoteNumber}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date: {new Date(q.date).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>LKR {(Number(q.amount) || 0).toLocaleString()}</div>
+                      <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>{q.status}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: INVOICES LIST */}
+          {activeTab === 'invoices' && (
+            <div className="flex flex-col gap-3">
+              {custInvoices.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No invoices for this client.</div>
+              ) : (
+                custInvoices.map(i => (
+                  <div key={i.id} style={{ padding: '14px', borderRadius: '10px', background: 'var(--subtle-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>#{i.invoiceNumber}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Issued: {new Date(i.date).toLocaleDateString()} • Due: {i.dueDate || 'N/A'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>LKR {(Number(i.amount) || 0).toLocaleString()}</div>
+                      <span className={`badge badge-${i.status === 'Paid' ? 'success' : 'danger'}`} style={{ fontSize: '0.65rem' }}>{i.status}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: PAYMENTS LIST */}
+          {activeTab === 'payments' && (
+            <div className="flex flex-col gap-3">
+              {custPayments.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No payments recorded for this client.</div>
+              ) : (
+                custPayments.map(p => (
+                  <div key={p.id} style={{ padding: '14px', borderRadius: '10px', background: 'var(--subtle-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Receipt #{p.receiptNumber || 'REC'} ({p.method || 'Cash'})</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date: {new Date(p.timestamp).toLocaleDateString()} • Ref: {p.reference || 'None'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--success)' }}>LKR {(Number(p.amount) || 0).toLocaleString()}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Staff: {p.recordedBy || 'Staff'}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

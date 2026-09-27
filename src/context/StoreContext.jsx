@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { sendNotification } from '../utils/notificationService';
 
 export const StoreContext = createContext();
 
@@ -903,9 +904,44 @@ export default function StoreContextProvider({ children }) {
   const [notification, setNotification] = useState(null);
   
   // Realtime System Notifications (for Bell)
-  const [systemNotifications, setSystemNotifications] = useState([]);
-  
-  const markNotificationsRead = () => setSystemNotifications([]);
+  const [systemNotifications, setSystemNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_system_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_system_notifications', JSON.stringify(systemNotifications.slice(0, 50)));
+    } catch (e) {}
+  }, [systemNotifications]);
+
+  const addNotification = (notif) => {
+    const newNotif = {
+      id: notif.id || uuidv4(),
+      type: notif.type || 'info', // 'success' | 'warning' | 'error' | 'info'
+      title: notif.title || 'Notification',
+      message: notif.message || '',
+      link: notif.link || '',
+      time: notif.time || new Date().toISOString(),
+      read: false,
+      metadata: notif.metadata || {}
+    };
+    setSystemNotifications(prev => [newNotif, ...prev.filter(n => n.id !== newNotif.id)].slice(0, 50));
+    return newNotif;
+  };
+
+  const markNotificationRead = (id) => {
+    setSystemNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const markNotificationsRead = () => {
+    setSystemNotifications([]);
+    try { localStorage.removeItem('gym_system_notifications'); } catch (e) {}
+  };
 
   const [teamMembers, setTeamMembers] = useState(() => {
     const saved = localStorage.getItem('gym_team_members');
@@ -2367,20 +2403,23 @@ export default function StoreContextProvider({ children }) {
     }));
   };
   
-  const addCustomerNote = (customerId, text) => {
-    if (!text.trim()) return;
+  const addCustomerNote = (customerId, text, authorName = null) => {
+    if (!text || !text.trim()) return;
     setCustomers(prev => prev.map(c => {
       if (c.id === customerId) {
+        const staffAuthor = authorName || user?.name || user?.email || 'Staff';
         const newNote = {
           id: uuidv4(),
           date: new Date().toISOString(),
-          text
+          timestamp: new Date().toISOString(),
+          author: staffAuthor,
+          text: text.trim()
         };
         const updatedNotes = [newNote, ...(c.notes || [])];
         const updated = { ...c, notes: updatedNotes };
         syncCustomerToSupabase(updated);
-        addLog('Status', `Update logged for ${c.gymName}: ${text.substring(0, 30)}...`);
-        showNotification(`Note added for ${c.gymName}`, 'success');
+        addLog('Status', `Internal staff note added for ${c.gymName} by ${staffAuthor}`);
+        showNotification(`Internal note added for ${c.gymName}`, 'success');
         return updated;
       }
       return c;
@@ -2710,26 +2749,254 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
+  // Quotation Auto-Expiry Check
+  const checkQuotationExpirations = () => {
+    const today = new Date().toISOString().split('T')[0];
+    let changed = false;
+    setQuotes(prevQuotes => {
+      const updated = prevQuotes.map(q => {
+        if ((q.status === 'Draft' || q.status === 'Sent' || q.status === 'Pending') && q.validUntil && q.validUntil < today) {
+          changed = true;
+          addNotification({
+            type: 'warning',
+            title: 'Quotation Expired',
+            message: `Quotation #${q.quoteNumber} for ${q.prospectName || 'Prospect'} has expired.`,
+            link: '/quotations',
+            time: new Date().toISOString()
+          });
+          addLog('System', `Quotation #${q.quoteNumber} automatically marked as Expired.`);
+          return { ...q, status: 'Expired', expiredAt: new Date().toISOString() };
+        }
+        return q;
+      });
+      if (changed) {
+        try {
+          localStorage.setItem('gym_quotes', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      }
+      return prevQuotes;
+    });
+  };
+
+  useEffect(() => {
+    if (quotes.length > 0) {
+      checkQuotationExpirations();
+    }
+  }, [quotes.length]);
+
+  // Customer Response: Accept Quotation
+  const acceptQuote = async (quoteId, notes = '') => {
+    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+    if (!quote) return;
+    const acceptanceTime = new Date().toISOString();
+    
+    const updatedQuote = {
+      ...quote,
+      status: 'Accepted',
+      acceptedAt: acceptanceTime,
+      acceptanceNotes: notes || quote.acceptanceNotes
+    };
+
+    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q));
+    syncQuoteToSupabase(updatedQuote);
+
+    // In-App Notification
+    addNotification({
+      type: 'success',
+      title: 'Quotation Accepted!',
+      message: `Quotation #${quote.quoteNumber} accepted by ${quote.prospectName} (LKR ${(Number(quote.amount) || 0).toLocaleString()})`,
+      link: '/quotations',
+      time: acceptanceTime
+    });
+
+    addLog('System', `Quotation #${quote.quoteNumber} ACCEPTED by customer ${quote.prospectName}`);
+
+    // SMS & WhatsApp notifications
+    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    try {
+      await sendNotification({
+        eventType: 'QUOTATION_ACCEPTED',
+        recipientPhone,
+        recipientName: quote.prospectName || 'Valued Prospect',
+        data: {
+          quoteNumber: quote.quoteNumber,
+          amount: (Number(quote.amount) || 0).toLocaleString(),
+          name: quote.prospectName,
+          companyName: smsConfig.companyName || 'Seynex Technology',
+          link: `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`
+        },
+        config: smsConfig
+      });
+    } catch (e) {
+      console.warn('[Notification Error on Quote Acceptance]', e);
+    }
+
+    showNotification(`Quotation #${quote.quoteNumber} accepted!`, 'success');
+    return updatedQuote;
+  };
+
+  // Customer Response: Propose Budget (Counter Offer)
+  const proposeBudget = async (quoteId, { proposedBudget, message, preferredChanges }) => {
+    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+    if (!quote) return;
+
+    const counterOffer = {
+      id: uuidv4(),
+      proposedBudget: Number(proposedBudget) || 0,
+      originalAmount: Number(quote.amount) || 0,
+      difference: (Number(proposedBudget) || 0) - (Number(quote.amount) || 0),
+      message: message || '',
+      preferredChanges: preferredChanges || '',
+      createdAt: new Date().toISOString()
+    };
+
+    const existingCounterOffers = quote.counterOffers || quote.counter_offers || [];
+    const updatedQuote = {
+      ...quote,
+      status: 'Counter Offer',
+      counterOffers: [counterOffer, ...existingCounterOffers],
+      lastCounterOffer: counterOffer
+    };
+
+    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q));
+    syncQuoteToSupabase(updatedQuote);
+
+    addNotification({
+      type: 'warning',
+      title: 'Budget Proposed (Counter Offer)',
+      message: `${quote.prospectName} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} for #${quote.quoteNumber}`,
+      link: '/quotations',
+      time: counterOffer.createdAt
+    });
+
+    addLog('System', `Budget Counter Offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted by ${quote.prospectName} for #${quote.quoteNumber}`);
+
+    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    try {
+      await sendNotification({
+        eventType: 'BUDGET_PROPOSED',
+        recipientPhone,
+        recipientName: quote.prospectName,
+        data: {
+          quoteNumber: quote.quoteNumber,
+          amount: (Number(quote.amount) || 0).toLocaleString(),
+          proposedBudget: (Number(proposedBudget) || 0).toLocaleString(),
+          difference: counterOffer.difference.toLocaleString(),
+          message: message || 'None',
+          name: quote.prospectName,
+          companyName: smsConfig.companyName || 'Seynex Technology'
+        },
+        config: smsConfig
+      });
+    } catch (e) {
+      console.warn('[Notification Error on Budget Proposal]', e);
+    }
+
+    showNotification(`Counter offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted!`, 'info');
+    return updatedQuote;
+  };
+
+  // Customer Response: Reject Quotation
+  const rejectQuote = async (quoteId, reason = '') => {
+    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+    if (!quote) return;
+
+    const rejectionTime = new Date().toISOString();
+    const updatedQuote = {
+      ...quote,
+      status: 'Rejected',
+      rejectedAt: rejectionTime,
+      rejectionReason: reason || 'Customer declined proposal'
+    };
+
+    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q));
+    syncQuoteToSupabase(updatedQuote);
+
+    addNotification({
+      type: 'error',
+      title: 'Quotation Declined',
+      message: `Quotation #${quote.quoteNumber} was declined by ${quote.prospectName}`,
+      link: '/quotations',
+      time: rejectionTime
+    });
+
+    addLog('System', `Quotation #${quote.quoteNumber} declined by ${quote.prospectName}. Reason: ${reason || 'Not specified'}`);
+
+    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    try {
+      await sendNotification({
+        eventType: 'QUOTATION_REJECTED',
+        recipientPhone,
+        recipientName: quote.prospectName,
+        data: {
+          quoteNumber: quote.quoteNumber,
+          name: quote.prospectName,
+          rejectionReason: reason || 'Customer declined proposal',
+          companyName: smsConfig.companyName || 'Seynex Technology'
+        },
+        config: smsConfig
+      });
+    } catch (e) {
+      console.warn('[Notification Error on Quote Rejection]', e);
+    }
+
+    showNotification(`Quotation #${quote.quoteNumber} declined.`, 'info');
+    return updatedQuote;
+  };
+
   const convertQuoteToInvoice = (quoteId) => {
     const quote = quotes.find(q => q.id === quoteId);
     if (!quote) return;
 
-    let customer = customers.find(c => c.gymName === quote.prospectName || c.phone === quote.prospectPhone);
+    let customer = customers.find(c => c.gymName === quote.prospectName || (c.phone && quote.prospectPhone && c.phone === quote.prospectPhone));
     if (!customer) {
-        customer = customers.find(c => c.gymName === quote.prospectName);
+      const custCode = `CUST-${(customers.length + 1001).toString().padStart(4, '0')}`;
+      customer = {
+        id: uuidv4(),
+        code: custCode,
+        gymName: quote.prospectName,
+        name: quote.prospectName,
+        phone: quote.prospectPhone || '',
+        email: quote.prospectEmail || '',
+        address: quote.prospectAddress || '',
+        status: 'Active',
+        tags: ['Walk-in'],
+        leadSource: 'Quotation Conversion',
+        createdAt: new Date().toISOString(),
+        purchaseDate: new Date().toISOString().split('T')[0],
+        notes: [{ id: uuidv4(), text: `Customer created automatically via accepted quotation #${quote.quoteNumber}`, author: 'System', date: new Date().toISOString() }]
+      };
+      setCustomers(prev => [...prev, customer]);
+      syncCustomerToSupabase(customer);
     }
+
+    const currentInvPrefix = smsConfig.invoicePrefix || 'INV-';
+    const currentInvNext = parseInt(smsConfig.nextInvoiceNumber || 1001);
+    const invoiceNumber = `${currentInvPrefix}${currentInvNext}`;
+    updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentInvNext + 1 });
 
     const newInvoice = {
       id: uuidv4(),
       shareKey: generateShareKey(),
-      invoiceNumber: `INV-${quote.quoteNumber.split('-')[1] || Math.floor(Math.random() * 10000)}`,
+      invoiceNumber: invoiceNumber,
       date: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-      customerId: customer ? customer.id : 'unknown',
-      prospectName: !customer ? quote.prospectName : undefined, 
-      items: quote.items,
-      amount: quote.amount,
-      status: 'Draft'
+      dueDate: quote.validUntil || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      customerId: customer.id,
+      prospectName: customer.gymName,
+      items: quote.items || [],
+      amount: Number(quote.amount) || 0,
+      subtotal: Number(quote.subtotal || quote.amount) || 0,
+      discount: Number(quote.discount || 0),
+      tax: Number(quote.tax || 0),
+      notes: quote.notes || '',
+      agreementTerms: quote.agreementTerms || quote.terms || '',
+      quotationId: quote.id,
+      quotationNumber: quote.quoteNumber,
+      status: 'Draft',
+      paidAmount: 0,
+      remainingBalance: Number(quote.amount) || 0,
+      createdAt: new Date().toISOString()
     };
 
     if (quote.items && quote.items.length > 0) {
@@ -2738,9 +3005,28 @@ export default function StoreContextProvider({ children }) {
 
     setInvoices(prev => [newInvoice, ...prev]);
     syncInvoiceToSupabase(newInvoice);
-    updateQuoteStatus(quoteId, 'Accepted');
-    addLog('System', `Converted Quote ${quote.quoteNumber} to Invoice ${newInvoice.invoiceNumber}`);
-    showNotification(`Converted! New invoice ${newInvoice.invoiceNumber} created.`);
+
+    // Maintain relationship: QT-XXXX -> INV-XXXX
+    const updatedQuote = {
+      ...quote,
+      status: 'Converted to Invoice',
+      convertedInvoiceId: newInvoice.id,
+      convertedInvoiceNumber: newInvoice.invoiceNumber,
+      convertedAt: new Date().toISOString()
+    };
+    setQuotes(prev => prev.map(q => q.id === quote.id ? updatedQuote : q));
+    syncQuoteToSupabase(updatedQuote);
+
+    addLog('System', `Converted Quotation #${quote.quoteNumber} into Invoice #${newInvoice.invoiceNumber}`);
+    addNotification({
+      type: 'success',
+      title: 'Invoice Generated',
+      message: `Invoice #${newInvoice.invoiceNumber} created from Quotation #${quote.quoteNumber}`,
+      link: '/invoices',
+      time: new Date().toISOString()
+    });
+
+    showNotification(`Invoice #${newInvoice.invoiceNumber} successfully created from quotation!`, 'success');
     return newInvoice;
   };
 
@@ -2819,6 +3105,241 @@ export default function StoreContextProvider({ children }) {
         return updatedInvoice;
       });
     });
+  };
+
+  // Enhanced Payment Recording supporting Full/Partial, Receipts, Renewal Frequency
+  const recordEnhancedPayment = async ({ customerId, documentId, amount, method = 'Cash', reference = '', notes = '', renewalFrequency = null, recordedBy = null }) => {
+    const paymentAmount = Number(amount) || 0;
+    if (paymentAmount <= 0) {
+      showNotification('Payment amount must be greater than zero.', 'error');
+      return null;
+    }
+
+    const inv = invoices.find(i => i.id === documentId);
+    const cust = customers.find(c => c.id === (customerId || inv?.customerId));
+
+    const existingPayments = payments.filter(p => p.documentId === documentId);
+    const existingPaid = existingPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const invoiceTotal = Number(inv?.amount || paymentAmount);
+    const outstandingBefore = Math.max(0, invoiceTotal - existingPaid);
+
+    if (paymentAmount > outstandingBefore && outstandingBefore > 0) {
+      showNotification(`Payment cannot exceed outstanding balance of LKR ${outstandingBefore.toLocaleString()}`, 'error');
+      return null;
+    }
+
+    const receiptSeq = (payments.length + 1001).toString();
+    const receiptNumber = `REC-${receiptSeq}`;
+    const paymentId = uuidv4();
+    const paymentTimestamp = new Date().toISOString();
+    const staffName = recordedBy || user?.name || user?.email || 'Staff';
+
+    const newPayment = {
+      id: paymentId,
+      receiptNumber,
+      timestamp: paymentTimestamp,
+      customerId: cust?.id || customerId,
+      documentId: documentId,
+      invoiceNumber: inv?.invoiceNumber || '',
+      amount: paymentAmount,
+      method: method || 'Cash',
+      reference: reference || '',
+      notes: notes || '',
+      recordedBy: staffName,
+      status: 'Completed'
+    };
+
+    setPayments(prev => [...prev, newPayment]);
+    syncPaymentToSupabase(newPayment);
+
+    const totalPaidAfter = existingPaid + paymentAmount;
+    const remainingAfter = Math.max(0, invoiceTotal - totalPaidAfter);
+    const newStatus = remainingAfter === 0 ? 'Paid' : 'Partially Paid';
+
+    if (inv) {
+      const updatedInv = {
+        ...inv,
+        status: newStatus,
+        paidAmount: totalPaidAfter,
+        remainingBalance: remainingAfter,
+        lastPaymentDate: paymentTimestamp,
+        paidAt: remainingAfter === 0 ? paymentTimestamp : inv.paidAt
+      };
+      setInvoices(prev => prev.map(i => i.id === inv.id ? updatedInv : i));
+      syncInvoiceToSupabase(updatedInv);
+      recalculateInvoiceBalanceAndInstallments(inv.id, paymentAmount);
+    }
+
+    // Renewal frequency calculation if set (or on first payment)
+    if (cust && renewalFrequency && renewalFrequency !== 'Keep Existing') {
+      const startDate = cust.purchaseDate || new Date().toISOString().split('T')[0];
+      let nextDate = null;
+      const startObj = new Date(startDate);
+      
+      if (renewalFrequency === 'Monthly') {
+        const d = new Date(startObj);
+        d.setMonth(d.getMonth() + 1);
+        nextDate = d.toISOString().split('T')[0];
+      } else if (renewalFrequency === 'Bi-Annual') {
+        const d = new Date(startObj);
+        d.setMonth(d.getMonth() + 6);
+        nextDate = d.toISOString().split('T')[0];
+      } else if (renewalFrequency === 'Annual') {
+        const d = new Date(startObj);
+        d.setFullYear(d.getFullYear() + 1);
+        nextDate = d.toISOString().split('T')[0];
+      } else if (renewalFrequency === 'One Time') {
+        nextDate = null;
+      }
+
+      const updatedCust = {
+        ...cust,
+        renewalFrequency,
+        renewalDate: nextDate,
+        lastRenewalDate: cust.lastRenewalDate || startDate,
+        renewalStatus: nextDate ? 'Active' : 'Completed'
+      };
+      setCustomers(prev => prev.map(c => c.id === cust.id ? updatedCust : c));
+      syncCustomerToSupabase(updatedCust);
+    }
+
+    // Journal Entry auto-post
+    try {
+      const targetAccount = method === 'Bank Transfer' ? '1020' : '1010';
+      createJournalEntry({
+        date: paymentTimestamp.split('T')[0],
+        reference: receiptNumber,
+        description: `Payment received for ${inv?.invoiceNumber || 'Invoice'} via ${method}`,
+        lines: [
+          { accountId: targetAccount, debit: paymentAmount, credit: 0 },
+          { accountId: '1100', debit: 0, credit: paymentAmount }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Auto-Post Error]', err);
+    }
+
+    addNotification({
+      type: 'success',
+      title: 'Payment Recorded',
+      message: `LKR ${paymentAmount.toLocaleString()} received for #${inv?.invoiceNumber || receiptNumber} (${method})`,
+      link: '/payments',
+      time: paymentTimestamp
+    });
+
+    addLog('Status', `Payment of LKR ${paymentAmount.toLocaleString()} recorded for ${inv?.invoiceNumber || 'Invoice'} by ${staffName}. Outstanding: LKR ${remainingAfter.toLocaleString()}`);
+
+    // Trigger SMS to customer
+    if (cust && cust.phone) {
+      triggerSMS('Payment', cust, { ...inv, amount: paymentAmount, remainingBalance: remainingAfter, receiptNumber });
+    }
+
+    showNotification(`Payment of LKR ${paymentAmount.toLocaleString()} recorded successfully!`, 'success');
+    return {
+      payment: newPayment,
+      receiptNumber,
+      remainingBalance: remainingAfter,
+      invoice: inv,
+      customer: cust
+    };
+  };
+
+  // 1-Click Renewal Invoice Generation
+  const generateRenewalInvoice = (customerOrInvoiceId) => {
+    let customer = customers.find(c => c.id === customerOrInvoiceId);
+    let previousInvoice = null;
+
+    if (!customer) {
+      previousInvoice = invoices.find(i => i.id === customerOrInvoiceId);
+      if (previousInvoice) {
+        customer = customers.find(c => c.id === previousInvoice.customerId);
+      }
+    } else {
+      previousInvoice = invoices
+        .filter(i => i.customerId === customer.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    }
+
+    if (!customer) {
+      showNotification('Customer record not found for renewal.', 'error');
+      return null;
+    }
+
+    const currentInvPrefix = smsConfig.invoicePrefix || 'INV-';
+    const currentInvNext = parseInt(smsConfig.nextInvoiceNumber || 1001);
+    const invoiceNumber = `${currentInvPrefix}${currentInvNext}`;
+    updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentInvNext + 1 });
+
+    const renewalItems = previousInvoice?.items?.length > 0
+      ? previousInvoice.items
+      : [{ name: `${customer.renewalFrequency || 'Annual'} Software & Support Renewal`, quantity: 1, price: customer.annualFee || 350000 }];
+
+    const amount = renewalItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+
+    const renewalInvoice = {
+      id: uuidv4(),
+      shareKey: generateShareKey(),
+      invoiceNumber: invoiceNumber,
+      date: new Date().toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      customerId: customer.id,
+      prospectName: customer.gymName,
+      items: renewalItems,
+      amount: amount,
+      subtotal: amount,
+      discount: 0,
+      tax: 0,
+      notes: `RENEWAL of ${previousInvoice?.invoiceNumber || 'previous contract'} (${customer.renewalFrequency || 'Annual'})`,
+      agreementTerms: previousInvoice?.agreementTerms || 'Standard annual service renewal agreement terms apply.',
+      previousInvoiceId: previousInvoice?.id || null,
+      previousInvoiceNumber: previousInvoice?.invoiceNumber || null,
+      status: 'Draft',
+      paidAmount: 0,
+      remainingBalance: amount,
+      createdAt: new Date().toISOString()
+    };
+
+    setInvoices(prev => [renewalInvoice, ...prev]);
+    syncInvoiceToSupabase(renewalInvoice);
+
+    // Calculate new next renewal date
+    const freq = customer.renewalFrequency || 'Annual';
+    const baseDate = new Date();
+    let nextRenewal = null;
+    if (freq === 'Monthly') {
+      const d = new Date(baseDate);
+      d.setMonth(d.getMonth() + 1);
+      nextRenewal = d.toISOString().split('T')[0];
+    } else if (freq === 'Bi-Annual') {
+      const d = new Date(baseDate);
+      d.setMonth(d.getMonth() + 6);
+      nextRenewal = d.toISOString().split('T')[0];
+    } else if (freq === 'Annual') {
+      const d = new Date(baseDate);
+      d.setFullYear(d.getFullYear() + 1);
+      nextRenewal = d.toISOString().split('T')[0];
+    }
+
+    const updatedCust = {
+      ...customer,
+      lastRenewalDate: new Date().toISOString().split('T')[0],
+      renewalDate: nextRenewal,
+      renewalStatus: 'Renewed'
+    };
+    setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCust : c));
+    syncCustomerToSupabase(updatedCust);
+
+    addLog('System', `Generated Renewal Invoice #${renewalInvoice.invoiceNumber} for ${customer.gymName} (Linked: RENEWAL of ${previousInvoice?.invoiceNumber || 'N/A'})`);
+    addNotification({
+      type: 'success',
+      title: 'Renewal Invoice Generated',
+      message: `Renewal Invoice #${renewalInvoice.invoiceNumber} generated for ${customer.gymName}`,
+      link: '/invoices',
+      time: new Date().toISOString()
+    });
+
+    showNotification(`Renewal Invoice #${renewalInvoice.invoiceNumber} generated successfully!`, 'success');
+    return renewalInvoice;
   };
 
   const recordCashDeposit = (data) => {
@@ -3802,12 +4323,12 @@ export default function StoreContextProvider({ children }) {
       customers, addCustomer, deleteCustomer, updateCustomer,
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
       invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
-      quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice,
+      quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice, acceptQuote, proposeBudget, rejectQuote, checkQuotationExpirations,
       leads, addLead, updateLead, deleteLead,
       expenses, addExpense, updateExpense, deleteExpense,
       tasks, addTask, updateTask, deleteTask,
       fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset,
-      payments, recordCashDeposit,
+      payments, recordCashDeposit, recordEnhancedPayment, generateRenewalInvoice,
       accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
       createJournalEntry, addAccount, updateAccount, deleteAccount, deleteJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
       activityLogs, addLog, recordAuditLog, clearActivityLogs,
@@ -3818,7 +4339,7 @@ export default function StoreContextProvider({ children }) {
       customRoles, addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole,
       theme, toggleTheme,
       notification, showNotification,
-      systemNotifications, markNotificationsRead,
+      systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,

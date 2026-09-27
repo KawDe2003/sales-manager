@@ -226,6 +226,7 @@ const Invoices = () => {
               }}
               onDownload={() => {
                 const docData = { ...invoice, gymName: getCustomerName(invoice.customerId) };
+                showNotification && showNotification(`Generating PDF for Invoice #${invoice.invoiceNumber || 'Document'}...`, 'info');
                 generateDocumentPDF('Invoice', docData, invoice.items || []);
               }}
             />

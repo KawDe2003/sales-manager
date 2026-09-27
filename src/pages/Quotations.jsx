@@ -1,8 +1,9 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag } from 'lucide-react';
+import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
+import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
 
 const Quotations = () => {
@@ -59,7 +60,7 @@ const Quotations = () => {
         </div>
 
         <div className="flex gap-2 flex-wrap" style={{ width: '100%', mdWidth: 'auto' }}>
-          {['All', 'Pending', 'Accepted', 'Rejected'].map(st => (
+          {['All', 'Draft', 'Sent', 'Pending', 'Counter Offer', 'Accepted', 'Rejected', 'Expired', 'Converted to Invoice'].map(st => (
             <button
               key={st}
               className={`btn ${statusFilter === st ? 'btn-primary' : 'btn-secondary'}`}
@@ -108,7 +109,10 @@ const Quotations = () => {
                 }
                 triggerSMS && triggerSMS('Quotation', null, quote);
               }}
-              onDownload={() => generateDocumentPDF('Quotation', quote, quote.items || [])}
+              onDownload={() => {
+                showNotification && showNotification(`Generating PDF for Quote #${quote.quoteNumber || 'Proposal'}...`, 'info');
+                generateDocumentPDF('Quotation', quote, quote.items || []);
+              }}
             />
           ));
         })()}
@@ -133,13 +137,27 @@ const Quotations = () => {
 const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, onSendSms, onDownload }) => {
   const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
+  const { smsConfig = {} } = useContext(StoreContext) || {};
   const isAccepted = quote.status === 'Accepted';
   const isRejected = quote.status === 'Rejected';
+  const isExpired = quote.status === 'Expired';
+  const hasCounterOffer = quote.status === 'Counter Offer' || (quote.counterOffers && quote.counterOffers.length > 0);
+  const latestCounterOffer = quote.lastCounterOffer || (quote.counterOffers && quote.counterOffers[0]);
+
+  const handleWhatsAppShare = () => {
+    const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${shareLink}\n\nThank you!`;
+    openWhatsApp({
+      phone: quote.prospectPhone || '',
+      text
+    });
+  };
   
   let borderLeftColor = 'var(--panel-border)';
   if (isAccepted) borderLeftColor = 'var(--success)';
   else if (isRejected) borderLeftColor = 'var(--danger)';
-  else borderLeftColor = 'var(--warning)'; // Pending
+  else if (hasCounterOffer) borderLeftColor = '#f59e0b';
+  else if (isExpired) borderLeftColor = '#94a3b8';
+  else borderLeftColor = 'var(--warning)';
 
   return (
     <div className="glass-panel hover-lift" style={{ 
@@ -179,9 +197,14 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
             value={quote.status || 'Pending'}
             onChange={(val) => updateQuoteStatus && updateQuoteStatus(quote.id, val)}
             options={[
+              { value: 'Draft', label: 'Draft' },
+              { value: 'Sent', label: 'Sent' },
               { value: 'Pending', label: 'Pending' },
+              { value: 'Counter Offer', label: 'Counter Offer' },
               { value: 'Accepted', label: 'Accepted' },
-              { value: 'Rejected', label: 'Rejected' }
+              { value: 'Rejected', label: 'Rejected' },
+              { value: 'Expired', label: 'Expired' },
+              { value: 'Converted to Invoice', label: 'Converted to Invoice' }
             ]}
             size="sm"
             style={{ minWidth: '120px' }}
@@ -194,6 +217,62 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           />
         </div>
       </div>
+
+      {/* COUNTER OFFER BANNER */}
+      {hasCounterOffer && latestCounterOffer && (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '12px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <AlertTriangle size={14} /> Customer Proposed Budget (Counter Offer)
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginTop: '4px' }}>
+              Proposed Budget: <strong style={{ color: '#f59e0b' }}>LKR {(Number(latestCounterOffer.proposedBudget) || 0).toLocaleString()}</strong>
+              {' '}(Original: LKR {(Number(quote.amount) || 0).toLocaleString()} • Diff: {(Number(latestCounterOffer.difference) || 0).toLocaleString()})
+            </div>
+            {latestCounterOffer.message && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                "{latestCounterOffer.message}"
+              </div>
+            )}
+            {latestCounterOffer.preferredChanges && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Preferred Changes: {latestCounterOffer.preferredChanges}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ background: 'var(--success)', border: 'none', padding: '6px 12px', fontSize: '0.75rem' }}
+              onClick={() => {
+                updateQuoteStatus(quote.id, 'Accepted');
+              }}
+            >
+              <CheckCircle size={14} /> Accept Offer
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+              onClick={onEdit}
+            >
+              <RefreshCw size={14} /> Revise Quote
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Detail & Action Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-between items-end md:items-center gap-4 pt-4 border-t border-panel">
@@ -217,6 +296,21 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
             <Eye size={16} className="text-accent" />
           </a>
           <button 
+            type="button"
+            className="btn" 
+            style={{ 
+              width: '40px', height: '40px', padding: 0, 
+              background: 'rgba(34, 197, 94, 0.15)', 
+              color: '#22c55e', 
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }} 
+            onClick={handleWhatsAppShare}
+            title="Share via WhatsApp"
+          >
+            <MessageCircle size={16} />
+          </button>
+          <button 
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
             onClick={() => {
@@ -237,14 +331,19 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
             <Download size={16} />
           </button>
           
-          {isAccepted && (
+          {(isAccepted || quote.status === 'Accepted') && quote.status !== 'Converted to Invoice' && !isExpired && (
              <button 
                className="btn btn-primary" 
                style={{ height: '40px', padding: '0 12px', background: 'var(--success)', border: 'none', flex: '1 0 auto' }} 
                onClick={() => convertQuoteToInvoice && convertQuoteToInvoice(quote.id)}
              >
-               <Receipt size={16} /> <span style={{ fontSize: '0.8rem' }}>Issue Invoice</span>
+               <Receipt size={16} /> <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Create Invoice</span>
              </button>
+          )}
+          {quote.status === 'Converted to Invoice' && (
+            <span className="badge badge-success" style={{ height: '40px', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 700 }}>
+              <Receipt size={14} /> Invoiced {quote.convertedInvoiceNumber ? `#${quote.convertedInvoiceNumber}` : ''}
+            </span>
           )}
         </div>
       </div>
@@ -267,7 +366,9 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
     items: initialItems,
     discount: initialDiscount,
     amount: initialData?.amount || 0,
-    agreementTerms: initialData?.agreementTerms || ''
+    validUntil: initialData?.validUntil || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    notes: initialData?.notes || '',
+    agreementTerms: initialData?.agreementTerms || '1. Validity: 30 days from date of issue.\n2. Payment Terms: 50% advance upon contract signing, balance on completion.\n3. Taxes: All rates quoted are in Sri Lankan Rupees (LKR).'
   });
 
   const [selectedInventoryId, setSelectedInventoryId] = useState('');
@@ -325,7 +426,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           onSave({ ...formData, items: finalItems }); 
           onClose(); 
         }} className="modal-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Quotation ID #</label>
               <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.quoteNumber} onChange={e => setFormData({...formData, quoteNumber: e.target.value})} />
@@ -333,6 +434,10 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Offer Date</label>
               <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Valid Until (Expiry Date)</label>
+              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.validUntil} onChange={e => setFormData({...formData, validUntil: e.target.value})} />
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import React, { useContext, useState, Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
@@ -171,6 +171,7 @@ const hasPermission = (userPermissions = [], required) => {
 const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   if (loading) {
     return <LoadingFallback />;
@@ -208,7 +209,7 @@ const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
 const AppContent = () => {
   const { 
     notification, theme, toggleTheme, smsConfig = {}, showNotification, 
-    isStoreLoading, systemNotifications = [], markNotificationsRead, 
+    isStoreLoading, systemNotifications = [], markNotificationsRead, markNotificationRead, 
     customers = [], invoices = [], leads = [], teamMembers = [], 
     customRoles = [], featureToggles = {},
     inventory = [], quotes = [], purchaseOrders = [],
@@ -545,47 +546,110 @@ const AppContent = () => {
             {theme === 'dark' ? <Sun size={16} className="text-secondary" /> : <Moon size={16} className="text-secondary" />}
           </button>
 
-          {/* Notifications */}
+          {/* In-App Notifications Feed (Section 9 Requirement) */}
           <div style={{ position: 'relative' }}>
             <button 
+              id="notification-bell-btn"
               className="btn btn-secondary" 
               style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
+              title="Recent Activity Alerts"
             >
               <Bell size={16} className="text-secondary" />
               {systemNotifications?.length > 0 && (
                 <span style={{
                   position: 'absolute', top: '-3px', right: '-3px',
-                  background: 'var(--danger)', color: 'white', fontSize: '0.6rem',
-                  fontWeight: 800, width: '16px', height: '16px', borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-primary)'
+                  background: 'var(--danger)', color: 'white', fontSize: '0.62rem',
+                  fontWeight: 800, minWidth: '18px', height: '18px', borderRadius: '9px',
+                  padding: '0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-primary)'
                 }}>{systemNotifications.length}</span>
               )}
             </button>
             
             {notificationsOpen && (
               <div className="glass-panel" style={{
-                position: 'absolute', top: '46px', right: '0', width: '340px', padding: '0',
+                position: 'absolute', top: '46px', right: '0', width: '380px', padding: '0',
                 zIndex: 1000, boxShadow: '0 25px 60px rgba(0,0,0,0.6)', border: '1px solid var(--panel-border)',
                 borderRadius: 'var(--radius-lg)', overflow: 'hidden'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
-                   <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Notifications</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
+                   <div className="flex items-center gap-2">
+                     <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
+                     {systemNotifications?.length > 0 && (
+                       <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
+                         {systemNotifications.length} new
+                       </span>
+                     )}
+                   </div>
                    {systemNotifications?.length > 0 && (
-                     <button onClick={markNotificationsRead} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Clear all</button>
+                     <button 
+                       onClick={() => { markNotificationsRead && markNotificationsRead(); }} 
+                       style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                     >
+                       Mark all read
+                     </button>
                    )}
                 </div>
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {systemNotifications?.length === 0 ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>All caught up — no new alerts</div>
+                <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                  {(!systemNotifications || systemNotifications.length === 0) ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      <CheckCircle size={32} style={{ margin: '0 auto 8px auto', opacity: 0.3, color: 'var(--success)' }} />
+                      All caught up — no new alerts
+                    </div>
                   ) : (
-                    systemNotifications.slice(0, 5).map(n => (
-                      <div key={n.id} style={{ display: 'flex', gap: '12px', padding: '14px 20px', borderBottom: '1px solid var(--subtle-border)' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', marginTop: '6px', flexShrink: 0, background: n.type === 'success' ? 'var(--success)' : 'var(--danger)' }}></div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>{n.message}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{new Date(n.time).toLocaleTimeString()}</div>
+                    systemNotifications.slice(0, 20).map(n => (
+                      <div 
+                        key={n.id} 
+                        style={{ 
+                          display: 'flex', gap: '12px', padding: '12px 18px', borderBottom: '1px solid var(--subtle-border)',
+                          cursor: n.link ? 'pointer' : 'default',
+                          transition: 'background 0.15s ease',
+                          background: 'rgba(255, 255, 255, 0.01)'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--subtle-bg)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)'; }}
+                        onClick={() => {
+                          if (n.link) {
+                            navigate(n.link);
+                            setNotificationsOpen(false);
+                          }
+                        }}
+                      >
+                        <div style={{ 
+                          width: '10px', height: '10px', borderRadius: '50%', marginTop: '5px', flexShrink: 0, 
+                          background: n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : n.type === 'info' ? 'var(--info)' : 'var(--danger)',
+                          boxShadow: `0 0 8px ${n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : 'var(--danger)'}`
+                        }}></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {n.title && (
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                              {n.title}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-secondary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                            {n.message}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>{new Date(n.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {n.link && <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>• View Details</span>}
+                          </div>
                         </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (markNotificationRead) markNotificationRead(n.id);
+                          }}
+                          style={{
+                            background: 'none', border: 'none', color: 'var(--text-muted)',
+                            cursor: 'pointer', padding: '2px 4px', borderRadius: '4px',
+                            height: 'fit-content', opacity: 0.6
+                          }}
+                          title="Dismiss notification"
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = 'var(--danger)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     ))
                   )}

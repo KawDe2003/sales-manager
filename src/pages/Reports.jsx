@@ -3,35 +3,47 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   BarChart3, TrendingUp, Users, AlertCircle, FileText, Target, Wallet, 
   Plus, Trash2, Download, Printer, FileSpreadsheet, Scale, CheckCircle2, 
-  Layers, RefreshCw, Calendar, ArrowUpRight, DollarSign, Building2, ShieldCheck, HelpCircle
+  Layers, RefreshCw, Calendar, ArrowUpRight, DollarSign, Building2, ShieldCheck, 
+  HelpCircle, UserCheck, Compass, Clock, Award
 } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '../utils/export';
-import { generateSLFRSFinancialStatementsPDF } from '../utils/pdfGenerator';
+import { 
+  generateSLFRSFinancialStatementsPDF,
+  generateSalesReportPDF,
+  generatePaymentReportPDF,
+  generateDebtorReportPDF,
+  generateRenewalReportPDF,
+  generateStaffPerformanceReportPDF,
+  generateLeadSourceReportPDF
+} from '../utils/pdfGenerator';
 import { generatePnLStatement, generateBalanceSheet, generateCashFlowStatement } from '../utils/slfrsEngine';
 import DatePicker from '../components/DatePicker';
+import CustomSelect from '../components/CustomSelect';
 
 const Reports = () => {
   const { 
     invoices = [], 
     customers = [], 
     quotes = [], 
+    payments = [],
     leads = [], 
     inventory = [],
     expenses = [],
     accounts = [],
     journalEntries = [],
     journalLines = [],
-    smsConfig = {},
-    getInvoicePaymentSummary
+    teamMembers = [],
+    smsConfig = {}
   } = useContext(StoreContext) || {};
 
-  // Active Tab: 'pnl' | 'balance_sheet' | 'cash_flow' | 'trial_balance' | 'kpi_overview'
-  const [activeTab, setActiveTab] = useState('pnl');
+  // Active Tab: 'sales' | 'payments' | 'debtors' | 'renewals' | 'staff_perf' | 'lead_source' | 'slfrs'
+  const [activeTab, setActiveTab] = useState('sales');
 
   // Shared Reporting Period Controls
   const [periodPreset, setPeriodPreset] = useState('this_year'); // 'this_month' | 'this_quarter' | 'this_year' | 'custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Dynamic Date Range Calculation
   const dateRange = useMemo(() => {
@@ -48,7 +60,6 @@ const Reports = () => {
       start = `${yr}-${String(mo + 1).padStart(2, '0')}-01`;
       end = new Date(yr, mo + 1, 0).toISOString().split('T')[0];
 
-      // Prior Month
       const pMo = mo === 0 ? 11 : mo - 1;
       const pYr = mo === 0 ? yr - 1 : yr;
       priorStart = `${pYr}-${String(pMo + 1).padStart(2, '0')}-01`;
@@ -81,7 +92,184 @@ const Reports = () => {
     return { startDate: start, endDate: end, priorStartDate: priorStart, priorEndDate: priorEnd, periodLabel };
   }, [periodPreset, customStartDate, customEndDate]);
 
-  // --- SLFRS / LKAS COMPUTATION ENGINE ---
+  // Helper date filter
+  const isDateInRange = (dateStr) => {
+    if (!dateStr || !dateRange.startDate || !dateRange.endDate) return true;
+    const d = dateStr.slice(0, 10);
+    return d >= dateRange.startDate && d <= dateRange.endDate;
+  };
+
+  // --- 1. SALES REPORT METRICS ---
+  const salesData = useMemo(() => {
+    const periodQuotes = quotes.filter(q => isDateInRange(q.date));
+    const periodInvoices = invoices.filter(i => isDateInRange(i.date));
+    const periodPayments = payments.filter(p => isDateInRange(p.timestamp));
+
+    const totalQuotes = periodQuotes.length;
+    const acceptedQuotes = periodQuotes.filter(q => q.status === 'Accepted' || q.status === 'Converted to Invoice').length;
+    const rejectedQuotes = periodQuotes.filter(q => q.status === 'Rejected').length;
+    const conversionRate = totalQuotes > 0 ? ((acceptedQuotes / totalQuotes) * 100).toFixed(1) : 0;
+
+    const totalInvoiced = periodInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const totalCollected = periodPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const totalOutstanding = Math.max(0, totalInvoiced - totalCollected);
+
+    return {
+      periodQuotes,
+      periodInvoices,
+      periodPayments,
+      totalQuotes,
+      acceptedQuotes,
+      rejectedQuotes,
+      conversionRate,
+      totalInvoiced,
+      totalCollected,
+      totalOutstanding
+    };
+  }, [quotes, invoices, payments, dateRange]);
+
+  // --- 2. PAYMENT REPORT DATA ---
+  const paymentReportData = useMemo(() => {
+    return payments
+      .filter(p => isDateInRange(p.timestamp))
+      .map(p => {
+        const cust = customers.find(c => c.id === p.customerId);
+        const inv = invoices.find(i => i.id === p.documentId);
+        return {
+          id: p.id,
+          receiptNumber: p.receiptNumber || 'REC',
+          date: p.timestamp ? p.timestamp.slice(0, 10) : '',
+          customerName: cust?.gymName || 'Valued Customer',
+          invoiceNumber: inv?.invoiceNumber || p.invoiceNumber || 'INV',
+          method: p.method || 'Cash',
+          reference: p.reference || '—',
+          amount: Number(p.amount) || 0,
+          recordedBy: p.recordedBy || 'Staff'
+        };
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [payments, customers, invoices, dateRange]);
+
+  // --- 3. DEBTOR REPORT DATA ---
+  const debtorReportData = useMemo(() => {
+    const list = [];
+    const now = new Date();
+
+    invoices.forEach(inv => {
+      if (inv.status === 'Paid' || inv.status === 'Closed' || inv.status === 'Cancelled') return;
+
+      const cust = customers.find(c => c.id === inv.customerId || c.gymName === inv.prospectName) || {
+        gymName: inv.prospectName || 'Valued Customer'
+      };
+
+      const invPayments = payments.filter(p => p.documentId === inv.id);
+      const paid = invPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      const total = Number(inv.amount) || 0;
+      const outstanding = Math.max(0, total - paid);
+
+      if (outstanding <= 0) return;
+
+      const dueDate = inv.dueDate ? new Date(inv.dueDate) : new Date(inv.date);
+      const daysOverdue = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+      list.push({
+        customer: cust,
+        invoice: inv,
+        total,
+        paid,
+        outstanding,
+        daysOverdue,
+        dueDateStr: inv.dueDate || 'N/A'
+      });
+    });
+
+    return list;
+  }, [invoices, customers, payments]);
+
+  // --- 4. RENEWAL REPORT DATA ---
+  const renewalReportData = useMemo(() => {
+    const now = new Date();
+    return customers
+      .filter(c => c.renewalFrequency && c.renewalFrequency !== 'None')
+      .map(c => {
+        const renDate = c.renewalDate ? new Date(c.renewalDate) : null;
+        const diffDays = renDate ? Math.ceil((renDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        let status = c.renewalStatus || 'Active';
+        if (renDate && diffDays < 0) status = 'Overdue';
+        else if (renDate && diffDays <= 30) status = 'Upcoming';
+
+        return {
+          id: c.id,
+          code: c.code || c.id,
+          customerName: c.gymName,
+          contactPerson: c.name,
+          phone: c.phone,
+          renewalFrequency: c.renewalFrequency,
+          renewalDate: c.renewalDate || 'N/A',
+          annualFee: Number(c.annualFee) || 350000,
+          status,
+          daysUntil: diffDays
+        };
+      })
+      .sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate));
+  }, [customers]);
+
+  // --- 5. STAFF PERFORMANCE REPORT DATA ---
+  const staffPerformanceData = useMemo(() => {
+    const staffList = teamMembers.length > 0 ? teamMembers : [
+      { id: '1', name: 'System Administrator' },
+      { id: '2', name: 'Sales Executive' },
+      { id: '3', name: 'Senior Accountant' }
+    ];
+
+    return staffList.map(member => {
+      // Find quotes associated with member or all if single user
+      const memberQuotes = quotes.filter(q => q.createdBy === member.id || q.createdBy === member.name || !q.createdBy);
+      const totalQuotes = memberQuotes.length;
+      const acceptedQuotes = memberQuotes.filter(q => q.status === 'Accepted' || q.status === 'Converted to Invoice').length;
+      const rejectedQuotes = memberQuotes.filter(q => q.status === 'Rejected').length;
+      const conversionRate = totalQuotes > 0 ? ((acceptedQuotes / totalQuotes) * 100).toFixed(1) : 0;
+
+      const memberInvoices = invoices.filter(i => i.createdBy === member.id || !i.createdBy);
+      const totalInvoiced = memberInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+      const memberPayments = payments.filter(p => p.recordedBy === member.name || !p.recordedBy);
+      const totalCollected = memberPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+      return {
+        staffName: member.name,
+        role: member.role || 'Staff',
+        totalQuotes,
+        acceptedQuotes,
+        rejectedQuotes,
+        conversionRate,
+        totalInvoiced,
+        totalCollected
+      };
+    });
+  }, [teamMembers, quotes, invoices, payments]);
+
+  // --- 6. LEAD SOURCE REPORT DATA ---
+  const leadSourceData = useMemo(() => {
+    const sources = ['Walk-in', 'Referral', 'Social Media', 'Website', 'Phone Call', 'Other'];
+    return sources.map(source => {
+      const srcCustomers = customers.filter(c => (c.leadSource || 'Walk-in') === source);
+      const custIds = new Set(srcCustomers.map(c => c.id));
+      const custNames = new Set(srcCustomers.map(c => c.gymName));
+
+      const srcInvoices = invoices.filter(i => custIds.has(i.customerId) || custNames.has(i.prospectName));
+      const totalRevenue = srcInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+      return {
+        source,
+        customerCount: srcCustomers.length,
+        totalRevenue,
+        avgDealSize: srcCustomers.length > 0 ? Math.round(totalRevenue / srcCustomers.length) : 0
+      };
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  }, [customers, invoices]);
+
+  // SLFRS STATEMENTS
   const pnlStatement = useMemo(() => {
     return generatePnLStatement({
       accounts,
@@ -116,154 +304,33 @@ const Reports = () => {
     });
   }, [accounts, journalEntries, journalLines, dateRange, pnlStatement, balanceSheet]);
 
-  // Trial balance from journal_lines
-  const trialBalance = useMemo(() => {
-    return accounts.map(acc => {
-      const accLines = journalLines.filter(l => l.accountId === acc.id);
-      const totalDebit = accLines.reduce((s, l) => s + Number(l.debit || 0), 0);
-      const totalCredit = accLines.reduce((s, l) => s + Number(l.credit || 0), 0);
-      const net = (acc.type === 'revenue' || acc.type === 'liability' || acc.type === 'equity')
-        ? totalCredit - totalDebit
-        : totalDebit - totalCredit;
-      return { ...acc, totalDebit, totalCredit, net };
-    });
-  }, [accounts, journalLines]);
-
-  const companyLegalName = smsConfig.companyName || 'Seynex Technology (Pvt) Ltd';
-
-  const handleExportPDF = () => {
-    generateSLFRSFinancialStatementsPDF({
-      companyName: companyLegalName,
-      periodLabel: dateRange.periodLabel,
-      pnl: pnlStatement,
-      balanceSheet,
-      cashFlow: cashFlowStatement
-    });
-  };
-
-  const fmtLKR = (val) => {
-    if (val === 0 || val === undefined || val === null) return '—';
-    const num = Number(val);
-    if (isNaN(num) || num === 0) return '—';
-    return num < 0 ? `(LKR ${Math.abs(num).toLocaleString()})` : `LKR ${num.toLocaleString()}`;
-  };
-
-  const fmtExpenseLKR = (val) => {
-    if (val === 0 || val === undefined || val === null) return '—';
-    const num = Number(val);
-    if (isNaN(num) || num === 0) return '—';
-    return `(LKR ${Math.abs(num).toLocaleString()})`;
-  };
-
-  const handleExportExcel = () => {
-    const pnlRows = [
-      { 'Line Item': 'Revenue', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.revenue, 'Prior Period': pnlStatement.prior.revenue },
-      { 'Line Item': 'Cost of Sales', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.costOfSales), 'Prior Period': -Math.abs(pnlStatement.prior.costOfSales) },
-      { 'Line Item': 'GROSS PROFIT', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.grossProfit, 'Prior Period': pnlStatement.prior.grossProfit },
-      { 'Line Item': 'Other Income', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.otherIncome, 'Prior Period': pnlStatement.prior.otherIncome },
-      { 'Line Item': 'Distribution Costs', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.distributionCosts), 'Prior Period': -Math.abs(pnlStatement.prior.distributionCosts) },
-      { 'Line Item': 'Administrative Expenses', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.adminExpenses), 'Prior Period': -Math.abs(pnlStatement.prior.adminExpenses) },
-      { 'Line Item': 'Other Expenses', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.otherExpenses), 'Prior Period': -Math.abs(pnlStatement.prior.otherExpenses) },
-      { 'Line Item': 'OPERATING PROFIT', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.operatingProfit, 'Prior Period': pnlStatement.prior.operatingProfit },
-      { 'Line Item': 'Finance Income', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.financeIncome, 'Prior Period': pnlStatement.prior.financeIncome },
-      { 'Line Item': 'Finance Costs', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.financeCosts), 'Prior Period': -Math.abs(pnlStatement.prior.financeCosts) },
-      { 'Line Item': 'PROFIT BEFORE TAX', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.profitBeforeTax, 'Prior Period': pnlStatement.prior.profitBeforeTax },
-      { 'Line Item': 'Income Tax Expense', [`Current Period (${dateRange.periodLabel})`]: -Math.abs(pnlStatement.current.taxExpense), 'Prior Period': -Math.abs(pnlStatement.prior.taxExpense) },
-      { 'Line Item': 'PROFIT FOR THE PERIOD', [`Current Period (${dateRange.periodLabel})`]: pnlStatement.current.profitForPeriod, 'Prior Period': pnlStatement.prior.profitForPeriod }
-    ];
-
-    const bsRows = [
-      { 'Classification': 'Non-Current Assets', 'Line Item': 'Property, Plant & Equipment (Net)', 'Amount (LKR)': balanceSheet.nonCurrentAssets.ppeNet },
-      { 'Classification': 'Non-Current Assets', 'Line Item': 'Intangible Assets', 'Amount (LKR)': balanceSheet.nonCurrentAssets.intangibles },
-      { 'Classification': 'Non-Current Assets', 'Line Item': 'Total Non-Current Assets', 'Amount (LKR)': balanceSheet.nonCurrentAssets.total },
-      { 'Classification': 'Current Assets', 'Line Item': 'Inventory', 'Amount (LKR)': balanceSheet.currentAssets.inventory },
-      { 'Classification': 'Current Assets', 'Line Item': 'Trade Receivables (AR)', 'Amount (LKR)': balanceSheet.currentAssets.tradeReceivables },
-      { 'Classification': 'Current Assets', 'Line Item': 'Cash and Cash Equivalents', 'Amount (LKR)': balanceSheet.currentAssets.cashAndEquivalents },
-      { 'Classification': 'Current Assets', 'Line Item': 'Total Current Assets', 'Amount (LKR)': balanceSheet.currentAssets.total },
-      { 'Classification': 'SUMMARY', 'Line Item': 'TOTAL ASSETS', 'Amount (LKR)': balanceSheet.totalAssets },
-      { 'Classification': 'Equity', 'Line Item': 'Stated Capital / Owner Equity', 'Amount (LKR)': balanceSheet.equity.statedCapital },
-      { 'Classification': 'Equity', 'Line Item': 'Retained Earnings (Rolled Forward)', 'Amount (LKR)': balanceSheet.equity.retainedEarningsRolled },
-      { 'Classification': 'Equity', 'Line Item': 'Total Equity', 'Amount (LKR)': balanceSheet.equity.total },
-      { 'Classification': 'Non-Current Liabilities', 'Line Item': 'Long-Term Loans', 'Amount (LKR)': balanceSheet.nonCurrentLiabilities.longTermLoans },
-      { 'Classification': 'Non-Current Liabilities', 'Line Item': 'Total Non-Current Liabilities', 'Amount (LKR)': balanceSheet.nonCurrentLiabilities.total },
-      { 'Classification': 'Current Liabilities', 'Line Item': 'Trade Payables (AP)', 'Amount (LKR)': balanceSheet.currentLiabilities.tradePayables },
-      { 'Classification': 'Current Liabilities', 'Line Item': 'Tax Payable', 'Amount (LKR)': balanceSheet.currentLiabilities.taxPayable },
-      { 'Classification': 'Current Liabilities', 'Line Item': 'Short-Term Borrowings', 'Amount (LKR)': balanceSheet.currentLiabilities.shortTermBorrowings },
-      { 'Classification': 'Current Liabilities', 'Line Item': 'Total Current Liabilities', 'Amount (LKR)': balanceSheet.currentLiabilities.total },
-      { 'Classification': 'SUMMARY', 'Line Item': 'TOTAL EQUITY & LIABILITIES', 'Amount (LKR)': balanceSheet.totalEquityAndLiabilities }
-    ];
-
-    const cfRows = [
-      { 'Classification': 'Operating Activities', 'Item': 'Profit Before Tax', 'Amount (LKR)': cashFlowStatement.operating.pbt },
-      { 'Classification': 'Operating Activities', 'Item': 'Depreciation & Amortisation', 'Amount (LKR)': cashFlowStatement.operating.depreciation },
-      { 'Classification': 'Operating Activities', 'Item': 'Finance Costs', 'Amount (LKR)': cashFlowStatement.operating.financeCosts },
-      { 'Classification': 'Operating Activities', 'Item': 'Operating Profit Before Working Capital Changes', 'Amount (LKR)': cashFlowStatement.operating.operatingProfitBeforeWC },
-      { 'Classification': 'Operating Activities', 'Item': '(Increase)/Decrease in Receivables', 'Amount (LKR)': cashFlowStatement.operating.deltaReceivables },
-      { 'Classification': 'Operating Activities', 'Item': '(Increase)/Decrease in Inventory', 'Amount (LKR)': cashFlowStatement.operating.deltaInventory },
-      { 'Classification': 'Operating Activities', 'Item': 'Increase/(Decrease) in Payables', 'Amount (LKR)': cashFlowStatement.operating.deltaPayables },
-      { 'Classification': 'Operating Activities', 'Item': 'Cash Generated from Operations', 'Amount (LKR)': cashFlowStatement.operating.cashGeneratedFromOps },
-      { 'Classification': 'Operating Activities', 'Item': 'Income Tax Paid', 'Amount (LKR)': -Math.abs(cashFlowStatement.operating.taxPaid) },
-      { 'Classification': 'Operating Activities', 'Item': 'Net Cash from Operating Activities', 'Amount (LKR)': cashFlowStatement.operating.netCashOperating },
-      { 'Classification': 'Investing Activities', 'Item': 'Purchase of Property, Plant & Equipment', 'Amount (LKR)': -Math.abs(cashFlowStatement.investing.ppePurchase) },
-      { 'Classification': 'Investing Activities', 'Item': 'Net Cash used in Investing Activities', 'Amount (LKR)': cashFlowStatement.investing.netCashInvesting },
-      { 'Classification': 'Financing Activities', 'Item': 'Proceeds from Borrowings', 'Amount (LKR)': cashFlowStatement.financing.loanProceeds },
-      { 'Classification': 'Financing Activities', 'Item': 'Repayment of Borrowings', 'Amount (LKR)': -Math.abs(cashFlowStatement.financing.loanRepayments) },
-      { 'Classification': 'Financing Activities', 'Item': 'Owner Drawings / Dividends Paid', 'Amount (LKR)': -Math.abs(cashFlowStatement.financing.drawingsPaid) },
-      { 'Classification': 'Financing Activities', 'Item': 'Net Cash from Financing Activities', 'Amount (LKR)': cashFlowStatement.financing.netCashFinancing },
-      { 'Classification': 'Summary', 'Item': 'NET INCREASE IN CASH', 'Amount (LKR)': cashFlowStatement.netIncreaseInCash },
-      { 'Classification': 'Summary', 'Item': 'Cash at Beginning of Period', 'Amount (LKR)': cashFlowStatement.cashAtBeginning },
-      { 'Classification': 'Summary', 'Item': 'CASH AND CASH EQUIVALENTS AT END', 'Amount (LKR)': cashFlowStatement.cashAtEndCalculated }
-    ];
-
-    const tbRows = trialBalance.map(acc => ({
-      'Account Code': acc.code,
-      'Account Name': acc.name,
-      'Account Type': (acc.type || '').toUpperCase(),
-      'SLFRS Category': acc.statement_category || 'General',
-      'Total Debit (LKR)': acc.totalDebit || 0,
-      'Total Credit (LKR)': acc.totalCredit || 0,
-      'Net Balance (LKR)': acc.net || 0
-    }));
-
-    exportToExcel(`SLFRS_Financial_Statements_${(dateRange.periodLabel || '2026').replace(/[^a-zA-Z0-9]/g, '_')}`, {
-      'Profit & Loss': pnlRows,
-      'Balance Sheet': bsRows,
-      'Cash Flows': cfRows,
-      'Trial Balance': tbRows
-    });
-  };
-
-  const handleExportCSV = () => {
-    let sumDebit = 0;
-    let sumCredit = 0;
-    const formatted = trialBalance.map(acc => {
-      sumDebit += Number(acc.totalDebit || 0);
-      sumCredit += Number(acc.totalCredit || 0);
-      return {
-        'Account Code': acc.code,
-        'Account Name': acc.name,
-        'Account Type': (acc.type || '').toUpperCase(),
-        'Category': acc.statement_category || 'General',
-        'Total Debit (LKR)': acc.totalDebit || 0,
-        'Total Credit (LKR)': acc.totalCredit || 0,
-        'Net Balance (LKR)': acc.net || 0
-      };
-    });
-    formatted.push({
-      'Account Code': 'TOTAL',
-      'Account Name': 'TOTAL TRIAL BALANCE',
-      'Account Type': '',
-      'Category': '',
-      'Total Debit (LKR)': sumDebit,
-      'Total Credit (LKR)': sumCredit,
-      'Net Balance (LKR)': sumDebit - sumCredit
-    });
-    exportToCSV('Trial_Balance_Audit_Ledger', formatted);
+  const handleExportActivePDF = () => {
+    if (activeTab === 'sales') {
+      generateSalesReportPDF(salesData, dateRange.periodLabel);
+    } else if (activeTab === 'payments') {
+      generatePaymentReportPDF(paymentReportData, dateRange.periodLabel);
+    } else if (activeTab === 'debtors') {
+      const tot = debtorReportData.reduce((s, d) => s + d.outstanding, 0);
+      generateDebtorReportPDF(debtorReportData, tot);
+    } else if (activeTab === 'renewals') {
+      generateRenewalReportPDF(renewalReportData, dateRange.periodLabel);
+    } else if (activeTab === 'staff_perf') {
+      generateStaffPerformanceReportPDF(staffPerformanceData, dateRange.periodLabel);
+    } else if (activeTab === 'lead_source') {
+      generateLeadSourceReportPDF(leadSourceData, dateRange.periodLabel);
+    } else if (activeTab === 'slfrs') {
+      generateSLFRSFinancialStatementsPDF({
+        companyName: smsConfig.companyName || 'Seynex Technology (Pvt) Ltd',
+        periodLabel: dateRange.periodLabel,
+        pnl: pnlStatement,
+        balanceSheet,
+        cashFlow: cashFlowStatement
+      });
+    }
   };
 
   return (
     <div style={{ animation: 'fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '40px' }}>
-      
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
@@ -273,42 +340,26 @@ const Reports = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>SLFRS / LKAS Compliant</span>
-                <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>General Ledger Audited</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Enterprise Intelligence</span>
+                <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Live Database Connected</span>
               </div>
-              <h1 className="h1" style={{ margin: 0 }}>Financial Statements Suite</h1>
+              <h1 className="h1" style={{ margin: 0 }}>Business Reports & Analytics</h1>
             </div>
           </div>
           <p className="text-secondary" style={{ fontSize: '0.9rem', margin: 0 }}>
-            Official financial statements for <strong>{companyLegalName}</strong> prepared in accordance with Sri Lanka Accounting Standards (SLFRS/LKAS 1 & LKAS 7).
+            Real-time sales, collections, aging debtor ledgers, recurring renewals, and audit-ready SLFRS financial statements.
           </p>
         </div>
 
-        {/* EXPORT ACTION BUTTONS */}
+        {/* EXPORT ACTION BUTTON */}
         <div className="flex items-center gap-3">
           <button 
             type="button" 
             className="btn btn-primary" 
-            onClick={handleExportPDF}
-            style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px' }}
+            onClick={handleExportActivePDF}
+            style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px', fontWeight: 800 }}
           >
-            <Download size={16} /> Export Official SLFRS PDF
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            onClick={handleExportExcel}
-            style={{ padding: '10px 16px', fontSize: '0.88rem', gap: '6px', color: 'var(--success)' }}
-          >
-            <FileSpreadsheet size={16} /> Excel (.xlsx)
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            onClick={handleExportCSV}
-            style={{ padding: '10px 16px', fontSize: '0.88rem', gap: '6px' }}
-          >
-            <FileText size={16} /> CSV
+            <Download size={16} /> Export Active Report PDF
           </button>
         </div>
       </div>
@@ -345,13 +396,13 @@ const Reports = () => {
         {periodPreset === 'custom' && (
           <div className="flex items-center gap-4 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--panel-border)', marginTop: '8px' }}>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>Start Date:</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Start Date:</span>
               <div style={{ width: '180px' }}>
                 <DatePicker value={customStartDate} onChange={setCustomStartDate} placeholder="Start Date" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>End Date:</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>End Date:</span>
               <div style={{ width: '180px' }}>
                 <DatePicker value={customEndDate} onChange={setCustomEndDate} placeholder="End Date" />
               </div>
@@ -360,496 +411,316 @@ const Reports = () => {
         )}
       </div>
 
-      {/* NAVIGATION STATEMENT TABS */}
+      {/* REPORT MODULE NAVIGATION TABS */}
       <div className="glass-panel" style={{ padding: '6px', marginBottom: '24px', display: 'flex', gap: '6px', overflowX: 'auto' }}>
-        <button 
-          className={`btn ${activeTab === 'pnl' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1, padding: '10px 16px', fontSize: '0.86rem', borderRadius: '10px', justifyContent: 'center' }}
-          onClick={() => setActiveTab('pnl')}
-        >
-          <BarChart3 size={16} /> 1. Profit or Loss (LKAS 1)
-        </button>
-        <button 
-          className={`btn ${activeTab === 'balance_sheet' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1, padding: '10px 16px', fontSize: '0.86rem', borderRadius: '10px', justifyContent: 'center' }}
-          onClick={() => setActiveTab('balance_sheet')}
-        >
-          <Building2 size={16} /> 2. Financial Position / Balance Sheet
-        </button>
-        <button 
-          className={`btn ${activeTab === 'cash_flow' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1, padding: '10px 16px', fontSize: '0.86rem', borderRadius: '10px', justifyContent: 'center' }}
-          onClick={() => setActiveTab('cash_flow')}
-        >
-          <Wallet size={16} /> 3. Statement of Cash Flows (LKAS 7)
-        </button>
-        <button 
-          className={`btn ${activeTab === 'trial_balance' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1, padding: '10px 16px', fontSize: '0.86rem', borderRadius: '10px', justifyContent: 'center' }}
-          onClick={() => setActiveTab('trial_balance')}
-        >
-          <Layers size={16} /> 4. Ledger & Trial Balance
-        </button>
+        {[
+          { id: 'sales', label: 'Sales Report', icon: TrendingUp },
+          { id: 'payments', label: 'Payment Ledger', icon: DollarSign },
+          { id: 'debtors', label: 'Debtors & Aging', icon: AlertCircle },
+          { id: 'renewals', label: 'Renewals & Recurring', icon: Clock },
+          { id: 'staff_perf', label: 'Staff Performance', icon: UserCheck },
+          { id: 'lead_source', label: 'Lead Source ROI', icon: Compass },
+          { id: 'slfrs', label: 'SLFRS Financials', icon: Scale }
+        ].map(t => (
+          <button
+            key={t.id}
+            type="button"
+            className={`btn ${activeTab === t.id ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: 1, padding: '10px 14px', fontSize: '0.84rem', borderRadius: '10px', justifyContent: 'center', whiteSpace: 'nowrap', gap: '6px' }}
+            onClick={() => setActiveTab(t.id)}
+          >
+            <t.icon size={15} /> {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* ========================================================================= */}
-      {/* TAB 1: STATEMENT OF PROFIT OR LOSS (LKAS 1) */}
-      {/* ========================================================================= */}
-      {activeTab === 'pnl' && (
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <div className="flex justify-between items-center mb-6" style={{ paddingBottom: '14px', borderBottom: '1px solid var(--panel-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>LKAS 1 Standard</div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Statement of Profit or Loss</h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>For the period ended {dateRange.endDate || 'Current Period'}</p>
+      {/* TAB CONTENT 1: SALES REPORT */}
+      {activeTab === 'sales' && (
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Quotations Issued</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>{salesData.totalQuotes}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{salesData.acceptedQuotes} Accepted • {salesData.rejectedQuotes} Rejected</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Accounting Standard</div>
-              <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>LKAS 1 (Sri Lanka)</strong>
+
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid var(--accent-primary)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Conversion Rate</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-primary)', marginTop: '4px' }}>{salesData.conversionRate}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Accepted / Total Issued</div>
             </div>
-          </div>
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '50%' }}>Line Item Classification</th>
-                  <th style={{ textAlign: 'right', width: '25%' }}>Current Period ({dateRange.periodLabel})</th>
-                  <th style={{ textAlign: 'right', width: '25%' }}>Prior Comparative Period</th>
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: '0.9rem' }}>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Revenue</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>{fmtLKR(pnlStatement.current.revenue)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.revenue)}</td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: 600 }}>Cost of Sales</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.costOfSales)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.costOfSales)}</td>
-                </tr>
-                <tr style={{ background: 'var(--subtle-bg)', borderTop: '1px solid var(--panel-border)', borderBottom: '1px solid var(--panel-border)' }}>
-                  <td style={{ fontWeight: 850, fontSize: '0.95rem' }}>GROSS PROFIT</td>
-                  <td style={{ textAlign: 'right', fontWeight: 850, fontSize: '0.95rem', color: pnlStatement.current.grossProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                    {fmtLKR(pnlStatement.current.grossProfit)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.grossProfit)}</td>
-                </tr>
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid var(--success)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Total Invoiced</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>
+                LKR {salesData.totalInvoiced.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '4px' }}>Collected: LKR {salesData.totalCollected.toLocaleString()}</div>
+            </div>
 
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Other Income</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(pnlStatement.current.otherIncome)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.otherIncome)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Distribution Costs</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.distributionCosts)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.distributionCosts)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Administrative Expenses</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.adminExpenses)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.adminExpenses)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Other Expenses</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.otherExpenses)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.otherExpenses)}</td>
-                </tr>
-
-                <tr style={{ background: 'var(--subtle-bg)', borderTop: '1px solid var(--panel-border)', borderBottom: '1px solid var(--panel-border)' }}>
-                  <td style={{ fontWeight: 850, fontSize: '0.95rem' }}>OPERATING PROFIT</td>
-                  <td style={{ textAlign: 'right', fontWeight: 850, fontSize: '0.95rem', color: pnlStatement.current.operatingProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                    {fmtLKR(pnlStatement.current.operatingProfit)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.operatingProfit)}</td>
-                </tr>
-
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Finance Income</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(pnlStatement.current.financeIncome)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.financeIncome)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Finance Costs</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.financeCosts)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.financeCosts)}</td>
-                </tr>
-
-                <tr style={{ background: 'rgba(99, 102, 241, 0.08)', borderTop: '2px solid var(--accent-primary)' }}>
-                  <td style={{ fontWeight: 850, fontSize: '1rem', color: 'var(--accent-primary)' }}>PROFIT BEFORE TAX</td>
-                  <td style={{ textAlign: 'right', fontWeight: 850, fontSize: '1rem', color: 'var(--accent-primary)' }}>
-                    {fmtLKR(pnlStatement.current.profitBeforeTax)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.profitBeforeTax)}</td>
-                </tr>
-
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--text-secondary)' }}>Income Tax Expense</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(pnlStatement.current.taxExpense)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtExpenseLKR(pnlStatement.prior.taxExpense)}</td>
-                </tr>
-
-                <tr style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(99, 102, 241, 0.15))', borderTop: '2px solid var(--success)', borderBottom: '2px double var(--success)' }}>
-                  <td style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--text-primary)' }}>PROFIT FOR THE PERIOD</td>
-                  <td style={{ textAlign: 'right', fontWeight: 900, fontSize: '1.05rem', color: pnlStatement.current.profitForPeriod >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                    {fmtLKR(pnlStatement.current.profitForPeriod)}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text-muted)' }}>{fmtLKR(pnlStatement.prior.profitForPeriod)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ marginTop: '20px', padding: '14px', background: 'var(--subtle-bg)', borderRadius: '12px', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <HelpCircle size={16} color="var(--accent-primary)" />
-            <span>Note: Depreciation & Amortisation included within Administrative Expenses for the period: <strong>{fmtLKR(pnlStatement.current.depreciationDisclosed)}</strong>.</span>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2: STATEMENT OF FINANCIAL POSITION / BALANCE SHEET (LKAS 1) */}
-      {/* ========================================================================= */}
-      {activeTab === 'balance_sheet' && (
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <div className="flex justify-between items-center mb-6" style={{ paddingBottom: '14px', borderBottom: '1px solid var(--panel-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>LKAS 1 Standard</div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Statement of Financial Position (Balance Sheet)</h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ending balances as at {dateRange.endDate || 'Current Date'}</p>
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid var(--danger)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Outstanding Receivables</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--danger)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>
+                LKR {salesData.totalOutstanding.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Net Pending Balance</div>
             </div>
           </div>
 
-          {/* BALANCE CHECK VALIDATION BANNER */}
-          <div style={{
-            padding: '14px 18px', borderRadius: '14px', marginBottom: '24px',
-            background: balanceSheet.isBalanced ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.15)',
-            border: `1px solid ${balanceSheet.isBalanced ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.4)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-          }}>
-            <div className="flex items-center gap-3">
-              {balanceSheet.isBalanced ? (
-                <CheckCircle2 size={22} color="var(--success)" />
-              ) : (
-                <AlertCircle size={22} color="var(--danger)" />
-              )}
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: balanceSheet.isBalanced ? 'var(--success)' : 'var(--danger)' }}>
-                  {balanceSheet.isBalanced ? "✓ BALANCE SHEET BALANCED" : "⚠️ UNBALANCED SHEET ERROR DETECTED"}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Total Assets: <strong>{fmtLKR(balanceSheet.totalAssets)}</strong> | Total Equity & Liabilities: <strong>{fmtLKR(balanceSheet.totalEquityAndLiabilities)}</strong>
-                </div>
-              </div>
+          <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="h3" style={{ margin: 0 }}>Period Invoices ({salesData.periodInvoices.length})</h3>
             </div>
-            {!balanceSheet.isBalanced && (
-              <span className="badge badge-danger">Discrepancy: {fmtLKR(balanceSheet.discrepancy)}</span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* ASSETS COLUMN */}
-            <div>
-              <h3 className="h3 mb-3" style={{ fontSize: '1.05rem', color: 'var(--accent-primary)', borderBottom: '2px solid var(--accent-primary)', paddingBottom: '6px' }}>
-                ASSETS
-              </h3>
-
-              {/* Non-Current Assets */}
-              <div className="mb-4">
-                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Non-Current Assets</div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Property, Plant & Equipment (Net)</span>
-                  <span>{fmtLKR(balanceSheet.nonCurrentAssets.ppeNet)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Intangible Assets</span>
-                  <span>{fmtLKR(balanceSheet.nonCurrentAssets.intangibles)}</span>
-                </div>
-                <div className="flex justify-between font-bold py-1" style={{ fontSize: '0.88rem', borderTop: '1px solid var(--subtle-border)' }}>
-                  <span>Total Non-Current Assets</span>
-                  <span>{fmtLKR(balanceSheet.nonCurrentAssets.total)}</span>
-                </div>
-              </div>
-
-              {/* Current Assets */}
-              <div className="mb-4">
-                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Current Assets</div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Inventory</span>
-                  <span>{fmtLKR(balanceSheet.currentAssets.inventory)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Trade Receivables (Accounts Receivable)</span>
-                  <span>{fmtLKR(balanceSheet.currentAssets.tradeReceivables)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Cash and Cash Equivalents</span>
-                  <span>{fmtLKR(balanceSheet.currentAssets.cashAndEquivalents)}</span>
-                </div>
-                <div className="flex justify-between font-bold py-1" style={{ fontSize: '0.88rem', borderTop: '1px solid var(--subtle-border)' }}>
-                  <span>Total Current Assets</span>
-                  <span>{fmtLKR(balanceSheet.currentAssets.total)}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between p-3 rounded-lg" style={{ background: 'var(--subtle-bg)', border: '1px solid var(--accent-primary)', fontWeight: 900, fontSize: '1rem' }}>
-                <span>TOTAL ASSETS</span>
-                <span style={{ color: 'var(--accent-primary)' }}>{fmtLKR(balanceSheet.totalAssets)}</span>
-              </div>
-            </div>
-
-            {/* EQUITY AND LIABILITIES COLUMN */}
-            <div>
-              <h3 className="h3 mb-3" style={{ fontSize: '1.05rem', color: '#a855f7', borderBottom: '2px solid #a855f7', paddingBottom: '6px' }}>
-                EQUITY AND LIABILITIES
-              </h3>
-
-              {/* Equity */}
-              <div className="mb-4">
-                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Equity</div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Stated Capital / Owner's Equity</span>
-                  <span>{fmtLKR(balanceSheet.equity.statedCapital)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Retained Earnings (Rolled Forward)</span>
-                  <span>{fmtLKR(balanceSheet.equity.retainedEarningsRolled)}</span>
-                </div>
-                <div className="flex justify-between font-bold py-1" style={{ fontSize: '0.88rem', borderTop: '1px solid var(--subtle-border)' }}>
-                  <span>Total Equity</span>
-                  <span>{fmtLKR(balanceSheet.equity.total)}</span>
-                </div>
-              </div>
-
-              {/* Non-Current Liabilities */}
-              <div className="mb-4">
-                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Non-Current Liabilities</div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Long-Term Loans</span>
-                  <span>{fmtLKR(balanceSheet.nonCurrentLiabilities.longTermLoans)}</span>
-                </div>
-                <div className="flex justify-between font-bold py-1" style={{ fontSize: '0.88rem', borderTop: '1px solid var(--subtle-border)' }}>
-                  <span>Total Non-Current Liabilities</span>
-                  <span>{fmtLKR(balanceSheet.nonCurrentLiabilities.total)}</span>
-                </div>
-              </div>
-
-              {/* Current Liabilities */}
-              <div className="mb-4">
-                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Current Liabilities</div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Trade Payables (Accounts Payable)</span>
-                  <span>{fmtLKR(balanceSheet.currentLiabilities.tradePayables)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Tax Payable</span>
-                  <span>{fmtLKR(balanceSheet.currentLiabilities.taxPayable)}</span>
-                </div>
-                <div className="flex justify-between text-secondary py-1" style={{ fontSize: '0.85rem' }}>
-                  <span>Short-Term Borrowings</span>
-                  <span>{fmtLKR(balanceSheet.currentLiabilities.shortTermBorrowings)}</span>
-                </div>
-                <div className="flex justify-between font-bold py-1" style={{ fontSize: '0.88rem', borderTop: '1px solid var(--subtle-border)' }}>
-                  <span>Total Current Liabilities</span>
-                  <span>{fmtLKR(balanceSheet.currentLiabilities.total)}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between p-3 rounded-lg" style={{ background: 'var(--subtle-bg)', border: '1px solid #a855f7', fontWeight: 900, fontSize: '1rem' }}>
-                <span>TOTAL EQUITY AND LIABILITIES</span>
-                <span style={{ color: '#a855f7' }}>{fmtLKR(balanceSheet.totalEquityAndLiabilities)}</span>
-              </div>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Total (LKR)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesData.periodInvoices.map(inv => (
+                    <tr key={inv.id}>
+                      <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>#{inv.invoiceNumber}</td>
+                      <td>{inv.date}</td>
+                      <td style={{ fontWeight: 700 }}>{inv.prospectName}</td>
+                      <td style={{ fontWeight: 800 }}>LKR {(Number(inv.amount) || 0).toLocaleString()}</td>
+                      <td><span className={`badge badge-${inv.status === 'Paid' ? 'success' : 'warning'}`}>{inv.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 3: STATEMENT OF CASH FLOWS (LKAS 7 - INDIRECT METHOD) */}
-      {/* ========================================================================= */}
-      {activeTab === 'cash_flow' && (
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <div className="flex justify-between items-center mb-6" style={{ paddingBottom: '14px', borderBottom: '1px solid var(--panel-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>LKAS 7 Indirect Method</div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Statement of Cash Flows</h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Reconciliation for the period ended {dateRange.endDate || 'Current Period'}</p>
-            </div>
+      {/* TAB CONTENT 2: PAYMENT REPORT */}
+      {activeTab === 'payments' && (
+        <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+            <h3 className="h3" style={{ margin: 0 }}>Payments Collected ({paymentReportData.length})</h3>
           </div>
-
-          {/* CASH RECONCILIATION BANNER */}
-          <div style={{
-            padding: '14px 18px', borderRadius: '14px', marginBottom: '24px',
-            background: cashFlowStatement.isReconciled ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-            border: `1px solid ${cashFlowStatement.isReconciled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.4)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-          }}>
-            <div className="flex items-center gap-3">
-              {cashFlowStatement.isReconciled ? (
-                <CheckCircle2 size={22} color="var(--success)" />
-              ) : (
-                <AlertCircle size={22} color="var(--warning)" />
-              )}
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: cashFlowStatement.isReconciled ? 'var(--success)' : 'var(--warning)' }}>
-                  {cashFlowStatement.isReconciled ? "✓ CASH RECONCILED WITH GENERAL LEDGER" : "⚠️ CASH DISCREPANCY DETECTED"}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Ending Cash Flow: <strong>{fmtLKR(cashFlowStatement.cashAtEndCalculated)}</strong> | Ledger Cash + Bank Sum: <strong>{fmtLKR(cashFlowStatement.cashAtEndActual)}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Cash Flow Activity Classification</th>
-                  <th style={{ textAlign: 'right' }}>Amount (LKR)</th>
+                  <th>Receipt #</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Invoice Ref</th>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th>Amount</th>
+                  <th>Recorded By</th>
                 </tr>
               </thead>
-              <tbody style={{ fontSize: '0.9rem' }}>
-                <tr style={{ background: 'var(--subtle-bg)' }}>
-                  <td colSpan={2} style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>1. Cash Flows from Operating Activities</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px' }}>Profit Before Tax</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmtLKR(cashFlowStatement.operating.pbt)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>Adjustments for: Depreciation and Amortisation</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.operating.depreciation)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>Adjustments for: Finance Costs</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.operating.financeCosts)}</td>
-                </tr>
-                <tr style={{ borderTop: '1px solid var(--subtle-border)' }}>
-                  <td style={{ paddingLeft: '20px', fontWeight: 700 }}>Operating Profit Before Working Capital Changes</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmtLKR(cashFlowStatement.operating.operatingProfitBeforeWC)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>(Increase)/Decrease in Trade Receivables</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.operating.deltaReceivables)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>(Increase)/Decrease in Inventory</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.operating.deltaInventory)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>Increase/(Decrease) in Trade Payables</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.operating.deltaPayables)}</td>
-                </tr>
-                <tr style={{ borderTop: '1px solid var(--subtle-border)' }}>
-                  <td style={{ paddingLeft: '20px', fontWeight: 700 }}>Cash Generated from Operations</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmtLKR(cashFlowStatement.operating.cashGeneratedFromOps)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px', color: 'var(--danger)' }}>Income Tax Paid</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.operating.taxPaid)}</td>
-                </tr>
-                <tr style={{ background: 'rgba(99, 102, 241, 0.08)', fontWeight: 800 }}>
-                  <td style={{ paddingLeft: '20px' }}>Net Cash from Operating Activities</td>
-                  <td style={{ textAlign: 'right', color: 'var(--accent-primary)' }}>{fmtLKR(cashFlowStatement.operating.netCashOperating)}</td>
-                </tr>
-
-                <tr style={{ background: 'var(--subtle-bg)' }}>
-                  <td colSpan={2} style={{ fontWeight: 800, color: '#a855f7' }}>2. Cash Flows from Investing Activities</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px' }}>Purchase of Property, Plant & Equipment</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.investing.ppePurchase)}</td>
-                </tr>
-                <tr style={{ background: 'rgba(168, 85, 247, 0.08)', fontWeight: 800 }}>
-                  <td style={{ paddingLeft: '20px' }}>Net Cash used in Investing Activities</td>
-                  <td style={{ textAlign: 'right', color: '#a855f7' }}>{fmtLKR(cashFlowStatement.investing.netCashInvesting)}</td>
-                </tr>
-
-                <tr style={{ background: 'var(--subtle-bg)' }}>
-                  <td colSpan={2} style={{ fontWeight: 800, color: 'var(--success)' }}>3. Cash Flows from Financing Activities</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px' }}>Proceeds from Borrowings</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.financing.loanProceeds)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px' }}>Repayment of Borrowings</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.financing.loanRepayments)}</td>
-                </tr>
-                <tr>
-                  <td style={{ paddingLeft: '20px' }}>Owner's Drawings / Dividends Paid</td>
-                  <td style={{ textAlign: 'right', color: 'var(--danger)' }}>{fmtExpenseLKR(cashFlowStatement.financing.drawingsPaid)}</td>
-                </tr>
-                <tr style={{ background: 'rgba(16, 185, 129, 0.08)', fontWeight: 800 }}>
-                  <td style={{ paddingLeft: '20px' }}>Net Cash from/(used in) Financing Activities</td>
-                  <td style={{ textAlign: 'right', color: 'var(--success)' }}>{fmtLKR(cashFlowStatement.financing.netCashFinancing)}</td>
-                </tr>
-
-                <tr style={{ borderTop: '2px solid var(--panel-border)', fontWeight: 850 }}>
-                  <td>NET INCREASE IN CASH AND CASH EQUIVALENTS</td>
-                  <td style={{ textAlign: 'right', fontWeight: 850 }}>{fmtLKR(cashFlowStatement.netIncreaseInCash)}</td>
-                </tr>
-                <tr>
-                  <td>Cash and Cash Equivalents at Beginning of Period</td>
-                  <td style={{ textAlign: 'right' }}>{fmtLKR(cashFlowStatement.cashAtBeginning)}</td>
-                </tr>
-                <tr style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(16, 185, 129, 0.15))', borderTop: '2px solid var(--accent-primary)', borderBottom: '2px double var(--accent-primary)' }}>
-                  <td style={{ fontWeight: 900, fontSize: '1rem' }}>CASH AND CASH EQUIVALENTS AT END OF PERIOD</td>
-                  <td style={{ textAlign: 'right', fontWeight: 900, fontSize: '1rem', color: 'var(--success)' }}>{fmtLKR(cashFlowStatement.cashAtEndCalculated)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: GENERAL LEDGER & TRIAL BALANCE AUDIT */}
-      {/* ========================================================================= */}
-      {activeTab === 'trial_balance' && (
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <div className="flex justify-between items-center mb-6" style={{ paddingBottom: '14px', borderBottom: '1px solid var(--panel-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Audit Ledger</div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>General Ledger Trial Balance</h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Raw double-entry debit/credit postings across chart of accounts</p>
-            </div>
-          </div>
-
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Account Name</th>
-                  <th>Classification</th>
-                  <th>SLFRS Category</th>
-                  <th style={{ textAlign: 'right' }}>Total Debit</th>
-                  <th style={{ textAlign: 'right' }}>Total Credit</th>
-                  <th style={{ textAlign: 'right' }}>Net Balance</th>
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: '0.85rem' }}>
-                {trialBalance.map(acc => (
-                  <tr key={acc.id}>
-                    <td><code>{acc.code}</code></td>
-                    <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{acc.name}</td>
-                    <td>
-                      <span className="badge badge-secondary" style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}>{acc.type}</span>
-                    </td>
-                    <td>
-                      <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>{acc.statement_category}</span>
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{acc.totalDebit > 0 ? fmtLKR(acc.totalDebit) : '—'}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{acc.totalCredit > 0 ? fmtLKR(acc.totalCredit) : '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 800, color: acc.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmtLKR(acc.net)}</td>
+              <tbody>
+                {paymentReportData.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>{p.receiptNumber}</td>
+                    <td>{p.date}</td>
+                    <td style={{ fontWeight: 700 }}>{p.customerName}</td>
+                    <td>#{p.invoiceNumber}</td>
+                    <td><span className="badge badge-neutral">{p.method}</span></td>
+                    <td>{p.reference}</td>
+                    <td style={{ fontWeight: 850, color: 'var(--success)' }}>LKR {p.amount.toLocaleString()}</td>
+                    <td>{p.recordedBy}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 3: DEBTOR REPORT */}
+      {activeTab === 'debtors' && (
+        <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="h3" style={{ margin: 0 }}>Debtors & Overdue Aging List ({debtorReportData.length})</h3>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Invoice #</th>
+                  <th>Due Date</th>
+                  <th>Invoice Total</th>
+                  <th>Paid</th>
+                  <th>Outstanding</th>
+                  <th>Overdue Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {debtorReportData.map((d, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 800 }}>{d.customer.gymName}</td>
+                    <td style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>#{d.invoice.invoiceNumber}</td>
+                    <td>{d.dueDateStr}</td>
+                    <td>LKR {d.total.toLocaleString()}</td>
+                    <td>LKR {d.paid.toLocaleString()}</td>
+                    <td style={{ fontWeight: 850, color: 'var(--danger)' }}>LKR {d.outstanding.toLocaleString()}</td>
+                    <td>
+                      {d.daysOverdue > 0 ? (
+                        <span className="badge badge-danger">{d.daysOverdue} days overdue</span>
+                      ) : (
+                        <span className="badge badge-neutral">Current</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 4: RENEWAL REPORT */}
+      {activeTab === 'renewals' && (
+        <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+            <h3 className="h3" style={{ margin: 0 }}>Recurring Billing & Renewal Schedule ({renewalReportData.length})</h3>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Contact</th>
+                  <th>Frequency</th>
+                  <th>Next Renewal Date</th>
+                  <th>Annual / Cycle Fee</th>
+                  <th>Renewal Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {renewalReportData.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 800 }}>{r.customerName}</td>
+                    <td>{r.contactPerson} • {r.phone}</td>
+                    <td><span className="badge badge-primary">{r.renewalFrequency}</span></td>
+                    <td style={{ fontWeight: 700 }}>{r.renewalDate}</td>
+                    <td style={{ fontWeight: 800 }}>LKR {r.annualFee.toLocaleString()}</td>
+                    <td>
+                      <span className={`badge badge-${r.status === 'Overdue' ? 'danger' : r.status === 'Upcoming' ? 'warning' : 'success'}`}>
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 5: STAFF PERFORMANCE REPORT */}
+      {activeTab === 'staff_perf' && (
+        <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+            <h3 className="h3" style={{ margin: 0 }}>Staff Sales Performance & Conversion Tracking</h3>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Staff Member</th>
+                  <th>Role</th>
+                  <th>Quotes Created</th>
+                  <th>Quotes Accepted</th>
+                  <th>Quotes Rejected</th>
+                  <th>Conversion Rate</th>
+                  <th>Total Invoiced (LKR)</th>
+                  <th>Total Collected (LKR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffPerformanceData.map((s, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{s.staffName}</td>
+                    <td><span className="badge badge-neutral">{s.role}</span></td>
+                    <td style={{ fontWeight: 700 }}>{s.totalQuotes}</td>
+                    <td style={{ color: 'var(--success)', fontWeight: 700 }}>{s.acceptedQuotes}</td>
+                    <td style={{ color: 'var(--danger)', fontWeight: 700 }}>{s.rejectedQuotes}</td>
+                    <td style={{ fontWeight: 850, color: 'var(--accent-primary)' }}>{s.conversionRate}%</td>
+                    <td style={{ fontWeight: 800 }}>LKR {s.totalInvoiced.toLocaleString()}</td>
+                    <td style={{ fontWeight: 800, color: 'var(--success)' }}>LKR {s.totalCollected.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 6: LEAD SOURCE REPORT */}
+      {activeTab === 'lead_source' && (
+        <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+            <h3 className="h3" style={{ margin: 0 }}>Lead Source Breakdown & Marketing ROI</h3>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lead Origin Channel</th>
+                  <th>Acquired Customers</th>
+                  <th>Total Revenue Generated (LKR)</th>
+                  <th>Average Deal Size (LKR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leadSourceData.map((l, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{l.source}</td>
+                    <td style={{ fontWeight: 700 }}>{l.customerCount} Customers</td>
+                    <td style={{ fontWeight: 850, color: 'var(--success)', fontFamily: 'var(--font-display)' }}>
+                      LKR {l.totalRevenue.toLocaleString()}
+                    </td>
+                    <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>
+                      LKR {l.avgDealSize.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 7: SLFRS STATEMENTS */}
+      {activeTab === 'slfrs' && (
+        <div>
+          <div className="glass-panel mb-6" style={{ padding: '24px' }}>
+            <h3 className="h3" style={{ marginBottom: '16px' }}>Statement of Profit or Loss (LKAS 1)</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="flex justify-between py-2 border-b border-panel">
+                <span style={{ fontWeight: 700 }}>Revenue from Contracts with Customers</span>
+                <span style={{ fontWeight: 800 }}>LKR {pnlStatement.current.revenue.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-panel">
+                <span style={{ color: 'var(--text-muted)' }}>Cost of Sales</span>
+                <span style={{ color: 'var(--danger)' }}>(LKR {Math.abs(pnlStatement.current.costOfSales).toLocaleString()})</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-panel" style={{ background: 'var(--subtle-bg)' }}>
+                <span style={{ fontWeight: 900 }}>GROSS PROFIT</span>
+                <span style={{ fontWeight: 900, color: 'var(--accent-primary)' }}>LKR {pnlStatement.current.grossProfit.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-panel">
+                <span style={{ color: 'var(--text-muted)' }}>Administrative & Operational Expenses</span>
+                <span style={{ color: 'var(--danger)' }}>(LKR {Math.abs(pnlStatement.current.adminExpenses).toLocaleString()})</span>
+              </div>
+              <div className="flex justify-between py-3" style={{ background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', padding: '12px 16px' }}>
+                <span style={{ fontWeight: 900, fontSize: '1.1rem' }}>NET PROFIT FOR THE PERIOD</span>
+                <span style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--success)' }}>LKR {pnlStatement.current.profitForPeriod.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

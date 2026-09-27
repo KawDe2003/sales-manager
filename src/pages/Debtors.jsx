@@ -3,99 +3,167 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   AlertCircle, Search, User, ExternalLink, 
   ChevronRight, ChevronDown, BadgeDollarSign, ArrowRightLeft,
-  Send, Clock, History, Filter, ArrowUpDown, TrendingDown
+  Send, Clock, History, Filter, ArrowUpDown, TrendingDown,
+  Download, CheckCircle, Plus, Calendar, Tag, DollarSign, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { generateDebtorReportPDF } from '../utils/pdfGenerator';
+import CustomSelect from '../components/CustomSelect';
 
 const Debtors = () => {
-  const { customers = [], invoices = [], payments = [], triggerSMS, showNotification } = useContext(StoreContext) || {};
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedDebtor, setExpandedDebtor] = useState(null);
-  const [sortBy, setSortBy] = useState('debt'); // 'debt' or 'oldest'
+  const { 
+    customers = [], invoices = [], payments = [], 
+    recordEnhancedPayment, smsConfig = {}, showNotification 
+  } = useContext(StoreContext) || {};
 
-  // --- LOGIC: AGGREGATE DEBTORS & AGING ---
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Partially Paid' | 'Overdue' | 'Due Today' | 'Due This Week'
+  const [tagFilter, setTagFilter] = useState('All');
+  const [customerFilter, setCustomerFilter] = useState('All');
+  
+  // Inline Record Payment Modal state
+  const [activePaymentInvoice, setActivePaymentInvoice] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('Cash');
+  const [payRef, setPayRef] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // --- LOGIC: AGGREGATE DEBTORS (ALL INVOICES WITH OUTSTANDING > 0) ---
   const debtorList = useMemo(() => {
     const now = new Date();
-    
-    const mappedDebtors = customers.map(customer => {
-      const customerPartialInvoices = invoices
-        .filter(inv => inv.customerId === customer.id && inv.status !== 'Paid')
-        .map(inv => {
-          const invPayments = payments.filter(p => p.documentId === inv.id);
-          const totalPaid = invPayments.reduce((sum, p) => sum + p.amount, 0);
-          
-          if (invPayments.length === 0 && inv.status !== 'Partially Paid') return null; // Filter for only those with history as per user req
-
-          const balance = inv.amount - totalPaid;
-          
-          // Calculate Age (Days Overdue)
-          const dueDate = new Date(inv.dueDate);
-          const diffTime = now - dueDate;
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          let ageBucket = 'current'; // Default
-          if (diffDays > 21) ageBucket = 'overdue';
-          else if (diffDays > 7) ageBucket = 'warning';
-
-          return {
-            ...inv,
-            paidAmount: totalPaid,
-            remainingBalance: balance,
-            paymentHistory: invPayments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
-            ageDays: diffDays,
-            ageBucket
-          };
-        }).filter(Boolean);
-
-      if (customerPartialInvoices.length === 0) return null;
-
-      const totalOutstanding = customerPartialInvoices.reduce((sum, inv) => sum + inv.remainingBalance, 0);
-      const oldestInvoiceDate = new Date(Math.min(...customerPartialInvoices.map(i => new Date(i.date))));
-      
-      return {
-        customer,
-        invoices: customerPartialInvoices,
-        totalOutstanding,
-        oldestInvoiceDate
-      };
-    }).filter(Boolean);
-
-    // Sorting
-    if (sortBy === 'debt') {
-        return mappedDebtors.sort((a, b) => b.totalOutstanding - a.totalOutstanding);
-    } else {
-        return mappedDebtors.sort((a, b) => a.oldestInvoiceDate - b.oldestInvoiceDate);
+    todayStart: {
+      const d = new Date(now);
+      d.setHours(0, 0, 0, 0);
     }
-  }, [customers, invoices, payments, sortBy]);
+    const todayStr = now.toISOString().split('T')[0];
 
-  const filteredDebtors = debtorList.filter(d => 
-    d.customer.gymName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.customer.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    // Compute end of week
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+    const endOfWeekStr = endOfWeek.toISOString().split('T')[0];
 
-  // --- ANALYTICS: BUCKET CALCULATIONS ---
-  const buckets = useMemo(() => {
-    const summary = { current: 0, warning: 0, overdue: 0 };
-    debtorList.forEach(d => {
-      d.invoices.forEach(inv => {
-        summary[inv.ageBucket] += inv.remainingBalance;
+    const list = [];
+
+    invoices.forEach(inv => {
+      // Must not be closed or cancelled
+      if (inv.status === 'Paid' || inv.status === 'Closed' || inv.status === 'Cancelled') return;
+
+      const cust = customers.find(c => c.id === inv.customerId || c.gymName === inv.prospectName) || {
+        id: inv.customerId,
+        gymName: inv.prospectName || 'Valued Customer',
+        name: inv.prospectName || 'Customer',
+        phone: '',
+        tags: ['Walk-in']
+      };
+
+      const invPayments = payments.filter(p => p.documentId === inv.id);
+      const totalPaid = invPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      const invoiceTotal = Number(inv.amount) || 0;
+      const outstanding = Math.max(0, invoiceTotal - totalPaid);
+
+      // Business Rule: Outstanding > 0 -> Show in Debtors. Outstanding = 0 -> Auto-removed.
+      if (outstanding <= 0) return;
+
+      // Age calculation
+      const dueDate = inv.dueDate ? new Date(inv.dueDate) : new Date(inv.date);
+      const diffTime = now.getTime() - dueDate.getTime();
+      const daysOverdue = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+      const isPastDue = diffTime > 0;
+      const isDueToday = inv.dueDate === todayStr;
+      const isDueThisWeek = inv.dueDate >= todayStr && inv.dueDate <= endOfWeekStr;
+
+      const lastPayment = invPayments.length > 0
+        ? invPayments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+        : null;
+
+      list.push({
+        invoice: inv,
+        customer: cust,
+        total: invoiceTotal,
+        paid: totalPaid,
+        outstanding,
+        daysOverdue,
+        isPastDue,
+        isDueToday,
+        isDueThisWeek,
+        lastPayment,
+        dueDateStr: inv.dueDate || 'N/A',
+        invoiceDateStr: inv.date || 'N/A'
       });
     });
-    return summary;
-  }, [debtorList]);
 
-  const globalTotalDebt = useMemo(() => 
-    Object.values(buckets).reduce((sum, val) => sum + val, 0), 
-  [buckets]);
+    return list;
+  }, [invoices, customers, payments]);
 
-  const handleNudge = (customer, invoice) => {
-    if (triggerSMS) {
-      triggerSMS('DebtorNudge', customer, {
-        invoiceNumber: invoice.invoiceNumber,
-        remainingBalance: invoice.remainingBalance,
-        dueDate: invoice.dueDate
+  // Filtering
+  const filteredDebtors = useMemo(() => {
+    return debtorList.filter(d => {
+      const searchStr = (searchTerm || '').toLowerCase();
+      const matchSearch = d.customer.gymName.toLowerCase().includes(searchStr) ||
+                          d.customer.name.toLowerCase().includes(searchStr) ||
+                          d.invoice.invoiceNumber.toLowerCase().includes(searchStr);
+
+      let matchStatus = true;
+      if (statusFilter === 'Partially Paid') {
+        matchStatus = d.paid > 0 && d.outstanding > 0;
+      } else if (statusFilter === 'Overdue') {
+        matchStatus = d.isPastDue && d.daysOverdue > 0;
+      } else if (statusFilter === 'Due Today') {
+        matchStatus = d.isDueToday;
+      } else if (statusFilter === 'Due This Week') {
+        matchStatus = d.isDueThisWeek;
+      }
+
+      let matchTag = true;
+      if (tagFilter !== 'All') {
+        matchTag = Array.isArray(d.customer.tags) ? d.customer.tags.includes(tagFilter) : d.customer.tag === tagFilter;
+      }
+
+      let matchCustomer = true;
+      if (customerFilter !== 'All') {
+        matchCustomer = d.customer.id === customerFilter;
+      }
+
+      return matchSearch && matchStatus && matchTag && matchCustomer;
+    });
+  }, [debtorList, searchTerm, statusFilter, tagFilter, customerFilter]);
+
+  // Aggregates
+  const totalReceivables = useMemo(() => {
+    return filteredDebtors.reduce((s, d) => s + d.outstanding, 0);
+  }, [filteredDebtors]);
+
+  const totalOverdue = useMemo(() => {
+    return filteredDebtors.filter(d => d.isPastDue && d.daysOverdue > 0).reduce((s, d) => s + d.outstanding, 0);
+  }, [filteredDebtors]);
+
+  // Inline Payment Submit
+  const handleInlinePaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!activePaymentInvoice || !payAmount) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await recordEnhancedPayment({
+        customerId: activePaymentInvoice.customer.id,
+        documentId: activePaymentInvoice.invoice.id,
+        amount: parseFloat(payAmount),
+        method: payMethod,
+        reference: payRef,
+        notes: `Recorded directly via Debtors Outstanding list`
       });
-      showNotification(`Nudge sent to ${customer.gymName}`);
+
+      if (result) {
+        showNotification(`Payment of LKR ${parseFloat(payAmount).toLocaleString()} recorded. Balance updated.`, 'success');
+        setActivePaymentInvoice(null);
+        setPayAmount('');
+        setPayRef('');
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('Failed to record payment.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -105,233 +173,304 @@ const Debtors = () => {
       <div className="page-hero">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">Advanced Asset Recovery</h1>
-            <p className="text-secondary">Enterprise-grade tracking of uncollected revenue and partial payment aging.</p>
+            <h1 className="h1 mb-2">Debtors & Outstanding Ledger</h1>
+            <p className="text-secondary">
+              Track uncollected invoices, aging schedules, and record payments directly from the debtors list.
+            </p>
           </div>
           
-          <div className="flex items-center gap-4">
-              <div className="glass-panel" style={{ padding: '12px 20px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Global Receivables</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-                      LKR {globalTotalDebt.toLocaleString()}
-                  </div>
-              </div>
-              <div className="btn-group">
-                  <button 
-                    className={`btn ${sortBy === 'debt' ? 'btn-primary' : 'btn-secondary'}`} 
-                    onClick={() => setSortBy('debt')}
-                    style={{ padding: '8px 16px', fontSize: '0.75rem' }}
-                  >
-                      <TrendingDown size={14} /> By Value
-                  </button>
-                  <button 
-                    className={`btn ${sortBy === 'oldest' ? 'btn-primary' : 'btn-secondary'}`} 
-                    onClick={() => setSortBy('oldest')}
-                    style={{ padding: '8px 16px', fontSize: '0.75rem' }}
-                  >
-                      <Clock size={14} /> By Age
-                  </button>
-              </div>
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              className="btn btn-primary"
+              style={{ gap: '8px' }}
+              onClick={() => generateDebtorReportPDF(filteredDebtors, totalReceivables)}
+            >
+              <Download size={16} /> Export Debtor Report PDF
+            </button>
           </div>
         </div>
       </div>
 
-      {/* AGING BUCKETS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ marginBottom: '32px' }}>
-        <AgingBucket label="Current" amount={buckets.current} color="var(--success)" desc="< 7 days overdue" percent={(buckets.current / globalTotalDebt) * 100} />
-        <AgingBucket label="Warning" amount={buckets.warning} color="var(--warning)" desc="7 - 21 days overdue" percent={(buckets.warning / globalTotalDebt) * 100} />
-        <AgingBucket label="At Risk" amount={buckets.overdue} color="var(--danger)" desc="21+ days overdue" percent={(buckets.overdue / globalTotalDebt) * 100} />
-      </div>
+      {/* KPI METRICS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--accent-primary)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Active Debtors</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>
+            {filteredDebtors.length} Invoices
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>Across {new Set(filteredDebtors.map(d => d.customer.id)).size} unique customers</div>
+        </div>
 
-      {/* SEARCH & FILTERS */}
-      <div className="glass-panel mb-8" style={{ padding: '8px' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Search active debtors..." 
-            style={{ paddingLeft: '52px', height: '48px', border: 'none', background: 'transparent' }}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--warning)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Receivables Balance</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--warning)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>
+            LKR {totalReceivables.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>Pending collection from customers</div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--danger)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Overdue Receivables</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--danger)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>
+            LKR {totalOverdue.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>Past payment due dates</div>
         </div>
       </div>
 
-      {/* DEBTOR LIST */}
-      <div className="flex flex-col gap-4">
-        {filteredDebtors.length === 0 ? (
-          <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px', textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--success-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-              <BadgeDollarSign size={40} color="var(--success)" />
-            </div>
-            <h3 className="h2">Perfect Collections</h3>
-            <p className="text-secondary" style={{ maxWidth: '350px' }}>Your receivers are currently 100% synchronized. No partial payments are pending collection.</p>
+      {/* SEARCH & FILTERS BAR */}
+      <div className="glass-panel mb-6" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+            <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search by customer name, owner, or invoice number (INV-XXXX)..." 
+              style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
-        ) : (
-          filteredDebtors.map((debtor) => (
-            <div key={debtor.customer.id} className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: expandedDebtor === debtor.customer.id ? '1px solid var(--accent-primary)40' : '1px solid var(--panel-border)' }}>
-              <div 
-                onClick={() => setExpandedDebtor(expandedDebtor === debtor.customer.id ? null : debtor.customer.id)}
-                style={{ 
-                  padding: '24px', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  background: expandedDebtor === debtor.customer.id ? 'var(--bg-primary)' : 'transparent',
-                  transition: 'background 0.3s ease'
-                }}
+
+          <div className="flex gap-2 flex-wrap w-full md:w-auto">
+            {['All', 'Partially Paid', 'Overdue', 'Due Today', 'Due This Week'].map(st => (
+              <button
+                key={st}
+                type="button"
+                className={`btn ${statusFilter === st ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                onClick={() => setStatusFilter(st)}
               >
-                <div className="flex items-center gap-5">
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--subtle-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <User size={24} className="text-secondary" />
-                    </div>
-                    {debtor.invoices.some(i => i.ageBucket === 'overdue') && (
-                        <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', background: 'var(--danger)', borderRadius: '50%', border: '2px solid var(--bg-secondary)', boxShadow: '0 0 10px var(--danger)50' }}></div>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{debtor.customer.gymName}</div>
-                    <div className="flex items-center gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        <span>{debtor.customer.name}</span>
-                        <span style={{ opacity: 0.3 }}>|</span>
-                        <span>{debtor.customer.phone}</span>
-                    </div>
-                  </div>
-                </div>
+                {st}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                <div className="flex items-center gap-10">
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding Balance</div>
-                    <div style={{ fontWeight: 800, color: debtor.invoices.some(i => i.ageDays > 7) ? 'var(--danger)' : 'var(--text-primary)', fontSize: '1.25rem', fontFamily: 'var(--font-display)' }}>
-                        LKR {debtor.totalOutstanding.toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ padding: '8px', borderRadius: '8px', background: 'var(--subtle-bg)' }}>
-                    {expandedDebtor === debtor.customer.id ? <ChevronDown size={20} className="text-muted" /> : <ChevronRight size={20} className="text-muted" />}
-                  </div>
+        <div className="flex gap-3 flex-wrap items-center pt-2 border-t border-panel">
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Filter By:</span>
+          
+          <CustomSelect 
+            value={tagFilter}
+            onChange={setTagFilter}
+            options={['All', 'Corporate', 'Individual', 'VIP', 'Student', 'Walk-in'].map(t => ({ value: t, label: t === 'All' ? 'All Tags' : `Tag: ${t}` }))}
+            style={{ height: '36px', minWidth: '130px' }}
+          />
+
+          <CustomSelect 
+            value={customerFilter}
+            onChange={setCustomerFilter}
+            options={[
+              { value: 'All', label: 'All Customers' },
+              ...customers.map(c => ({ value: c.id, label: c.gymName }))
+            ]}
+            style={{ height: '36px', minWidth: '180px' }}
+          />
+
+          {(searchTerm || statusFilter !== 'All' || tagFilter !== 'All' || customerFilter !== 'All') && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ height: '36px', fontSize: '0.75rem', padding: '0 12px' }}
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('All');
+                setTagFilter('All');
+                setCustomerFilter('All');
+              }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* DEBTORS TABLE */}
+      <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Invoice #</th>
+                <th>Invoice Date</th>
+                <th>Due Date</th>
+                <th>Total</th>
+                <th>Paid</th>
+                <th>Outstanding</th>
+                <th>Days Overdue</th>
+                <th>Last Payment</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDebtors.length === 0 ? (
+                <tr>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                    No outstanding debtors found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredDebtors.map(d => (
+                  <tr key={d.invoice.id}>
+                    <td>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{d.customer.gymName}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{d.customer.name}</div>
+                    </td>
+                    <td style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
+                      #{d.invoice.invoiceNumber}
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {new Date(d.invoiceDateStr).toLocaleDateString()}
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: d.isPastDue ? 'var(--danger)' : 'var(--text-muted)', fontWeight: d.isPastDue ? 700 : 400 }}>
+                      {new Date(d.dueDateStr).toLocaleDateString()}
+                    </td>
+                    <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                      LKR {d.total.toLocaleString()}
+                    </td>
+                    <td style={{ fontWeight: 700, color: 'var(--success)' }}>
+                      LKR {d.paid.toLocaleString()}
+                    </td>
+                    <td style={{ fontWeight: 850, color: 'var(--danger)', fontFamily: 'var(--font-display)', fontSize: '0.95rem' }}>
+                      LKR {d.outstanding.toLocaleString()}
+                    </td>
+                    <td>
+                      {d.daysOverdue > 0 ? (
+                        <span className="badge badge-danger" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                          {d.daysOverdue} days overdue
+                        </span>
+                      ) : (
+                        <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>Current</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {d.lastPayment ? (
+                        <div>
+                          <div>LKR {Number(d.lastPayment.amount).toLocaleString()}</div>
+                          <div style={{ fontSize: '0.68rem', opacity: 0.8 }}>{new Date(d.lastPayment.timestamp).toLocaleDateString()}</div>
+                        </div>
+                      ) : (
+                        'None'
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${d.paid > 0 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.7rem' }}>
+                        {d.paid > 0 ? 'Partially Paid' : 'Unpaid'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {/* INLINE RECORD PAYMENT BUTTON */}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 800, gap: '4px' }}
+                        onClick={() => {
+                          setActivePaymentInvoice(d);
+                          setPayAmount(d.outstanding.toString());
+                        }}
+                      >
+                        <DollarSign size={13} /> Record Payment
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* INLINE RECORD PAYMENT MODAL */}
+      {activePaymentInvoice && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px'
+        }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '32px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="h3" style={{ margin: 0, fontSize: '1.3rem' }}>Record Payment</h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Invoice #{activePaymentInvoice.invoice.invoiceNumber} • {activePaymentInvoice.customer.gymName}
+                </div>
+              </div>
+              <button type="button" className="btn btn-secondary" style={{ padding: '6px' }} onClick={() => setActivePaymentInvoice(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'var(--subtle-bg)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Invoice Total</div>
+                <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>LKR {activePaymentInvoice.total.toLocaleString()}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Remaining Balance</div>
+                <div style={{ fontWeight: 900, color: 'var(--danger)' }}>LKR {activePaymentInvoice.outstanding.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <form onSubmit={handleInlinePaymentSubmit}>
+              <div className="form-group mb-4">
+                <label className="form-label">Payment Amount (LKR) *</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>LKR</span>
+                  <input 
+                    required
+                    type="number"
+                    className="form-input"
+                    style={{ paddingLeft: '52px', height: '46px', fontSize: '1.1rem', fontWeight: 800 }}
+                    value={payAmount}
+                    onChange={e => setPayAmount(e.target.value)}
+                  />
                 </div>
               </div>
 
-              {/* EXPANDED CONTENT */}
-              {expandedDebtor === debtor.customer.id && (
-                <div style={{ padding: '0 24px 24px 24px', animation: 'fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-                  <div style={{ height: '1px', background: 'var(--panel-border)', marginBottom: '32px' }}></div>
-                  
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                    {/* Unpaid Invoices List */}
-                    <div className="xl:col-span-7 flex flex-col gap-6">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Clock size={16} className="text-muted" />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Receivables</span>
-                        </div>
-                        {debtor.invoices.map(inv => (
-                        <div key={inv.id} style={{ padding: '24px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--panel-border)', position: 'relative', overflow: 'hidden' }}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: inv.ageBucket === 'overdue' ? 'var(--danger)' : inv.ageBucket === 'warning' ? 'var(--warning)' : 'var(--success)' }}></div>
-                            
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'var(--accent-primary)15', padding: '4px 10px', borderRadius: '6px' }}>{inv.invoiceNumber}</span>
-                                        {inv.installmentPlan?.enabled && (
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                                                📅 {inv.installmentPlan.count} Installments ({inv.installmentPlan.frequency})
-                                            </span>
-                                        )}
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: inv.ageDays > 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                                            {inv.ageDays > 0 ? `${inv.ageDays} Days Overdue` : 'Payment Current'}
-                                        </span>
-                                    </div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>LKR {inv.remainingBalance.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>of {inv.amount.toLocaleString()}</span></div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                      onClick={() => handleNudge(debtor.customer, inv)}
-                                      className="btn btn-secondary" 
-                                      style={{ padding: '8px 12px', background: 'var(--danger-bg)', borderColor: 'var(--danger)20', color: 'var(--danger)' }}
-                                    >
-                                        <Send size={16} /> Send Nudge
-                                    </button>
-                                    <Link to="/payments" className="btn btn-primary" style={{ padding: '8px 16px' }}>
-                                        Record Payment
-                                    </Link>
-                                </div>
-                            </div>
+              <div className="form-group mb-4">
+                <label className="form-label">Payment Method</label>
+                <CustomSelect 
+                  value={payMethod}
+                  onChange={setPayMethod}
+                  options={['Cash', 'Bank Transfer', 'Card', 'Online Payment', 'Other'].map(m => ({ value: m, label: m }))}
+                  style={{ height: '44px' }}
+                />
+              </div>
 
-                            <div style={{ position: 'relative', height: '10px', background: 'var(--bg-primary)', borderRadius: '5px', overflow: 'hidden', marginBottom: '12px' }}>
-                                <div style={{ 
-                                    position: 'absolute', left: 0, top: 0, bottom: 0, 
-                                    width: `${(inv.paidAmount / inv.amount) * 100}%`,
-                                    background: 'var(--success)',
-                                    boxShadow: '0 0 15px var(--success)40',
-                                    transition: 'width 1s ease-out'
-                                }}></div>
-                            </div>
-                            <div className="flex justify-between items-center" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                <span>Collection Ratio: {Math.round((inv.paidAmount / inv.amount) * 100)}%</span>
-                                <span>Source: {inv.status}</span>
-                            </div>
-                        </div>
-                        ))}
-                    </div>
+              <div className="form-group mb-6">
+                <label className="form-label">Reference Number (Optional)</label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. SLIP-0012 / Cheque #8812"
+                  value={payRef}
+                  onChange={e => setPayRef(e.target.value)}
+                />
+              </div>
 
-                    {/* Payment History Timeline */}
-                    <div className="xl:col-span-5">
-                         <div className="flex items-center gap-2 mb-6">
-                            <History size={16} className="text-muted" />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Consolidated Log</span>
-                        </div>
-                        <div style={{ borderLeft: '2px solid var(--panel-border)', marginLeft: '8px', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {debtor.invoices.flatMap(i => i.paymentHistory).length === 0 ? (
-                                <div className="text-secondary" style={{ fontSize: '0.85rem' }}>No payment history available for this record.</div>
-                            ) : (
-                                debtor.invoices.flatMap(i => i.paymentHistory)
-                                  .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))
-                                  .slice(0, 10)
-                                  .map((pay, pIdx) => (
-                                    <div key={pay.id || pIdx} style={{ position: 'relative' }}>
-                                        <div style={{ position: 'absolute', left: '-33px', top: '4px', width: '16px', height: '16px', borderRadius: '50%', background: 'var(--bg-secondary)', border: '3px solid var(--accent-primary)' }}></div>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>LKR {pay.amount.toLocaleString()} Received</div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(pay.timestamp).toLocaleString()} • {pay.type || 'Cash'} Deposit</div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn btn-secondary" onClick={() => setActivePaymentInvoice(null)}>
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="btn btn-primary"
+                  style={{ padding: '0 24px', fontWeight: 800 }}
+                >
+                  {isSubmitting ? 'Processing...' : 'Confirm Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-const AgingBucket = ({ label, amount, color, desc, percent }) => (
-    <div className="glass-panel hover-lift" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.05 }}>
-            <TrendingDown size={120} color={color} />
-        </div>
-        <div className="flex justify-between items-start mb-4">
-            <div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: amount > 0 ? color : 'var(--text-muted)', fontFamily: 'var(--font-display)', margin: '4px 0' }}>
-                    LKR {amount.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{desc}</div>
-            </div>
-            <div style={{ padding: '8px', borderRadius: '10px', background: `${color}15` }}>
-                <Clock size={20} color={color} />
-            </div>
-        </div>
-        <div style={{ height: '4px', width: '100%', background: 'var(--subtle-bg)', borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${percent || 0}%`, background: color }}></div>
-        </div>
-    </div>
-);
 
 export default Debtors;

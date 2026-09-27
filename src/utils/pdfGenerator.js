@@ -1,8 +1,24 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Robust Universal jsPDF Constructor (supports jspdf v3/v4 in Vite & Node ESM)
+export const createPDFDoc = (options) => {
+  const Constructor = typeof jsPDF === 'function' ? jsPDF : (jsPDF?.jsPDF || jsPDF?.default);
+  if (typeof Constructor === 'function') {
+    return new Constructor(options);
+  }
+  throw new Error('Unable to initialize jsPDF engine.');
+};
+
+// Robust Universal autoTable Runner
+export const runAutoTable = (doc, options) => {
+  const fn = typeof autoTable === 'function' ? autoTable : (autoTable?.default || autoTable?.autoTable);
+  if (!fn) throw new Error('jspdf-autotable plugin not loaded.');
+  return fn(doc, options);
+};
+
 // Helper for converting hex color code to RGB array
-const hexToRgb = (hex, defaultRgb = [59, 130, 246]) => {
+export const hexToRgb = (hex, defaultRgb = [59, 130, 246]) => {
   if (!hex) return defaultRgb;
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? [
@@ -12,10 +28,151 @@ const hexToRgb = (hex, defaultRgb = [59, 130, 246]) => {
   ] : defaultRgb;
 };
 
+// Formatting Helpers (Moved to Top for Universal Availability)
+export const formatLKR = (val) => {
+  const num = Number(val || 0);
+  return 'LKR ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+export const formatDatePretty = (d) => {
+  if (!d) return '—';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+// Helper: Apply Professional Header & Repeating Page Footers
+export const applyPageHeaderFooter = (doc, { title, subtitle, docNumber, pageCount, companyConfig = {}, primaryColor = [16, 185, 129] }) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const totalPages = doc.internal.getNumberOfPages();
+
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    
+    // Page Footer on every page
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(14, pageHeight - 16, pageWidth - 14, pageHeight - 16);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    const footerCompany = companyConfig.companyName || companyConfig.dashboardName || 'Seynex Technology';
+    doc.text(`${footerCompany} | Computer-Generated Audit Document`, 14, pageHeight - 10);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+    doc.text(`Generated: ${formatDatePretty(new Date())}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+  }
+};
+
+// Universal Bulletproof Download Trigger with Strict PDF Extension & Real Filename Guarantee
+export const savePdfDoc = (doc, fileName) => {
+  // 1. Ensure strict .pdf extension
+  let safeName = String(fileName || 'document.pdf').trim();
+  if (!safeName.toLowerCase().endsWith('.pdf')) {
+    safeName = `${safeName}.pdf`;
+  }
+  // Sanitize filename for all operating systems (Windows, Mac, Linux)
+  safeName = safeName.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  if (!safeName.toLowerCase().endsWith('.pdf')) {
+    safeName = `${safeName}.pdf`;
+  }
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    // 2. Primary Method: Base64 Data URI with explicit application/pdf and embedded filename header
+    // WHY THIS WORKS: In Chromium / Windows Chrome, downloading from a `blob:` URL
+    // (blob:http://localhost:5173/<uuid>) frequently causes download managers or Chrome's
+    // download pipeline to discard the anchor 'download' attribute and name the file after
+    // the internal Blob UUID (e.g. 2d9037c2-152f-4ddf-bd54-353b76757563) with no extension!
+    // A Base64 Data URI contains NO blob UUID. It forces the browser to use the explicit filename.
+    try {
+      const rawUri = doc.output('datauristring');
+      if (rawUri && typeof rawUri === 'string' && rawUri.startsWith('data:')) {
+        // Embed the sanitized safeName into the Data URI header
+        const customDataUri = rawUri.replace(
+          /filename=[^;]+/,
+          `filename=${encodeURIComponent(safeName)}`
+        );
+
+        const a = document.createElement('a');
+        a.style.position = 'fixed';
+        a.style.left = '-9999px';
+        a.style.top = '-9999px';
+        a.style.opacity = '0';
+        a.style.pointerEvents = 'none';
+        a.href = customDataUri;
+        a.setAttribute('download', safeName);
+        a.download = safeName;
+
+        document.body.appendChild(a);
+
+        // Click trigger
+        if (typeof a.click === 'function') {
+          a.click();
+        } else {
+          const evt = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
+          a.dispatchEvent(evt);
+        }
+
+        setTimeout(() => {
+          if (a.parentNode) {
+            document.body.removeChild(a);
+          }
+        }, 3000);
+        return true;
+      }
+    } catch (dataUriErr) {
+      console.warn('Data URI PDF export failed, falling back to secondary method:', dataUriErr);
+    }
+
+    // 3. Secondary Fallback: Windows msSaveOrOpenBlob (legacy Edge / IE)
+    try {
+      const rawBlob = doc.output('blob');
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(rawBlob, safeName);
+        return true;
+      }
+
+      // 4. Tertiary Fallback: Blob URL
+      const blobUrl = (window.URL || window.webkitURL).createObjectURL(rawBlob);
+      const a = document.createElement('a');
+      a.style.position = 'fixed';
+      a.style.left = '-9999px';
+      a.style.top = '-9999px';
+      a.style.opacity = '0';
+      a.href = blobUrl;
+      a.setAttribute('download', safeName);
+      a.download = safeName;
+
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        if (a.parentNode) {
+          document.body.removeChild(a);
+        }
+        (window.URL || window.webkitURL).revokeObjectURL(blobUrl);
+      }, 60000);
+      return true;
+    } catch (blobErr) {
+      console.warn('Blob PDF export failed, falling back to doc.save:', blobErr);
+    }
+  }
+
+  // 5. Ultimate Fallback: Engine internal save
+  if (typeof doc?.save === 'function') {
+    doc.save(safeName);
+    return true;
+  }
+  return false;
+};
+
+
+
 // Generic PDF Generator for both Invoices and Quotations
 export const generateDocumentPDF = (type, documentData, items) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
 
     // Load company config from localStorage
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
@@ -29,19 +186,24 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const isReceipt = type?.toLowerCase().includes('receipt');
     const docTitle = isReceipt ? 'PAYMENT RECEIPT' : isInvoice ? 'INVOICE' : 'QUOTATION';
 
-    const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
-    const textColor = [40, 40, 40];
-    const lightGray = [240, 240, 240];
-    const pageHeight = doc.internal.pageSize.getHeight();
+    // Safe field reads — compute targetName and docNumber FIRST
+    const docNumber = (isInvoice ? (documentData?.invoiceNumber || documentData?.invoice_number) : (documentData?.quoteNumber || documentData?.quote_number)) || 'N/A';
+    const targetName = (isInvoice 
+      ? (documentData?.customerName || documentData?.gymName || documentData?.prospectName || documentData?.customer_name) 
+      : (documentData?.customerName || documentData?.prospectName || documentData?.gymName || documentData?.prospect_name)) || 'Valued Client';
 
-    // Safe field reads — guard every potentially-undefined field
-    const isReceiptDoc = isReceipt;
-    const docNumber = isReceiptDoc
-      ? (documentData?.receiptNumber || documentData?.referenceNumber || documentData?.invoiceNumber || 'REC-001')
-      : (isInvoice ? documentData?.invoiceNumber : documentData?.quoteNumber) || 'N/A';
-    const targetName = (isInvoice ? (documentData?.gymName || documentData?.prospectName) : (documentData?.prospectName || documentData?.gymName)) || 'Valued Client';
-    const dateStr = documentData?.date ? new Date(documentData.date).toLocaleDateString() : '—';
-    const dueDateStr = documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '—';
+    // If it's a receipt, delegate directly to the dedicated payment receipt generator
+    if (isReceipt) {
+      return generatePaymentReceiptPDF(documentData, documentData, { gymName: targetName, name: targetName });
+    }
+
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6', [59, 130, 246]);
+    const textColor = [30, 41, 59];
+    const lightGray = [248, 250, 252];
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const dateStr = formatDatePretty(documentData?.date || new Date());
+    const dueDateStr = formatDatePretty(documentData?.dueDate);
 
     const itemsList = Array.isArray(items) && items.length > 0 ? items : (documentData?.items || []);
     const standardItems = itemsList.filter(i => !i.isDiscount);
@@ -63,134 +225,141 @@ export const generateDocumentPDF = (type, documentData, items) => {
       ? calculatedSubTotal
       : (Number(documentData?.amount || 0) + discountAmount);
 
-    const totalAmount = isReceiptDoc
-      ? Number(documentData?.amountPaidNow ?? documentData?.amount ?? (subTotal - discountAmount))
-      : (subTotal - discountAmount);
+    const totalAmount = subTotal - discountAmount;
 
     // Add company logo if available (priority logic)
     if (savedConfig.receiptLogo) {
       try {
-        // We use receiptLogo as the general company logo for all documents
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 30, 30);
       } catch (e) {
-        console.warn('Logo rendering failed:', e);
         doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.text(companyName, 14, 22);
       }
     } else {
       doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.text(companyName, 14, 22);
     }
 
-
-    doc.setFontSize(10);
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
     doc.text(companyAddress, 14, 28);
-    doc.text(`Email: ${companyEmail}`, 14, 33);
-    if (companyPhone) doc.text(`Phone: ${companyPhone}`, 14, 38);
+    doc.text(`Email: ${companyEmail} | Phone: ${companyPhone}`, 14, 33);
 
     // Doc Type Title (right side)
-    doc.setFontSize(24);
-    doc.setTextColor(20, 20, 20);
-    doc.text(docTitle, 196, 22, { align: 'right' });
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(docTitle, pageWidth - 14, 22, { align: 'right' });
 
     // Doc meta (right side)
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text(`${isReceiptDoc ? 'Receipt' : isInvoice ? 'Invoice' : 'Quote'} #: ${docNumber}`, 196, 31, { align: 'right' });
-    doc.text(`Date: ${dateStr}`, 196, 37, { align: 'right' });
-    if (isInvoice) {
-      doc.text(`Due Date: ${dueDateStr}`, 196, 43, { align: 'right' });
-    } else if (isReceiptDoc) {
-      if (documentData?.invoiceNumber) {
-        doc.text(`Invoice Ref: #${documentData.invoiceNumber}`, 196, 43, { align: 'right' });
-      }
-      if (documentData?.method || documentData?.paymentMethod) {
-        doc.text(`Payment: ${documentData.method || documentData.paymentMethod}`, 196, 49, { align: 'right' });
-      }
+    doc.text(`${isInvoice ? 'Invoice' : 'Quotation'} #: ${docNumber}`, pageWidth - 14, 30, { align: 'right' });
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Date: ${dateStr}`, pageWidth - 14, 36, { align: 'right' });
+    if (isInvoice && dueDateStr !== '—') {
+      doc.text(`Due Date: ${dueDateStr}`, pageWidth - 14, 41, { align: 'right' });
     }
 
-    // PAID Watermark for Invoices marked as Paid or Receipts
-    if (isReceipt || (isInvoice && documentData?.status === 'Paid')) {
+    // PAID Watermark for Invoices marked as Paid
+    if (isInvoice && documentData?.status === 'Paid') {
       doc.saveGraphicsState();
-      doc.setGState(new doc.GState({ opacity: 0.1 }));
-      doc.setFontSize(100);
-      doc.setTextColor(22, 197, 94); // Success green
-      doc.setFont(undefined, 'bold');
-      doc.text('PAID', 105, 150, { align: 'center', angle: 45 });
+      doc.setGState(new doc.GState({ opacity: 0.08 }));
+      doc.setFontSize(90);
+      doc.setTextColor(16, 185, 129);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PAID IN FULL', pageWidth / 2, 140, { align: 'center', angle: 30 });
       doc.restoreGraphicsState();
     }
 
-    // ── Bill To / Received From ─────────────────────────────────────────────
+    // ── Bill To ─────────────────────────────────────────────────────────────
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.rect(14, 50, 85, 8, 'F');
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.text(isReceiptDoc ? 'RECEIVED FROM:' : 'BILL TO:', 16, 56);
-    doc.setFont(undefined, 'normal');
-    doc.text(targetName, 16, 66);
+    doc.rect(14, 48, 95, 22, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 48, 95, 22, 'S');
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('BILL TO / RECIPIENT:', 18, 55);
+    doc.setFontSize(10.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(targetName, 18, 62);
+    if (documentData?.contactPerson || documentData?.prospectPhone) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`${documentData.contactPerson ? 'Attn: ' + documentData.contactPerson : ''} ${documentData.prospectPhone ? '| ' + documentData.prospectPhone : ''}`, 18, 67);
+    }
 
     // ── Line Items Table ──────────────────────────────────────────────────────
     let tableBody = [];
     if (standardItems.length > 0) {
       tableBody = standardItems.map(item => [
-        item.name || 'Item',
-        item.type || 'Service',
-        `LKR ${getItemPrice(item).toLocaleString()}`,
+        item.name || item.description || 'Item Description',
+        item.type || item.category || 'Service',
+        formatLKR(getItemPrice(item)),
         String(getItemQty(item)),
-        `LKR ${getItemTotal(item).toLocaleString()}`
+        formatLKR(getItemTotal(item))
       ]);
     } else {
       tableBody = [
-        [isReceiptDoc ? 'Payment Credit for Account Services' : 'Software Package / Services', 'Package', `LKR ${subTotal.toLocaleString()}`, '1', `LKR ${subTotal.toLocaleString()}`]
+        ['Software License Package & Enterprise Support', 'Package', formatLKR(subTotal), '1', formatLKR(subTotal)]
       ];
     }
 
-    autoTable(doc, {
-      startY: 80,
-      head: [['Description', 'Type', 'Unit Price', 'Qty', 'Total']],
+    runAutoTable(doc, {
+      startY: 76,
+      head: [['Item Description', 'Classification', 'Unit Price', 'Qty', 'Line Total']],
       body: tableBody,
       theme: 'grid',
+      showHead: 'everyPage',
       headStyles: {
         fillColor: primaryColor,
         textColor: 255,
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4
       },
       columnStyles: {
         2: { halign: 'right' },
         3: { halign: 'center' },
-        4: { halign: 'right' }
+        4: { halign: 'right', fontStyle: 'bold' }
       },
-      styles: { fontSize: 10, textColor }
+      styles: { fontSize: 8.5, cellPadding: 3.5, textColor: [30, 41, 59] }
     });
 
     // ── Totals ────────────────────────────────────────────────────────────────
-    let finalY = (doc.lastAutoTable?.finalY || 120) + 10;
+    let finalY = (doc.lastAutoTable?.finalY || 120) + 8;
 
     if (discountAmount > 0) {
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.text('Subtotal:', 140, finalY + 8, { align: 'right' });
-      doc.text(`LKR ${subTotal.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Subtotal:', pageWidth - 65, finalY + 4, { align: 'right' });
+      doc.text(formatLKR(subTotal), pageWidth - 14, finalY + 4, { align: 'right' });
       
       finalY += 6;
       doc.setTextColor(220, 38, 38);
-      doc.text('Discount:', 140, finalY + 8, { align: 'right' });
-      doc.text(`- LKR ${discountAmount.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
+      doc.text('Discount:', pageWidth - 65, finalY + 4, { align: 'right' });
+      doc.text(`- ${formatLKR(discountAmount)}`, pageWidth - 14, finalY + 4, { align: 'right' });
       finalY += 6;
     }
 
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text(isReceiptDoc ? 'Total Paid:' : 'Total Amount:', 140, finalY + 8, { align: 'right' });
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('Total Amount Due:', pageWidth - 65, finalY + 6, { align: 'right' });
 
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`LKR ${totalAmount.toLocaleString()}`, 196, finalY + 8, { align: 'right' });
+    doc.text(formatLKR(totalAmount), pageWidth - 14, finalY + 6, { align: 'right' });
 
     // ── Agreement Terms ───────────────────────────────────────────────────────
     let currentY = finalY + 25;
@@ -237,7 +406,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
         inst.status || 'Pending'
       ]);
 
-      autoTable(doc, {
+      runAutoTable(doc, {
         startY: currentY + 4,
         head: [['Installment', 'Due Date', 'Amount Due', 'Status']],
         body: instRows,
@@ -293,10 +462,16 @@ export const generateDocumentPDF = (type, documentData, items) => {
       doc.text(savedConfig.pdfNotes, 14, pageHeight - 14);
     }
 
+    applyPageHeaderFooter(doc, {
+      title: isInvoice ? 'Tax Invoice' : 'Quotation Proposal',
+      companyConfig: savedConfig,
+      primaryColor
+    });
+
     // ── Save ──────────────────────────────────────────────────────────────────
-    const safeDocPrefix = isReceiptDoc ? 'Receipt' : isInvoice ? 'Invoice' : 'Quote';
+    const safeDocPrefix = isInvoice ? 'Invoice' : 'Quote';
     const safeFileName = `${safeDocPrefix}_${docNumber}_${(targetName).replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    doc.save(safeFileName);
+    savePdfDoc(doc, safeFileName);
 
   } catch (err) {
     console.error('PDF generation error details:', err.message, err.stack);
@@ -307,7 +482,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
 // Stock Report Generator
 export const generateStockReportPDF = (inventoryItems) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     
@@ -349,7 +524,7 @@ export const generateStockReportPDF = (inventoryItems) => {
 
     const totalValuation = inventoryItems.reduce((sum, item) => sum + (Number(item.price || 0) * (Number(item.stock || 0))), 0);
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 48,
       head: [['Item Description', 'Category', 'Unit Price', 'In Stock', 'Total Value']],
       body: tableBody,
@@ -379,7 +554,7 @@ export const generateStockReportPDF = (inventoryItems) => {
     doc.setFont(undefined, 'normal');
     doc.text('Professional Stock Report - Generated by GymSales Management System', 14, pageHeight - 15);
 
-    doc.save(`Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePdfDoc(doc, `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`);
 
   } catch (err) {
     console.error('Stock Report error:', err);
@@ -390,7 +565,7 @@ export const generateStockReportPDF = (inventoryItems) => {
 // Accounting Summary Report Generator
 export const generateAccountingReportPDF = (data) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     
@@ -434,7 +609,7 @@ export const generateAccountingReportPDF = (data) => {
     const totalExpenses = data.filter(r => r.Type === 'Expense').reduce((s, r) => s + Math.abs(Number(r.Amount)), 0);
     const netProfit = totalRevenue - totalExpenses;
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 48,
       head: [['Date', 'Type', 'Category', 'Description', 'Amount']],
       body: tableBody,
@@ -457,7 +632,7 @@ export const generateAccountingReportPDF = (data) => {
     doc.setTextColor(netProfit >= 0 ? 34 : 244, netProfit >= 0 ? 197 : 63, netProfit >= 0 ? 94 : 94);
     doc.text(`Net Profit: LKR ${netProfit.toLocaleString()}`, 196, finalY + 20, { align: 'right' });
 
-    doc.save(`Accounting_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePdfDoc(doc, `Accounting_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (err) {
     console.error('Accounting Report error:', err);
   }
@@ -466,7 +641,7 @@ export const generateAccountingReportPDF = (data) => {
 // Formal Corporate Profit & Loss Statement (P&L) PDF Generator
 export const generatePnLReportPDF = (pnlData) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
@@ -518,7 +693,7 @@ export const generatePnLReportPDF = (pnlData) => {
       [{ content: 'NET PROFIT BEFORE TAX (EBITDA)', styles: { fontStyle: 'bold', fontSize: 12 } }, { content: `LKR ${Number(pnlData.netProfit || 0).toLocaleString()}`, styles: { fontStyle: 'bold', fontSize: 12, textColor: pnlData.netProfit >= 0 ? [16, 185, 129] : [220, 38, 38] } }]
     ];
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Financial Category', 'Amount (LKR)']],
       body: tableBody,
@@ -533,7 +708,7 @@ export const generatePnLReportPDF = (pnlData) => {
     doc.setTextColor(120, 120, 120);
     doc.text('This Profit & Loss Statement is automatically generated by GymSales Pro Management System.', 105, finalY, { align: 'center' });
 
-    doc.save(`PnL_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
+    savePdfDoc(doc, `PnL_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (err) {
     console.error('PnL PDF error:', err);
   }
@@ -542,7 +717,7 @@ export const generatePnLReportPDF = (pnlData) => {
 // Print Formal Corporate Profit & Loss Statement (P&L) Document
 export const printPnLReportPDF = (pnlData) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
@@ -594,7 +769,7 @@ export const printPnLReportPDF = (pnlData) => {
       [{ content: 'NET PROFIT BEFORE TAX (EBITDA)', styles: { fontStyle: 'bold', fontSize: 12 } }, { content: `LKR ${Number(pnlData.netProfit || 0).toLocaleString()}`, styles: { fontStyle: 'bold', fontSize: 12, textColor: pnlData.netProfit >= 0 ? [16, 185, 129] : [220, 38, 38] } }]
     ];
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Financial Category', 'Amount (LKR)']],
       body: tableBody,
@@ -625,7 +800,7 @@ export const printDocument = () => {
 // SLFRS/LKAS Compliant 3-Statement PDF Generator
 export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, pnl, balanceSheet, cashFlow }) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const primaryColor = [30, 41, 59]; // Slate 800
 
     const cName = companyName || 'GymSales Pro Enterprise';
@@ -673,7 +848,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
       [{ content: 'PROFIT FOR THE PERIOD', styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.current.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }, { content: fmt(pnl.prior.profitForPeriod), styles: { fontStyle: 'bold', fontSize: 10 } }]
     ];
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Line Item', 'Current Period (LKR)', 'Prior Period (LKR)']],
       body: pnlBody,
@@ -732,7 +907,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
       [{ content: 'TOTAL EQUITY AND LIABILITIES', styles: { fontStyle: 'bold', fontSize: 9.5 } }, { content: fmt(balanceSheet.totalEquityAndLiabilities), styles: { fontStyle: 'bold', fontSize: 9.5 } }]
     ];
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Classification', 'Amount (LKR)']],
       body: bsBody,
@@ -786,7 +961,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
       [{ content: 'CASH AND CASH EQUIVALENTS AT END OF PERIOD', styles: { fontStyle: 'bold', fontSize: 9.5 } }, { content: fmt(cf.cashAtEndCalculated), styles: { fontStyle: 'bold', fontSize: 9.5 } }]
     ];
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Cash Flow Item', 'Amount (LKR)']],
       body: cfBody,
@@ -797,7 +972,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
     });
 
     const cleanFileName = `SLFRS_Statements_${(periodLabel || 'Report').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    doc.save(cleanFileName);
+    savePdfDoc(doc, cleanFileName);
   } catch (err) {
     console.error('Failed to generate SLFRS Statements PDF:', err);
   }
@@ -806,7 +981,7 @@ export const generateSLFRSFinancialStatementsPDF = ({ companyName, periodLabel, 
 // Export Account Ledger Statement (T-Account History) PDF
 export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [], startDate, endDate }) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
 
@@ -863,7 +1038,7 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
       { content: runningNet.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
     ]);
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 42,
       head: [['Date', 'Reference', 'Description / Particulars', 'Debit (LKR)', 'Credit (LKR)', 'Net Balance (LKR)']],
       body: tableBody,
@@ -878,7 +1053,7 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
     });
 
     const cleanFileName = `General_Ledger_${account?.code || 'Account'}_Statement.pdf`;
-    doc.save(cleanFileName);
+    savePdfDoc(doc, cleanFileName);
   } catch (err) {
     console.error('Failed to export Account Ledger PDF:', err);
   }
@@ -887,7 +1062,7 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
 // Export General Journal Voucher PDF
 export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
 
@@ -932,7 +1107,7 @@ export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) =>
       { content: totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
     ]);
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 44,
       head: [['Account Description', 'Type', 'Debit (LKR)', 'Credit (LKR)']],
       body: tableBody,
@@ -943,7 +1118,7 @@ export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) =>
     });
 
     const cleanFileName = `Journal_Voucher_${(entry?.reference || 'Voucher').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    doc.save(cleanFileName);
+    savePdfDoc(doc, cleanFileName);
   } catch (err) {
     console.error('Failed to export Journal Voucher PDF:', err);
   }
@@ -952,7 +1127,7 @@ export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) =>
 // Export Trial Balance PDF
 export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journalEntries = [], asOfDate }) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
 
@@ -1016,7 +1191,7 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
       { content: sumCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }
     ]);
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: 38,
       head: [['Code', 'Account Name', 'Type', 'Debit Balance (LKR)', 'Credit Balance (LKR)']],
       body: tableBody,
@@ -1027,7 +1202,7 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
     });
 
     const cleanFileName = `Trial_Balance_${(asOfDate || new Date().toISOString().split('T')[0]).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    doc.save(cleanFileName);
+    savePdfDoc(doc, cleanFileName);
   } catch (err) {
     console.error('Failed to export Trial Balance PDF:', err);
   }
@@ -1036,7 +1211,7 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
 // Official Purchase Order PDF Generator
 export const generatePurchaseOrderPDF = (poData) => {
   try {
-    const doc = new jsPDF();
+    const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
     const companyName = savedConfig.companyName || 'GymSales Pro';
     const companyAddress = savedConfig.companyAddress || '';
@@ -1175,7 +1350,7 @@ export const generatePurchaseOrderPDF = (poData) => {
       tableBody.push(['1', 'Purchase Items', '1', `LKR ${Number(poData.totalAmount || 0).toLocaleString()}`, `LKR ${Number(poData.totalAmount || 0).toLocaleString()}`]);
     }
 
-    autoTable(doc, {
+    runAutoTable(doc, {
       startY: tableStartY,
       head: [['#', 'Item Description', 'Qty', 'Unit Cost', 'Line Total']],
       body: tableBody,
@@ -1269,10 +1444,786 @@ export const generatePurchaseOrderPDF = (poData) => {
 
     // ── Save PDF ─────────────────────────────────────────────────────────────
     const safeFileName = `Purchase_Order_${(poData.poNumber || 'PO').replace(/[^a-zA-Z0-9-]/g, '_')}_${(poData.supplierName || 'Supplier').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    doc.save(safeFileName);
+    savePdfDoc(doc, safeFileName);
 
   } catch (err) {
     console.error('Purchase Order PDF generation error:', err);
     alert(`Could not generate Purchase Order PDF: ${err.message || 'Unknown error'}`);
   }
 };
+
+// =========================================================================
+// ENTERPRISE REPORT & DOCUMENT PDF GENERATOR SUITE (SLFRS / LKAS COMPLIANT)
+// =========================================================================
+
+
+// 1. STANDALONE PAYMENT RECEIPT PDF
+export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, customerData = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const companyAddress = savedConfig.companyAddress || 'No 680/1B, Gonwala, Kelaniya';
+    const companyPhone = savedConfig.companyPhone || '072 840 8880';
+    const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
+
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#10b981', [16, 185, 129]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Company Header / Logo
+    if (savedConfig.receiptLogo) {
+      try {
+        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 30, 30);
+      } catch (e) {
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(companyName, 14, 24);
+      }
+    } else {
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(companyName, 14, 24);
+    }
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(companyAddress, 14, 30);
+    doc.text(`Email: ${companyEmail} | Hotline: ${companyPhone}`, 14, 35);
+
+    // Title on Right
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('OFFICIAL PAYMENT RECEIPT', pageWidth - 14, 22, { align: 'right' });
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`Receipt #: ${paymentData.receiptNumber || 'REC-' + (paymentData.id ? String(paymentData.id).slice(0, 6).toUpperCase() : '001')}`, pageWidth - 14, 30, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Payment Date: ${formatDatePretty(paymentData.paymentTimestamp || paymentData.date || new Date())}`, pageWidth - 14, 36, { align: 'right' });
+    if (paymentData.invoiceNumber || invoiceData.invoiceNumber) {
+      doc.text(`Invoice Ref: #${paymentData.invoiceNumber || invoiceData.invoiceNumber}`, pageWidth - 14, 41, { align: 'right' });
+    }
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(14, 46, pageWidth - 14, 46);
+
+    // Paid Stamp (Watermark)
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: 0.08 }));
+    doc.setFontSize(90);
+    doc.setTextColor(16, 185, 129);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAID IN FULL', pageWidth / 2, 140, { align: 'center', angle: 30 });
+    doc.restoreGraphicsState();
+
+    // Client Info Box
+    const clientName = customerData.gymName || customerData.name || paymentData.customerName || invoiceData.prospectName || 'Valued Client';
+    const clientContact = customerData.contactPerson || customerData.name || '';
+    const clientPhone = customerData.phone || '';
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 52, 95, 26, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 52, 95, 26, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('RECEIVED FROM:', 18, 59);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(clientName, 18, 66);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`${clientContact ? 'Attn: ' + clientContact : ''} ${clientPhone ? '| ' + clientPhone : ''}`, 18, 73);
+
+    // Payment Meta Box on Right
+    doc.setFillColor(248, 250, 252);
+    doc.rect(pageWidth - 95, 52, 81, 26, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(pageWidth - 95, 52, 81, 26, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('PAYMENT DETAILS:', pageWidth - 91, 59);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Method: ${paymentData.paymentMethod || paymentData.paymentType || 'Bank Transfer'}`, pageWidth - 91, 66);
+    doc.text(`Ref / Chq #: ${paymentData.referenceNumber || paymentData.reference || 'N/A'}`, pageWidth - 91, 72);
+
+    // Payment Breakdown Table
+    const paymentAmount = Number(paymentData.amount || 0);
+    const invoiceTotal = Number(invoiceData.amount || paymentAmount);
+    const remainingBalance = paymentData.remainingBalance !== undefined ? Number(paymentData.remainingBalance) : Math.max(0, invoiceTotal - paymentAmount);
+
+    const tableBody = [
+      [
+        invoiceData.invoiceNumber ? `Payment against Invoice #${invoiceData.invoiceNumber}` : 'Account Settlement Deposit',
+        formatDatePretty(paymentData.paymentTimestamp || paymentData.date),
+        paymentData.paymentMethod || 'Bank Transfer',
+        formatLKR(paymentAmount)
+      ]
+    ];
+
+    runAutoTable(doc, {
+      startY: 86,
+      head: [['Transaction Particulars', 'Payment Date', 'Settlement Channel', 'Amount Paid']],
+      body: tableBody,
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9.5,
+        cellPadding: 4
+      },
+      columnStyles: {
+        3: { halign: 'right', fontStyle: 'bold' }
+      },
+      styles: { fontSize: 9, cellPadding: 4.5, textColor: [30, 41, 59] }
+    });
+
+    let currentY = doc.lastAutoTable.finalY + 8;
+
+    // Summary Box
+    doc.setFillColor(248, 250, 252);
+    doc.rect(pageWidth - 90, currentY, 76, 28, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(pageWidth - 90, currentY, 76, 28, 'S');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Amount Credited:', pageWidth - 86, currentY + 7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text(formatLKR(paymentAmount), pageWidth - 18, currentY + 7, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Remaining Due:', pageWidth - 86, currentY + 15);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(remainingBalance > 0 ? [239, 68, 68] : [100, 116, 139]);
+    doc.text(formatLKR(remainingBalance), pageWidth - 18, currentY + 15, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Recorded By:', pageWidth - 86, currentY + 23);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(paymentData.recordedBy || 'Accounts Desk', pageWidth - 18, currentY + 23, { align: 'right' });
+
+    // Official Notes & Signatures
+    currentY += 40;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, currentY, 80, currentY);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Authorized Finance Signatory', 14, currentY + 5);
+    doc.text(`${companyName} Cash Management`, 14, currentY + 9);
+
+    applyPageHeaderFooter(doc, {
+      title: 'Payment Receipt',
+      companyConfig: savedConfig,
+      primaryColor
+    });
+
+    const fileName = `Receipt_${(paymentData.receiptNumber || 'REC').replace(/[^a-zA-Z0-9-]/g, '_')}_${clientName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    savePdfDoc(doc, fileName);
+    return true;
+  } catch (err) {
+    console.error('Failed to generate payment receipt PDF:', err);
+    alert('Could not generate receipt PDF: ' + err.message);
+    return false;
+  }
+};
+
+// 2. CUSTOMER STATEMENT PDF (Complete Transaction Ledger)
+export const generateCustomerStatementPDF = (customer, invoices = [], payments = [], quotes = []) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6', [59, 130, 246]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('STATEMENT OF ACCOUNT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Statement Date: ${formatDatePretty(new Date())}`, pageWidth - 14, 26, { align: 'right' });
+    doc.text(`Account Code: ${customer.customerCode || customer.id || 'CUST-001'}`, pageWidth - 14, 31, { align: 'right' });
+
+    // Client Details
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 38, pageWidth - 28, 22, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 38, pageWidth - 28, 22, 'S');
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(customer.gymName || customer.name || 'Valued Client', 20, 47);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Contact: ${customer.contactPerson || customer.name || '—'} | Mobile: ${customer.phone || '—'} | Email: ${customer.email || '—'}`, 20, 54);
+
+    // Compute Transactions
+    const custInvoices = invoices.filter(inv => inv.customerId === customer.id || inv.prospectName === customer.gymName);
+    const custPayments = payments.filter(p => p.customerId === customer.id || custInvoices.some(inv => inv.id === p.documentId));
+
+    let totalBilled = custInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
+    let totalPaid = custPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    let netBalance = Math.max(0, totalBilled - totalPaid);
+
+    // Transactions Table
+    const rows = [];
+    custInvoices.forEach(inv => {
+      rows.push([
+        formatDatePretty(inv.date),
+        `Invoice #${inv.invoiceNumber}`,
+        'Invoice Issued',
+        formatLKR(inv.amount),
+        '—'
+      ]);
+    });
+    custPayments.forEach(p => {
+      rows.push([
+        formatDatePretty(p.paymentTimestamp || p.date),
+        `Receipt #${p.receiptNumber || 'REC'}`,
+        `Payment (${p.paymentMethod || 'Bank Transfer'})`,
+        '—',
+        formatLKR(p.amount)
+      ]);
+    });
+
+    // Sort by date
+    rows.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+
+    runAutoTable(doc, {
+      startY: 68,
+      head: [['Date', 'Reference #', 'Transaction Details', 'Debit (Billed)', 'Credit (Paid)']],
+      body: rows.length > 0 ? rows : [['—', 'No transactions found', 'Account has no billing records', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
+      styles: { fontSize: 8.5, cellPadding: 3.5 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(pageWidth - 85, finalY, 71, 26, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(pageWidth - 85, finalY, 71, 26, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Total Invoiced:', pageWidth - 80, finalY + 6);
+    doc.text(formatLKR(totalBilled), pageWidth - 18, finalY + 6, { align: 'right' });
+
+    doc.text('Total Payments:', pageWidth - 80, finalY + 13);
+    doc.text(formatLKR(totalPaid), pageWidth - 18, finalY + 13, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(netBalance > 0 ? [239, 68, 68] : [16, 185, 129]);
+    doc.text('Net Balance Due:', pageWidth - 80, finalY + 21);
+    doc.text(formatLKR(netBalance), pageWidth - 18, finalY + 21, { align: 'right' });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Customer Statement',
+      companyConfig: savedConfig,
+      primaryColor
+    });
+
+    savePdfDoc(doc, `Customer_Statement_${(customer.gymName || 'Client').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  } catch (err) {
+    console.error('Customer statement error:', err);
+    alert('Failed to generate statement: ' + err.message);
+  }
+};
+
+// 3. DEBTOR / OUTSTANDING REPORT PDF
+export const generateDebtorReportPDF = (debtorsList, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#f59e0b', [245, 158, 11]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(245, 158, 11);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('ACCOUNTS RECEIVABLE & DEBTORS REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`As of Date: ${formatDatePretty(new Date())} | Scope: Outstanding Invoices > LKR 0.00`, pageWidth - 14, 26, { align: 'right' });
+
+    let grandTotalDebt = 0;
+    const tableBody = (debtorsList || []).map(row => {
+      const remaining = Number(row.outstanding || row.remainingBalance || 0);
+      grandTotalDebt += remaining;
+      return [
+        row.customerName || row.gymName || 'Client',
+        `#${row.invoiceNumber || '—'}`,
+        formatDatePretty(row.date),
+        formatDatePretty(row.dueDate),
+        formatLKR(row.amount || row.total),
+        formatLKR(row.paidAmount || row.paid),
+        formatLKR(remaining),
+        row.daysOverdue !== undefined ? `${row.daysOverdue}d` : '—',
+        row.status || 'Pending'
+      ];
+    });
+
+    runAutoTable(doc, {
+      startY: 36,
+      head: [['Customer', 'Invoice #', 'Date', 'Due Date', 'Total', 'Paid', 'Outstanding', 'Aging', 'Status']],
+      body: tableBody.length > 0 ? tableBody : [['—', '—', '—', '—', '—', '—', 'No outstanding debtors', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: [245, 158, 11], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      columnStyles: {
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+        6: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] },
+        7: { halign: 'center' }
+      },
+      styles: { fontSize: 7.5, cellPadding: 3 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('TOTAL RECOVERABLE RECEIVABLES:', pageWidth - 80, finalY, { align: 'right' });
+    doc.setTextColor(220, 38, 38);
+    doc.text(formatLKR(grandTotalDebt), pageWidth - 14, finalY, { align: 'right' });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Debtor Aging Report',
+      companyConfig: savedConfig,
+      primaryColor: [245, 158, 11]
+    });
+
+    savePdfDoc(doc, `Debtor_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Debtor report error:', err);
+    alert('Failed to generate debtor report: ' + err.message);
+  }
+};
+
+// 4. SALES REVENUE & PERFORMANCE REPORT PDF
+export const generateSalesReportPDF = (reportData, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6', [59, 130, 246]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('COMPREHENSIVE SALES & REVENUE REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Period: ${options.periodLabel || 'All Time'} | Generated: ${formatDatePretty(new Date())}`, pageWidth - 14, 26, { align: 'right' });
+
+    // Summary Metric Cards
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 34, pageWidth - 28, 26, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 34, pageWidth - 28, 26, 'S');
+
+    const colWidth = (pageWidth - 28) / 4;
+    const metrics = [
+      { label: 'TOTAL INVOICED', val: formatLKR(reportData.totalInvoiced) },
+      { label: 'TOTAL COLLECTED', val: formatLKR(reportData.totalCollected) },
+      { label: 'OUTSTANDING DEBT', val: formatLKR(reportData.totalOutstanding) },
+      { label: 'CONVERSION RATE', val: `${reportData.conversionRate || 0}%` }
+    ];
+
+    metrics.forEach((m, idx) => {
+      const x = 14 + (idx * colWidth) + 8;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139);
+      doc.text(m.label, x, 42);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(idx === 1 ? [16, 185, 129] : idx === 2 ? [239, 68, 68] : [15, 23, 42]);
+      doc.text(m.val, x, 52);
+    });
+
+    // Invoices Breakdown Table
+    const invoiceRows = (reportData.invoices || []).map(inv => [
+      formatDatePretty(inv.date),
+      `#${inv.invoiceNumber}`,
+      inv.clientName || inv.prospectName || 'Valued Client',
+      inv.quoteNumber ? `#${inv.quoteNumber}` : 'Direct',
+      formatLKR(inv.amount),
+      inv.status || 'Draft'
+    ]);
+
+    runAutoTable(doc, {
+      startY: 68,
+      head: [['Invoice Date', 'Invoice #', 'Customer / Business', 'Linked Quote', 'Invoiced Amount', 'Status']],
+      body: invoiceRows.length > 0 ? invoiceRows : [['—', '—', 'No invoices in selected period', '—', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      columnStyles: { 4: { halign: 'right' } },
+      styles: { fontSize: 8, cellPadding: 3.5 }
+    });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Sales Report',
+      companyConfig: savedConfig,
+      primaryColor
+    });
+
+    savePdfDoc(doc, `Sales_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Sales report error:', err);
+    alert('Failed to generate sales report: ' + err.message);
+  }
+};
+
+// 5. PAYMENT TRANSACTIONS REPORT PDF
+export const generatePaymentReportPDF = (paymentsList, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#10b981', [16, 185, 129]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('PAYMENT COLLECTIONS AUDIT REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated: ${formatDatePretty(new Date())} | Scope: Verified Cash & Bank Deposits`, pageWidth - 14, 26, { align: 'right' });
+
+    let totalCollected = 0;
+    const tableBody = (paymentsList || []).map(p => {
+      const amt = Number(p.amount || 0);
+      totalCollected += amt;
+      return [
+        formatDatePretty(p.paymentTimestamp || p.date),
+        p.receiptNumber || `REC-${String(p.id || '').slice(0, 6)}`,
+        p.customerName || 'Client',
+        p.invoiceNumber ? `#${p.invoiceNumber}` : '—',
+        p.paymentMethod || p.paymentType || 'Bank Transfer',
+        p.referenceNumber || p.reference || '—',
+        p.recordedBy || 'Staff',
+        formatLKR(amt)
+      ];
+    });
+
+    runAutoTable(doc, {
+      startY: 36,
+      head: [['Date', 'Receipt #', 'Customer', 'Invoice #', 'Payment Method', 'Reference', 'Recorded By', 'Amount']],
+      body: tableBody.length > 0 ? tableBody : [['—', '—', 'No payment records found', '—', '—', '—', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      columnStyles: { 7: { halign: 'right', fontStyle: 'bold' } },
+      styles: { fontSize: 7.5, cellPadding: 3.5 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('TOTAL DEPOSITS COLLECTED:', pageWidth - 80, finalY, { align: 'right' });
+    doc.setTextColor(16, 185, 129);
+    doc.text(formatLKR(totalCollected), pageWidth - 14, finalY, { align: 'right' });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Payment Collections Audit',
+      companyConfig: savedConfig,
+      primaryColor: [16, 185, 129]
+    });
+
+    savePdfDoc(doc, `Payments_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Payment report error:', err);
+    alert('Failed to generate payment report: ' + err.message);
+  }
+};
+
+// 6. RENEWALS & RECURRING PIPELINE REPORT PDF
+export const generateRenewalReportPDF = (renewalsList, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#8b5cf6', [139, 92, 246]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(139, 92, 246);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('SUBSCRIPTION RENEWALS & PIPELINE REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`As of Date: ${formatDatePretty(new Date())} | Scope: Monthly, Bi-Annual & Annual Accounts`, pageWidth - 14, 26, { align: 'right' });
+
+    let totalProjected = 0;
+    const tableBody = (renewalsList || []).map(r => {
+      const fee = Number(r.annualFee || r.amount || 0);
+      totalProjected += fee;
+      return [
+        r.gymName || r.name || 'Client',
+        r.contactPerson || '—',
+        r.phone || '—',
+        r.renewalFrequency || 'Annual',
+        formatDatePretty(r.renewalDate),
+        formatLKR(fee),
+        r.renewalStatus || r.status || 'Active'
+      ];
+    });
+
+    runAutoTable(doc, {
+      startY: 36,
+      head: [['Client Gym / Business', 'Contact Person', 'Phone', 'Frequency', 'Renewal Date', 'Recurring Fee', 'Status']],
+      body: tableBody.length > 0 ? tableBody : [['—', '—', '—', 'No renewals found', '—', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: [139, 92, 246], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      columnStyles: { 5: { halign: 'right' } },
+      styles: { fontSize: 8, cellPadding: 3.5 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('TOTAL PROJECTED RECURRING VALUE:', pageWidth - 80, finalY, { align: 'right' });
+    doc.setTextColor(139, 92, 246);
+    doc.text(formatLKR(totalProjected), pageWidth - 14, finalY, { align: 'right' });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Renewal Report',
+      companyConfig: savedConfig,
+      primaryColor: [139, 92, 246]
+    });
+
+    savePdfDoc(doc, `Renewals_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Renewal report error:', err);
+    alert('Failed to generate renewal report: ' + err.message);
+  }
+};
+
+// 7. STAFF PERFORMANCE TRACKING REPORT PDF
+export const generateStaffPerformanceReportPDF = (staffStats, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(99, 102, 241);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('STAFF SALES PERFORMANCE REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated: ${formatDatePretty(new Date())} | Scope: Staff Quota & Conversion Metrics`, pageWidth - 14, 26, { align: 'right' });
+
+    const tableBody = (staffStats || []).map(s => [
+      s.name || 'Staff Member',
+      s.role || 'Sales Rep',
+      String(s.quotesCreated || 0),
+      String(s.quotesAccepted || 0),
+      String(s.quotesRejected || 0),
+      `${s.conversionRate || 0}%`,
+      formatLKR(s.totalInvoiced),
+      formatLKR(s.totalCollected)
+    ]);
+
+    runAutoTable(doc, {
+      startY: 36,
+      head: [['Staff Name', 'Role', 'Quotes Created', 'Accepted', 'Rejected', 'Conversion %', 'Total Invoiced', 'Total Collected']],
+      body: tableBody.length > 0 ? tableBody : [['—', '—', '—', 'No staff performance data available', '—', '—', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      columnStyles: {
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: { halign: 'center' },
+        5: { halign: 'center', fontStyle: 'bold', textColor: [16, 185, 129] },
+        6: { halign: 'right' },
+        7: { halign: 'right', fontStyle: 'bold' }
+      },
+      styles: { fontSize: 7.5, cellPadding: 3.5 }
+    });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Staff Performance Report',
+      companyConfig: savedConfig,
+      primaryColor: [99, 102, 241]
+    });
+
+    savePdfDoc(doc, `Staff_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Staff report error:', err);
+    alert('Failed to generate staff performance report: ' + err.message);
+  }
+};
+
+// 8. LEAD SOURCE ACQUISITION REPORT PDF
+export const generateLeadSourceReportPDF = (leadStats, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = hexToRgb(savedConfig.pdfColor || '#ec4899', [236, 72, 153]);
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(236, 72, 153);
+    doc.text(companyName, 14, 20);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('LEAD SOURCE ATTRIBUTION & ROI REPORT', pageWidth - 14, 20, { align: 'right' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated: ${formatDatePretty(new Date())} | Scope: Marketing Channel Attribution`, pageWidth - 14, 26, { align: 'right' });
+
+    let grandTotalRevenue = 0;
+    const tableBody = (leadStats || []).map(s => {
+      const rev = Number(s.revenue || 0);
+      grandTotalRevenue += rev;
+      return [
+        s.source || 'Walk-in',
+        String(s.prospectCount || 0),
+        String(s.convertedCount || 0),
+        `${s.conversionRate || 0}%`,
+        formatLKR(rev)
+      ];
+    });
+
+    runAutoTable(doc, {
+      startY: 36,
+      head: [['Marketing / Lead Source', 'Total Inquiries', 'Converted Customers', 'Conversion Rate', 'Revenue Generated']],
+      body: tableBody.length > 0 ? tableBody : [['—', '—', 'No lead attribution data available', '—', '—']],
+      theme: 'grid',
+      showHead: 'everyPage',
+      headStyles: { fillColor: [236, 72, 153], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      columnStyles: {
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center', fontStyle: 'bold' },
+        4: { halign: 'right', fontStyle: 'bold' }
+      },
+      styles: { fontSize: 8, cellPadding: 3.5 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('TOTAL REVENUE FROM ALL SOURCES:', pageWidth - 80, finalY, { align: 'right' });
+    doc.setTextColor(236, 72, 153);
+    doc.text(formatLKR(grandTotalRevenue), pageWidth - 14, finalY, { align: 'right' });
+
+    applyPageHeaderFooter(doc, {
+      title: 'Lead Source Report',
+      companyConfig: savedConfig,
+      primaryColor: [236, 72, 153]
+    });
+
+    savePdfDoc(doc, `Lead_Source_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Lead source report error:', err);
+    alert('Failed to generate lead source report: ' + err.message);
+  }
+};
+

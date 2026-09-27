@@ -8,18 +8,23 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id),
+    customer_code TEXT,
     gym_name TEXT NOT NULL,
     name TEXT,
+    contact_person TEXT,
     email TEXT,
     phone TEXT,
-    dob DATE,
+    address TEXT,
+    tax_id TEXT,
+    tags JSONB DEFAULT '[]'::jsonb,
+    lead_source TEXT DEFAULT 'Walk-in',
     purchase_date DATE,
     renewal_date DATE,
-    annual_fee NUMERIC DEFAULT 0,
+    renewal_frequency TEXT DEFAULT 'Annual',
+    last_renewal_date DATE,
+    renewal_status TEXT DEFAULT 'Active',
     status TEXT DEFAULT 'Active',
     notes JSONB DEFAULT '[]'::jsonb,
-    last_reminder_days_diff INTEGER,
-    last_birthday_sent_year INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -27,14 +32,23 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS quotations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id),
+    customer_id UUID,
     share_key TEXT UNIQUE NOT NULL,
     quote_number TEXT NOT NULL,
     date DATE NOT NULL,
+    valid_until DATE,
     prospect_name TEXT,
     prospect_phone TEXT,
     amount NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Pending',
     items JSONB DEFAULT '[]'::jsonb,
+    notes TEXT,
+    terms TEXT,
+    counter_offers JSONB DEFAULT '[]'::jsonb,
+    rejection_reason TEXT,
+    created_by TEXT DEFAULT 'Staff',
+    version INTEGER DEFAULT 1,
+    converted_invoice_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -42,28 +56,45 @@ CREATE TABLE IF NOT EXISTS quotations (
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id),
+    quotation_id UUID,
     share_key TEXT UNIQUE NOT NULL,
     invoice_number TEXT NOT NULL,
     date DATE NOT NULL,
     due_date DATE,
     customer_id UUID,
     amount NUMERIC DEFAULT 0,
+    subtotal NUMERIC DEFAULT 0,
+    discount NUMERIC DEFAULT 0,
+    tax NUMERIC DEFAULT 0,
+    amount_paid NUMERIC DEFAULT 0,
+    outstanding_balance NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Draft',
+    payment_terms TEXT DEFAULT 'Net 14',
     items JSONB DEFAULT '[]'::jsonb,
     prospect_name TEXT,
+    notes TEXT,
+    terms TEXT,
+    created_by TEXT DEFAULT 'Staff',
+    is_renewal BOOLEAN DEFAULT false,
+    renewal_source_invoice_id UUID,
     reminder_sent BOOLEAN DEFAULT false,
     installment_plan JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 4. INVENTORY TABLE
+-- 4. INVENTORY / CATALOG TABLE
 CREATE TABLE IF NOT EXISTS inventory (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id),
     name TEXT NOT NULL,
     item_type TEXT,
     price NUMERIC DEFAULT 0,
+    cost_price NUMERIC DEFAULT 0,
     stock INTEGER DEFAULT 0,
+    reorder_level INTEGER DEFAULT 5,
+    tax_rate NUMERIC DEFAULT 0,
+    unit TEXT DEFAULT 'package',
+    status TEXT DEFAULT 'Active',
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -99,9 +130,30 @@ CREATE TABLE IF NOT EXISTS payments (
     user_id UUID REFERENCES auth.users(id),
     customer_id UUID,
     document_id UUID,
+    receipt_number TEXT,
+    invoice_number TEXT,
+    customer_name TEXT,
     amount NUMERIC DEFAULT 0,
     payment_type TEXT,
+    payment_method TEXT DEFAULT 'Bank Transfer',
+    reference_number TEXT,
+    notes TEXT,
+    remaining_balance NUMERIC DEFAULT 0,
+    recorded_by TEXT DEFAULT 'Staff',
     payment_timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 8. SYSTEM NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS system_notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    event_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    related_id TEXT,
+    related_type TEXT,
+    is_read BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

@@ -3,18 +3,25 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
-  const { quotes = [], invoices = [], customers = [], updateQuoteStatus, showNotification, smsConfig = {} } = useContext(StoreContext) || {};
+  const { quotes = [], invoices = [], customers = [], acceptQuote, proposeBudget, rejectQuote, showNotification, smsConfig = {} } = useContext(StoreContext) || {};
   const [docData, setDocData] = useState(null);
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [showGratitude, setShowGratitude] = useState(false);
+  const [showProposeModal, setShowProposeModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [proposedAmount, setProposedAmount] = useState('');
+  const [counterMessage, setCounterMessage] = useState('');
+  const [preferredChanges, setPreferredChanges] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isQuote = type === 'quote';
   const isReceipt = type === 'receipt';
@@ -89,9 +96,19 @@ const SharedDocument = () => {
   const handleDownloadPDF = () => {
     if (!docData) return;
     const payload = isQuote
-      ? { ...docData, prospectName: customerName }
-      : { ...docData, gymName: customerName };
-    generateDocumentPDF(docTitle, payload, docData.items || []);
+      ? { 
+          ...docData, 
+          prospectName: customerName, 
+          customerName: customerName,
+          quoteNumber: docData.quoteNumber || docData.quote_number || docData.id 
+        }
+      : { 
+          ...docData, 
+          gymName: customerName, 
+          customerName: customerName,
+          invoiceNumber: docData.invoiceNumber || docData.invoice_number || docData.id 
+        };
+    generateDocumentPDF(isQuote ? 'Quotation' : 'Invoice', payload, docData.items || []);
   };
 
   const handlePrint = () => window.print();
@@ -400,38 +417,149 @@ const SharedDocument = () => {
             </div>
           </div>
 
-          {/* CALL TO ACTION FOR QUOTE APPROVAL */}
-          {isQuote && docData.status === 'Pending' && !isPreview && (
-            <div className="cta-container no-print" style={{ 
-              marginTop: '40px', 
-              padding: '32px', 
-              background: '#f8fafc', 
-              borderRadius: '24px', 
-              border: '1px solid #e2e8f0', 
-              textAlign: 'center' 
-            }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>Ready to proceed?</h3>
-              <p style={{ maxWidth: '600px', margin: '0 auto 24px auto', fontSize: '0.95rem', color: '#64748b' }}>Review the terms above and confirm your acceptance to initialize the implementation process.</p>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-                <button 
-                  onClick={async () => { 
-                    setDocData(prev => ({ ...prev, status: 'Accepted' }));
-                    await updateQuoteStatus(id, 'Accepted'); 
-                    setShowGratitude(true);
-                  }}
-                  className="btn btn-primary" style={{ background: '#6366f1', padding: '12px 28px', fontWeight: 800 }}>
-                  <CheckCircle size={18} /> Approve & Accept Proposal
-                </button>
-                <button 
-                  onClick={async () => { 
-                    setDocData(prev => ({ ...prev, status: 'Rejected' }));
-                    await updateQuoteStatus(id, 'Rejected'); 
-                    showNotification('Proposal declined.'); 
-                  }}
-                  className="btn btn-secondary" style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', padding: '12px 24px', fontWeight: 700 }}>
-                  <XCircle size={18} /> Decline
-                </button>
-              </div>
+          {/* QUOTATION STATUS NOTICES & INTERACTIVE CUSTOMER ACTIONS */}
+          {isQuote && (
+            <div className="no-print" style={{ marginTop: '36px' }}>
+              {docData.status === 'Expired' && (
+                <div style={{
+                  padding: '24px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)', textAlign: 'center'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#ef4444', fontWeight: 800, fontSize: '1rem', marginBottom: '8px' }}>
+                    <AlertTriangle size={20} /> QUOTATION EXPIRED
+                  </div>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+                    This quotation expired on {docData.validUntil ? new Date(docData.validUntil).toLocaleDateString() : 'its validity date'}. Please contact us to request an updated quotation.
+                  </p>
+                </div>
+              )}
+
+              {docData.status === 'Accepted' && (
+                <div style={{
+                  padding: '24px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)', textAlign: 'center'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 800, fontSize: '1.05rem', marginBottom: '6px' }}>
+                    <CheckCircle size={22} /> QUOTATION ACCEPTED
+                  </div>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+                    This proposal was accepted on {docData.acceptedAt ? new Date(docData.acceptedAt).toLocaleDateString() : 'record'}. Our team is finalizing your invoice and onboarding.
+                  </p>
+                </div>
+              )}
+
+              {docData.status === 'Counter Offer' && (
+                <div style={{
+                  padding: '24px', borderRadius: '20px', background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)', textAlign: 'center'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontWeight: 800, fontSize: '1.05rem', marginBottom: '6px' }}>
+                    <DollarSign size={20} /> COUNTER OFFER SUBMITTED
+                  </div>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+                    Your proposed budget has been received by our management team. We will review your notes and respond promptly.
+                  </p>
+                </div>
+              )}
+
+              {docData.status === 'Rejected' && (
+                <div style={{
+                  padding: '24px', borderRadius: '20px', background: 'rgba(148, 163, 184, 0.08)',
+                  border: '1px solid rgba(148, 163, 184, 0.25)', textAlign: 'center'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 800, fontSize: '1rem', marginBottom: '6px' }}>
+                    <XCircle size={20} /> QUOTATION DECLINED
+                  </div>
+                  <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>
+                    This proposal was marked as declined. If your requirements change, feel free to reach out.
+                  </p>
+                </div>
+              )}
+
+              {(docData.status === 'Pending' || docData.status === 'Sent' || docData.status === 'Draft') && !isPreview && (
+                <div className="cta-container" style={{ 
+                  padding: '36px 32px', 
+                  background: '#f8fafc', 
+                  borderRadius: '24px', 
+                  border: '1px solid #e2e8f0', 
+                  textAlign: 'center' 
+                }}>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
+                    Ready to proceed?
+                  </h3>
+                  <p style={{ maxWidth: '600px', margin: '0 auto 28px auto', fontSize: '0.95rem', color: '#64748b' }}>
+                    Choose an option below to approve the proposal, propose a custom budget, or decline.
+                  </p>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+                    {/* ACCEPT BUTTON */}
+                    <button 
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={async () => { 
+                        setIsSubmitting(true);
+                        try {
+                          if (acceptQuote) {
+                            await acceptQuote(docData.id || id);
+                          }
+                          setDocData(prev => ({ ...prev, status: 'Accepted', acceptedAt: new Date().toISOString() }));
+                          setShowGratitude(true);
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className="btn btn-primary" 
+                      style={{ 
+                        background: 'linear-gradient(135deg, #10b981, #059669)', 
+                        padding: '14px 28px', 
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        boxShadow: '0 8px 20px rgba(16, 185, 129, 0.35)',
+                        border: 'none'
+                      }}>
+                      <CheckCircle size={18} /> ACCEPT QUOTATION
+                    </button>
+
+                    {/* PROPOSE BUDGET BUTTON */}
+                    <button 
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => {
+                        setProposedAmount(docData.amount?.toString() || '');
+                        setShowProposeModal(true);
+                      }}
+                      className="btn" 
+                      style={{ 
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+                        color: '#ffffff',
+                        padding: '14px 26px', 
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        boxShadow: '0 8px 20px rgba(245, 158, 11, 0.25)',
+                        border: 'none'
+                      }}>
+                      <DollarSign size={18} /> PROPOSE BUDGET
+                    </button>
+
+                    {/* REJECT BUTTON */}
+                    <button 
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setShowRejectModal(true)}
+                      className="btn btn-secondary" 
+                      style={{ 
+                        color: '#ef4444', 
+                        background: '#fef2f2', 
+                        border: '1px solid #fee2e2', 
+                        padding: '14px 22px', 
+                        fontWeight: 700,
+                        fontSize: '0.95rem'
+                      }}>
+                      <XCircle size={18} /> REJECT QUOTATION
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -470,8 +598,9 @@ const SharedDocument = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px'
         }}>
           <div className="glass-panel" style={{ 
-            maxWidth: '450px', width: '100%', textAlign: 'center', padding: '48px 32px',
-            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)'
+            maxWidth: '480px', width: '100%', textAlign: 'center', padding: '48px 32px',
+            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
+            background: '#0f172a'
           }}>
             <div style={{
               width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.14)',
@@ -479,13 +608,212 @@ const SharedDocument = () => {
             }}>
               <CheckCircle size={48} color="#10b981" />
             </div>
-            <h2 style={{ fontSize: '2rem', marginBottom: '16px', color: '#ffffff', fontWeight: 900 }}>Thank You!</h2>
+            <h2 style={{ fontSize: '2rem', marginBottom: '16px', color: '#ffffff', fontWeight: 900 }}>Quotation Accepted!</h2>
             <p style={{ fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '32px', color: '#cbd5e1' }}>
-              Your approval for <strong>{customerName}</strong> has been received successfully. We are excited to begin our partnership!
+              Your approval for <strong>{customerName}</strong> has been registered successfully. Our team has been notified and will issue your formal invoice shortly!
             </p>
-            <button className="btn btn-primary" style={{ width: '100%', height: '48px' }} onClick={() => setShowGratitude(false)}>
-              Close Window
+            <button className="btn btn-primary" style={{ width: '100%', height: '48px', fontWeight: 800 }} onClick={() => setShowGratitude(false)}>
+              Close Confirmation
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* PROPOSE BUDGET (COUNTER OFFER) MODAL */}
+      {showProposeModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px'
+        }}>
+          <div className="glass-panel" style={{ 
+            maxWidth: '520px', width: '100%', padding: '36px',
+            border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
+            background: '#0f172a'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DollarSign size={22} color="#f59e0b" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Propose Custom Budget</h3>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>Submit your proposed amount and requirements to our team.</p>
+              </div>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsSubmitting(true);
+              try {
+                if (proposeBudget) {
+                  await proposeBudget(docData.id || id, {
+                    proposedBudget: proposedAmount,
+                    message: counterMessage,
+                    preferredChanges
+                  });
+                }
+                setDocData(prev => ({ ...prev, status: 'Counter Offer' }));
+                setShowProposeModal(false);
+                showNotification('Your counter offer has been submitted to management.', 'success');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}>
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
+                  Proposed Total Budget (LKR) *
+                </label>
+                <input 
+                  type="number"
+                  required
+                  placeholder="e.g. 250000"
+                  value={proposedAmount}
+                  onChange={(e) => setProposedAmount(e.target.value)}
+                  style={{
+                    width: '100%', height: '48px', padding: '0 16px', borderRadius: '12px',
+                    background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#ffffff', fontSize: '1.1rem', fontWeight: 800
+                  }}
+                />
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px' }}>
+                  Original Quotation Amount: <strong>LKR {(Number(docData.amount) || 0).toLocaleString()}</strong>
+                  {proposedAmount && (
+                    <span style={{ marginLeft: '8px', color: (Number(proposedAmount) - Number(docData.amount)) < 0 ? '#f59e0b' : '#10b981' }}>
+                      (Diff: LKR {(Number(proposedAmount) - Number(docData.amount)).toLocaleString()})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
+                  Message to Seynex Team (Optional)
+                </label>
+                <textarea 
+                  rows={3}
+                  placeholder="Add any specific payment constraints or notes..."
+                  value={counterMessage}
+                  onChange={(e) => setCounterMessage(e.target.value)}
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: '12px',
+                    background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#ffffff', fontSize: '0.88rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
+                  Preferred Changes / Exclusions (Optional)
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Remove biometric scanner module or extend license"
+                  value={preferredChanges}
+                  onChange={(e) => setPreferredChanges(e.target.value)}
+                  style={{
+                    width: '100%', height: '44px', padding: '0 16px', borderRadius: '12px',
+                    background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#ffffff', fontSize: '0.88rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowProposeModal(false)}
+                  style={{ height: '44px', padding: '0 20px', color: '#cbd5e1' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="btn" 
+                  style={{ height: '44px', padding: '0 24px', background: '#f59e0b', color: '#ffffff', fontWeight: 800 }}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Counter Offer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT QUOTATION MODAL */}
+      {showRejectModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px'
+        }}>
+          <div className="glass-panel" style={{ 
+            maxWidth: '460px', width: '100%', padding: '36px',
+            border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
+            background: '#0f172a'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XCircle size={22} color="#ef4444" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Decline Proposal</h3>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>Confirm declining Quotation #{docData.quoteNumber}</p>
+              </div>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsSubmitting(true);
+              try {
+                if (rejectQuote) {
+                  await rejectQuote(docData.id || id, rejectionReason);
+                }
+                setDocData(prev => ({ ...prev, status: 'Rejected', rejectionReason }));
+                setShowRejectModal(false);
+                showNotification('Quotation has been declined.', 'info');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
+                  Reason for declining (Optional)
+                </label>
+                <textarea 
+                  rows={3}
+                  placeholder="e.g. Budget constraints, opted for another solution, or postponing project..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: '12px',
+                    background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#ffffff', fontSize: '0.88rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowRejectModal(false)}
+                  style={{ height: '44px', padding: '0 20px', color: '#cbd5e1' }}
+                >
+                  Back
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="btn" 
+                  style={{ height: '44px', padding: '0 24px', background: '#ef4444', color: '#ffffff', fontWeight: 800 }}
+                >
+                  {isSubmitting ? 'Declining...' : 'Confirm Decline'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

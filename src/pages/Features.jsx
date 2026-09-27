@@ -4,503 +4,604 @@ import {
   Sparkles, Search, CheckCircle2, ShieldCheck, Layers, BookOpen, 
   Scale, Users, ShoppingBag, CreditCard, Building2, MessageSquare, 
   Settings as SettingsIcon, FileText, ArrowRight, Package, Zap, ExternalLink,
-  Shield, Check
+  Shield, Check, Award, TrendingUp, Clock, AlertCircle, RefreshCw,
+  Receipt, DollarSign, Smartphone, BarChart3, UserCheck, CheckSquare,
+  FileSpreadsheet, ArrowUpRight, HelpCircle, Star, Target, ChevronRight
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 
 const Features = () => {
-  const { smsConfig = {}, featureToggles = {}, updateFeatureToggle, applyPlanPreset, showNotification } = useContext(StoreContext) || {};
+  const { featureToggles = {}, updateFeatureToggle, applyPlanPreset, showNotification } = useContext(StoreContext) || {};
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const isEnabled = (key) => featureToggles[key] !== false;
 
-  const featureModules = [
+  const categories = [
+    { id: 'all', label: 'All Capabilities', icon: Layers },
+    { id: 'sales', label: 'Sales & CRM', icon: Users },
+    { id: 'deals', label: 'Quotations & Invoicing', icon: FileText },
+    { id: 'payments', label: 'Payments & Debtors', icon: CreditCard },
+    { id: 'renewals', label: 'Subscriptions & Renewals', icon: RefreshCw },
+    { id: 'accounting', label: 'SLFRS Accounting', icon: Scale },
+    { id: 'operations', label: 'Operations & Catalog', icon: Package },
+    { id: 'automation', label: 'WhatsApp & SMS Hub', icon: MessageSquare }
+  ];
+
+  const modules = [
     {
-      id: 'crm',
-      title: 'CRM & Client Registry',
+      id: 'customer_management',
       category: 'sales',
+      title: 'Customer Management & 360° Ledger',
+      badge: 'Core Relationship Engine',
+      accentColor: '#38bdf8',
+      icon: Users,
       route: '/customers',
-      toggleKey: null,
-      icon: Users,
-      badge: 'Core Subsystem',
-      color: '#38bdf8',
-      description: 'Complete Client Relationship Management with subscription tracking and automated renewal date calculations.',
-      microFeatures: [
-        'Active Gym directory with contact person & billing addresses',
-        'Automated Annual Subscription Renewal Date calculation engine',
-        'Interactive client activity history & internal notes',
-        '1-Click WhatsApp direct messaging & phone calling integration',
-        'Export active client registry to Excel (.xlsx)'
+      summary: 'Complete client transaction ledger tracking quotations, invoices, payments, outstanding balances, and recurring renewals in one unified view.',
+      features: [
+        'Auto-generated Customer ID (CUST-XXXX) with corporate details and tax/VAT tracking',
+        'Configurable Customer Tags (Corporate, VIP, Individual, Student, Walk-in)',
+        'Lead Source Attribution tracking marketing ROI (Walk-in, Referral, Social, Website)',
+        'Internal Staff Notes with author stamp & timestamp (strictly hidden from customer view)',
+        'Vertical Chronological Transaction Timeline from Quote to Final Payment',
+        '1-Click Export of Customer Registry and Statements to Professional PDF'
       ]
     },
     {
-      id: 'leads',
-      title: 'Kanban Leads Pipeline',
-      category: 'sales',
-      route: '/leads',
-      toggleKey: 'leads',
-      icon: Sparkles,
-      badge: 'Sales Accelerator',
-      color: '#fbbf24',
-      description: 'Visual B2B sales pipeline for tracking prospect deals from cold lead to active contract.',
-      microFeatures: [
-        'Drag-and-drop Kanban status stages (New, Contacted, Demo, Proposal, Won)',
-        'Deal valuation & expected revenue forecasting',
-        '1-Click Convert Won Lead directly to Active Gym Customer profile'
-      ]
-    },
-    {
-      id: 'quotes',
-      title: 'Quotations & Dynamic Item Builder',
-      category: 'sales',
-      route: '/quotations',
-      toggleKey: 'quotations',
+      id: 'quotation_workflow',
+      category: 'deals',
+      title: 'Quotation Workflow & Customer Response Portal',
+      badge: 'Deal Closer Engine',
+      accentColor: '#818cf8',
       icon: FileText,
-      badge: 'B2B Sales',
-      color: '#818cf8',
-      description: 'Professional commercial equipment quotation generator with custom branding.',
-      microFeatures: [
-        'Custom Quote Number generation (QT-1001)',
-        'Multi-item line builder with auto-calculated discounts and taxes',
-        '1-Click Convert Approved Quotation directly to live Invoice',
-        'Public shareable web link generation (/share/quote/id)',
-        'PDF export with company logo and custom branding colors'
+      route: '/quotations',
+      summary: 'High-converting interactive proposals with instant client acceptance, counter-offer budget negotiation, and automated validity expiration.',
+      features: [
+        'Status Lifecycle: Draft → Sent → Viewed → Accepted / Counter Offer / Rejected / Expired',
+        'Secure Client-Facing Portal Link exposing only the specific quotation',
+        'Interactive Client Actions: [ ACCEPT ], [ PROPOSE BUDGET ], and [ REJECT ]',
+        'Counter Offer Negotiation preserving original quote without data overwrites',
+        'Pre-filled WhatsApp Share Button opening wa.me with unique proposal link',
+        'Automated Validity Expiration engine flagging expired proposals automatically'
       ]
     },
     {
-      id: 'invoices',
-      title: 'Invoices & Installment Plans',
-      category: 'sales',
-      route: '/invoices',
-      toggleKey: null,
-      icon: ReceiptIcon,
+      id: 'automated_invoicing',
+      category: 'deals',
+      title: 'Automated Tax Invoicing & Installments',
       badge: 'Billing Engine',
-      color: '#34d399',
-      description: 'Commercial invoice generation with 2 to 12 month installment plan financing.',
-      microFeatures: [
-        '2–12 Month Installment Payment Plans with scheduled due dates',
-        'Partial payment recording & remaining balance tracking',
-        'Automated Overdue invoice auto-flagging based on due date',
-        'Public payment link (/share/invoice/id) with client self-service portal',
-        'Professional PDF Invoice and Payment Receipt generation'
+      accentColor: '#34d399',
+      icon: Receipt,
+      route: '/invoices',
+      summary: 'Turn accepted quotations into professional tax invoices in one click with zero re-entry and complete relational traceability.',
+      features: [
+        '1-Click Convert Quote to Invoice maintaining direct relational link (QT-XXXX → INV-XXXX)',
+        '2–12 Month Installment Payment Plans with scheduled due dates and payment tracking',
+        'Automated Tax, Subtotal, and Line-item Discount calculations with decimal precision',
+        'Multi-stage automated payment reminder schedules (7 days prior, due date, overdue)',
+        'Pre-filled WhatsApp Invoice Sharing with bank account settlement coordinates',
+        'Real-time Invoice Status: Draft, Issued, Partially Paid, Paid, Overdue, Cancelled'
       ]
     },
     {
-      id: 'ledger',
-      title: 'Double-Entry General Ledger',
-      category: 'accounting',
-      route: '/ledger',
-      toggleKey: 'ledger',
-      icon: Scale,
-      badge: 'SLFRS / IFRS Compliant',
-      color: '#a78bfa',
-      description: 'Full SLFRS/IFRS compliant double-entry Chart of Accounts and Journal Voucher system.',
-      microFeatures: [
-        '5 Financial Categories: Asset, Liability, Equity, Revenue, Expense',
-        'Parent-child nested account hierarchy',
-        'Individual T-Account Ledger statements with running balances',
-        'Manual Journal Vouchers (JV-001) with real-time Debit/Credit validation',
-        'Auto-rejection of unbalanced journal postings'
+      id: 'payment_management',
+      category: 'payments',
+      title: 'Multi-Channel Payments & Instant Receipts',
+      badge: 'Cash Flow Guardian',
+      accentColor: '#10b981',
+      icon: CreditCard,
+      route: '/payments',
+      summary: 'Record full and partial settlements across multiple channels with instant standalone payment receipts and audit trail integrity.',
+      features: [
+        'Supported Methods: Cash, Bank Transfer, Credit Card, Online Payment, Other',
+        'Strict Mathematical Rule: Outstanding = Total − All Valid Payments (Never Negative)',
+        'Instant Standalone Payment Receipt PDF (REC-XXXX) with official watermark stamp',
+        '1-Click WhatsApp Receipt Dispatch directly to the customer mobile number',
+        'Automatic Debtors Clearing: Settled accounts auto-shift to Paid/Closed',
+        'Non-Destructive Audit Trail: Payment history is permanently retained for audit'
       ]
     },
     {
-      id: 'reconciliation',
-      title: 'Bank Statement Reconciliation',
-      category: 'accounting',
-      route: '/ledger',
-      toggleKey: 'ledger',
-      icon: ShieldCheck,
-      badge: 'Audit Ready',
-      color: '#38bdf8',
-      description: 'Match General Ledger cash/bank entries against physical bank statement records.',
-      microFeatures: [
-        'Live GL Book Balance calculation',
-        'Total Cleared / Reconciled Balance monitoring',
-        'Unreconciled Difference tracking with 1-click clearing toggles'
+      id: 'debtors_aging',
+      category: 'payments',
+      title: 'Debtors Management & Aging Ledger',
+      badge: 'Liquidity Protector',
+      accentColor: '#f59e0b',
+      icon: Clock,
+      route: '/debtors',
+      summary: 'Total visibility over outstanding balances > 0 with inline payment collection, aging brackets, and one-click debtor statement exports.',
+      features: [
+        'Real-time aggregation of all active receivables with outstanding balance > LKR 0',
+        'Instant Filters: All, Partially Paid, Overdue, Due Today, Due This Week, by Tag',
+        'Inline [ RECORD PAYMENT ] modal directly from debtor row for rapid collection',
+        'Automatic removal from active view once balance reaches LKR 0 without record deletion',
+        'Overdue aging classification with days past due tracking',
+        '1-Click Export of Debtor Aging Statement to Professional Vector PDF'
       ]
     },
     {
-      id: 'reports',
-      title: 'Financial Statements & Reports',
-      category: 'accounting',
-      route: '/reports',
-      toggleKey: null,
-      icon: BookOpen,
-      badge: 'Executive Suite',
-      color: '#f43f5e',
-      description: 'Automated Trial Balance, P&L, Balance Sheet, and Cash Flow statements.',
-      microFeatures: [
-        'Trial Balance with auto-balance indicator (Debits - Credits = 0.00)',
-        'Profit & Loss (P&L) Statement: Revenue vs Expenses',
-        'Balance Sheet verification (Assets = Equity + Liabilities)',
-        'Cash Flow Statement (Operating, Investing, Financing)',
-        'Export all financial statements to PDF and Excel'
+      id: 'renewal_frequency',
+      category: 'renewals',
+      title: 'Subscription & Renewal Automation',
+      badge: 'Recurring Revenue Engine',
+      accentColor: '#c084fc',
+      icon: RefreshCw,
+      route: '/customers',
+      summary: 'Prompted on first payment to automate recurring billing cycles, next renewal date calculations, and 1-click renewal invoice generation.',
+      features: [
+        'Prompted on First Payment: [ One Time ] [ Monthly ] [ Bi-Annual ] [ Annual ]',
+        'Automated Next Renewal Date: Monthly (+1 mo), Bi-Annual (+6 mo), Annual (+12 mo)',
+        'Upcoming Renewals Monitor tracking accounts due in 30, 14, 7 days and overdue',
+        '1-Click [ Generate Renewal Invoice ] copying previous service and pricing intact',
+        'Renewal Invoice Traceability: Linked as RENEWAL of INV-XXXX with fresh history',
+        'Automated Pre-Renewal Notification reminders via SMS and WhatsApp'
       ]
     },
     {
-      id: 'inventory',
-      title: 'Stock Inventory & Warehouse Transfers',
-      category: 'inventory',
-      route: '/inventory',
-      toggleKey: 'inventory',
+      id: 'product_catalog',
+      category: 'operations',
+      title: 'Reusable Product & Service Catalog',
+      badge: 'Catalog & Inventory',
+      accentColor: '#ec4899',
       icon: Package,
-      badge: 'Stock Control',
-      color: '#f97316',
-      description: 'Multi-warehouse stock inventory management with reorder level alerts.',
-      microFeatures: [
-        'Selling Price vs Cost Price margin tracking',
-        'Reorder level alert badges when stock falls below threshold',
-        'Multi-Warehouse Stock Transfers (Main Warehouse, Showrooms, Outlets)',
-        'Transfer status tracking (Pending, In Transit, Completed)'
+      route: '/inventory',
+      summary: 'Standardize service offerings, hardware stock, unit pricing, and default tax rates for rapid quote building without manual typing.',
+      features: [
+        'Catalog Fields: Item Name, Description, Default Unit Price, Tax Rate, Unit, Status',
+        'Search and select directly from QuotationModal and InvoiceModal with 1-click insert',
+        'Instant quantity, price, and discount overrides per line item without altering base catalog',
+        'Real-time physical stock level tracking and reorder threshold alerts',
+        'Multi-warehouse and branch stock transfer management with audit logging',
+        'Export Inventory Stock Balance and Valuation Reports to PDF and Excel'
       ]
     },
     {
-      id: 'procurement',
-      title: 'Procurement & Purchase Orders',
-      category: 'inventory',
-      route: '/procurement',
-      toggleKey: 'procurement',
-      icon: ShoppingBag,
-      badge: 'Supply Chain',
-      color: '#10b981',
-      description: 'Supplier directory and automated Purchase Order replenishment.',
-      microFeatures: [
-        'Registered Suppliers directory with categories and contacts',
-        'Purchase Order creation (PO-1001) with item cost breakdowns',
-        '1-Click Receive Goods: Auto-replenishes inventory stock levels',
-        'Official Purchase Order print formatting'
-      ]
-    },
-    {
-      id: 'payroll',
-      title: 'HR & Statutory Payroll ERP',
-      category: 'hr',
-      route: '/hr',
-      toggleKey: 'hrPayroll',
-      icon: Users,
-      badge: 'Sri Lanka Statutory',
-      color: '#ec4899',
-      description: 'Sri Lanka Labour Law compliant payroll engine with EPF/ETF auto-calculation.',
-      microFeatures: [
-        'EPF 8% Employee deduction + EPF 12% Employer contribution',
-        'ETF 3% Employer contribution auto-calculation',
-        '1-Click Approve Payrun: Auto-posts GL Journal Voucher (Salaries Expense ➔ Bank)',
-        'Daily Attendance logs with Clock-In/Clock-Out and Overtime tracking',
-        'Staff Leave request workflow with leave balance calculations'
-      ]
-    },
-    {
-      id: 'claims',
-      title: 'Expense Claims & Performance Appraisals',
-      category: 'hr',
-      route: '/hr',
-      toggleKey: 'hrPayroll',
-      icon: Zap,
-      badge: 'Staff Management',
-      color: '#06b6d4',
-      description: 'Staff out-of-pocket expense claims and KPI appraisal reviews.',
-      microFeatures: [
-        'Out-of-pocket expense claim submission with Manager Approval',
-        'Approved claims auto-post GL Journal Voucher (Office Expense ➔ Bank)',
-        'Staff Performance Appraisals with 1-5 star ratings (Punctuality, Engagement, Teamwork)',
-        'Salary Advance requests with auto-deduction on next payroll run'
-      ]
-    },
-    {
-      id: 'assets',
-      title: 'Fixed Assets & Depreciation Engine',
-      category: 'assets',
-      route: '/assets',
-      toggleKey: 'fixedAssets',
-      icon: Building2,
-      badge: 'Asset Registry',
-      color: '#6366f1',
-      description: 'Fixed Asset registry with 1-click straight-line depreciation run.',
-      microFeatures: [
-        'Fixed Asset registry (Asset Code, Purchase Date, Price, Useful Life)',
-        'Real-time Accumulated Depreciation & Net Book Value (NBV)',
-        '1-Click Run Monthly Depreciation: Auto-posts GL Journal Voucher (Depreciation Expense ➔ Accum Dep)'
-      ]
-    },
-    {
-      id: 'sms',
-      title: 'SMS Broadcast & Customer Portal',
-      category: 'sms',
-      route: '/sms',
-      toggleKey: 'smsPortal',
+      id: 'notification_service',
+      category: 'automation',
+      title: 'Multi-Channel Notification Hub (SMS & WhatsApp)',
+      badge: 'Communication Hub',
+      accentColor: '#06b6d4',
       icon: MessageSquare,
-      badge: 'Client Portal',
-      color: '#3b82f6',
-      description: 'QuickSend SMS Gateway integration and mobile customer self-service portal.',
-      microFeatures: [
-        'Prepaid Wallet balance live monitoring & 1-click Sync',
-        'Single SMS & Bulk Broadcast messaging to client segments',
-        'Automated SMS triggers (Overdue Invoice Nudges, Payment Receipts, Birthday Wishes)',
-        'Customer Portal (/portal & /pay) accessible by mobile phone number'
+      route: '/sms',
+      summary: 'Configurable multi-channel gateway abstraction triggering automated messages for every key sales milestone without hardcoded logic.',
+      features: [
+        'Provider Abstraction: Configurable SMS gateways and WhatsApp Business API',
+        'Dynamic Template Interpolation: {name}, {amount}, {invoiceNumber}, {link}, etc.',
+        'Trigger Milestones: Quote Sent/Viewed/Accepted/Counter/Rejected, Invoices & Payments',
+        'Native wa.me link generation for 1-click mobile and desktop WhatsApp messaging',
+        'Top-Navigation In-App Activity Bell with unread badges, feed, and mark-as-read',
+        'All API credentials strictly isolated in backend configuration — zero frontend leakage'
       ]
     },
     {
-      id: 'security',
-      title: 'Security & Custom RBAC Roles',
-      category: 'security',
+      id: 'general_ledger',
+      category: 'accounting',
+      title: 'Double-Entry General Ledger (SLFRS / LKAS)',
+      badge: 'Statutory Financials',
+      accentColor: '#a78bfa',
+      icon: Scale,
+      route: '/ledger',
+      summary: 'Full compliance with Sri Lanka Accounting Standards (SLFRS/LKAS) featuring Chart of Accounts, Journal Vouchers, and T-Account Ledgers.',
+      features: [
+        'Standard 5-Category Chart of Accounts: Assets, Liabilities, Equity, Revenue, Expenses',
+        'Strict Double-Entry Enforcement: Real-time validation that Total Debits = Total Credits',
+        'Manual Journal Vouchers (JV-XXXX) with audit memos and reference numbers',
+        'Interactive T-Account drill-down with running chronological account balances',
+        'Bank Statement Reconciliation tool with cleared balance versus book balance matching',
+        'Automated posting of sales invoices, payments, and expenses to general ledger'
+      ]
+    },
+    {
+      id: 'financial_reporting',
+      category: 'accounting',
+      title: 'SLFRS Financial Statements & Analytics',
+      badge: 'Executive Intelligence',
+      accentColor: '#6366f1',
+      icon: BarChart3,
+      route: '/reports',
+      summary: 'Instant generation of Trial Balance, Income Statement (P&L), Balance Sheet, and Staff Conversion analytics with professional PDF exports.',
+      features: [
+        'SLFRS Statement of Profit or Loss (Income Statement) with Gross & Net Margins',
+        'SLFRS Statement of Financial Position (Balance Sheet) validating A = L + E equation',
+        'Real-time Trial Balance with debit/credit equality verification',
+        'Staff Performance Tracking: Quotations created, accepted, and conversion rate %',
+        'Lead Source ROI Report identifying top revenue-generating marketing channels',
+        'All 7 Reports exportable to publication-grade Vector PDFs with repeating headers'
+      ]
+    },
+    {
+      id: 'executive_dashboard',
+      category: 'sales',
+      title: 'Executive Real-Time Sales Dashboard',
+      badge: 'Command Center',
+      accentColor: '#10b981',
+      icon: Target,
+      route: '/',
+      summary: 'Real database-powered KPI command center delivering live conversion rates, top customer rankings, and 6-month cash collection trajectories.',
+      features: [
+        '10 Real-Database KPI Cards: Customers, Quotes, Accepted, Invoiced, Collected, Debtors',
+        'Quotation Conversion Rate Card tracking Sent → Accepted percentage this month',
+        'Top 5 Customers Ranked by invoiced volume this month with clickable navigation',
+        '6-Month Invoiced Volume vs Cash Collections Area Trend Chart',
+        'Quotation Status Breakdown Donut Chart (Draft, Sent, Accepted, Counter, Rejected)',
+        'Immediate Action Required panel displaying top overdue accounts'
+      ]
+    },
+    {
+      id: 'vector_pdf_engine',
+      category: 'deals',
+      title: 'Professional Vector PDF Engine',
+      badge: 'Publication Grade',
+      accentColor: '#f43f5e',
+      icon: Award,
+      route: '/quotations',
+      summary: 'Flawless document generation with repeating headers, exact LKR formatting, multi-page table wrapping, and auto-paginated footers.',
+      features: [
+        'Strict Currency Formatting: LKR 100,000.00 (Standardized across all documents)',
+        'Consistent Date Formatting: DD Month YYYY (e.g. 27 September 2026)',
+        'Repeating Table Headers on continuation pages for multi-page invoices & reports',
+        'Auto Page Numbering (Page X of Y) with document reference and timestamp',
+        'Embedded high-resolution company branding, logos, and custom accent themes',
+        'Tested with 20+ line items and multi-page tables with zero row clipping'
+      ]
+    },
+    {
+      id: 'security_governance',
+      category: 'operations',
+      title: 'Enterprise Security, RBAC & Cloud Audit',
+      badge: 'Zero-Trust Architecture',
+      accentColor: '#0ea5e9',
+      icon: ShieldCheck,
       route: '/settings',
-      toggleKey: null,
-      icon: Shield,
-      badge: 'Security Audit',
-      color: '#14b8a6',
-      description: 'Role-Based Access Control with granular permission toggles and activity logs.',
-      microFeatures: [
-        'Create custom staff roles (Sales Exec, Accountant, Inventory Mgr)',
-        '10+ Granular Permission toggles (manage_clients, view_financials, etc.)',
-        'Real-time Activity Logs with IP timestamp audit trails'
+      summary: 'Granular role-based permissions, non-destructive audit logging, session inactivity timeouts, and encrypted Supabase cloud sync.',
+      features: [
+        'Role-Based Access Control (RBAC): Admin, Sales Representative, Financial Controller',
+        'Permanent Non-Destructive Storage: Customers, Quotes, and Invoices are never deleted',
+        'Full Action Audit Logging recording user, timestamp, action, and altered record',
+        'Automated Inactivity Session Lockout protecting sensitive accounting workspaces',
+        'Public Quotation & Invoice Links expose only the target document without data leakage',
+        'Dual-Layer Persistence: Instant offline-first localStorage backed by Supabase cloud'
       ]
     }
   ];
 
-  // Icon helper component
-  function ReceiptIcon(props) {
-    return <CreditCard {...props} />;
-  }
-
-  const filteredModules = featureModules.filter(m => {
-    const matchesCat = activeCategory === 'all' || m.category === activeCategory;
-    const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          m.microFeatures.some(f => f.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCat && matchesSearch;
+  const filteredModules = modules.filter(m => {
+    const matchesCategory = activeCategory === 'all' || m.category === activeCategory;
+    const matchesSearch = searchTerm === '' || 
+      m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.features.some(f => f.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
   });
 
   return (
-    <div style={{ paddingBottom: '60px' }}>
+    <div style={{ position: 'relative', width: '100%', paddingBottom: '60px', animation: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
       
-      {/* ===== HERO HEADER ===== */}
-      <div className="page-hero" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))', padding: '32px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', marginBottom: '28px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 14px', borderRadius: '20px', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818cf8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
-              <Sparkles size={14} /> Official Capabilities Directory
-            </div>
-            <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.03em' }}>
-              {smsConfig.dashboardName || smsConfig.companyName || 'GymSales Pro'} Enterprise ERP Features
-            </h1>
-            <p style={{ fontSize: '0.95rem', color: '#94a3b8', margin: '8px 0 0 0', maxWidth: '750px', lineHeight: 1.5 }}>
-              Explore the complete catalog of double-entry accounting, SLFRS financial statements, statutory payroll, inventory, procurement, and CRM micro-features.
-            </p>
-          </div>
+      {/* WORLD-CLASS MARKETING HERO SECTION */}
+      <div style={{
+        position: 'relative',
+        borderRadius: '28px',
+        padding: '56px 40px',
+        marginBottom: '40px',
+        background: 'radial-gradient(ellipse at 50% -20%, rgba(16, 185, 129, 0.22) 0%, rgba(15, 23, 42, 0.95) 70%, #070b14 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        overflow: 'hidden',
+        textAlign: 'center'
+      }}>
+        
+        {/* Ambient Top Glow */}
+        <div style={{
+          position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)',
+          width: '600px', height: '300px',
+          background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%)',
+          filter: 'blur(80px)', pointerEvents: 'none'
+        }}></div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Link to="/settings" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontSize: '0.85rem' }}>
-              <SettingsIcon size={16} /> Feature Flags Settings
-            </Link>
-            <a href="https://seynextech.com" target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-              <ExternalLink size={16} /> Seynex Technology
-            </a>
-          </div>
+        {/* Supreme Product Edition Badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          padding: '6px 18px', borderRadius: '30px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1px solid rgba(16, 185, 129, 0.35)',
+          color: '#34d399', fontSize: '0.78rem', fontWeight: 800,
+          textTransform: 'uppercase', letterSpacing: '0.12em',
+          marginBottom: '20px', boxShadow: '0 0 20px rgba(16, 185, 129, 0.2)'
+        }}>
+          <Star size={14} fill="#34d399" /> SEYNEX ENTERPRISE SALES & REVENUE ENGINE 2026
         </div>
 
-        {/* SEARCH & CATEGORY FILTER BAR */}
-        <div style={{ marginTop: '28px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 300px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-            <input 
-              type="text" 
-              placeholder="Search features (e.g. EPF, Installments, Trial Balance)..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px 12px 42px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.88rem' }}
-            />
-          </div>
+        <h1 style={{
+          fontSize: '2.8rem', fontWeight: 900, color: '#f8fafc',
+          letterSpacing: '-0.04em', lineHeight: 1.15,
+          maxWidth: '900px', margin: '0 auto 18px auto',
+          fontFamily: 'var(--font-display, inherit)'
+        }}>
+          The Complete Revenue Operating System for High-Growth Enterprise Sales
+        </h1>
 
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: 'All Modules' },
-              { id: 'sales', label: 'CRM & Sales' },
-              { id: 'accounting', label: 'Accounting & Ledger' },
-              { id: 'inventory', label: 'Inventory & PO' },
-              { id: 'hr', label: 'HR & Payroll' },
-              { id: 'assets', label: 'Fixed Assets' },
-              { id: 'sms', label: 'SMS & Portal' }
-            ].map(cat => (
+        <p style={{
+          fontSize: '1.1rem', color: '#94a3b8', lineHeight: 1.6,
+          maxWidth: '780px', margin: '0 auto 32px auto', fontWeight: 500
+        }}>
+          Unify client relationships, interactive WhatsApp proposals, automated tax billing, multi-channel payment receipting, and SLFRS double-entry accounting in one synchronized cloud platform.
+        </p>
+
+        {/* 5 Core Trust Pillars */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px',
+          maxWidth: '850px', margin: '0 auto 36px auto'
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#f1f5f9', fontSize: '0.82rem', fontWeight: 700 }}>
+            <CheckCircle2 size={16} color="#10b981" /> 100% SLFRS / LKAS Compliant
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#f1f5f9', fontSize: '0.82rem', fontWeight: 700 }}>
+            <CheckCircle2 size={16} color="#38bdf8" /> Decimal-Safe Financial Math
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#f1f5f9', fontSize: '0.82rem', fontWeight: 700 }}>
+            <CheckCircle2 size={16} color="#a855f7" /> WhatsApp & SMS Hub Native
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#f1f5f9', fontSize: '0.82rem', fontWeight: 700 }}>
+            <CheckCircle2 size={16} color="#f59e0b" /> Sub-Second Supabase Cloud Sync
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#f1f5f9', fontSize: '0.82rem', fontWeight: 700 }}>
+            <CheckCircle2 size={16} color="#ec4899" /> Publication-Grade Vector PDF Engine
+          </span>
+        </div>
+
+        {/* Hero Quick Navigation CTAs */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <Link to="/quotations" className="btn btn-primary" style={{ padding: '12px 28px', fontSize: '0.95rem', fontWeight: 800 }}>
+            <FileText size={18} /> Launch Quotation Builder
+          </Link>
+          <Link to="/reports" className="btn btn-secondary" style={{ padding: '12px 28px', fontSize: '0.95rem', fontWeight: 700 }}>
+            <BarChart3 size={18} /> Explore Financial Analytics
+          </Link>
+          <Link to="/customers" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem', fontWeight: 700 }}>
+            <Users size={18} /> Manage Customer Ledger
+          </Link>
+        </div>
+
+      </div>
+
+      {/* FILTER CONTROLS & SEARCH BAR */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', mdDirection: 'row',
+        justifyContent: 'space-between', alignItems: 'center', gap: '16px',
+        marginBottom: '28px', flexWrap: 'wrap'
+      }}>
+        {/* Category Pill Filters */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: '8px',
+          background: 'rgba(15, 23, 42, 0.6)', padding: '6px', borderRadius: '14px',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          {categories.map(cat => {
+            const Icon = cat.icon;
+            const isSelected = activeCategory === cat.id;
+            return (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: activeCategory === cat.id ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid rgba(255,255,255,0.08)',
-                  background: activeCategory === cat.id ? 'rgba(99, 102, 241, 0.2)' : 'rgba(15, 23, 42, 0.5)',
-                  color: activeCategory === cat.id ? '#ffffff' : '#94a3b8',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 14px', borderRadius: '10px', border: 'none',
+                  fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                  background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                  color: isSelected ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? '0 2px 10px rgba(16, 185, 129, 0.3)' : 'none'
                 }}
               >
-                {cat.label}
+                <Icon size={15} />
+                <span>{cat.label}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+
+        {/* Search Input */}
+        <div style={{ position: 'relative', width: '280px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '14px', top: '12px', color: '#64748b' }} />
+          <input
+            type="text"
+            placeholder="Search all 13 modules..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%', height: '40px', padding: '0 14px 0 38px',
+              background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '10px', color: '#ffffff', fontSize: '0.85rem', outline: 'none'
+            }}
+          />
         </div>
       </div>
 
-      {/* ===== FEATURE MODULES GRID ===== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '36px' }}>
+      {/* FEATURE CARDS GRID (ALL 13 ENTERPRISE MODULES) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {filteredModules.map(mod => {
           const Icon = mod.icon;
-          const enabled = mod.toggleKey ? isEnabled(mod.toggleKey) : true;
-
           return (
             <div 
-              key={mod.id} 
-              style={{ 
-                background: 'rgba(15, 23, 42, 0.75)', 
-                border: '1px solid rgba(255, 255, 255, 0.08)', 
-                borderRadius: '20px', 
-                padding: '24px',
+              key={mod.id}
+              className="glass-panel hover-lift"
+              style={{
+                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                backdropFilter: 'blur(16px)',
-                position: 'relative',
-                overflow: 'hidden'
+                justifyContent: 'space-between',
+                padding: '28px',
+                borderRadius: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.25s ease'
               }}
             >
-              {/* Top Accent Stripe */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: mod.color }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `${mod.color}18`, border: `1px solid ${mod.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={22} color={mod.color} />
+              <div>
+                {/* Header Icon & Badge */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div style={{
+                    width: '46px', height: '46px', borderRadius: '12px',
+                    background: `${mod.accentColor}18`,
+                    color: mod.accentColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1px solid ${mod.accentColor}33`
+                  }}>
+                    <Icon size={24} />
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                      {mod.title}
-                    </h3>
-                    <span style={{ fontSize: '0.72rem', color: mod.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {mod.badge}
-                    </span>
-                  </div>
+                  <span style={{
+                    fontSize: '0.7rem', fontWeight: 800, padding: '4px 10px',
+                    borderRadius: '20px', background: 'rgba(255, 255, 255, 0.06)',
+                    color: '#cbd5e1', border: '1px solid rgba(255, 255, 255, 0.1)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em'
+                  }}>
+                    {mod.badge}
+                  </span>
                 </div>
 
-                {mod.toggleKey && (
-                  <button
-                    onClick={() => {
-                      updateFeatureToggle(mod.toggleKey, !enabled);
-                      showNotification(`${mod.title} ${!enabled ? 'Enabled' : 'Disabled'}`, !enabled ? 'success' : 'warning');
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      border: enabled ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-                      background: enabled ? 'rgba(52, 211, 153, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      color: enabled ? '#34d399' : '#fb7185',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {enabled ? 'Active' : 'Disabled'}
-                  </button>
-                )}
-              </div>
+                {/* Module Title & Summary */}
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', marginBottom: '8px' }}>
+                  {mod.title}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5, marginBottom: '20px' }}>
+                  {mod.summary}
+                </p>
 
-              <p style={{ fontSize: '0.86rem', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.45 }}>
-                {mod.description}
-              </p>
-
-              <div style={{ flex: 1, marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                  KEY MICRO-FEATURES:
+                {/* Micro-Features Bullet Points */}
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.08em', marginBottom: '10px' }}>
+                    Production Capabilities:
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {mod.features.map((feat, idx) => (
+                      <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.35 }}>
+                        <Check size={14} color={mod.accentColor} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {mod.microFeatures.map((feat, idx) => (
-                    <li key={idx} style={{ fontSize: '0.82rem', color: '#cbd5e1', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: 1.35 }}>
-                      <CheckCircle2 size={14} color={mod.color} style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
 
+              {/* Action Button */}
               <Link 
                 to={mod.route}
-                className="btn btn-secondary btn-sm"
-                style={{ width: '100%', justifyContent: 'center', gap: '6px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.12)' }}
+                className="btn btn-secondary"
+                style={{
+                  width: '100%', height: '42px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  fontSize: '0.84rem', fontWeight: 700,
+                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                }}
               >
-                Launch Module <ArrowRight size={14} />
+                <span>Launch {mod.title.split(' ')[0]} Module</span>
+                <ChevronRight size={16} />
               </Link>
+
             </div>
           );
         })}
       </div>
 
-      {/* ===== B2B PLAN PARITY COMPARISON TABLE ===== */}
-      <div style={{ background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', padding: '28px', backdropFilter: 'blur(16px)' }}>
-        <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', margin: '0 0 6px 0' }}>
-          System Tier Parity Matrix
-        </h2>
-        <p style={{ fontSize: '0.86rem', color: '#94a3b8', margin: '0 0 20px 0' }}>
-          Compare micro-feature availability across Starter, Professional, and Enterprise plans.
-        </p>
+      {/* ENTERPRISE COMPARISON MATRIX */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.7)',
+        borderRadius: '24px',
+        padding: '36px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        marginBottom: '40px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Competitive Advantage
+          </span>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f8fafc', marginTop: '6px' }}>
+            Why Seynex Replaces 5 Disconnected Software Tools
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '600px', margin: '6px auto 0 auto' }}>
+            Eliminate copy-pasting customer records between CRM, Excel sheets, manual invoices, and external accounting software.
+          </p>
+        </div>
 
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+        <div className="table-container" style={{ margin: 0 }}>
+          <table style={{ width: '100%', margin: 0 }}>
             <thead>
-              <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
-                <th style={{ padding: '14px 18px', textAlign: 'left' }}>CAPABILITY / MICRO-FEATURE</th>
-                <th style={{ padding: '14px 18px', textAlign: 'center', width: '140px' }}>
-                  STARTER
-                  <button onClick={() => applyPlanPreset && applyPlanPreset('starter')} className="btn btn-secondary btn-sm" style={{ display: 'block', margin: '6px auto 0', padding: '2px 8px', fontSize: '0.72rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-                    Apply Preset
-                  </button>
-                </th>
-                <th style={{ padding: '14px 18px', textAlign: 'center', width: '150px' }}>
-                  PROFESSIONAL
-                  <button onClick={() => applyPlanPreset && applyPlanPreset('professional')} className="btn btn-secondary btn-sm" style={{ display: 'block', margin: '6px auto 0', padding: '2px 8px', fontSize: '0.72rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
-                    Apply Preset
-                  </button>
-                </th>
-                <th style={{ padding: '14px 18px', textAlign: 'center', width: '140px' }}>
-                  ENTERPRISE
-                  <button onClick={() => applyPlanPreset && applyPlanPreset('enterprise')} className="btn btn-secondary btn-sm" style={{ display: 'block', margin: '6px auto 0', padding: '2px 8px', fontSize: '0.72rem', background: 'rgba(129, 140, 248, 0.15)', color: '#818cf8', border: '1px solid rgba(129, 140, 248, 0.3)' }}>
-                    Apply Preset
-                  </button>
-                </th>
+              <tr>
+                <th style={{ padding: '14px 20px', width: '30%' }}>Core Workflow Capability</th>
+                <th style={{ padding: '14px 20px', width: '25%', color: '#94a3b8' }}>Fragmented Tools / Spreadsheets</th>
+                <th style={{ padding: '14px 20px', width: '45%', color: 'var(--success)', fontWeight: 800 }}>Seynex Enterprise Sales Cloud</th>
               </tr>
             </thead>
             <tbody>
-              {[
-                { feat: 'Active Gyms & Subscription Renewals', starter: true, pro: true, ent: true },
-                { feat: 'Quotations & Invoicing', starter: true, pro: true, ent: true },
-                { feat: '2–12 Month Equipment Installments', starter: true, pro: true, ent: true },
-                { feat: 'Leads Pipeline & Kanban', starter: false, pro: true, ent: true },
-                { feat: 'Multi-Warehouse Stock Transfers', starter: false, pro: true, ent: true },
-                { feat: 'Suppliers & Purchase Orders (POs)', starter: false, pro: true, ent: true },
-                { feat: 'Sri Lanka EPF (8/12%) & ETF (3%) Payroll', starter: false, pro: true, ent: true },
-                { feat: 'Staff Attendance & Leave Approvals', starter: false, pro: true, ent: true },
-                { feat: 'Staff Expense Claims & Appraisals', starter: false, pro: true, ent: true },
-                { feat: 'SLFRS Double-Entry General Ledger', starter: false, pro: 'Add-on', ent: true },
-                { feat: 'Bank Statement Reconciliation', starter: false, pro: 'Add-on', ent: true },
-                { feat: 'Fixed Asset Depreciation Engine', starter: false, pro: 'Add-on', ent: true },
-                { feat: 'Custom Granular RBAC Permissions', starter: false, pro: 'Presets', ent: true },
-                { feat: 'Real-time Activity Audit Logs', starter: false, pro: false, ent: true }
-              ].map((row, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.015)' }}>
-                  <td style={{ padding: '12px 18px', fontWeight: 600, color: '#e2e8f0' }}>{row.feat}</td>
-                  <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                    {typeof row.starter === 'boolean' ? (row.starter ? <Check size={18} color="#34d399" style={{ margin: '0 auto' }} /> : <span style={{ color: '#64748b' }}>—</span>) : <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24' }}>{row.starter}</span>}
-                  </td>
-                  <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                    {typeof row.pro === 'boolean' ? (row.pro ? <Check size={18} color="#34d399" style={{ margin: '0 auto' }} /> : <span style={{ color: '#64748b' }}>—</span>) : <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24' }}>{row.pro}</span>}
-                  </td>
-                  <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                    {typeof row.ent === 'boolean' ? (row.ent ? <Check size={18} color="#34d399" style={{ margin: '0 auto' }} /> : <span style={{ color: '#64748b' }}>—</span>) : <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24' }}>{row.ent}</span>}
-                  </td>
-                </tr>
-              ))}
+              <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Quotation to Invoice Conversion</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Manual re-typing & price errors</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ 1-Click direct conversion with preserved QT → INV relationship</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Interactive Negotiation</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Back-and-forth emails, lost records</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Secure link with Propose Budget counter offer modal & audit log</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>WhatsApp Integration</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Manual copy-paste of links</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Native pre-filled wa.me links on Quotes, Invoices, and Payment Receipts</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Payment Receipts & Debtors</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Disconnected ledger; manual follow-up</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Standalone Receipt PDF generated automatically; real-time aging Debtors</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Statutory Accounting</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Requires separate accounting package</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Built-in SLFRS Double-Entry Ledger, Trial Balance, P&L, and Balance Sheet</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Recurring Subscriptions</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Missed renewals and revenue loss</td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Prompted frequency on payment; auto next renewal date; 1-click renewal billing</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* FINAL MARKETING CALL TO ACTION */}
+      <div style={{
+        borderRadius: '24px',
+        padding: '48px 36px',
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        textAlign: 'center',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
+      }}>
+        <div style={{ 
+          width: '54px', height: '54px', borderRadius: '16px',
+          background: 'var(--success)', color: '#ffffff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px auto', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)'
+        }}>
+          <Sparkles size={28} />
+        </div>
+        <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#f8fafc', marginBottom: '10px' }}>
+          Elevate Your Sales Operations Today
+        </h2>
+        <p style={{ color: '#94a3b8', fontSize: '0.95rem', maxWidth: '600px', margin: '0 auto 28px auto', lineHeight: 1.5 }}>
+          All features are completely connected to your production database. Create a proposal, send a WhatsApp link, and track the live audit trail immediately.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <Link to="/quotations" className="btn btn-primary" style={{ padding: '12px 30px', fontSize: '0.95rem', fontWeight: 800 }}>
+            <FileText size={18} /> Create New Quotation
+          </Link>
+          <Link to="/debtors" className="btn btn-secondary" style={{ padding: '12px 26px', fontSize: '0.95rem', fontWeight: 700 }}>
+            <Clock size={18} /> View Debtors Ledger
+          </Link>
+          <Link to="/settings" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem', fontWeight: 700 }}>
+            <SettingsIcon size={18} /> Workspace Settings
+          </Link>
         </div>
       </div>
 
