@@ -422,36 +422,32 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
   const totalPaidSoFar = payments.filter(p => p.documentId === invoice.id).reduce((s, p) => s + p.amount, 0);
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: 0, border: '1px solid rgba(99, 102, 241, 0.3)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
-        <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), transparent)' }}>
-          <div className="flex justify-between items-center">
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Customer Installment Plan</div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Invoice #{invoice.invoiceNumber} - {getCustomerName(invoice.customerId)}</h2>
-            </div>
-            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
+    <div
+      className="app-modal-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="app-modal-dialog" style={{ maxWidth: '640px' }}>
+        <div className="modal-header-solid" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), transparent)' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Customer Installment Plan</div>
+            <h2 className="h2" style={{ margin: 0, fontSize: '1.3rem' }}>Invoice #{invoice.invoiceNumber} — {getCustomerName(invoice.customerId)}</h2>
           </div>
+          <button className="btn btn-secondary" style={{ padding: '8px', flexShrink: 0 }} onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="modal-body" style={{ padding: '24px' }}>
-          <div className="grid grid-cols-3 gap-3 mb-6" style={{ background: 'var(--subtle-bg)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+        <div className="modal-body-solid">
+          <div className="grid grid-cols-3 gap-3 mb-6" style={{ background: 'var(--subtle-bg)', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--panel-border)' }}>
             <div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Total Amount</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 850, color: 'var(--text-primary)' }}>LKR {totalInvoiceAmount.toLocaleString()}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>LKR {totalInvoiceAmount.toLocaleString()}</div>
             </div>
             <div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Paid So Far</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 850, color: 'var(--success)' }}>LKR {totalPaidSoFar.toLocaleString()}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)', marginTop: '4px' }}>LKR {totalPaidSoFar.toLocaleString()}</div>
             </div>
             <div>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Remaining</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 850, color: 'var(--warning)' }}>LKR {Math.max(0, totalInvoiceAmount - totalPaidSoFar).toLocaleString()}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--warning)', marginTop: '4px' }}>LKR {Math.max(0, totalInvoiceAmount - totalPaidSoFar).toLocaleString()}</div>
             </div>
           </div>
           <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '12px' }}>Payment Schedule Breakdown ({plan.count} {plan.frequency} Payments)</h3>
@@ -505,18 +501,14 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '780px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <div className="modal-header">
-          <div className="flex justify-between items-center">
-            <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
-            <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-          </div>
+    <div
+      className="app-modal-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="app-modal-dialog" style={{ maxWidth: '800px', maxHeight: '92vh', overflowY: 'auto' }}>
+        <div className="modal-header-solid">
+          <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
+          <button className="btn btn-secondary" style={{ padding: '8px', flexShrink: 0 }} onClick={onClose}><X size={20} /></button>
         </div>
 
         <form onSubmit={(e) => {
@@ -531,15 +523,15 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             : null;
           onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan });
           onClose();
-        }} className="modal-body">
+        }} className="modal-body-solid">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Serial #</label>
+              <label className="form-label">Invoice Serial #</label>
               <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.invoiceNumber} onChange={e => setFormData({ ...formData, invoiceNumber: e.target.value })} />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Client / Local Gym</label>
+              <label className="form-label">Client / Local Gym</label>
               <CustomSelect 
                 value={formData.customerId} 
                 onChange={val => setFormData({ ...formData, customerId: val })}
@@ -552,18 +544,18 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Invoice Issue Date</label>
+              <label className="form-label">Invoice Issue Date</label>
               <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Payment Due Date</label>
+              <label className="form-label">Payment Due Date</label>
               <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
             </div>
           </div>
 
-          <div style={{ marginTop: '32px', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Dynamic Line Items</label>
-            <div className="flex gap-4 mb-4">
+          <div style={{ marginTop: '28px', padding: '20px', background: 'var(--subtle-bg)', borderRadius: '14px', border: '1px solid var(--panel-border)' }}>
+            <label className="form-label" style={{ marginBottom: '12px' }}>Dynamic Line Items</label>
+            <div className="flex gap-3 mb-4">
               <CustomSelect 
                 value={selectedInventoryId} 
                 onChange={val => setSelectedInventoryId(val)}
@@ -577,30 +569,30 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 ]}
                 style={{ height: '44px', flex: 1 }}
               />
-              <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
+              <button type="button" className="btn btn-primary" style={{ height: '44px', width: '44px', padding: 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleAddItem}><PlusCircle size={20} /></button>
             </div>
             {formData.items.length > 0 && (
-              <div className="table-container" style={{ marginTop: '16px', background: 'transparent' }}>
+              <div className="table-container" style={{ marginTop: '12px', background: 'transparent' }}>
                 <table style={{ fontSize: '0.85rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>Product</th>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>Qty</th>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>LKR Unit</th>
-                      <th style={{ padding: '8px 0', textAlign: 'right', opacity: 0.7 }}>Total</th>
-                      <th style={{ padding: '8px 0', textAlign: 'right', opacity: 0.7 }}></th>
+                    <tr>
+                      <th>Product</th>
+                      <th>Qty</th>
+                      <th>LKR Unit</th>
+                      <th style={{ textAlign: 'right' }}>Total</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {formData.items.map((it, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0' }}>{it.name}</td>
+                      <tr key={idx}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.name}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.price.toLocaleString()}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{(it.price * it.quantity).toLocaleString()}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button type="button" className="btn btn-danger" style={{ padding: '6px', borderRadius: '8px', background: 'var(--danger-20)', border: 'none' }} onClick={() => handleRemoveItem(idx)}>
-                            <Trash2 size={14} color="var(--danger)" />
+                          <button type="button" className="action-btn" style={{ color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid rgba(244,63,94,0.2)' }} onClick={() => handleRemoveItem(idx)}>
+                            <Trash2 size={14} />
                           </button>
                         </td>
                       </tr>
@@ -612,11 +604,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           </div>
 
           {/* DISCOUNT MODULE */}
-          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+          <div style={{ marginTop: '20px', padding: '18px 20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '14px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
             <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
               <div className="flex items-center gap-2">
                 <Tag size={18} color="#f59e0b" />
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount &amp; Coupon Module</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount &amp; Coupon Module</span>
               </div>
               <div className="flex items-center gap-2">
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Presets:</span>
@@ -638,7 +630,8 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                         background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
                         border: '1px solid rgba(245, 158, 11, 0.3)',
                         color: Number(formData.discount) === discountVal ? '#ffffff' : '#f59e0b',
-                        padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                        transition: 'all 0.18s ease'
                       }}
                     >
                       {preset.label}
@@ -665,22 +658,22 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '20px', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '16px', padding: '20px 24px', background: 'rgba(34, 197, 94, 0.06)', borderRadius: '14px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
             <div className="flex items-center gap-3">
-              <ShoppingBag size={24} className="text-secondary" />
-              <span className="text-secondary" style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>NET TOTAL AMOUNT</span>
+              <ShoppingBag size={22} color="var(--success)" />
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>NET TOTAL AMOUNT</span>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(34, 197, 94, 0.2)' }}>
+            <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--success)', fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
               LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
             </div>
           </div>
 
           {/* INSTALLMENT PLAN */}
-          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(99, 102, 241, 0.06)', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+          <div style={{ marginTop: '20px', padding: '18px 20px', background: 'rgba(99, 102, 241, 0.06)', borderRadius: '14px', border: '1px solid rgba(99, 102, 241, 0.22)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <CalendarDays size={20} color="var(--accent-primary)" />
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>Customer Payment Installment Plan</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>Customer Payment Installment Plan</span>
               </div>
               <label className="flex items-center gap-2" style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
                 <input
@@ -696,11 +689,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Upfront Down Payment (LKR)</label>
+                    <label className="form-label">Upfront Down Payment (LKR)</label>
                     <input type="number" className="form-input" style={{ height: '42px' }} placeholder="0" value={downPayment === 0 ? '' : downPayment} onChange={e => setDownPayment(e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}># of Installments</label>
+                    <label className="form-label"># of Installments</label>
                     <CustomSelect 
                       value={installmentCount} 
                       onChange={val => setInstallmentCount(val)}
@@ -715,7 +708,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Frequency</label>
+                    <label className="form-label">Frequency</label>
                     <CustomSelect 
                       value={installmentFrequency} 
                       onChange={val => setInstallmentFrequency(val)}
@@ -740,7 +733,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                         {planPreview.installments.map((inst, idx) => (
                           <div key={idx} style={{ background: 'var(--bg-secondary)', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
                             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{inst.title}</div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 850, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: '3px 0' }}>LKR {inst.amount.toLocaleString()}</div>
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Due: {new Date(inst.dueDate).toLocaleDateString()}</div>
                           </div>
                         ))}
@@ -753,10 +746,10 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           </div>
 
           <div style={{ marginTop: '24px' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Service Agreement &amp; Terms (Optional)</label>
+            <label className="form-label">Service Agreement &amp; Terms <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--text-muted)' }}>(Optional)</span></label>
             <textarea
               className="form-input"
-              style={{ minHeight: '120px', resize: 'vertical', width: '100%', padding: '12px' }}
+              style={{ minHeight: '110px', resize: 'vertical', width: '100%', padding: '12px' }}
               placeholder="Enter payment terms, SLA, or conditions the client must agree to..."
               value={formData.agreementTerms}
               onChange={e => setFormData({ ...formData, agreementTerms: e.target.value })}
@@ -764,11 +757,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '6px' }}>This agreement will be shown on the client portal and printed on the PDF.</p>
           </div>
 
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
+          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '32px 0 24px 0' }}></div>
 
-          <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Finalize Ledger</button>
+          <div className="flex justify-end gap-3">
+            <button type="button" className="btn btn-secondary" style={{ padding: '11px 24px' }} onClick={onClose}>Discard</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px' }}>Finalize Ledger</button>
           </div>
         </form>
       </div>

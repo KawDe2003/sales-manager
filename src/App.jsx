@@ -1,4 +1,4 @@
-import React, { useContext, useState, Suspense, lazy, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
@@ -805,7 +805,7 @@ const AppContent = () => {
 
           {/* User Profile Badge */}
           {user && (
-            <div style={{
+            <div className="sidebar-user-badge" style={{
               margin: isSidebarCollapsed ? '0 0 16px 0' : '0 16px 16px 16px',
               padding: isSidebarCollapsed ? '8px 0' : '10px 12px',
               background: 'var(--subtle-bg)',
@@ -926,7 +926,7 @@ const AppContent = () => {
 
         {/* ===== MAIN CONTENT ===== */}
         <main className={`main-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <div key={location.pathname} className="page-transition-enter">
             <Routes>
               <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
               <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
@@ -1025,12 +1025,13 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
           : 'transparent',
         border: isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent',
         fontWeight: isActive ? '700' : '500',
-        transition: 'all 0.22s ease',
+        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
         fontSize: '0.86rem',
         borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : (isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent'),
-        boxShadow: isActive ? '0 2px 10px rgba(16, 185, 129, 0.08)' : 'none',
+        boxShadow: isActive ? '0 2px 10px rgba(16, 185, 129, 0.1), inset 0 1px 0 rgba(255,255,255,0.04)' : 'none',
         position: 'relative',
-        textDecoration: 'none'
+        textDecoration: 'none',
+        overflow: 'hidden'
       })}
       className={({ isActive }) => `nav-item ${isActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
       title={collapsed ? label : ""}
@@ -1041,12 +1042,20 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
             color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)', 
             display: 'flex', 
             flexShrink: 0,
-            transition: 'color 0.2s ease, transform 0.2s ease',
-            transform: isActive ? 'scale(1.08)' : 'scale(1)'
+            transition: 'color 0.22s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transform: isActive ? 'scale(1.15) rotate(-2deg)' : 'scale(1) rotate(0deg)'
           }}>
             {icon}
           </span>
-          {!collapsed && <span>{label}</span>}
+          {!collapsed && (
+            <span style={{
+              transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
+              opacity: 1,
+              transform: 'translateX(0)'
+            }}>
+              {label}
+            </span>
+          )}
         </>
       )}
     </NavLink>

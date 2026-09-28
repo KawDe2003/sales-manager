@@ -686,7 +686,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
         {/* 1. FINANCIAL PERFORMANCE & CASHFLOW STUDIO (2 COLS) */}
-        <div className="glass-panel col-span-1 lg:col-span-2" style={{ 
+        <div className="glass-panel chart-panel col-span-1 lg:col-span-2" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           padding: '24px',
@@ -870,7 +870,7 @@ const Dashboard = () => {
         </div>
 
         {/* 2. QUOTATION PIPELINE & CONVERSION DONUT (1 COL) */}
-        <div className="glass-panel" style={{ 
+        <div className="glass-panel chart-panel" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           padding: '24px',

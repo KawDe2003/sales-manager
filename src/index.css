@@ -287,6 +287,11 @@ button, button:hover, button:focus,
   overflow: hidden;
 }
 
+/* Use .chart-panel on panels containing Recharts to allow SVG overflow */
+.chart-panel {
+  overflow: visible !important;
+}
+
 .glass-panel::before {
   content: '';
   position: absolute;
@@ -617,7 +622,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-radius: var(--radius-lg) !important;
   box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-  overflow: hidden !important;
+  /* overflow:visible allows inner scrollable areas to work correctly */
+  overflow: visible !important;
   display: flex !important;
   flex-direction: column !important;
   animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -847,11 +853,16 @@ tbody tr:hover td {
   margin-left: 260px;
   flex: 1;
   min-width: 0;
+  max-width: calc(100vw - 260px);
   padding: 32px 32px 80px 32px;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: hidden;
 }
 
-.main-container.sidebar-collapsed { margin-left: 78px; }
+.main-container.sidebar-collapsed { 
+  margin-left: 78px; 
+  max-width: calc(100vw - 78px);
+}
 
 .page-hero {
   margin-left: -32px;
@@ -1114,6 +1125,7 @@ tbody tr:hover td {
 .mb-8 { margin-bottom: 2rem; }
 .mb-10 { margin-bottom: 2.5rem; }
 .mb-12 { margin-bottom: 3rem; }
+.mb-0 { margin-bottom: 0; }
 
 .mt-1 { margin-top: 0.25rem; }
 .mt-2 { margin-top: 0.5rem; }
@@ -1227,6 +1239,12 @@ tbody tr:hover td {
   .xl\:col-span-8 { grid-column: span 8 / span 8; }
   .xl\:col-span-12 { grid-column: span 12 / span 12; }
 }
+
+/* Border utilities */
+.border-t { border-top: 1px solid var(--panel-border); }
+.border-b { border-bottom: 1px solid var(--panel-border); }
+.border-panel { border-color: var(--panel-border); }
+.border-subtle { border-color: var(--subtle-border); }
 
 .search-item:hover { background: var(--subtle-bg) !important; }
 .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
@@ -1498,6 +1516,351 @@ tbody tr:hover td {
     padding: 12px 10px !important;
   }
 }
+
+/* ===================================================================
+   PREMIUM ANIMATIONS & MICRO-INTERACTIONS SYSTEM
+   All transitions are subtle, tasteful & performance-optimised
+   =================================================================== */
+
+/* ------------------------------------------------------------------
+   1. Page / Route Transition
+   ------------------------------------------------------------------ */
+@keyframes pageEnter {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+.page-transition-enter {
+  animation: pageEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+/* ------------------------------------------------------------------
+   2. Staggered Card / Grid Item Entrance
+   ------------------------------------------------------------------ */
+@keyframes cardEntrance {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.card-enter {
+  animation: cardEntrance 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* nth-child stagger delays — sprinkle on grid children */
+.card-enter:nth-child(1)  { animation-delay: 0.00s; }
+.card-enter:nth-child(2)  { animation-delay: 0.05s; }
+.card-enter:nth-child(3)  { animation-delay: 0.10s; }
+.card-enter:nth-child(4)  { animation-delay: 0.15s; }
+.card-enter:nth-child(5)  { animation-delay: 0.20s; }
+.card-enter:nth-child(6)  { animation-delay: 0.25s; }
+.card-enter:nth-child(7)  { animation-delay: 0.30s; }
+.card-enter:nth-child(8)  { animation-delay: 0.35s; }
+
+/* ------------------------------------------------------------------
+   3. Sidebar Nav Item — enhanced hover ripple & active indicator
+   ------------------------------------------------------------------ */
+.nav-item {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+/* Subtle ripple on click */
+.nav-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(16, 185, 129, 0.08);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.nav-item:active::after {
+  opacity: 1;
+}
+/* Smooth active left accent line */
+.nav-item.active {
+  transition: background 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.22s ease,
+              box-shadow 0.22s ease !important;
+}
+
+/* ------------------------------------------------------------------
+   4. Header Buttons micro-interactions
+   ------------------------------------------------------------------ */
+.layout-header button,
+.layout-header a.btn {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.18s ease,
+              background-color 0.18s ease,
+              border-color 0.18s ease !important;
+}
+.layout-header button:hover,
+.layout-header a.btn:hover {
+  transform: translateY(-1px);
+}
+.layout-header button:active,
+.layout-header a.btn:active {
+  transform: scale(0.94);
+  transition-duration: 0.08s !important;
+}
+
+/* ------------------------------------------------------------------
+   5. Global Toast — slide in from right, slide out upward
+   ------------------------------------------------------------------ */
+@keyframes toastIn {
+  0%   { opacity: 0; transform: translateX(60px) scale(0.92); }
+  100% { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+@keyframes toastOut {
+  0%   { opacity: 1; transform: translateY(0)    scale(1);    }
+  100% { opacity: 0; transform: translateY(-20px) scale(0.93); }
+}
+.global-toast-container {
+  animation: toastIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+/* ------------------------------------------------------------------
+   6. Modal Overlay — smoother fade + dialog spring
+   ------------------------------------------------------------------ */
+@keyframes overlayFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(3px); }
+}
+@keyframes dialogSpring {
+  0%   { opacity: 0; transform: scale(0.92) translateY(16px); }
+  60%  { transform: scale(1.015) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.app-modal-backdrop,
+.modal-overlay,
+.modal-backdrop {
+  animation: overlayFadeIn 0.22s ease forwards !important;
+}
+.app-modal-dialog,
+.modal-content,
+.modal-card {
+  animation: dialogSpring 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+/* ------------------------------------------------------------------
+   7. Skeleton Shimmer Loading Placeholder
+   ------------------------------------------------------------------ */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--subtle-bg) 25%,
+    rgba(148, 163, 184, 0.10) 37%,
+    var(--subtle-bg) 63%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+.skeleton-text { height: 14px; width: 100%; margin-bottom: 8px; }
+.skeleton-title { height: 22px; width: 55%; margin-bottom: 12px; }
+.skeleton-circle { border-radius: 50%; width: 40px; height: 40px; }
+.skeleton-card { height: 100px; width: 100%; border-radius: var(--radius-md); }
+
+/* ------------------------------------------------------------------
+   8. Numeric / Counter Roll-Up (apply to metric values)
+   ------------------------------------------------------------------ */
+@keyframes countUp {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.metric-value {
+  animation: countUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ------------------------------------------------------------------
+   9. Table Row Enter — stagger rows on first paint only
+   Only fires on direct tbody inside .table-container or page tables
+   NOT inside modal-body (to avoid re-triggering on modal open)
+   ------------------------------------------------------------------ */
+@keyframes rowSlideIn {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+tbody tr {
+  animation: rowSlideIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Transition for hover — separate from entrance animation */
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+}
+tbody tr:nth-child(1)  { animation-delay: 0.00s; }
+tbody tr:nth-child(2)  { animation-delay: 0.03s; }
+tbody tr:nth-child(3)  { animation-delay: 0.06s; }
+tbody tr:nth-child(4)  { animation-delay: 0.09s; }
+tbody tr:nth-child(5)  { animation-delay: 0.12s; }
+tbody tr:nth-child(6)  { animation-delay: 0.14s; }
+tbody tr:nth-child(7)  { animation-delay: 0.16s; }
+tbody tr:nth-child(8)  { animation-delay: 0.18s; }
+tbody tr:nth-child(9)  { animation-delay: 0.20s; }
+tbody tr:nth-child(10) { animation-delay: 0.22s; }
+
+/* Disable row animation inside modals so it doesn't retrigger on open */
+.app-modal-dialog tbody tr,
+.modal-card tbody tr,
+.modal-body tbody tr,
+.modal-body-solid tbody tr {
+  animation: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+/* ------------------------------------------------------------------
+   10. Form Input — subtle glow on focus (no scale to prevent layout jitter)
+   ------------------------------------------------------------------ */
+.form-input, .form-select, .form-textarea,
+input[type="text"], input[type="number"], input[type="email"],
+input[type="date"], input[type="password"], textarea {
+  transition: border-color 0.22s ease,
+              box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.22s ease !important;
+}
+
+/* ------------------------------------------------------------------
+   11. Badge Entrance — pop in when rendered
+   ------------------------------------------------------------------ */
+@keyframes badgePop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.badge {
+  animation: badgePop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ------------------------------------------------------------------
+   12. Dropdown / Notification Panel Entrance
+   ------------------------------------------------------------------ */
+@keyframes dropdownOpen {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.notification-dropdown,
+.custom-select-dropdown {
+  animation: dropdownOpen 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: top right;
+}
+
+/* ------------------------------------------------------------------
+   13. Sidebar collapse / expand icon spin
+   ------------------------------------------------------------------ */
+@keyframes iconSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+.sidebar-toggle-icon {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sidebar-collapsed .sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* ------------------------------------------------------------------
+   14. Chart bars / progress bars grow animation
+   ------------------------------------------------------------------ */
+@keyframes growWidth {
+  from { width: 0; }
+  to   { width: var(--target-width, 100%); }
+}
+@keyframes growHeight {
+  from { height: 0; transform: scaleY(0); transform-origin: bottom; }
+  to   { height: var(--target-height, 100%); transform: scaleY(1); }
+}
+.bar-grow { animation: growWidth 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.bar-grow-v { animation: growHeight 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ------------------------------------------------------------------
+   15. Floating action pulse (Save / Sync button)
+   ------------------------------------------------------------------ */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4); }
+  50%       { box-shadow: 0 4px 22px rgba(16, 185, 129, 0.7), 0 0 0 4px rgba(16, 185, 129, 0.12); }
+}
+
+/* ------------------------------------------------------------------
+   16. Sidebar User Badge — subtle glow on hover
+   ------------------------------------------------------------------ */
+.sidebar-user-badge {
+  transition: background 0.22s ease, box-shadow 0.22s ease;
+}
+.sidebar-user-badge:hover {
+  box-shadow: 0 0 0 1px var(--panel-border-highlight);
+}
+
+/* ------------------------------------------------------------------
+   17. Search Modal — slide down from top
+   ------------------------------------------------------------------ */
+@keyframes searchSlideDown {
+  0%   { opacity: 0; transform: translateY(-20px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+.global-search-backdrop > div {
+  animation: searchSlideDown 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ------------------------------------------------------------------
+   18. Mobile Bottom Dock icon bounce on active
+   ------------------------------------------------------------------ */
+@keyframes dockBounce {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.22); }
+  100% { transform: scale(1.1);  }
+}
+.mobile-bottom-dock .dock-item.active svg {
+  animation: dockBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ------------------------------------------------------------------
+   19. Glass panel hover — gentle top-edge glow sweep
+   Overlay uses pointer-events:none so child clicks are never blocked
+   z-index kept at auto — do NOT force z-index on glass-panel children
+   as it breaks grids, recharts, and portals
+   ------------------------------------------------------------------ */
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    rgba(16, 185, 129, 0.05),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.glass-panel:hover::after {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------
+   20. Scroll-to-top / FAB button
+   ------------------------------------------------------------------ */
+@keyframes fabPop {
+  0%   { opacity: 0; transform: scale(0.5) rotate(-15deg); }
+  70%  { transform: scale(1.1) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.fab-btn { animation: fabPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ------------------------------------------------------------------
+   Utility: respect prefers-reduced-motion
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 
 /* 10. Print optimization for Payslips, Reports & HR Documents */
 @media print {
