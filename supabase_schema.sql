@@ -278,3 +278,50 @@ CREATE POLICY "Manage own accounts" ON accounts FOR ALL USING (auth.uid() = user
 CREATE POLICY "Manage own journal_entries" ON journal_entries FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Manage own journal_lines" ON journal_lines FOR ALL USING (auth.uid() = user_id);
 
+-- 13. BILL OF MATERIALS (BOM) TABLE
+CREATE TABLE IF NOT EXISTS boms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    product_name TEXT NOT NULL,
+    product_sku TEXT,
+    output_unit TEXT DEFAULT 'Unit',
+    batch_yield NUMERIC DEFAULT 1,
+    material_cost_per_unit NUMERIC DEFAULT 0,
+    labor_hours NUMERIC DEFAULT 0,
+    labor_rate_per_hour NUMERIC DEFAULT 0,
+    labor_cost NUMERIC DEFAULT 0,
+    overhead_cost NUMERIC DEFAULT 0,
+    total_cost_per_unit NUMERIC DEFAULT 0,
+    suggested_retail_price NUMERIC DEFAULT 0,
+    components JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 14. PRODUCTION ORDERS (MO) TABLE
+CREATE TABLE IF NOT EXISTS production_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id),
+    order_number TEXT NOT NULL,
+    bom_id TEXT,
+    product_name TEXT NOT NULL,
+    product_sku TEXT,
+    quantity_to_produce NUMERIC NOT NULL DEFAULT 1,
+    batch_number TEXT NOT NULL,
+    start_date DATE,
+    due_date DATE,
+    status TEXT DEFAULT 'Planned', -- Planned, In Progress, Quality Check, Completed, Cancelled
+    priority TEXT DEFAULT 'Normal', -- Normal, High, Urgent
+    assigned_to TEXT,
+    notes TEXT,
+    unit_cost NUMERIC DEFAULT 0,
+    total_batch_cost NUMERIC DEFAULT 0,
+    components JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE boms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE production_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Manage own boms" ON boms FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own production_orders" ON production_orders FOR ALL USING (auth.uid() = user_id);
+

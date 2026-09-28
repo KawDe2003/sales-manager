@@ -1510,9 +1510,16 @@ const Ledger = () => {
                   padding: '4px 12px',
                   borderRadius: '14px',
                   fontSize: '0.75rem',
-                  fontWeight: 800
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  {overallTotals.isBalanced ? '✓ Reconciled' : '⚠️ Discrepancy'}
+                  {overallTotals.isBalanced ? (
+                    <><CheckCircle2 size={12} /> Reconciled</>
+                  ) : (
+                    <><AlertTriangle size={12} /> Discrepancy</>
+                  )}
                 </span>
               </div>
               <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '4px 0 0 0' }}>

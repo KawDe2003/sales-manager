@@ -46,11 +46,14 @@ const CustomSelect = ({
     const dropdownHeight = 260; // approximate max dropdown height
     const spaceBelow = window.innerHeight - rect.bottom;
     const openUpwards = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+    const computedWidth = Math.min(rect.width, window.innerWidth - 16);
+    const maxLeft = window.innerWidth + window.scrollX - computedWidth - 8;
+    const safeLeft = Math.max(8 + window.scrollX, Math.min(rect.left + window.scrollX, maxLeft));
 
     setDropPos({
       top: openUpwards ? (rect.top + window.scrollY - 6) : (rect.bottom + window.scrollY + 6),
-      left: rect.left + window.scrollX,
-      width: rect.width,
+      left: safeLeft,
+      width: computedWidth,
       openUpwards
     });
   }, []);
@@ -139,6 +142,7 @@ const CustomSelect = ({
             left:                 dropPos.left,
             width:                dropPos.width,
             minWidth:             Math.max(dropPos.width, 140),
+            maxWidth:             'calc(100vw - 16px)',
             zIndex:               2147483647,
             background:           'var(--bg-secondary, #121822)',
             backdropFilter:       'blur(24px)',

@@ -209,10 +209,10 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(authUser);
         localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-        console.log('[Auth signIn] ✅ Login successful for:', cleanEmail);
+        console.log('[Auth signIn] [SUCCESS] Login successful for:', cleanEmail);
         return { data: { user: authUser }, error: null };
       } else {
-        console.log('[Auth signIn] ❌ Password mismatch for:', cleanEmail);
+        console.log('[Auth signIn] [FAILED] Password mismatch for:', cleanEmail);
         return { data: null, error: new Error('Invalid login credentials') };
       }
     }
@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }) => {
           const authUser = res.data.user;
           setUser(authUser);
           localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-          console.log('[Auth signIn] ✅ Supabase cloud login for:', cleanEmail);
+          console.log('[Auth signIn] [SUCCESS] Supabase cloud login for:', cleanEmail);
           return res;
         }
       } catch (err) {
@@ -245,7 +245,7 @@ export const AuthProvider = ({ children }) => {
       return { data: { user: authUser }, error: null };
     }
 
-    console.log('[Auth signIn] ❌ No matching user found for:', cleanEmail);
+    console.log('[Auth signIn] [NOT FOUND] No matching user found for:', cleanEmail);
     return { data: null, error: new Error('Invalid login credentials. Please check your email and password.') };
   };
 

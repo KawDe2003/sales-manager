@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Lock, Mail, User, AlertCircle, CheckCircle, 
   ArrowRight, ShieldCheck, Eye, EyeOff, Loader2,
-  Sparkles, Check, Building2, KeyRound, Globe, HelpCircle, X
+  Sparkles, Check, Building2, KeyRound, Globe, HelpCircle, X,
+  Briefcase, Calculator, Shield
 } from 'lucide-react';
 
 const Login = () => {
@@ -86,7 +87,7 @@ const Login = () => {
       }}></div>
 
       {/* Main Glassmorphism Authentication Card */}
-      <div style={{
+      <div className="auth-card" style={{
         width: '100%',
         maxWidth: '460px',
         padding: '40px 36px',
@@ -373,7 +374,7 @@ const Login = () => {
           }}>
             <KeyRound size={12} color="#10b981" /> 1-Click Role Fill (Testing & Evaluation)
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '6px' }}>
             <button 
               type="button" 
               onClick={() => handleQuickFill('admin@company.com', 'adminpassword123')}
@@ -381,10 +382,11 @@ const Login = () => {
                 padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
                 borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)',
                 background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease'
+                textAlign: 'center', transition: 'all 0.15s ease',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
               }}
             >
-              👑 Admin
+              <Shield size={12} /> Admin
             </button>
             <button 
               type="button" 
@@ -393,10 +395,11 @@ const Login = () => {
                 padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
                 borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.25)',
                 background: 'rgba(56, 189, 248, 0.08)', color: '#38bdf8', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease'
+                textAlign: 'center', transition: 'all 0.15s ease',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
               }}
             >
-              💼 Sales Rep
+              <Briefcase size={12} /> Sales Rep
             </button>
             <button 
               type="button" 
@@ -405,10 +408,11 @@ const Login = () => {
                 padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
                 borderRadius: '6px', border: '1px solid rgba(168, 85, 247, 0.25)',
                 background: 'rgba(168, 85, 247, 0.08)', color: '#c084fc', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease'
+                textAlign: 'center', transition: 'all 0.15s ease',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
               }}
             >
-              📊 Accountant
+              <Calculator size={12} /> Accountant
             </button>
           </div>
         </div>

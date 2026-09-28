@@ -294,10 +294,10 @@ const SharedDocument = () => {
           </div>
 
           {/* BILLING ITEMS DARK BOX */}
-          <div style={{ 
+          <div className="shared-billing-card" style={{ 
             background: '#0f172a', 
             borderRadius: '24px', 
-            padding: '28px 32px', 
+            padding: '24px 20px', 
             marginBottom: '32px',
             boxShadow: '0 10px 25px rgba(15, 23, 42, 0.2)'
           }}>
@@ -305,68 +305,72 @@ const SharedDocument = () => {
               BILLING ITEMS
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
-              <div style={{ flex: 1 }}>DESCRIPTION</div>
-              <div style={{ width: '60px', textAlign: 'center' }}>QTY</div>
-              <div style={{ width: '120px', textAlign: 'right' }}>OFFER PRICE</div>
-              <div style={{ width: '140px', textAlign: 'right' }}>TOTAL</div>
-            </div>
+            <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ minWidth: '420px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  <div style={{ flex: 1 }}>DESCRIPTION</div>
+                  <div style={{ width: '60px', textAlign: 'center' }}>QTY</div>
+                  <div style={{ width: '120px', textAlign: 'right' }}>OFFER PRICE</div>
+                  <div style={{ width: '140px', textAlign: 'right' }}>TOTAL</div>
+                </div>
 
-            {standardItems.map((item, idx) => {
-              const p = getItemPrice(item);
-              const q = getItemQty(item);
-              const name = getItemName(item);
-              return (
-                <div key={idx} style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  padding: '16px 0', 
-                  borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.06)' 
-                }}>
-                  <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                    {name}
-                  </div>
-                  <div style={{ width: '60px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
-                    {q}
-                  </div>
-                  <div style={{ width: '120px', textAlign: 'right', color: '#cbd5e1', fontWeight: 600, fontSize: '0.95rem' }}>
-                    {p.toLocaleString()}
-                  </div>
-                  <div style={{ width: '140px', textAlign: 'right', color: '#ffffff', fontWeight: 900, fontSize: '1.1rem' }}>
-                    {(p * q).toLocaleString()}
-                  </div>
-                </div>
-              );
-            })}
+                {standardItems.map((item, idx) => {
+                  const p = getItemPrice(item);
+                  const q = getItemQty(item);
+                  const name = getItemName(item);
+                  return (
+                    <div key={idx} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      padding: '16px 0', 
+                      borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.06)' 
+                    }}>
+                      <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        {name}
+                      </div>
+                      <div style={{ width: '60px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
+                        {q}
+                      </div>
+                      <div style={{ width: '120px', textAlign: 'right', color: '#cbd5e1', fontWeight: 600, fontSize: '0.95rem' }}>
+                        {p.toLocaleString()}
+                      </div>
+                      <div style={{ width: '140px', textAlign: 'right', color: '#ffffff', fontWeight: 900, fontSize: '1.1rem' }}>
+                        {(p * q).toLocaleString()}
+                      </div>
+                    </div>
+                  );
+                })}
 
-            {/* DEDICATED DISCOUNT MODULE LINE ITEM */}
-            {discountAmount > 0 && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '16px 0 0 0', 
-                borderTop: '1px dashed rgba(245, 158, 11, 0.4)',
-                marginTop: '12px'
-              }}>
-                <div style={{ flex: 1, color: '#f59e0b', fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tag size={16} color="#f59e0b" />
-                  <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
-                </div>
-                <div style={{ width: '60px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
-                  1
-                </div>
-                <div style={{ width: '120px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
-                  - {discountAmount.toLocaleString()}
-                </div>
-                <div style={{ width: '140px', textAlign: 'right', color: '#f59e0b', fontWeight: 900, fontSize: '1.1rem' }}>
-                  - LKR {discountAmount.toLocaleString()}
-                </div>
+                {/* DEDICATED DISCOUNT MODULE LINE ITEM */}
+                {discountAmount > 0 && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '16px 0 0 0', 
+                    borderTop: '1px dashed rgba(245, 158, 11, 0.4)',
+                    marginTop: '12px'
+                  }}>
+                    <div style={{ flex: 1, color: '#f59e0b', fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Tag size={16} color="#f59e0b" />
+                      <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
+                    </div>
+                    <div style={{ width: '60px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
+                      1
+                    </div>
+                    <div style={{ width: '120px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
+                      - {discountAmount.toLocaleString()}
+                    </div>
+                    <div style={{ width: '140px', textAlign: 'right', color: '#f59e0b', fontWeight: 900, fontSize: '1.1rem' }}>
+                      - LKR {discountAmount.toLocaleString()}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* BOTTOM TWO CARDS ROW (VALIDITY + ACCOUNT STATUS) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '24px', alignItems: 'stretch' }}>
             
             {/* ESTIMATE VALIDITY */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px' }}>
@@ -423,7 +427,7 @@ const SharedDocument = () => {
                 <div style={{ color: '#3b82f6', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
                   {isQuote ? 'PROJECTED INVESTMENT' : 'CURRENT BALANCE DUE'}
                 </div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1, wordBreak: 'break-word' }}>
                   <span style={{ fontSize: '1rem', color: '#94a3b8', marginRight: '8px', fontWeight: 700 }}>LKR</span>
                   {totalAmount.toLocaleString()}
                 </div>

@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
@@ -76,8 +76,8 @@ const Invoices = () => {
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: overdueCount > 0 ? 'var(--danger)' : 'var(--success)', boxShadow: `0 0 10px ${overdueCount > 0 ? 'var(--danger)' : 'var(--success)'}`, flexShrink: 0 }}></span>
               Billing &amp; Collections · Software Licenses · Gym Invoices
               {overdueCount > 0 && (
-                <span style={{ marginLeft: '4px', background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '8px', padding: '1px 8px', fontSize: '0.7rem', fontWeight: 800 }}>
-                  ⚠ {overdueCount} Overdue
+                <span style={{ marginLeft: '4px', background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '8px', padding: '1px 8px', fontSize: '0.7rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <AlertCircle size={11} /> {overdueCount} Overdue
                 </span>
               )}
             </p>

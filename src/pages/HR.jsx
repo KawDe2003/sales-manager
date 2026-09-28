@@ -5,7 +5,7 @@ import {
   Briefcase, Building, Wallet, TrendingUp, Clock, AlertCircle, Check, Eye,
   CalendarDays, CreditCard, ChevronRight, CheckSquare, XSquare, FileSpreadsheet,
   Award, ShieldAlert, FileCheck, Phone, Mail, MapPin, HeartPulse, UserCheck,
-  Send, RefreshCw, Filter, Layers, BadgeCheck, BookOpen, AlertTriangle
+  Send, RefreshCw, Filter, Layers, BadgeCheck, BookOpen, AlertTriangle, Star
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
@@ -67,6 +67,7 @@ const HR = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('All'); // 'All' | 'Full-Time' | 'Outsourced' | 'Piece-Rate' | 'Contract'
   const [directoryViewMode, setDirectoryViewMode] = useState('table'); // 'table' | 'cards'
 
   // Analytics toggle
@@ -102,6 +103,11 @@ const HR = () => {
     designation: 'Fitness Trainer',
     department: 'Fitness & Training',
     employmentType: 'Full-Time',
+    compensationType: 'salary', // 'salary' | 'piece_rate'
+    pieceRate: 0,
+    pieceDescription: 'Per Unit Assembled / Session',
+    defaultUnits: 100,
+    unitsCompleted: 100,
     shift: 'General (08:30 - 17:00)',
     joinDate: new Date().toISOString().split('T')[0],
     confirmationDate: '',
@@ -270,7 +276,9 @@ const HR = () => {
                         (e.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const deptMatch = deptFilter === 'All' || e.department === deptFilter;
     const statusMatch = statusFilter === 'All' || e.status === statusFilter;
-    return searchMatch && deptMatch && statusMatch;
+    const typeMatch = typeFilter === 'All' || 
+                      (typeFilter === 'Outsourced' ? (e.employmentType === 'Outsourced' || e.employmentType === 'Piece-Rate' || e.compensationType === 'piece_rate') : e.employmentType === typeFilter);
+    return searchMatch && deptMatch && statusMatch && typeMatch;
   });
 
   // Calculate shift duration and OT helper
@@ -397,17 +405,21 @@ const HR = () => {
   // Payrun Calculation Engine
   const buildPayrunCalcs = (month) => {
     return activeStaff.map(emp => {
-      const basic = Number(emp.basicSalary) || 0;
-      const allow = Number(emp.allowance) || 0;
-      const foodAllow = Number(emp.foodAllowance) || 0;
+      const isPieceRate = emp.compensationType === 'piece_rate' || emp.employmentType === 'Piece-Rate' || emp.employmentType === 'Outsourced';
+      const pieceRate = Number(emp.pieceRate) || 0;
+      const unitsCompleted = Number(emp.unitsCompleted ?? emp.defaultUnits ?? (isPieceRate ? 100 : 0));
+      const pieceRatePay = isPieceRate ? Math.round(pieceRate * unitsCompleted) : 0;
+      const basic = isPieceRate ? pieceRatePay : (Number(emp.basicSalary) || 0);
+      const allow = isPieceRate ? 0 : (Number(emp.allowance) || 0);
+      const foodAllow = isPieceRate ? 0 : (Number(emp.foodAllowance) || 0);
       const transAllow = Number(emp.transportAllowance) || 0;
       const totalAllowances = allow + foodAllow + transAllow;
       const bonus = 0;
 
       // Attendance summary for month
       const attSummary = getMonthlyAttendanceSummary ? getMonthlyAttendanceSummary(emp.id, month) : { present: 26, absent: 0, otHours: 0 };
-      const daysAbsent = attSummary.absent || 0;
-      const otHours = attSummary.otHours || 0;
+      const daysAbsent = isPieceRate ? 0 : (attSummary.absent || 0);
+      const otHours = isPieceRate ? 0 : (attSummary.otHours || 0);
 
       // Active unrecovered salary advances for this employee
       const empAdvances = salaryAdvances.filter(a => a.employeeId === emp.id && a.status === 'Issued');
@@ -417,13 +429,13 @@ const HR = () => {
       const dailyRate = basic / 26;
       const otHourlyRate = (basic / 208) * 1.5;
 
-      const otPay = Math.round(otHours * otHourlyRate);
-      const absenceDeduction = Math.round(daysAbsent * dailyRate);
+      const otPay = isPieceRate ? 0 : Math.round(otHours * otHourlyRate);
+      const absenceDeduction = isPieceRate ? 0 : Math.round(daysAbsent * dailyRate);
 
       const gross = Math.max(0, basic + totalAllowances + bonus + otPay - absenceDeduction);
-      const epfEmployee = emp.epfEligible ? Math.round(basic * 0.08) : 0;
-      const epfEmployer = emp.epfEligible ? Math.round(basic * 0.12) : 0;
-      const etfEmployer = emp.epfEligible ? Math.round(basic * 0.03) : 0;
+      const epfEmployee = (!isPieceRate && emp.epfEligible) ? Math.round(basic * 0.08) : 0;
+      const epfEmployer = (!isPieceRate && emp.epfEligible) ? Math.round(basic * 0.12) : 0;
+      const etfEmployer = (!isPieceRate && emp.epfEligible) ? Math.round(basic * 0.03) : 0;
       const netSalary = Math.max(0, gross - epfEmployee - advanceDeduction);
 
       return {
@@ -433,6 +445,13 @@ const HR = () => {
         nic: emp.nic || '',
         designation: emp.designation,
         department: emp.department,
+        employmentType: emp.employmentType,
+        compensationType: emp.compensationType,
+        isPieceRate,
+        pieceRate,
+        unitsCompleted,
+        pieceDescription: emp.pieceDescription || 'Unit Produced / Task',
+        pieceRatePay,
         bankName: emp.bankName || 'Commercial Bank',
         bankAccount: emp.bankAccount || '',
         basic,
@@ -461,7 +480,7 @@ const HR = () => {
     // Warn if payrun for this month already exists
     const existingPayrun = payruns.find(pr => pr.month === payrunMonth);
     if (existingPayrun) {
-      showNotification(`⚠️ A payrun for ${payrunMonth} has already been processed on ${existingPayrun.payrunDate}. Processing again will create a duplicate.`, 'warning');
+      showNotification(`A payrun for ${payrunMonth} has already been processed on ${existingPayrun.payrunDate}. Processing again will create a duplicate.`, 'warning');
     }
     const calcs = buildPayrunCalcs(payrunMonth);
     setPayrunCalcList(calcs);
@@ -483,6 +502,22 @@ const HR = () => {
     updated[index].bonus = b;
     updated[index].grossSalary = Math.max(0, updated[index].basic + updated[index].allow + b + updated[index].otPay - updated[index].absenceDeduction);
     updated[index].netSalary = Math.max(0, updated[index].grossSalary - updated[index].epfEmployee - updated[index].advanceDeduction);
+    setPayrunCalcList(updated);
+  };
+
+  const updatePayrunUnits = (index, unitsVal) => {
+    const updated = [...payrunCalcList];
+    const item = { ...updated[index] };
+    const units = Math.max(0, Number(unitsVal) || 0);
+    item.unitsCompleted = units;
+    item.pieceRatePay = Math.round((item.pieceRate || 0) * units);
+    item.basic = item.pieceRatePay;
+    item.grossSalary = Math.max(0, item.basic + item.allow + item.bonus + item.otPay - item.absenceDeduction);
+    item.epfEmployee = (!item.isPieceRate && item.epfEligible) ? Math.round(item.basic * 0.08) : 0;
+    item.epfEmployer = (!item.isPieceRate && item.epfEligible) ? Math.round(item.basic * 0.12) : 0;
+    item.etfEmployer = (!item.isPieceRate && item.epfEligible) ? Math.round(item.basic * 0.03) : 0;
+    item.netSalary = Math.max(0, item.grossSalary - item.epfEmployee - item.advanceDeduction);
+    updated[index] = item;
     setPayrunCalcList(updated);
   };
 
@@ -635,6 +670,11 @@ const HR = () => {
                   designation: 'Fitness Trainer',
                   department: 'Fitness & Training',
                   employmentType: 'Full-Time',
+                  compensationType: 'salary',
+                  pieceRate: 0,
+                  pieceDescription: 'Per Unit Assembled / Session',
+                  defaultUnits: 100,
+                  unitsCompleted: 100,
                   shift: 'General (08:30 - 17:00)',
                   joinDate: new Date().toISOString().split('T')[0],
                   confirmationDate: '',
@@ -797,6 +837,17 @@ const HR = () => {
                   ]}
                   style={{ height: '36px', minWidth: '130px' }}
                 />
+                <CustomSelect
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  options={[
+                    { value: 'All', label: 'All Work Types' },
+                    { value: 'Full-Time', label: 'Full-Time Staff' },
+                    { value: 'Outsourced', label: 'Outsourced / Piece-Rate' },
+                    { value: 'Contract', label: 'Contract Basis' }
+                  ]}
+                  style={{ height: '36px', minWidth: '165px' }}
+                />
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowAnalyticsPanel(prev => !prev)}
@@ -834,9 +885,9 @@ const HR = () => {
                       <th>EMPLOYEE NAME & CONTACT</th>
                       <th>DESIGNATION</th>
                       <th>DEPARTMENT</th>
-                      <th>SHIFT</th>
+                      <th>TYPE / SHIFT</th>
                       <th>SERVICE</th>
-                      <th>BASIC SALARY</th>
+                      <th>COMPENSATION / BASIC</th>
                       <th>TOTAL ALLOWANCE</th>
                       <th>STATUS</th>
                       <th style={{ textAlign: 'right' }}>ACTIONS</th>
@@ -853,6 +904,7 @@ const HR = () => {
                       filteredEmployees.map(emp => {
                         const basic = Number(emp.basicSalary) || 0;
                         const allow = (Number(emp.allowance) || 0) + (Number(emp.foodAllowance) || 0) + (Number(emp.transportAllowance) || 0);
+                        const isPieceRate = emp.compensationType === 'piece_rate' || emp.employmentType === 'Piece-Rate' || emp.employmentType === 'Outsourced';
 
                         return (
                           <tr key={emp.id} style={{ cursor: 'pointer' }} onClick={() => {
@@ -889,8 +941,19 @@ const HR = () => {
                                 {emp.department}
                               </span>
                             </td>
-                            <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                              {emp.shift || 'General Shift'}
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{
+                                  fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', width: 'fit-content',
+                                  background: isPieceRate ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                  color: isPieceRate ? 'var(--success)' : 'var(--text-secondary)'
+                                }}>
+                                  {isPieceRate ? 'Piece-Rate (Outsourced)' : (emp.employmentType || 'Full-Time')}
+                                </span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {emp.shift || 'General Shift'}
+                                </span>
+                              </div>
                             </td>
                             <td>
                               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
@@ -898,9 +961,20 @@ const HR = () => {
                               </div>
                             </td>
                             <td>
-                              <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                                LKR {basic.toLocaleString()}
-                              </div>
+                              {isPieceRate ? (
+                                <div>
+                                  <div style={{ fontWeight: 800, color: 'var(--accent-secondary)', fontFamily: 'var(--font-mono)' }}>
+                                    LKR {(Number(emp.pieceRate) || 0).toLocaleString()} <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>/ unit</span>
+                                  </div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                    {emp.pieceDescription || 'Per Unit Produced'}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                                  LKR {basic.toLocaleString()}
+                                </div>
+                              )}
                             </td>
                             <td>
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
@@ -933,6 +1007,11 @@ const HR = () => {
                                     setEditingEmployee(emp);
                                     setEmpForm({
                                       ...emp,
+                                      compensationType: emp.compensationType || (emp.employmentType === 'Piece-Rate' || emp.employmentType === 'Outsourced' ? 'piece_rate' : 'salary'),
+                                      pieceRate: emp.pieceRate || 0,
+                                      pieceDescription: emp.pieceDescription || 'Per Unit Assembled / Session',
+                                      defaultUnits: emp.defaultUnits || 100,
+                                      unitsCompleted: emp.unitsCompleted || 100,
                                       foodAllowance: emp.foodAllowance || 0,
                                       transportAllowance: emp.transportAllowance || 0
                                     });
@@ -1031,8 +1110,14 @@ const HR = () => {
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.department}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span style={{ color: 'var(--text-muted)' }}>Basic Pay:</span>
-                        <span style={{ fontWeight: 700, color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>LKR {basic.toLocaleString()}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Remuneration:</span>
+                        {emp.compensationType === 'piece_rate' || emp.employmentType === 'Piece-Rate' || emp.employmentType === 'Outsourced' ? (
+                          <span style={{ fontWeight: 800, color: 'var(--accent-secondary)', fontFamily: 'var(--font-mono)' }}>
+                            LKR {(Number(emp.pieceRate) || 0).toLocaleString()} / unit
+                          </span>
+                        ) : (
+                          <span style={{ fontWeight: 700, color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>LKR {basic.toLocaleString()}</span>
+                        )}
                       </div>
                       <div className="flex justify-between">
                         <span style={{ color: 'var(--text-muted)' }}>Contact:</span>
@@ -1235,11 +1320,11 @@ const HR = () => {
                           value={row.status}
                           onChange={(val) => updateAttRow(idx, 'status', val)}
                           options={[
-                            { value: 'Present', label: '🟢 Present' },
-                            { value: 'Absent', label: '🔴 Absent (Unpaid)' },
-                            { value: 'Half Day', label: '🟡 Half Day' },
-                            { value: 'On Leave', label: '🔵 On Leave (Paid)' },
-                            { value: 'Late', label: '🟠 Late Arrival' }
+                            { value: 'Present', label: 'Present' },
+                            { value: 'Absent', label: 'Absent (Unpaid)' },
+                            { value: 'Half Day', label: 'Half Day' },
+                            { value: 'On Leave', label: 'On Leave (Paid)' },
+                            { value: 'Late', label: 'Late Arrival' }
                           ]}
                           style={{ height: '36px', width: '165px' }}
                         />
@@ -1825,7 +1910,9 @@ const HR = () => {
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.reviewDate}</td>
                       <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.reviewer || 'Manager'}</td>
                       <td style={{ fontSize: '0.82rem' }}>
-                        {r.punctualityRating}★ / {r.trainingQualityRating}★ / {r.clientEngagementRating}★ / {r.teamworkRating}★
+                        <span className="inline-flex items-center gap-1">
+                          {r.punctualityRating}<Star size={10} className="text-amber-500 fill-amber-500 inline" /> / {r.trainingQualityRating}<Star size={10} className="text-amber-500 fill-amber-500 inline" /> / {r.clientEngagementRating}<Star size={10} className="text-amber-500 fill-amber-500 inline" /> / {r.teamworkRating}<Star size={10} className="text-amber-500 fill-amber-500 inline" />
+                        </span>
                       </td>
                       <td>
                         <span style={{
@@ -1961,16 +2048,12 @@ const HR = () => {
       {/* ===== MODAL: EMPLOYEE 360° PROFILE DRAWER ============================== */}
       {/* ========================================================================= */}
       {profileEmployee && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '820px', padding: 0, borderRadius: '24px',
-            maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.8)', animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setProfileEmployee(null); }}
+        >
+          <div className="modal-card" style={{
+            maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '22px'
           }}>
             {/* Header / Avatar Profile Bar */}
             <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.08))' }}>
@@ -2306,18 +2389,14 @@ const HR = () => {
       {/* ===== MODAL: REGISTER / EDIT EMPLOYEE (COMPREHENSIVE) =================== */}
       {/* ========================================================================= */}
       {showEmpModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '680px', padding: 0, borderRadius: '24px',
-            maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.8)', animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowEmpModal(false); }}
+        >
+          <div className="modal-card" style={{
+            maxWidth: '680px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '22px'
           }}>
-            <div className="modal-header" style={{ padding: '20px 28px', borderBottom: '1px solid var(--subtle-border)' }}>
+            <div className="modal-header-solid" style={{ flexShrink: 0, padding: '18px 28px' }}>
               <div className="flex items-center gap-3">
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-secondary)' }}>
                   <UserPlus size={18} />
@@ -2335,7 +2414,7 @@ const HR = () => {
             </div>
 
             {/* Modal Sub-Tabs */}
-            <div style={{ display: 'flex', gap: '6px', padding: '12px 28px', background: 'var(--subtle-bg)', borderBottom: '1px solid var(--subtle-border)' }}>
+            <div style={{ flexShrink: 0, display: 'flex', gap: '6px', padding: '10px 28px', background: 'var(--subtle-bg)', borderBottom: '1px solid var(--subtle-border)' }}>
               {[
                 { id: 'personal', label: '1. Personal Details' },
                 { id: 'employment', label: '2. Job & Shift' },
@@ -2357,7 +2436,8 @@ const HR = () => {
               ))}
             </div>
 
-            <form onSubmit={handleSaveEmployee} style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '18px', width: '100%' }}>
+            <form onSubmit={handleSaveEmployee} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, margin: 0, overflow: 'hidden' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
               {/* Tab 1: Personal Details */}
               {empModalTab === 'personal' && (
@@ -2493,9 +2573,19 @@ const HR = () => {
                       <label className="form-label">EMPLOYMENT TYPE</label>
                       <CustomSelect 
                         value={empForm.employmentType}
-                        onChange={(val) => setEmpForm({ ...empForm, employmentType: val })}
+                        onChange={(val) => {
+                          const isPiece = val === 'Piece-Rate' || val === 'Outsourced';
+                          setEmpForm({ 
+                            ...empForm, 
+                            employmentType: val,
+                            compensationType: isPiece ? 'piece_rate' : empForm.compensationType,
+                            epfEligible: isPiece ? false : empForm.epfEligible
+                          });
+                        }}
                         options={[
                           { value: 'Full-Time', label: 'Full-Time Regular' },
+                          { value: 'Outsourced', label: 'Outsourced / Freelance Contractor' },
+                          { value: 'Piece-Rate', label: 'Piece-Rate Worker (Per Unit)' },
                           { value: 'Probation', label: 'On Probation' },
                           { value: 'Contract', label: 'Contract Basis' },
                           { value: 'Part-Time', label: 'Part-Time' },
@@ -2558,51 +2648,128 @@ const HR = () => {
               {/* Tab 3: Salary & Bank */}
               {empModalTab === 'compensation' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="form-label">BASIC SALARY (LKR) *</label>
-                      <input 
-                        type="number" 
-                        className="form-input"
-                        value={empForm.basicSalary}
-                        onChange={(e) => setEmpForm({ ...empForm, basicSalary: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label">FOOD ALLOWANCE (LKR)</label>
-                      <input 
-                        type="number" 
-                        className="form-input"
-                        value={empForm.foodAllowance}
-                        onChange={(e) => setEmpForm({ ...empForm, foodAllowance: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label">TRANSPORT ALLOWANCE (LKR)</label>
-                      <input 
-                        type="number" 
-                        className="form-input"
-                        value={empForm.transportAllowance}
-                        onChange={(e) => setEmpForm({ ...empForm, transportAllowance: e.target.value })}
-                      />
+                  
+                  {/* Compensation Model Toggle */}
+                  <div style={{ background: 'var(--subtle-bg)', padding: '14px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
+                    <label className="form-label" style={{ fontWeight: 800, fontSize: '0.82rem', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                      REMUNERATION & COMPENSATION MODEL *
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className={`btn ${empForm.compensationType !== 'piece_rate' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setEmpForm(prev => ({ ...prev, compensationType: 'salary' }))}
+                        style={{ padding: '8px 12px', fontSize: '0.8rem', fontWeight: 700, justifyContent: 'center' }}
+                      >
+                        Monthly Fixed Salary
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${empForm.compensationType === 'piece_rate' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setEmpForm(prev => ({ ...prev, compensationType: 'piece_rate', epfEligible: false }))}
+                        style={{ padding: '8px 12px', fontSize: '0.8rem', fontWeight: 700, justifyContent: 'center' }}
+                      >
+                        Piece-Rate / Per-Unit (Outsourced)
+                      </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="form-label">OTHER FIXED ALLOWANCE (LKR)</label>
-                    <input 
-                      type="number" 
-                      className="form-input"
-                      value={empForm.allowance}
-                      onChange={(e) => setEmpForm({ ...empForm, allowance: e.target.value })}
-                    />
-                  </div>
+                  {empForm.compensationType === 'piece_rate' ? (
+                    /* Piece-Rate Inputs */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'rgba(99, 102, 241, 0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="form-label">RATE PER PIECE / UNIT (LKR) *</label>
+                          <input 
+                            type="number" 
+                            className="form-input"
+                            placeholder="e.g. 450"
+                            value={empForm.pieceRate}
+                            onChange={(e) => setEmpForm({ ...empForm, pieceRate: Number(e.target.value) })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">DEFAULT MONTHLY TARGET / UNITS</label>
+                          <input 
+                            type="number" 
+                            className="form-input"
+                            placeholder="e.g. 150"
+                            value={empForm.defaultUnits}
+                            onChange={(e) => setEmpForm({ ...empForm, defaultUnits: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="form-label">PIECE / TASK DESCRIPTION</label>
+                        <input 
+                          type="text" 
+                          className="form-input"
+                          placeholder="e.g. Per Assembled Machine Frame / Per Coach Session"
+                          value={empForm.pieceDescription}
+                          onChange={(e) => setEmpForm({ ...empForm, pieceDescription: e.target.value })}
+                        />
+                      </div>
+
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Est. Monthly Pay: <strong style={{ color: 'var(--success)' }}>LKR {((Number(empForm.pieceRate) || 0) * (Number(empForm.defaultUnits) || 0)).toLocaleString()}</strong> (Calculated dynamically on payrun by actual units completed).
+                      </div>
+                    </div>
+                  ) : (
+                    /* Standard Monthly Salary Inputs */
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="form-label">BASIC SALARY (LKR) *</label>
+                          <input 
+                            type="number" 
+                            className="form-input"
+                            value={empForm.basicSalary}
+                            onChange={(e) => setEmpForm({ ...empForm, basicSalary: Number(e.target.value) })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">FOOD ALLOWANCE (LKR)</label>
+                          <input 
+                            type="number" 
+                            className="form-input"
+                            value={empForm.foodAllowance}
+                            onChange={(e) => setEmpForm({ ...empForm, foodAllowance: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">TRANSPORT ALLOWANCE (LKR)</label>
+                          <input 
+                            type="number" 
+                            className="form-input"
+                            value={empForm.transportAllowance}
+                            onChange={(e) => setEmpForm({ ...empForm, transportAllowance: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="form-label">OTHER FIXED ALLOWANCE (LKR)</label>
+                        <input 
+                          type="number" 
+                          className="form-input"
+                          value={empForm.allowance}
+                          onChange={(e) => setEmpForm({ ...empForm, allowance: Number(e.target.value) })}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div style={{ background: 'var(--subtle-bg)', padding: '14px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>EPF & ETF Statutory Enrolment</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Subject to 8% Employee deduction, 12% Employer EPF, and 3% Employer ETF</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {empForm.compensationType === 'piece_rate' 
+                          ? 'Outsourced independent contractors are exempt unless explicitly contracted under EPF.'
+                          : 'Subject to 8% Employee deduction, 12% Employer EPF, and 3% Employer ETF.'}
+                      </div>
                     </div>
                     <input 
                       type="checkbox"
@@ -2727,9 +2894,14 @@ const HR = () => {
                 </div>
               )}
 
-              <div className="flex justify-between items-center" style={{ marginTop: '14px', borderTop: '1px solid var(--subtle-border)', paddingTop: '16px' }}>
+              </div>
+
+              {/* STICKY FOOTER ACTIONS - ALWAYS VISIBLE */}
+              <div className="modal-footer-solid" style={{ flexShrink: 0, padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEmpModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editingEmployee ? 'Save Changes' : 'Register Staff'}</button>
+                <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={16} /> {editingEmployee ? 'Save Changes' : 'Register Staff'}
+                </button>
               </div>
             </form>
           </div>
@@ -2740,17 +2912,11 @@ const HR = () => {
       {/* ===== MODAL: APPLY LEAVE ================================================ */}
       {/* ========================================================================= */}
       {showLeaveModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '500px', padding: 0, borderRadius: '22px',
-            border: '1px solid var(--panel-border)', boxShadow: '0 30px 80px rgba(0,0,0,0.8)',
-            animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveModal(false); }}
+        >
+          <div className="modal-card" style={{ maxWidth: '500px', borderRadius: '22px' }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Staff Leave Application
@@ -2860,17 +3026,11 @@ const HR = () => {
       {/* ===== MODAL: SALARY ADVANCE ============================================= */}
       {/* ========================================================================= */}
       {showAdvModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '480px', padding: 0, borderRadius: '22px',
-            border: '1px solid var(--panel-border)', boxShadow: '0 30px 80px rgba(0,0,0,0.8)',
-            animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAdvModal(false); }}
+        >
+          <div className="modal-card" style={{ maxWidth: '480px', borderRadius: '22px' }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Issue Salary Advance / Loan
@@ -2948,16 +3108,12 @@ const HR = () => {
       {/* ===== MODAL: MONTHLY PAYROLL PROCESSOR ================================== */}
       {/* ========================================================================= */}
       {showPayrunModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '1100px', padding: 0, borderRadius: '24px',
-            maxHeight: '94vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
-            boxShadow: '0 30px 90px rgba(0,0,0,0.85)', animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPayrunModal(false); }}
+        >
+          <div className="modal-card" style={{
+            maxWidth: '1100px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '22px'
           }}>
             <div className="modal-header" style={{ padding: '20px 28px', borderBottom: '1px solid var(--subtle-border)' }}>
               <div className="flex items-center gap-3">
@@ -3000,8 +3156,9 @@ const HR = () => {
                   <thead>
                     <tr>
                       <th>STAFF</th>
+                      <th>WORK MODEL & UNITS</th>
                       <th>ATTENDANCE</th>
-                      <th>BASIC</th>
+                      <th>BASIC / PIECE PAY</th>
                       <th>ALLOWANCES</th>
                       <th>OT PAY</th>
                       <th>ABSENCE DEDUCT</th>
@@ -3019,11 +3176,58 @@ const HR = () => {
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.designation}</div>
                         </td>
                         <td>
-                          <div style={{ fontSize: '0.75rem' }}>
-                            <span style={{ color: 'var(--success)', fontWeight: 700 }}>{item.attSummary?.present || 26}P</span> · <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{item.daysAbsent}A</span> · <span style={{ color: 'var(--warning)', fontWeight: 700 }}>{item.otHours}h OT</span>
-                          </div>
+                          {item.isPieceRate ? (
+                            <div>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-secondary)' }}>
+                                Piece-Rate
+                              </span>
+                              <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <input 
+                                  type="number"
+                                  min="0"
+                                  className="form-input"
+                                  value={item.unitsCompleted}
+                                  onChange={(e) => updatePayrunUnits(idx, e.target.value)}
+                                  title="Enter verified finished units completed by this contractor"
+                                  style={{ width: '75px', height: '28px', padding: '2px 6px', fontSize: '0.8rem', fontWeight: 800 }}
+                                />
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>pcs</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.15)', color: 'var(--text-secondary)' }}>
+                                {item.employmentType || 'Full-Time'}
+                              </span>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Monthly Fixed</div>
+                            </div>
+                          )}
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)' }}>LKR {item.basic.toLocaleString()}</td>
+                        <td>
+                          {item.isPieceRate ? (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              Outsourced<br/><span style={{ color: 'var(--success)' }}>Penalty Exempt</span>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.75rem' }}>
+                              <span style={{ color: 'var(--success)', fontWeight: 700 }}>{item.attSummary?.present || 26}P</span> · <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{item.daysAbsent}A</span> · <span style={{ color: 'var(--warning)', fontWeight: 700 }}>{item.otHours}h OT</span>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {item.isPieceRate ? (
+                            <div>
+                              <div style={{ fontWeight: 800, color: 'var(--accent-secondary)', fontFamily: 'var(--font-mono)' }}>
+                                LKR {item.basic.toLocaleString()}
+                              </div>
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                {item.unitsCompleted} × LKR {item.pieceRate}
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontFamily: 'var(--font-mono)' }}>LKR {item.basic.toLocaleString()}</span>
+                          )}
+                        </td>
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>LKR {item.allow.toLocaleString()}</td>
                         <td style={{ color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>+LKR {item.otPay.toLocaleString()}</td>
                         <td style={{ color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>-LKR {item.absenceDeduction.toLocaleString()}</td>
@@ -3037,7 +3241,9 @@ const HR = () => {
                             style={{ width: '85px', height: '32px', padding: '4px 8px', fontSize: '0.82rem' }}
                           />
                         </td>
-                        <td style={{ color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>-LKR {item.epfEmployee.toLocaleString()}</td>
+                        <td style={{ color: item.isPieceRate && !item.epfEligible ? 'var(--text-muted)' : 'var(--danger)', fontFamily: 'var(--font-mono)', fontSize: item.isPieceRate && !item.epfEligible ? '0.75rem' : 'inherit' }}>
+                          {item.isPieceRate && !item.epfEligible ? 'Exempt' : `-LKR ${item.epfEmployee.toLocaleString()}`}
+                        </td>
                         <td style={{ fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
                           LKR {item.netSalary.toLocaleString()}
                         </td>
@@ -3084,16 +3290,12 @@ const HR = () => {
       {/* ===== MODAL: VIEW INDIVIDUAL PAYSLIPS =================================== */}
       {/* ========================================================================= */}
       {viewingPayrun && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '820px', padding: 0, borderRadius: '22px',
-            maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingPayrun(null); }}
+        >
+          <div className="modal-card" style={{
+            maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '22px'
           }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <div>
@@ -3155,16 +3357,13 @@ const HR = () => {
       {/* ===== MODAL: HIGH-RES PRINTABLE EMPLOYEE PAYSLIP ======================== */}
       {/* ========================================================================= */}
       {viewingPayslip && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel printable-area" style={{
-            width: '100%', maxWidth: '640px', padding: 0, borderRadius: '20px',
-            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.85)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingPayslip(null); }}
+        >
+          <div className="modal-card printable-area" style={{
+            maxWidth: '640px', padding: 0, borderRadius: '20px',
+            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a'
           }}>
             {/* Payslip Header */}
             <div style={{ padding: '24px 28px', borderBottom: '2px solid #0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -3247,7 +3446,11 @@ const HR = () => {
                   <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
                     <tbody>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '6px 0', color: '#475569' }}>Basic Salary</td>
+                        <td style={{ padding: '6px 0', color: '#475569' }}>
+                          {viewingPayslip.isPieceRate 
+                            ? `Piece-Rate Remuneration (${viewingPayslip.unitsCompleted || 0} units @ LKR ${(viewingPayslip.pieceRate || 0).toLocaleString()})`
+                            : 'Basic Salary'}
+                        </td>
                         <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>{(Number(viewingPayslip.basic) || 0).toLocaleString()}</td>
                       </tr>
                       {Number(viewingPayslip.fixedAllowance) > 0 && (
@@ -3361,16 +3564,13 @@ const HR = () => {
       {/* ===== MODAL: MASTER PAYROLL PAY SHEET REGISTER ========================== */}
       {/* ========================================================================= */}
       {viewingMasterSheet && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel printable-area" style={{
-            width: '100%', maxWidth: '1100px', padding: 0, borderRadius: '22px',
-            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.85)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingMasterSheet(null); }}
+        >
+          <div className="modal-card printable-area" style={{
+            maxWidth: '1100px', padding: 0, borderRadius: '22px',
+            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a'
           }}>
             <div style={{ padding: '20px 24px', borderBottom: '2px solid #0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -3445,14 +3645,12 @@ const HR = () => {
       {/* ===== MODAL: STATUTORY EPF / ETF C-FORM RETURN ========================== */}
       {/* ========================================================================= */}
       {viewingCForm && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel printable-area" style={{
-            width: '100%', maxWidth: '780px', padding: 0, borderRadius: '20px',
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingCForm(null); }}
+        >
+          <div className="modal-card printable-area" style={{
+            maxWidth: '780px', padding: 0, borderRadius: '20px',
             maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#1e293b'
           }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3525,16 +3723,11 @@ const HR = () => {
       {/* ===== MODAL: GENERATE OFFICIAL HR LETTER =============================== */}
       {/* ========================================================================= */}
       {showLetterModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '520px', padding: 0, borderRadius: '22px',
-            border: '1px solid var(--panel-border)', boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
-          }}>
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLetterModal(false); }}
+        >
+          <div className="modal-card" style={{ maxWidth: '520px', borderRadius: '22px' }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Generate Official HR Letter / Certificate
@@ -3603,16 +3796,13 @@ const HR = () => {
       {/* ===== MODAL: VIEW & PRINT OFFICIAL HR LETTER ============================ */}
       {/* ========================================================================= */}
       {viewingLetter && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel printable-area" style={{
-            width: '100%', maxWidth: '680px', padding: 0, borderRadius: '20px',
-            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.85)'
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingLetter(null); }}
+        >
+          <div className="modal-card printable-area" style={{
+            maxWidth: '680px', padding: 0, borderRadius: '20px',
+            maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', color: '#0f172a'
           }}>
             <div style={{ padding: '24px 32px', borderBottom: '2px solid #0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -3677,16 +3867,11 @@ const HR = () => {
       {/* ===== MODAL: CONDUCT APPRAISAL ========================================== */}
       {/* ========================================================================= */}
       {showAppraisalModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '520px', padding: 0, borderRadius: '22px',
-            border: '1px solid var(--panel-border)', boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
-          }}>
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAppraisalModal(false); }}
+        >
+          <div className="modal-card" style={{ maxWidth: '520px', borderRadius: '22px' }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Conduct Staff Performance Appraisal
@@ -3729,25 +3914,25 @@ const HR = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="form-label">PUNCTUALITY (1-5★)</label>
+                  <label className="form-label flex items-center gap-1">PUNCTUALITY (1-5 <Star size={11} className="text-amber-500 fill-amber-500 inline" />)</label>
                   <input type="number" min="1" max="5" className="form-input" value={appraisalForm.punctualityRating} onChange={e => setAppraisalForm({ ...appraisalForm, punctualityRating: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="form-label">JOB QUALITY (1-5★)</label>
+                  <label className="form-label flex items-center gap-1">JOB QUALITY (1-5 <Star size={11} className="text-amber-500 fill-amber-500 inline" />)</label>
                   <input type="number" min="1" max="5" className="form-input" value={appraisalForm.trainingQualityRating} onChange={e => setAppraisalForm({ ...appraisalForm, trainingQualityRating: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="form-label">CLIENT SERVICE (1-5★)</label>
+                  <label className="form-label flex items-center gap-1">CLIENT SERVICE (1-5 <Star size={11} className="text-amber-500 fill-amber-500 inline" />)</label>
                   <input type="number" min="1" max="5" className="form-input" value={appraisalForm.clientEngagementRating} onChange={e => setAppraisalForm({ ...appraisalForm, clientEngagementRating: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="form-label">TEAMWORK (1-5★)</label>
+                  <label className="form-label flex items-center gap-1">TEAMWORK (1-5 <Star size={11} className="text-amber-500 fill-amber-500 inline" />)</label>
                   <input type="number" min="1" max="5" className="form-input" value={appraisalForm.teamworkRating} onChange={e => setAppraisalForm({ ...appraisalForm, teamworkRating: e.target.value })} required />
                 </div>
               </div>
 
               <div>
-                <label className="form-label">INITIATIVE & ATTITUDE (1-5★)</label>
+                <label className="form-label flex items-center gap-1">INITIATIVE & ATTITUDE (1-5 <Star size={11} className="text-amber-500 fill-amber-500 inline" />)</label>
                 <input type="number" min="1" max="5" className="form-input" value={appraisalForm.initiativeRating} onChange={e => setAppraisalForm({ ...appraisalForm, initiativeRating: e.target.value })} required />
               </div>
 
@@ -3775,16 +3960,11 @@ const HR = () => {
       {/* ===== MODAL: SUBMIT EXPENSE CLAIM ======================================= */}
       {/* ========================================================================= */}
       {showClaimModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.82)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '500px', padding: 0, borderRadius: '22px',
-            border: '1px solid var(--panel-border)', boxShadow: '0 30px 80px rgba(0,0,0,0.8)'
-          }}>
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowClaimModal(false); }}
+        >
+          <div className="modal-card" style={{ maxWidth: '500px', borderRadius: '22px' }}>
             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Submit Staff Expense Claim

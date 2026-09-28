@@ -176,8 +176,8 @@ const Settings = () => {
 
           {/* 1-CLICK PLAN PRESETS BAR */}
           <div style={{ background: 'var(--subtle-bg)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--panel-border)', marginBottom: '24px' }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-              ⚡ 1-Click Plan Feature Presets
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Zap size={14} /> 1-Click Plan Feature Presets
             </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button onClick={() => applyPlanPreset && applyPlanPreset('starter')} className="btn btn-secondary" style={{ fontSize: '0.8rem', fontWeight: 700, padding: '8px 14px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
@@ -201,6 +201,7 @@ const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { key: 'procurement', label: 'Procurement & Purchase Orders', desc: 'Supplier management, PO replenishment, and Accounts Payable automation.', category: 'Operations' },
+              { key: 'manufacturing', label: 'Manufacturing & Bill of Materials', desc: 'BOM recipe formulations, batch work orders, job routing, and production costing.', category: 'Operations' },
               { key: 'hrPayroll', label: 'HR & Staff Payroll System', desc: 'Staff directory, EPF/ETF statutory tracking, and monthly payruns.', category: 'Human Resources' },
               { key: 'fixedAssets', label: 'Fixed Assets & Depreciation', desc: 'PPE asset tracking with SLFRS/LKAS depreciation schedules.', category: 'Finance' },
               { key: 'debtors', label: 'Debtors & Collection Aging', desc: 'Outstanding balances, debtor aging buckets, and payment reminders.', category: 'Finance' },
@@ -395,12 +396,12 @@ const Settings = () => {
                           value={member.role}
                           onChange={val => updateTeamMemberRole && updateTeamMemberRole(member.id, val)}
                           options={[
-                            { value: 'Admin', label: '👑 Admin (Full Access)' },
-                            { value: 'Sales Representative', label: '💼 Sales Representative' },
-                            { value: 'Accountant', label: '📊 Accountant (Read-Only)' },
+                            { value: 'Admin', label: 'Admin (Full Access)' },
+                            { value: 'Sales Representative', label: 'Sales Representative' },
+                            { value: 'Accountant', label: 'Accountant (Read-Only)' },
                             ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
                               value: r.title,
-                              label: `🛡️ ${r.title}`
+                              label: r.title
                             }))
                           ]}
                         />
@@ -552,7 +553,9 @@ const Settings = () => {
                     
                     <div className="flex flex-wrap gap-2 style={{ marginTop: '12px' }}">
                       {role.permissions.includes('all') ? (
-                        <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>👑 Full Administrative System Access</span>
+                        <span className="badge badge-success" style={{ fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Shield size={12} /> Full Administrative System Access
+                        </span>
                       ) : (
                         role.permissions.map(p => (
                           <span key={p} className="badge badge-secondary" style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)' }}>
@@ -1828,7 +1831,7 @@ END $$;`;
             </div>
 
             <div style={{ padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--panel-border)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>💡 Client Portal Integration</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}><Info size={14} /> Client Portal Integration</div>
               These banking details and payment instructions are dynamically populated on the client self-service portal, email invoices, and downloadable PDF invoices.
             </div>
           </div>
@@ -1901,7 +1904,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
 
     if (score <= 2) return { label: 'Weak', color: 'var(--danger)', width: '33%' };
     if (score <= 4) return { label: 'Good', color: 'var(--warning)', width: '66%' };
-    return { label: 'Enterprise Strong 🛡️', color: 'var(--success)', width: '100%' };
+    return { label: 'Enterprise Strong', color: 'var(--success)', width: '100%' };
   };
 
   const strength = getPasswordStrength(userForm.password);
@@ -1992,12 +1995,12 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
                 value={userForm.role}
                 onChange={val => setUserForm({...userForm, role: val})}
                 options={[
-                  { value: 'Admin', label: '👑 Admin (Full Access)' },
-                  { value: 'Sales Representative', label: '💼 Sales Representative' },
-                  { value: 'Accountant', label: '📊 Accountant (Financials)' },
+                  { value: 'Admin', label: 'Admin (Full Access)' },
+                  { value: 'Sales Representative', label: 'Sales Representative' },
+                  { value: 'Accountant', label: 'Accountant (Financials)' },
                   ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
                     value: r.title,
-                    label: `🛡️ ${r.title}`
+                    label: r.title
                   }))
                 ]}
               />
@@ -2009,9 +2012,9 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
                 value={userForm.status}
                 onChange={val => setUserForm({...userForm, status: val})}
                 options={[
-                  { value: 'Active', label: '🟢 Active Account' },
-                  { value: 'Pending', label: '🟡 Pending Verification' },
-                  { value: 'Suspended', label: '🔴 Suspended Access' }
+                  { value: 'Active', label: 'Active Account' },
+                  { value: 'Pending', label: 'Pending Verification' },
+                  { value: 'Suspended', label: 'Suspended Access' }
                 ]}
               />
             </div>
@@ -2171,12 +2174,12 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
                 value={form.role} 
                 onChange={val => setForm({...form, role: val})}
                 options={[
-                  { value: 'Admin', label: '👑 Admin (Full Access)' },
-                  { value: 'Sales Representative', label: '💼 Sales Representative' },
-                  { value: 'Accountant', label: '📊 Accountant (Read-Only)' },
+                  { value: 'Admin', label: 'Admin (Full Access)' },
+                  { value: 'Sales Representative', label: 'Sales Representative' },
+                  { value: 'Accountant', label: 'Accountant (Read-Only)' },
                   ...customRoles.filter(r => !['Admin', 'Sales Representative', 'Accountant'].includes(r.title)).map(r => ({
                     value: r.title,
-                    label: `🛡️ ${r.title}`
+                    label: r.title
                   }))
                 ]}
                 style={{ height: '42px', width: '100%' }}
@@ -2189,9 +2192,9 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
                 value={form.status} 
                 onChange={val => setForm({...form, status: val})}
                 options={[
-                  { value: 'Active', label: '🟢 Active Account' },
-                  { value: 'Pending', label: '🟡 Pending Verification' },
-                  { value: 'Suspended', label: '🔴 Suspended Access' }
+                  { value: 'Active', label: 'Active Account' },
+                  { value: 'Pending', label: 'Pending Verification' },
+                  { value: 'Suspended', label: 'Suspended Access' }
                 ]}
                 style={{ height: '42px', width: '100%' }}
               />
@@ -2217,40 +2220,40 @@ const CreateRoleModal = ({ initialRole = null, onClose, onSave }) => {
 
   const permissionCategories = [
     {
-      category: '👥 Client & Lead Management',
+      category: 'Client & Lead Management',
       items: [
         { id: 'manage_clients', label: 'Manage Gym Clients, Leads & Tasks' }
       ]
     },
     {
-      category: '📄 Sales & Invoices',
+      category: 'Sales & Invoices',
       items: [
         { id: 'manage_quotes', label: 'Manage Quotations & Proposals' },
         { id: 'manage_invoices', label: 'Manage Invoices & Payments' }
       ]
     },
     {
-      category: '📦 Inventory & Stock',
+      category: 'Inventory & Stock',
       items: [
         { id: 'manage_inventory', label: 'Manage Inventory Stock & Pricing' }
       ]
     },
     {
-      category: '📊 Financials & Accounting',
+      category: 'Financials & Accounting',
       items: [
         { id: 'view_financials', label: 'View Profit & Loss, Expenses, Assets & Debtors' }
       ]
     },
     {
-      category: '📈 Reports & Analytics',
+      category: 'Reports & Analytics',
       items: [
         { id: 'view_reports', label: 'View Analytics & Financial Reports' }
       ]
     },
     {
-      category: '🔑 System Administration & Audit',
+      category: 'System Administration & Audit',
       items: [
-        { id: 'all', label: '👑 Master Full System Access (Admin)' },
+        { id: 'all', label: 'Master Full System Access (Admin)' },
         { id: 'manage_users', label: 'Manage Team Accounts & User Roles' },
         { id: 'view_logs', label: 'View System Audit Logs' }
       ]

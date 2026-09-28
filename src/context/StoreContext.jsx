@@ -263,6 +263,253 @@ export default function StoreContextProvider({ children }) {
     return [];
   });
 
+  // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
+  const sampleBOMs = [
+    {
+      id: 'bom-1',
+      code: 'BOM-1001',
+      productSku: 'BOM-1001',
+      name: 'Commercial Multi-Grip Pullup Station',
+      productName: 'Commercial Multi-Grip Pullup Station',
+      productCategory: 'Equipment',
+      outputUnit: 'Units',
+      batchYield: 1,
+      components: [
+        { name: 'Structural Steel Tube 75x75x3mm', materialName: 'Structural Steel Tube 75x75x3mm', materialSku: 'STL-75-3', quantity: 8, unit: 'meters', unitCost: 4500, totalCost: 36000 },
+        { name: 'Laser-Cut Heavy Mounting Flange Plates', materialName: 'Laser-Cut Heavy Mounting Flange Plates', materialSku: 'FLG-12MM', quantity: 4, unit: 'pcs', unitCost: 2800, totalCost: 11200 },
+        { name: 'High-Density Knurled Rubber Grip Sleeves', materialName: 'High-Density Knurled Rubber Grip Sleeves', materialSku: 'GRP-KNR', quantity: 6, unit: 'pcs', unitCost: 1200, totalCost: 7200 },
+        { name: 'Industrial Epoxy Powder Coat Finish', materialName: 'Industrial Epoxy Powder Coat Finish', materialSku: 'PWT-BLK', quantity: 2, unit: 'kg', unitCost: 3500, totalCost: 7000 },
+        { name: 'Grade 8.8 High-Tensile M12 Fastener Kit', materialName: 'Grade 8.8 High-Tensile M12 Fastener Kit', materialSku: 'FST-M12', quantity: 1, unit: 'sets', unitCost: 3200, totalCost: 3200 }
+      ],
+      laborHours: 10,
+      laborRatePerHour: 1800,
+      laborCost: 18000,
+      overheadCost: 9500,
+      machineOverhead: 9500,
+      materialCostPerUnit: 64600,
+      totalCost: 92100,
+      totalCostPerUnit: 92100,
+      suggestedPrice: 145000,
+      suggestedRetailPrice: 145000,
+      marginPercent: 36,
+      routing: ['Raw Material Cutting & Deburring', 'CNC Hole Punching', 'Precision MIG Welding', 'Shot Blasting & Epoxy Coating', 'Assembly & Final QC Inspection'],
+      notes: 'Standard heavy commercial gym grade station with ceiling and wall anchorage.'
+    },
+    {
+      id: 'bom-2',
+      code: 'BOM-1002',
+      productSku: 'BOM-1002',
+      name: 'Adjustable Incline Weight Bench Pro',
+      productName: 'Adjustable Incline Weight Bench Pro',
+      productCategory: 'Equipment',
+      outputUnit: 'Units',
+      batchYield: 1,
+      components: [
+        { name: 'Rectangular Hollow Steel 100x50x3mm', materialName: 'Rectangular Hollow Steel 100x50x3mm', materialSku: 'STL-100-50', quantity: 6, unit: 'meters', unitCost: 4200, totalCost: 25200 },
+        { name: 'High-Density Rebonded Foam Pad Base', materialName: 'High-Density Rebonded Foam Pad Base', materialSku: 'PAD-FOAM', quantity: 2, unit: 'pcs', unitCost: 4500, totalCost: 9000 },
+        { name: 'Heavy-Duty Commercial Vinyl Upholstery', materialName: 'Heavy-Duty Commercial Vinyl Upholstery', materialSku: 'VIN-UPH', quantity: 2, unit: 'sqm', unitCost: 3800, totalCost: 7600 },
+        { name: 'Spring-Loaded Locking Pull-Pin Mechanism', materialName: 'Spring-Loaded Locking Pull-Pin Mechanism', materialSku: 'PIN-MECH', quantity: 2, unit: 'pcs', unitCost: 2400, totalCost: 4800 },
+        { name: 'Non-Slip Heavy Molded Rubber Foot Endcaps', materialName: 'Non-Slip Heavy Molded Rubber Foot Endcaps', materialSku: 'CAP-RUB', quantity: 4, unit: 'pcs', unitCost: 950, totalCost: 3800 }
+      ],
+      laborHours: 8,
+      laborRatePerHour: 1750,
+      laborCost: 14000,
+      overheadCost: 6500,
+      machineOverhead: 6500,
+      materialCostPerUnit: 50400,
+      totalCost: 70900,
+      totalCostPerUnit: 70900,
+      suggestedPrice: 115000,
+      suggestedRetailPrice: 115000,
+      marginPercent: 38,
+      routing: ['Steel Frame Fabrication', 'Upholstery Sewing & Stretching', 'Hardware Assembly', 'Stability & Load Testing'],
+      notes: '0° to 85° multi-angle laser-notched ladder backrest.'
+    },
+    {
+      id: 'bom-3',
+      code: 'BOM-1003',
+      productSku: 'BOM-1003',
+      name: 'Commercial Olympic Bumper Plate 20kg (Pair)',
+      productName: 'Commercial Olympic Bumper Plate 20kg (Pair)',
+      productCategory: 'Accessories',
+      outputUnit: 'Pairs',
+      batchYield: 1,
+      components: [
+        { name: 'Precision Stainless Steel 50.4mm Center Bushing', materialName: 'Precision Stainless Steel 50.4mm Center Bushing', materialSku: 'BSH-50MM', quantity: 2, unit: 'pcs', unitCost: 4500, totalCost: 9000 },
+        { name: 'Virgin Vulcanized Rubber Compound Blend', materialName: 'Virgin Vulcanized Rubber Compound Blend', materialSku: 'RBR-CMP', quantity: 40, unit: 'kg', unitCost: 1100, totalCost: 44000 },
+        { name: 'Embossed White Color Ink & Labeling Film', materialName: 'Embossed White Color Ink & Labeling Film', materialSku: 'LBL-INK', quantity: 1, unit: 'sets', unitCost: 1500, totalCost: 1500 }
+      ],
+      laborHours: 4,
+      laborRatePerHour: 2000,
+      laborCost: 8000,
+      overheadCost: 4500,
+      machineOverhead: 4500,
+      materialCostPerUnit: 54500,
+      totalCost: 67000,
+      totalCostPerUnit: 67000,
+      suggestedPrice: 95000,
+      suggestedRetailPrice: 95000,
+      marginPercent: 29,
+      routing: ['High-Pressure Hydraulic Compression Molding', 'Curing & Cooling', 'Center Ring Hydraulic Press Fit', 'Weight Calibration & Drop Test'],
+      notes: 'IWF standard 450mm diameter, Shore A durometer 88 hardness.'
+    }
+  ];
+
+  const sampleProductionOrders = [
+    {
+      id: 'mo-1',
+      orderNumber: 'MO-2026-001',
+      bomId: 'bom-1',
+      productName: 'Commercial Multi-Grip Pullup Station',
+      productSku: 'BOM-1001',
+      quantity: 5,
+      quantityToProduce: 5,
+      status: 'In Progress',
+      priority: 'High',
+      startDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+      assignedTo: 'Main Heavy Fabrication Bay A',
+      supervisor: 'Kasun Rajapaksha',
+      workstation: 'Main Heavy Fabrication Bay A',
+      materialCost: 323000,
+      laborCost: 90000,
+      overheadCost: 47500,
+      totalCost: 460500,
+      totalBatchCost: 460500,
+      costPerUnit: 92100,
+      unitCost: 92100,
+      batchNumber: 'LOT-2026-09A',
+      components: sampleBOMs[0].components,
+      notes: 'High-priority order for Fitness First Colombo order.'
+    },
+    {
+      id: 'mo-2',
+      orderNumber: 'MO-2026-002',
+      bomId: 'bom-2',
+      productName: 'Adjustable Incline Weight Bench Pro',
+      productSku: 'BOM-1002',
+      quantity: 10,
+      quantityToProduce: 10,
+      status: 'Completed',
+      priority: 'Normal',
+      startDate: new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+      completedDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+      assignedTo: 'Assembly & Upholstery Cell 2',
+      supervisor: 'Kasun Rajapaksha',
+      workstation: 'Assembly & Upholstery Cell 2',
+      materialCost: 504000,
+      laborCost: 140000,
+      overheadCost: 65000,
+      totalCost: 709000,
+      totalBatchCost: 709000,
+      costPerUnit: 70900,
+      unitCost: 70900,
+      batchNumber: 'LOT-2026-08B',
+      components: sampleBOMs[1].components,
+      qcPassedQty: 10,
+      qcRejectedQty: 0,
+      qcInspector: 'Dinesh Jayawardena',
+      notes: 'Completed ahead of schedule, zero defects recorded during QA load stress test.'
+    },
+    {
+      id: 'mo-3',
+      orderNumber: 'MO-2026-003',
+      bomId: 'bom-3',
+      productName: 'Commercial Olympic Bumper Plate 20kg (Pair)',
+      productSku: 'BOM-1003',
+      quantity: 25,
+      quantityToProduce: 25,
+      status: 'Planned',
+      priority: 'Urgent',
+      startDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0],
+      assignedTo: 'Vulcanizing Press Line 1',
+      supervisor: 'Kasun Rajapaksha',
+      workstation: 'Vulcanizing Press Line 1',
+      materialCost: 1362500,
+      laborCost: 200000,
+      overheadCost: 112500,
+      totalCost: 1675000,
+      totalBatchCost: 1675000,
+      costPerUnit: 67000,
+      unitCost: 67000,
+      batchNumber: 'LOT-2026-09C',
+      components: sampleBOMs[2].components,
+      notes: 'Planned batch replenishment for central warehouse showroom inventory.'
+    }
+  ];
+
+  const normalizeBOM = (b) => ({
+    ...b,
+    id: b.id || `bom-${Date.now()}`,
+    code: b.code || b.productSku || 'BOM-GEN',
+    productSku: b.productSku || b.code || 'BOM-GEN',
+    name: b.name || b.productName || 'Custom Formulation',
+    productName: b.productName || b.name || 'Custom Formulation',
+    outputUnit: b.outputUnit || 'Units',
+    batchYield: Number(b.batchYield || 1),
+    totalCost: Number(b.totalCost || b.totalCostPerUnit || 0),
+    totalCostPerUnit: Number(b.totalCostPerUnit || b.totalCost || 0),
+    materialCostPerUnit: Number(b.materialCostPerUnit || 0),
+    laborCost: Number(b.laborCost || 0),
+    overheadCost: Number(b.overheadCost || b.machineOverhead || 0),
+    machineOverhead: Number(b.machineOverhead || b.overheadCost || 0),
+    suggestedPrice: Number(b.suggestedPrice || b.suggestedRetailPrice || 0),
+    suggestedRetailPrice: Number(b.suggestedRetailPrice || b.suggestedPrice || 0),
+    marginPercent: Number(b.marginPercent || 0),
+    components: (b.components || []).map(c => ({
+      ...c,
+      name: c.name || c.materialName || 'Component',
+      materialName: c.materialName || c.name || 'Component',
+      materialSku: c.materialSku || c.sku || '',
+      quantity: Number(c.quantity || 1),
+      unit: c.unit || 'pcs',
+      unitCost: Number(c.unitCost || 0),
+      totalCost: Number(c.totalCost || (Number(c.quantity || 1) * Number(c.unitCost || 0)))
+    }))
+  });
+
+  const normalizeProductionOrder = (o) => ({
+    ...o,
+    id: o.id || `mo-${Date.now()}`,
+    orderNumber: o.orderNumber || `MO-${new Date().getFullYear()}-001`,
+    bomId: o.bomId || 'bom-1',
+    productName: o.productName || o.name || 'Finished Product',
+    productSku: o.productSku || o.code || '',
+    quantity: Number(o.quantity || o.quantityToProduce || 1),
+    quantityToProduce: Number(o.quantityToProduce || o.quantity || 1),
+    status: o.status || 'Planned',
+    priority: o.priority || 'Normal',
+    batchNumber: o.batchNumber || `LOT-${new Date().getFullYear()}-01`,
+    startDate: o.startDate || new Date().toISOString().split('T')[0],
+    dueDate: o.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    assignedTo: o.assignedTo || o.supervisor || o.workstation || 'Assembly Line 1',
+    supervisor: o.supervisor || o.assignedTo || 'Line Supervisor',
+    costPerUnit: Number(o.costPerUnit || o.unitCost || 0),
+    unitCost: Number(o.unitCost || o.costPerUnit || 0),
+    totalCost: Number(o.totalCost || o.totalBatchCost || 0),
+    totalBatchCost: Number(o.totalBatchCost || o.totalCost || 0),
+    components: o.components || [],
+    notes: o.notes || ''
+  });
+
+  const [boms, setBoms] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_boms');
+      if (saved) return JSON.parse(saved).map(normalizeBOM);
+    } catch (e) {}
+    return sampleBOMs.map(normalizeBOM);
+  });
+
+  const [productionOrders, setProductionOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_production_orders');
+      if (saved) return JSON.parse(saved).map(normalizeProductionOrder);
+    } catch (e) {}
+    return sampleProductionOrders.map(normalizeProductionOrder);
+  });
+
   // --- HR & PAYROLL ERP STATE ---
   const sampleEmployees = [
     {
@@ -392,6 +639,80 @@ export default function StoreContextProvider({ children }) {
       bankDetails: 'Bank of Ceylon - 772819034 (Rajagiriya)',
       status: 'Active',
       leaveBalances: { annual: 14, casual: 7, medical: 7 }
+    },
+    {
+      id: 'emp-5',
+      employeeId: 'EMP-105',
+      name: 'Nuwan Bandara (Outsourced Tech)',
+      nic: '199045102938',
+      dob: '1990-07-18',
+      gender: 'Male',
+      bloodGroup: 'B+',
+      designation: 'Outsourced Assembly Specialist',
+      department: 'Manufacturing & Assembly',
+      employmentType: 'Piece-Rate',
+      compensationType: 'piece_rate',
+      pieceRate: 450,
+      pieceDescription: 'Per Equipment Unit Assembled',
+      defaultUnits: 160,
+      unitsCompleted: 160,
+      shift: 'General (08:30 - 17:00)',
+      phone: '0714455667',
+      email: 'nuwan.contractor@gymsales.lk',
+      address: '22 Factory Zone, Homagama',
+      emergencyContactName: 'Kusum Bandara',
+      emergencyContactPhone: '0719988776',
+      emergencyContactRelation: 'Spouse',
+      joinDate: '2023-05-10',
+      confirmationDate: '2023-11-10',
+      basicSalary: 72000,
+      allowance: 0,
+      foodAllowance: 4000,
+      transportAllowance: 6000,
+      epfEligible: false,
+      bankName: 'Sampath Bank PLC',
+      bankAccount: '1100293847',
+      bankBranch: 'Homagama Branch',
+      bankDetails: 'Sampath Bank - 1100293847 (Homagama)',
+      status: 'Active',
+      leaveBalances: { annual: 7, casual: 3, medical: 5 }
+    },
+    {
+      id: 'emp-6',
+      employeeId: 'EMP-106',
+      name: 'Chathura Senanayake (Freelance)',
+      nic: '198734109283',
+      dob: '1987-12-04',
+      gender: 'Male',
+      bloodGroup: 'A+',
+      designation: 'Freelance Fitness Workshop Coach',
+      department: 'Fitness & Training',
+      employmentType: 'Outsourced',
+      compensationType: 'piece_rate',
+      pieceRate: 2500,
+      pieceDescription: 'Per Client Workshop / Training Session',
+      defaultUnits: 28,
+      unitsCompleted: 28,
+      shift: 'Morning (06:00 - 15:00)',
+      phone: '0776655443',
+      email: 'chathura.coach@gymsales.lk',
+      address: '55 Kotte Road, Nugegoda',
+      emergencyContactName: 'Nirosha Senanayake',
+      emergencyContactPhone: '0773322110',
+      emergencyContactRelation: 'Spouse',
+      joinDate: '2023-09-01',
+      confirmationDate: '2024-03-01',
+      basicSalary: 70000,
+      allowance: 0,
+      foodAllowance: 0,
+      transportAllowance: 8000,
+      epfEligible: false,
+      bankName: 'Commercial Bank of Ceylon',
+      bankAccount: '8005521940',
+      bankBranch: 'Nugegoda Branch',
+      bankDetails: 'Commercial Bank - 8005521940 (Nugegoda)',
+      status: 'Active',
+      leaveBalances: { annual: 5, casual: 2, medical: 3 }
     }
   ];
 
@@ -423,6 +744,7 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const defaultFeatureToggles = {
+    manufacturing: true,
     procurement: true,
     hrPayroll: true,
     fixedAssets: true,
@@ -599,6 +921,8 @@ export default function StoreContextProvider({ children }) {
 
   useEffect(() => { localStorage.setItem('gym_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
   useEffect(() => { localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
+  useEffect(() => { localStorage.setItem('gym_boms', JSON.stringify(boms)); }, [boms]);
+  useEffect(() => { localStorage.setItem('gym_production_orders', JSON.stringify(productionOrders)); }, [productionOrders]);
   useEffect(() => { localStorage.setItem('gym_employees', JSON.stringify(employees)); }, [employees]);
   useEffect(() => { localStorage.setItem('gym_payruns', JSON.stringify(payruns)); }, [payruns]);
   useEffect(() => { localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
@@ -2231,7 +2555,7 @@ export default function StoreContextProvider({ children }) {
 
       if (rlsBlocked) {
         setCloudSyncStatus('error');
-        showNotification('⚠️ Supabase blocked save (Row Level Security is ON). Go to Settings → Cloud Sync for the quick SQL fix.', 'error', 10000);
+        showNotification('Supabase blocked save (Row Level Security is ON). Go to Settings → Cloud Sync for the quick SQL fix.', 'error', 10000);
         return { success: false, rlsBlocked: true };
       }
 
@@ -2240,7 +2564,7 @@ export default function StoreContextProvider({ children }) {
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch (e) {}
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
-      showNotification(`💾 Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
+      showNotification(`Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
       return { success: true, count: savedCount };
     } catch (err) {
       console.error('[Cloud Save Error]', err);
@@ -2363,7 +2687,7 @@ export default function StoreContextProvider({ children }) {
             const oldItem = quotes.find(q => q.id === payload.new.id);
             if (oldItem && oldItem.status !== payload.new.status) {
               if (payload.new.status === 'Accepted') {
-                showNotification(`🎉 Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
+                showNotification(`Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
                 setSystemNotifications(prev => [{
                   id: crypto.randomUUID(),
                   message: `Quote #${payload.new.quote_number} accepted by ${payload.new.prospect_name}`,
@@ -3042,7 +3366,7 @@ export default function StoreContextProvider({ children }) {
     // ── NOTIFY BUSINESS OWNER VIA SMS & WHATSAPP ──────────────────────────────
     const ownerPhone = smsConfig.adminPhone || smsConfig.companyPhone || '072 840 8880';
     if (ownerPhone) {
-      const ownerAlertMsg = `🚀 BUSINESS WIN: Quotation #${quoteRef} was ACCEPTED by ${quote.prospectName}!\nInvoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef}) has been AUTOMATICALLY CREATED.\nAmount: LKR ${(Number(quote.amount) || 0).toLocaleString()}.\nPortal: ${window.location.origin}/share/invoice/${newInvoice.id || newInvoice.shareKey}`;
+      const ownerAlertMsg = `BUSINESS WIN: Quotation #${quoteRef} was ACCEPTED by ${quote.prospectName}!\nInvoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef}) has been AUTOMATICALLY CREATED.\nAmount: LKR ${(Number(quote.amount) || 0).toLocaleString()}.\nPortal: ${window.location.origin}/share/invoice/${newInvoice.id || newInvoice.shareKey}`;
       try {
         sendDirectSMS(ownerPhone, ownerAlertMsg);
       } catch (smsErr) {
@@ -3542,6 +3866,170 @@ export default function StoreContextProvider({ children }) {
     const po = purchaseOrders.find(p => p.id === id);
     setPurchaseOrders(prev => prev.filter(p => p.id !== id));
     showNotification(`Purchase Order #${po?.poNumber || ''} deleted.`, 'info');
+  };
+
+  // --- MANUFACTURING & BILL OF MATERIALS (BOM) ERP HANDLERS ---
+  const addBOM = (bomData) => {
+    const newBom = {
+      ...bomData,
+      id: `bom-${Date.now()}`,
+      code: bomData.code || `BOM-${1000 + boms.length + 1}`
+    };
+    setBoms(prev => [newBom, ...prev]);
+    addLog('Manufacturing', `Created Bill of Materials ${newBom.code} for "${newBom.name}"`);
+    showNotification(`Bill of Materials "${newBom.name}" registered!`, 'success');
+  };
+
+  const updateBOM = (id, data) => {
+    setBoms(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
+    addLog('Manufacturing', `Updated Bill of Materials for "${data.name || id}"`);
+    showNotification('Bill of Materials updated successfully!', 'success');
+  };
+
+  const deleteBOM = (id) => {
+    const target = boms.find(b => b.id === id);
+    setBoms(prev => prev.filter(b => b.id !== id));
+    addLog('Manufacturing', `Deleted Bill of Materials ${target?.code || id}`);
+    showNotification(`BOM "${target?.name || ''}" removed.`, 'info');
+  };
+
+  const addProductionOrder = (moData) => {
+    const linkedBom = boms.find(b => b.id === moData.bomId);
+    const qty = Number(moData.quantity) || 1;
+    const materialCost = linkedBom ? (linkedBom.components || []).reduce((s, c) => s + (Number(c.totalCost || (c.quantity * c.unitCost)) || 0), 0) * qty : 0;
+    const laborCost = linkedBom ? (Number(linkedBom.laborCost) || 0) * qty : 0;
+    const overheadCost = linkedBom ? (Number(linkedBom.overheadCost) || 0) * qty : 0;
+    const totalCost = materialCost + laborCost + overheadCost;
+    const costPerUnit = qty > 0 ? Math.round(totalCost / qty) : 0;
+
+    const newMO = {
+      ...moData,
+      id: `mo-${Date.now()}`,
+      orderNumber: moData.orderNumber || `MO-${new Date().getFullYear()}-${String(productionOrders.length + 1).padStart(3, '0')}`,
+      productName: moData.productName || linkedBom?.name || 'Manufactured Item',
+      status: moData.status || 'Planned',
+      materialCost,
+      laborCost,
+      overheadCost,
+      totalCost,
+      costPerUnit,
+      batchNumber: moData.batchNumber || `BATCH-${new Date().getFullYear()}-${String(productionOrders.length + 1).padStart(3, '0')}`,
+      startDate: moData.startDate || new Date().toISOString().split('T')[0]
+    };
+
+    setProductionOrders(prev => [newMO, ...prev]);
+    addLog('Manufacturing', `Scheduled Production Order ${newMO.orderNumber}: ${newMO.quantity}x "${newMO.productName}"`);
+    showNotification(`Production Order #${newMO.orderNumber} created!`, 'success');
+  };
+
+  const updateProductionOrderStatus = (id, newStatus) => {
+    setProductionOrders(prev => prev.map(mo => {
+      if (mo.id === id) {
+        const oldStatus = mo.status;
+        const updated = { 
+          ...mo, 
+          status: newStatus,
+          completedDate: newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : mo.completedDate
+        };
+        addLog('Manufacturing', `Work Order ${mo.orderNumber} status changed from ${oldStatus} to ${newStatus}`);
+        showNotification(`Order #${mo.orderNumber} status: ${newStatus}`, 'info');
+        return updated;
+      }
+      return mo;
+    }));
+  };
+
+  const completeProductionOrder = (id, qcData = {}) => {
+    const targetOrder = productionOrders.find(mo => mo.id === id);
+    if (!targetOrder) return;
+
+    const linkedBom = boms.find(b => b.id === targetOrder.bomId);
+    const orderQty = Number(targetOrder.quantity) || 1;
+
+    // 1. Consume Raw Materials from Inventory
+    if (linkedBom?.components && Array.isArray(linkedBom.components)) {
+      setInventory(prevInventory => {
+        return prevInventory.map(invItem => {
+          const comp = linkedBom.components.find(c => c.name?.toLowerCase() === invItem.name?.toLowerCase());
+          if (comp) {
+            const consumed = (Number(comp.quantity) || 0) * orderQty;
+            const newStock = Math.max(0, (Number(invItem.stock) || 0) - consumed);
+            addLog('Inventory', `Raw material consumed for ${targetOrder.orderNumber}: ${invItem.name} (-${consumed} units). Remaining stock: ${newStock}`);
+            return { ...invItem, stock: newStock };
+          }
+          return invItem;
+        });
+      });
+    }
+
+    // 2. Add Manufactured Finished Good to Inventory
+    setInventory(prevInventory => {
+      const existing = prevInventory.find(i => i.name?.toLowerCase() === targetOrder.productName?.toLowerCase());
+      if (existing) {
+        const newStock = (Number(existing.stock) || 0) + orderQty;
+        addLog('Inventory', `Finished goods stock added from ${targetOrder.orderNumber}: ${existing.name} (+${orderQty} units). New stock: ${newStock}`);
+        return prevInventory.map(i => i.id === existing.id ? { ...i, stock: newStock, costPrice: targetOrder.costPerUnit || i.costPrice } : i);
+      } else {
+        const newItem = {
+          id: `inv-${Date.now()}`,
+          name: targetOrder.productName,
+          type: linkedBom?.productCategory || 'Equipment',
+          price: linkedBom?.suggestedPrice || Math.round((targetOrder.costPerUnit || 50000) * 1.35),
+          costPrice: targetOrder.costPerUnit || 0,
+          stock: orderQty,
+          reorderLevel: 3,
+          desc: `Manufactured in-house per ${targetOrder.orderNumber} (Batch: ${targetOrder.batchNumber})`
+        };
+        addLog('Inventory', `New finished product registered from ${targetOrder.orderNumber}: ${newItem.name} (+${orderQty} units).`);
+        return [newItem, ...prevInventory];
+      }
+    });
+
+    // 3. Post SLFRS Manufacturing Journal Voucher
+    try {
+      const matCost = Number(targetOrder.materialCost) || 0;
+      const labCost = Number(targetOrder.laborCost) || 0;
+      const ovhCost = Number(targetOrder.overheadCost) || 0;
+      const totalCOGM = Number(targetOrder.totalCost) || (matCost + labCost + ovhCost);
+
+      createJournalEntry({
+        date: new Date().toISOString().split('T')[0],
+        reference: targetOrder.orderNumber,
+        description: `Cost of Goods Manufactured (COGM) - ${orderQty}x ${targetOrder.productName} (Batch ${targetOrder.batchNumber})`,
+        lines: [
+          { accountId: '1200', debit: totalCOGM, credit: 0 },
+          { accountId: '1200', debit: 0, credit: matCost }
+        ]
+      });
+    } catch (err) {
+      console.warn('[Journal Entry Auto-Post Failed for Production Order]', err);
+    }
+
+    // 4. Update order status to Completed with QC metrics
+    setProductionOrders(prev => prev.map(mo => {
+      if (mo.id === id) {
+        return {
+          ...mo,
+          status: 'Completed',
+          completedDate: new Date().toISOString().split('T')[0],
+          qcPassedQty: qcData.passedQty !== undefined ? Number(qcData.passedQty) : orderQty,
+          qcRejectedQty: Number(qcData.rejectedQty) || 0,
+          qcInspector: qcData.inspector || user?.user_metadata?.name || 'QA Lead',
+          notes: qcData.notes || mo.notes
+        };
+      }
+      return mo;
+    }));
+
+    addLog('Manufacturing', `Completed Production Order ${targetOrder.orderNumber}: ${orderQty}x "${targetOrder.productName}" added to finished inventory.`);
+    showNotification(`Work Order #${targetOrder.orderNumber} completed! ${orderQty} units added to stock.`, 'success');
+  };
+
+  const deleteProductionOrder = (id) => {
+    const mo = productionOrders.find(p => p.id === id);
+    setProductionOrders(prev => prev.filter(p => p.id !== id));
+    addLog('Manufacturing', `Deleted Production Order ${mo?.orderNumber || id}`);
+    showNotification(`Production Order #${mo?.orderNumber || ''} deleted.`, 'info');
   };
 
   // --- HR & PAYROLL ERP CRUD HANDLERS ---
@@ -4367,6 +4855,8 @@ export default function StoreContextProvider({ children }) {
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
+      boms, addBOM, updateBOM, deleteBOM,
+      productionOrders, addProductionOrder, updateProductionOrderStatus, completeProductionOrder, deleteProductionOrder,
       employees, addEmployee, updateEmployee, deleteEmployee, terminateEmployee,
       payruns, processPayrun,
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,

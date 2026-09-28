@@ -407,11 +407,11 @@ const SmsPortal = () => {
                   placeholder="-- Load Predefined Template --"
                   options={[
                     { value: '', label: '-- Load Predefined Template --' },
-                    { value: 'renewal', label: '📅 Subscription Renewal' },
-                    { value: 'debtor', label: '⚠️ Overdue Payment Nudge' },
-                    { value: 'promo', label: '🎉 Promotional Special Offer' },
-                    { value: 'cash', label: '🧾 Cash Payment Confirmation' },
-                    { value: 'birthday', label: '🎂 Birthday Greetings' }
+                    { value: 'renewal', label: 'Subscription Renewal' },
+                    { value: 'debtor', label: 'Overdue Payment Nudge' },
+                    { value: 'promo', label: 'Promotional Special Offer' },
+                    { value: 'cash', label: 'Cash Payment Confirmation' },
+                    { value: 'birthday', label: 'Birthday Greetings' }
                   ]}
                   style={{ width: '240px', height: '36px' }}
                   size="sm"
@@ -504,8 +504,9 @@ const SmsPortal = () => {
                 </div>
               </div>
 
-              <div style={{ marginTop: '20px', padding: '14px', background: 'var(--subtle-bg)', borderRadius: '12px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                💡 <strong>Tip:</strong> Variables like <code>{'{name}'}</code> and <code>{'{gym}'}</code> automatically replace with each customer's specific details upon dispatch.
+              <div style={{ marginTop: '20px', padding: '14px', background: 'var(--subtle-bg)', borderRadius: '12px', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={16} style={{ flexShrink: 0, color: '#0ea5e9' }} />
+                <span><strong>Tip:</strong> Variables like <code>{'{name}'}</code> and <code>{'{gym}'}</code> automatically replace with each customer's specific details upon dispatch.</span>
               </div>
             </div>
           </div>

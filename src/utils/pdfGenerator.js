@@ -2244,3 +2244,215 @@ export const generateLeadSourceReportPDF = (leadStats, options = {}) => {
   }
 };
 
+// 7. MANUFACTURING WORK ORDER & TRAVELER SHEET PDF
+export const generateWorkOrderPDF = (order, bom, options = {}) => {
+  try {
+    const doc = createPDFDoc();
+    const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
+    const companyName = savedConfig.companyName || 'Seynex Technology';
+    const primaryColor = [14, 165, 233]; // Sky blue / cyan for manufacturing
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Company Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text(companyName, 14, 18);
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('MANUFACTURING WORK ORDER & TRAVELER SHEET', 14, 26);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Official Job Traveler • Production Run • Generated: ${formatDatePretty(new Date())}`, 14, 32);
+
+    // Meta Badge / Right-side Box
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(pageWidth - 80, 10, 66, 25, 2, 2, 'F');
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`MO #: ${order.orderNumber || 'MO-NEW'}`, pageWidth - 76, 17);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Priority: ${order.priority || 'Normal'}`, pageWidth - 76, 23);
+    doc.text(`Status: ${order.status || 'Planned'}`, pageWidth - 76, 29);
+
+    // Order Info Grid (Two columns)
+    const startY = 40;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, startY, pageWidth - 28, 24, 2, 2, 'FD');
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Finished Product:`, 18, startY + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${order.productName || 'N/A'} (SKU: ${order.productSku || '—'})`, 52, startY + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Batch / Lot #:`, 18, startY + 12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${order.batchNumber || 'BATCH-' + (order.id || '001')}`, 52, startY + 12);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Assigned Line:`, 18, startY + 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${order.assignedTo || 'Assembly Line 1'}`, 52, startY + 18);
+
+    // Right side col
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Batch Quantity:`, pageWidth / 2 + 10, startY + 6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text(`${order.quantityToProduce || 1} units`, pageWidth / 2 + 42, startY + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Planned Start:`, pageWidth / 2 + 10, startY + 12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${formatDatePretty(order.startDate)}`, pageWidth / 2 + 42, startY + 12);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Due / Delivery:`, pageWidth / 2 + 10, startY + 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${formatDatePretty(order.dueDate)}`, pageWidth / 2 + 42, startY + 18);
+
+    // Bill of Materials Components Table
+    const components = bom?.components || order.components || [];
+    const qty = Number(order.quantityToProduce || 1);
+    const bomRows = components.map((c, idx) => {
+      const totalReq = (Number(c.quantity || 0) * qty);
+      const lineCost = totalReq * Number(c.unitCost || 0);
+      return [
+        String(idx + 1),
+        c.materialName || 'Component',
+        c.materialSku || '—',
+        `${c.quantity} ${c.unit || 'pcs'}`,
+        `${totalReq.toLocaleString()} ${c.unit || 'pcs'}`,
+        formatLKR(c.unitCost || 0),
+        formatLKR(lineCost),
+        '[   ] Picked'
+      ];
+    });
+
+    runAutoTable(doc, {
+      startY: startY + 30,
+      head: [['#', 'Component / Raw Material', 'SKU', 'Per Unit', 'Batch Total', 'Unit Cost', 'Ext Cost', 'Stock Pick']],
+      body: bomRows.length > 0 ? bomRows : [['—', 'No BOM components configured', '—', '—', '—', '—', '—', '—']],
+      theme: 'grid',
+      headStyles: { fillColor: [14, 165, 233], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        1: { fontStyle: 'bold' },
+        3: { halign: 'center' },
+        4: { halign: 'center', fontStyle: 'bold' },
+        5: { halign: 'right' },
+        6: { halign: 'right', fontStyle: 'bold' },
+        7: { halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] }
+      },
+      styles: { fontSize: 7.5, cellPadding: 2.8 }
+    });
+
+    let currentY = doc.lastAutoTable.finalY + 8;
+
+    // Routing / Production Stages Table
+    const stages = [
+      ['1. Material Staging & Issue', 'Warehouse Team', 'Verify all lot-numbered raw materials and staging weights', '[   ] Passed'],
+      ['2. Fabrication / Blending', 'Line Operator', 'Mix/assemble as per formulation specification guide', '[   ] Completed'],
+      ['3. QC Inspection & Sampling', 'Quality Officer', 'Dimensional, chemical, or operational tolerance validation', '[   ] Approved'],
+      ['4. Finished Packaging & Lot Labelling', 'Packaging Unit', 'Apply batch sticker, seal packaging & transfer to finished goods stock', '[   ] Stocked']
+    ];
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('OPERATION ROUTING & PRODUCTION MILESTONES', 14, currentY);
+
+    runAutoTable(doc, {
+      startY: currentY + 3,
+      head: [['Operation Step', 'Department / Station', 'Standard Work Instruction', 'Sign-Off & Status']],
+      body: stages,
+      theme: 'grid',
+      headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 46 },
+        1: { cellWidth: 36 },
+        3: { halign: 'center', fontStyle: 'bold', cellWidth: 32 }
+      },
+      styles: { fontSize: 7.5, cellPadding: 3 }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 12;
+
+    // Financial & Cost summary Box
+    const totalMat = (bom?.totalCostPerUnit || order.unitCost || 0) * qty;
+    const labor = (bom?.laborCost || 0) * qty;
+    const overhead = (bom?.overheadCost || 0) * qty;
+    const grandCost = totalMat + labor + overhead;
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225);
+    doc.roundedRect(14, currentY, pageWidth - 28, 20, 2, 2, 'FD');
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('STANDARD ESTIMATED BATCH COST:', 18, currentY + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Raw Materials: ${formatLKR(totalMat)}  |  Direct Labor: ${formatLKR(labor)}  |  Factory Overhead: ${formatLKR(overhead)}`, 18, currentY + 14);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text(`Total Standard Batch Cost: ${formatLKR(grandCost)}`, pageWidth - 20, currentY + 11, { align: 'right' });
+
+    currentY += 28;
+
+    // Signatures
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.4);
+    
+    // Line 1: Production Supervisor
+    doc.line(18, currentY + 14, 75, currentY + 14);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Production Supervisor Signature', 18, currentY + 19);
+
+    // Line 2: QA Inspector
+    doc.line(85, currentY + 14, 140, currentY + 14);
+    doc.text('Quality Assurance (QA) Inspector', 85, currentY + 19);
+
+    // Line 3: Warehouse Receiver
+    doc.line(150, currentY + 14, pageWidth - 18, currentY + 14);
+    doc.text('Finished Goods Warehouse Receiver', 150, currentY + 19);
+
+    applyPageHeaderFooter(doc, {
+      title: `Work Order ${order.orderNumber}`,
+      companyConfig: savedConfig,
+      primaryColor: [14, 165, 233]
+    });
+
+    savePdfDoc(doc, `Work_Order_${order.orderNumber || 'MO'}_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    console.error('Work order PDF error:', err);
+    alert('Failed to generate Work Order PDF: ' + err.message);
+  }
+};
+
+

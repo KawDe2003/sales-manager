@@ -4,7 +4,8 @@ import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { 
   ShieldCheck, Phone, KeyRound, CreditCard, Download, FileText, 
-  CheckCircle, ArrowRight, Clock, Building2, Upload, Lock, AlertCircle, RefreshCw, LogOut, Loader2
+  CheckCircle, ArrowRight, Clock, Building2, Upload, Lock, AlertCircle, RefreshCw, LogOut, Loader2,
+  Calendar, Info, X, Key
 } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 
@@ -422,7 +423,7 @@ const CustomerPortal = () => {
     // Send SMS Receipt
     if (authenticatedCustomer && (authenticatedCustomer.phone || phoneNumber) && sendDirectSMS) {
       const targetPhone = authenticatedCustomer.phone || phoneNumber;
-      const smsMsg = `✅ PAYMENT RECEIVED! Thank you ${authenticatedCustomer.gymName}. Received LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber}. Ref: ${newPayment.referenceNumber}`;
+      const smsMsg = `PAYMENT RECEIVED! Thank you ${authenticatedCustomer.gymName}. Received LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber}. Ref: ${newPayment.referenceNumber}`;
       sendDirectSMS(targetPhone, smsMsg);
     }
 
@@ -632,8 +633,8 @@ const CustomerPortal = () => {
                 <div style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid rgba(99, 102, 241, 0.2)', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>OTP Code sent to: <strong>{phoneNumber}</strong></div>
                   {generatedOtp && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 800 }}>
-                      🔑 DEMO OTP CODE: <span style={{ letterSpacing: '0.2em', fontSize: '0.95rem' }}>{generatedOtp}</span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Key size={13} /> DEMO OTP CODE: <span style={{ letterSpacing: '0.2em', fontSize: '0.95rem' }}>{generatedOtp}</span>
                     </div>
                   )}
                 </div>
@@ -666,8 +667,8 @@ const CustomerPortal = () => {
               </form>
             )}
 
-            <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid var(--panel-border)', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              🔒 256-Bit SSL Encrypted Financial Connection
+            <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid var(--panel-border)', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Lock size={13} /> 256-Bit SSL Encrypted Financial Connection
             </div>
           </div>
         </div>
@@ -778,8 +779,8 @@ const CustomerPortal = () => {
                               <span style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Invoice #{inv.invoiceNumber}</span>
                               <span className="badge badge-warning">{inv.status}</span>
                               {plan?.enabled && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                                  📅 {plan.count} {plan.frequency} Installments
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <Calendar size={12} /> {plan.count} {plan.frequency} Installments
                                 </span>
                               )}
                             </div>
@@ -818,8 +819,8 @@ const CustomerPortal = () => {
                           if (!livePlan?.enabled || !Array.isArray(livePlan?.installments)) {
                             return (
                               <div style={{ background: 'var(--subtle-bg)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                                  💡 Need flexibility? You can pay this invoice in monthly installments.
+                                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Info size={14} /> Need flexibility? You can pay this invoice in monthly installments.
                                 </div>
                                 <button 
                                   className="btn btn-secondary" 
@@ -1066,7 +1067,7 @@ const CustomerPortal = () => {
                 </div>
                 <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Pay Invoice #{selectedInvoice.invoiceNumber}</h2>
               </div>
-              <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={() => setSelectedInvoice(null)}>✕</button>
+              <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={() => setSelectedInvoice(null)} aria-label="Close modal"><X size={16} /></button>
             </div>
 
             <form onSubmit={handleCompletePayment} className="modal-body">

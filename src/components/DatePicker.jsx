@@ -118,13 +118,14 @@ const DatePicker = ({ value, onChange, placeholder = 'Select date...', style = {
       {/* MATCHING CUSTOM CALENDAR POPOVER */}
       {isOpen && (
         <div
-          className="glass-panel"
+          className="glass-panel date-picker-popover"
           style={{
             position: 'absolute',
             top: 'calc(100% + 6px)',
             left: 0,
             zIndex: 1000,
             width: '280px',
+            maxWidth: 'calc(100vw - 20px)',
             padding: '16px',
             boxShadow: '0 15px 35px -5px rgba(0,0,0,0.6)',
             border: '1px solid var(--panel-border-highlight)',

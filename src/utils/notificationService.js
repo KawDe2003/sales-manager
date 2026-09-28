@@ -82,12 +82,12 @@ export const DEFAULT_NOTIFICATION_TEMPLATES = {
   quote_accepted: {
     title: 'Quotation Accepted by Client',
     sms: 'SUCCESS! Customer {name} from {gym} has ACCEPTED Quotation #{quoteNumber} (LKR {amount}). An invoice can now be issued.',
-    whatsapp: '🎉 *Quotation Accepted!*\n\nCustomer *{name}* ({gym}) has accepted Quotation *#{quoteNumber}* (LKR {amount}).\n\nPlease log in to generate the tax invoice.'
+    whatsapp: '*Quotation Accepted!*\n\nCustomer *{name}* ({gym}) has accepted Quotation *#{quoteNumber}* (LKR {amount}).\n\nPlease log in to generate the tax invoice.'
   },
   budget_proposed: {
     title: 'Budget Proposed (Counter Offer)',
     sms: 'COUNTER OFFER: Customer {name} proposed a budget of LKR {proposedBudget} for Quote #{quoteNumber}. Check system for details.',
-    whatsapp: '💬 *Counter Offer Received*\n\nCustomer *{name}* ({gym}) proposed a counter budget of *LKR {proposedBudget}* for Quote *#{quoteNumber}*.\n\nPlease review the proposal in the management portal.'
+    whatsapp: '*Counter Offer Received*\n\nCustomer *{name}* ({gym}) proposed a counter budget of *LKR {proposedBudget}* for Quote *#{quoteNumber}*.\n\nPlease review the proposal in the management portal.'
   },
   quote_rejected: {
     title: 'Quotation Declined',
@@ -107,7 +107,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES = {
   payment_full: {
     title: 'Full Payment Received (Closed)',
     sms: 'Hi {name},\nPayment Confirmation: We received full payment of LKR {amount} for Invoice {invoiceNumber}. Your account is settled. Thank you! - {companyName}',
-    whatsapp: 'Hi {name},\n\nPayment Confirmed! 🎉\nWe have received full settlement of *LKR {amount}* for Invoice *#{invoiceNumber}*.\n\nYour account is now fully up to date.\n*Receipt #:* {receiptNumber}\n\nThank you for choosing *{companyName}*!'
+    whatsapp: 'Hi {name},\n\nPayment Confirmed!\nWe have received full settlement of *LKR {amount}* for Invoice *#{invoiceNumber}*.\n\nYour account is now fully up to date.\n*Receipt #:* {receiptNumber}\n\nThank you for choosing *{companyName}*!'
   },
   invoice_reminder: {
     title: 'Invoice Payment Reminder',
@@ -117,7 +117,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES = {
   invoice_overdue: {
     title: 'Invoice Overdue Notice',
     sms: 'URGENT: Invoice {invoiceNumber} for LKR {remainingBalance} is now OVERDUE. Please settle promptly to prevent service interruption. - {companyName}',
-    whatsapp: '⚠️ *Urgent Payment Notice*\n\nDear {name},\nInvoice *#{invoiceNumber}* with balance *LKR {remainingBalance}* for *{gym}* is now overdue.\n\nPlease arrange settlement immediately or reach out to our accounts desk.\n\nThank you,\n*{companyName}*'
+    whatsapp: '*Urgent Payment Notice*\n\nDear {name},\nInvoice *#{invoiceNumber}* with balance *LKR {remainingBalance}* for *{gym}* is now overdue.\n\nPlease arrange settlement immediately or reach out to our accounts desk.\n\nThank you,\n*{companyName}*'
   },
   renewal_approaching: {
     title: 'Upcoming Renewal Notice',
@@ -127,7 +127,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES = {
   renewal_overdue: {
     title: 'Subscription Renewal Overdue',
     sms: 'Action Required: Your subscription renewal for {gym} was due on {renewalDate}. Please renew to maintain active service access. - {companyName}',
-    whatsapp: '⚠️ *Subscription Renewal Overdue*\n\nDear {name},\nYour software renewal for *{gym}* was due on *{renewalDate}*.\n\nPlease contact our renewal desk to settle your renewal invoice.\n\n*{companyName}*'
+    whatsapp: '*Subscription Renewal Overdue*\n\nDear {name},\nYour software renewal for *{gym}* was due on *{renewalDate}*.\n\nPlease contact our renewal desk to settle your renewal invoice.\n\n*{companyName}*'
   }
 };
 

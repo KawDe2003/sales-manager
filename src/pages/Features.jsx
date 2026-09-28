@@ -6,7 +6,8 @@ import {
   Settings as SettingsIcon, FileText, ArrowRight, Package, Zap, ExternalLink,
   Shield, Check, Award, TrendingUp, Clock, AlertCircle, RefreshCw,
   Receipt, DollarSign, Smartphone, BarChart3, UserCheck, CheckSquare,
-  FileSpreadsheet, ArrowUpRight, HelpCircle, Star, Target, ChevronRight
+  FileSpreadsheet, ArrowUpRight, HelpCircle, Star, Target, ChevronRight, Factory,
+  XCircle
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 
@@ -261,6 +262,25 @@ const Features = () => {
         'Automated Inactivity Session Lockout protecting sensitive accounting workspaces',
         'Public Quotation & Invoice Links expose only the target document without data leakage',
         'Dual-Layer Persistence: Instant offline-first localStorage backed by Supabase cloud'
+      ]
+    },
+    {
+      id: 'manufacturing_erp',
+      category: 'operations',
+      toggleKey: 'manufacturing',
+      title: 'Manufacturing & Production ERP',
+      badge: 'Shop Floor & BOM',
+      accentColor: '#0ea5e9',
+      icon: Factory,
+      route: '/manufacturing',
+      summary: 'Formulate Bill of Materials (BOM), schedule job work orders, track WIP material consumption, and automate finished goods inventory.',
+      features: [
+        'Multi-Component Bill of Materials (BOM) recipes with unit cost and margin analysis',
+        'Production Work Orders (MO) with scheduling, line assignment, and batch/lot tracking',
+        'Automated Raw Material Deduction & Finished Goods Stock Addition on batch completion',
+        'Double-entry GL Journal Voucher posting (1200 Inventory Asset) automatically on MO completion',
+        'Material Requirements Planning (MRP) matrix with live shortage alerts & 1-click PO draft',
+        'Quality Control (QC) inspection logs, lot traceability, and printable Job Traveler PDF'
       ]
     }
   ];
@@ -536,33 +556,57 @@ const Features = () => {
             <tbody>
               <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Quotation to Invoice Conversion</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Manual re-typing & price errors</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ 1-Click direct conversion with preserved QT → INV relationship</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Manual re-typing & price errors</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> 1-Click direct conversion with preserved QT → INV relationship</span>
+                </td>
               </tr>
               <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Interactive Negotiation</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Back-and-forth emails, lost records</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Secure link with Propose Budget counter offer modal & audit log</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Back-and-forth emails, lost records</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> Secure link with Propose Budget counter offer modal & audit log</span>
+                </td>
               </tr>
               <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>WhatsApp Integration</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Manual copy-paste of links</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Native pre-filled wa.me links on Quotes, Invoices, and Payment Receipts</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Manual copy-paste of links</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> Native pre-filled wa.me links on Quotes, Invoices, and Payment Receipts</span>
+                </td>
               </tr>
               <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Payment Receipts & Debtors</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Disconnected ledger; manual follow-up</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Standalone Receipt PDF generated automatically; real-time aging Debtors</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Disconnected ledger; manual follow-up</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> Standalone Receipt PDF generated automatically; real-time aging Debtors</span>
+                </td>
               </tr>
               <tr style={{ borderBottom: '1px solid var(--subtle-border)' }}>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Statutory Accounting</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Requires separate accounting package</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Built-in SLFRS Double-Entry Ledger, Trial Balance, P&L, and Balance Sheet</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Requires separate accounting package</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> Built-in SLFRS Double-Entry Ledger, Trial Balance, P&L, and Balance Sheet</span>
+                </td>
               </tr>
               <tr>
                 <td style={{ padding: '14px 20px', fontWeight: 700, color: '#f8fafc' }}>Recurring Subscriptions</td>
-                <td style={{ padding: '14px 20px', color: '#ef4444' }}>❌ Missed renewals and revenue loss</td>
-                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>✅ Prompted frequency on payment; auto next renewal date; 1-click renewal billing</td>
+                <td style={{ padding: '14px 20px', color: '#ef4444' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><XCircle size={15} /> Missed renewals and revenue loss</span>
+                </td>
+                <td style={{ padding: '14px 20px', color: '#10b981', fontWeight: 700 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> Prompted frequency on payment; auto next renewal date; 1-click renewal billing</span>
+                </td>
               </tr>
             </tbody>
           </table>

@@ -6,7 +6,7 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw, Save, RotateCcw, CloudUpload
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Factory
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -30,6 +30,7 @@ import Expenses from './pages/Expenses';
 import CustomerPortal from './pages/CustomerPortal';
 import SmsPortal from './pages/SmsPortal';
 import Procurement from './pages/Procurement';
+import Manufacturing from './pages/Manufacturing';
 import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
@@ -111,7 +112,7 @@ class GlobalErrorBoundary extends React.Component {
             borderRadius: '20px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
-              <span style={{ fontSize: '32px' }}>⚠️</span>
+              <AlertCircle size={32} color="#ef4444" />
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px' }}>Application Error</h2>
             <p style={{ fontSize: '0.88rem', color: '#94a3b8', marginBottom: '24px', wordBreak: 'break-word' }}>
@@ -365,24 +366,27 @@ const AppContent = () => {
     }}>
       {/* ===== GLOBAL TOAST NOTIFICATION ===== */}
       {notification && (
-        <div style={{
-          position: 'fixed', top: '24px', right: '24px', zIndex: 99999,
-          padding: '12px 18px', borderRadius: '12px', minWidth: '280px', maxWidth: '400px',
+        <div className="global-toast-container" style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          zIndex: 999999999,
+          padding: '14px 18px', 
+          borderRadius: '12px',
           background: notification.type === 'error' 
-            ? 'linear-gradient(135deg, #7f1d1d, #dc2626)' 
+            ? '#dc2626' 
             : notification.type === 'warning' || notification.type === 'info'
-            ? 'linear-gradient(135deg, #78350f, #d97706)' 
-            : 'linear-gradient(135deg, #064e3b, #059669)',
+            ? '#d97706' 
+            : '#059669',
           color: '#ffffff',
-          boxShadow: notification.type === 'error' 
-            ? '0 10px 30px rgba(220, 38, 38, 0.35)' 
-            : notification.type === 'warning' || notification.type === 'info'
-            ? '0 10px 30px rgba(217, 119, 6, 0.35)'
-            : '0 10px 30px rgba(5, 150, 105, 0.35)',
-          display: 'flex', alignItems: 'center', gap: '12px',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.25)',
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
           animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          backdropFilter: 'blur(12px)'
+          pointerEvents: 'auto',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale'
         }}>
           <div style={{
             width: '28px', height: '28px', borderRadius: '50%',
@@ -567,11 +571,7 @@ const AppContent = () => {
             </button>
             
             {notificationsOpen && (
-              <div className="glass-panel" style={{
-                position: 'absolute', top: '46px', right: '0', width: '380px', padding: '0',
-                zIndex: 1000, boxShadow: '0 25px 60px rgba(0,0,0,0.6)', border: '1px solid var(--panel-border)',
-                borderRadius: 'var(--radius-lg)', overflow: 'hidden'
-              }}>
+              <div className="glass-panel notification-dropdown">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
                    <div className="flex items-center gap-2">
                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
@@ -687,11 +687,7 @@ const AppContent = () => {
 
       {/* ===== GLOBAL SEARCH MODAL ===== */}
       {searchOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-          background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 20px'
-        }} onClick={() => setSearchOpen(false)}>
+        <div className="global-search-backdrop" onClick={() => setSearchOpen(false)}>
            <div style={{ 
              width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
              border: '1px solid var(--panel-border)', borderRadius: 'var(--radius-lg)',
@@ -775,6 +771,38 @@ const AppContent = () => {
           flexDirection: 'column',
           padding: isSidebarCollapsed ? '20px 8px' : '20px 0'
         }}>
+          {/* Mobile Drawer Header with Close Button */}
+          <div className="mobile-drawer-header hidden-desktop">
+            <div className="flex items-center gap-2">
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '8px',
+                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 800, fontSize: '15px'
+              }}>
+                {brandName.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>{brandName}</span>
+            </div>
+            <button 
+              onClick={closeSidebar}
+              style={{
+                background: 'var(--subtle-bg)',
+                border: '1px solid var(--panel-border)',
+                borderRadius: '8px',
+                color: 'var(--text-primary)',
+                padding: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Close navigation menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
           {/* User Profile Badge */}
           {user && (
             <div style={{
@@ -840,6 +868,9 @@ const AppContent = () => {
             {isFeatureEnabled('procurement') && checkPerm(['manage_inventory', 'view_inventory']) && (
               <NavItem to="/procurement" icon={<ShoppingBag size={18} />} label="Procurement & POs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
+            {isFeatureEnabled('manufacturing') && checkPerm(['manage_inventory', 'view_inventory', 'all']) && (
+              <NavItem to="/manufacturing" icon={<Factory size={18} />} label="Manufacturing & BOM" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            )}
             {isFeatureEnabled('hrPayroll') && (
               <NavItem to="/hr" icon={<Users size={18} />} label="HR & Payroll ERP" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
@@ -903,6 +934,7 @@ const AppContent = () => {
               <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
               <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
+              <Route path="/manufacturing" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory', 'all']} userPermissions={userPermissions}><Manufacturing /></ProtectedRoute>} />
               <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
               <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
               <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
@@ -920,6 +952,35 @@ const AppContent = () => {
             </Routes>
           </div>
         </main>
+
+        {/* ===== MOBILE BOTTOM NAVIGATION DOCK (PHONES) ===== */}
+        <nav className="mobile-bottom-dock hidden-desktop" aria-label="Mobile Navigation">
+          <NavLink to="/" end onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <LayoutDashboard size={19} />
+            <span>Dashboard</span>
+          </NavLink>
+          <NavLink to="/customers" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <Users size={19} />
+            <span>Clients</span>
+          </NavLink>
+          <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <Receipt size={19} />
+            <span>Invoices</span>
+          </NavLink>
+          <NavLink to="/sms" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <MessageSquare size={19} />
+            <span>SMS</span>
+          </NavLink>
+          <button 
+            type="button" 
+            onClick={toggleSidebar} 
+            className={`dock-item ${sidebarOpen ? 'active' : ''}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <Menu size={19} />
+            <span>More</span>
+          </button>
+        </nav>
       </div>
     </div>
   );

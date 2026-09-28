@@ -213,13 +213,13 @@ const Customers = () => {
                   <div className="flex gap-1 flex-wrap mb-4">
                     {Array.isArray(customer.tags) && customer.tags.length > 0 ? (
                       customer.tags.map((t, idx) => (
-                        <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', border: '1px solid var(--panel-border)' }}>
-                          🏷️ {t}
+                        <span key={idx} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', border: '1px solid var(--panel-border)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <Tag size={10} /> {t}
                         </span>
                       ))
                     ) : customer.tag ? (
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)' }}>
-                        🏷️ {customer.tag}
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Tag size={10} /> {customer.tag}
                       </span>
                     ) : null}
                   </div>
@@ -484,10 +484,13 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
                         borderColor: isSelected ? 'var(--accent-primary)' : 'var(--panel-border)',
                         background: isSelected ? 'var(--accent-primary)20' : 'var(--subtle-bg)',
                         color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
-                      🏷️ {tag}
+                      <Tag size={12} /> {tag}
                     </button>
                   );
                 })}

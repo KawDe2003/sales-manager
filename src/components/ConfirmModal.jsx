@@ -22,21 +22,16 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
 
   return (
     <div 
+      className="modal-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       onWheel={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-        padding: '20px', animation: 'backdropFade 0.14s ease-out'
-      }}
     >
-      <div className="glass-panel" style={{
-        width: '100%', maxWidth: '440px', padding: '28px', borderRadius: '20px',
-        border: isDanger ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(99, 102, 241, 0.3)',
-        boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.25)' : '0 25px 50px -12px rgba(99, 102, 241, 0.25)',
-        position: 'relative', background: 'var(--bg-secondary)',
-        animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+      <div className="modal-card" style={{
+        maxWidth: '440px', padding: '28px', borderRadius: '20px',
+        border: isDanger ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(99, 102, 241, 0.4)',
+        boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.3)' : '0 25px 50px -12px rgba(99, 102, 241, 0.3)',
+        position: 'relative'
       }}>
         <button 
           onClick={onClose} 
