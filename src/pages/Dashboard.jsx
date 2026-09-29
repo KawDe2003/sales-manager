@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DatePicker from '../components/DatePicker';
+import QuickSaleModal from '../components/QuickSaleModal';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis,
@@ -17,19 +18,21 @@ import {
 } from 'recharts';
 
 // Modern Glassmorphism & Neon Glow Tooltip
-const ModernGlassTooltip = ({ active, payload, label, currency = 'LKR', isPercent = false }) => {
+const ModernGlassTooltip = ({ active, payload, label, currency = 'LKR', isPercent = false, isDark = true }) => {
   if (!active || !payload || !payload.length) return null;
   return (
     <div style={{
-      background: 'rgba(11, 15, 20, 0.94)',
+      background: isDark ? 'rgba(11, 15, 20, 0.94)' : 'rgba(255, 255, 255, 0.96)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.14)',
-      boxShadow: '0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(16, 185, 129, 0.16)',
+      border: isDark ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid rgba(15, 23, 42, 0.12)',
+      boxShadow: isDark 
+        ? '0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(16, 185, 129, 0.16)' 
+        : '0 16px 36px -8px rgba(15, 23, 42, 0.14), 0 0 20px rgba(5, 150, 105, 0.08)',
       borderRadius: '12px',
       padding: '12px 16px',
       minWidth: '200px',
-      color: '#fff',
+      color: isDark ? '#fff' : '#0f172a',
       zIndex: 1000
     }}>
       <div style={{
@@ -37,9 +40,9 @@ const ModernGlassTooltip = ({ active, payload, label, currency = 'LKR', isPercen
         fontWeight: 800,
         textTransform: 'uppercase',
         letterSpacing: '0.08em',
-        color: '#94a3b8',
+        color: isDark ? '#94a3b8' : '#64748b',
         marginBottom: '8px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
         paddingBottom: '5px'
       }}>
         {label}
@@ -55,9 +58,9 @@ const ModernGlassTooltip = ({ active, payload, label, currency = 'LKR', isPercen
                 background: entry.color || entry.fill,
                 boxShadow: `0 0 8px ${entry.color || entry.fill}`
               }}></span>
-              <span style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 600 }}>{entry.name}</span>
+              <span style={{ fontSize: '0.75rem', color: isDark ? '#cbd5e1' : '#334155', fontWeight: 600 }}>{entry.name}</span>
             </div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', fontFamily: 'var(--font-mono, monospace)' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a', fontFamily: 'var(--font-mono, monospace)' }}>
               {typeof entry.value === 'number'
                 ? (isPercent || entry.unit === '%' ? `${entry.value}%` : `${currency} ${entry.value.toLocaleString()}`)
                 : entry.value}
@@ -78,10 +81,13 @@ const Dashboard = () => {
     leads = [],
     expenses = [],
     payments = [],
-    activityLogs = []
+    activityLogs = [],
+    theme = 'dark'
   } = useContext(StoreContext) || {};
+  const isDark = theme !== 'light';
 
   // --- GLOBAL DATE FILTER STATE ---
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState('30d'); // 'today', '7d', '30d', 'custom'
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -321,12 +327,12 @@ const Dashboard = () => {
     };
 
     const colors = {
-      'Draft': '#94a3b8',
-      'Sent': '#38bdf8',
-      'Accepted': '#10b981',
-      'Counter Offer': '#f59e0b',
-      'Rejected': '#ef4444',
-      'Expired': '#6b7280'
+      'Draft': isDark ? '#94a3b8' : '#64748b',
+      'Sent': isDark ? '#38bdf8' : '#0284c7',
+      'Accepted': isDark ? '#10b981' : '#059669',
+      'Counter Offer': isDark ? '#f59e0b' : '#d97706',
+      'Rejected': isDark ? '#ef4444' : '#dc2626',
+      'Expired': isDark ? '#6b7280' : '#475569'
     };
 
     return Object.entries(counts)
@@ -334,17 +340,17 @@ const Dashboard = () => {
       .map(([name, value]) => ({
         name,
         value,
-        color: colors[name] || '#94a3b8'
+        color: colors[name] || (isDark ? '#94a3b8' : '#64748b')
       }));
-  }, [quotes]);
+  }, [quotes, isDark]);
 
   // 3. Debtor & Receivable Aging Analysis
   const debtorAgingData = useMemo(() => {
     const buckets = [
-      { key: 'current', label: '0-30 Days', desc: 'Current', min: 0, max: 30, amount: 0, count: 0, color: '#10b981', gradient: ['#10b981', '#059669'] },
-      { key: 'mild', label: '31-60 Days', desc: 'Mild Overdue', min: 31, max: 60, amount: 0, count: 0, color: '#f59e0b', gradient: ['#f59e0b', '#d97706'] },
-      { key: 'medium', label: '61-90 Days', desc: 'Aging Risk', min: 61, max: 90, amount: 0, count: 0, color: '#f97316', gradient: ['#f97316', '#ea580c'] },
-      { key: 'critical', label: '90+ Days', desc: 'Delinquent', min: 91, max: 99999, amount: 0, count: 0, color: '#ef4444', gradient: ['#ef4444', '#dc2626'] }
+      { key: 'current', label: '0-30 Days', desc: 'Current', min: 0, max: 30, amount: 0, count: 0, color: isDark ? '#10b981' : '#059669', gradient: isDark ? ['#10b981', '#059669'] : ['#059669', '#047857'] },
+      { key: 'mild', label: '31-60 Days', desc: 'Mild Overdue', min: 31, max: 60, amount: 0, count: 0, color: isDark ? '#f59e0b' : '#d97706', gradient: isDark ? ['#f59e0b', '#d97706'] : ['#d97706', '#b45309'] },
+      { key: 'medium', label: '61-90 Days', desc: 'Aging Risk', min: 61, max: 90, amount: 0, count: 0, color: isDark ? '#f97316' : '#ea580c', gradient: isDark ? ['#f97316', '#ea580c'] : ['#ea580c', '#c2410c'] },
+      { key: 'critical', label: '90+ Days', desc: 'Delinquent', min: 91, max: 99999, amount: 0, count: 0, color: isDark ? '#ef4444' : '#dc2626', gradient: isDark ? ['#ef4444', '#dc2626'] : ['#dc2626', '#b91c1c'] }
     ];
 
     invoices.forEach(inv => {
@@ -363,7 +369,7 @@ const Dashboard = () => {
     });
 
     return buckets;
-  }, [invoices, now]);
+  }, [invoices, now, isDark]);
 
   const totalAgingDebt = useMemo(() => debtorAgingData.reduce((s, b) => s + b.amount, 0), [debtorAgingData]);
   const criticalDebt = useMemo(() => (debtorAgingData.find(b => b.key === 'critical')?.amount || 0) + (debtorAgingData.find(b => b.key === 'medium')?.amount || 0), [debtorAgingData]);
@@ -399,10 +405,12 @@ const Dashboard = () => {
         count: totalLeadsCount,
         value: leadsValue,
         icon: Users,
-        color: '#38bdf8',
-        gradient: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.05) 100%)',
-        border: 'rgba(56, 189, 248, 0.45)',
-        glow: 'rgba(56, 189, 248, 0.35)',
+        color: isDark ? '#38bdf8' : '#0284c7',
+        gradient: isDark 
+          ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.02) 100%)',
+        border: isDark ? 'rgba(56, 189, 248, 0.45)' : 'rgba(2, 132, 199, 0.35)',
+        glow: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(2, 132, 199, 0.15)',
         convRate: quotesCount > 0 ? Math.min(100, Math.round((quotesCount / totalLeadsCount) * 100)) : 80,
         convLabel: 'Proposal Rate'
       },
@@ -413,10 +421,12 @@ const Dashboard = () => {
         count: quotesCount,
         value: quotesValue,
         icon: FileText,
-        color: '#818cf8',
-        gradient: 'linear-gradient(135deg, rgba(129, 140, 248, 0.22) 0%, rgba(99, 102, 241, 0.05) 100%)',
-        border: 'rgba(129, 140, 248, 0.45)',
-        glow: 'rgba(129, 140, 248, 0.35)',
+        color: isDark ? '#818cf8' : '#4f46e5',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(129, 140, 248, 0.22) 0%, rgba(99, 102, 241, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.02) 100%)',
+        border: isDark ? 'rgba(129, 140, 248, 0.45)' : 'rgba(79, 70, 229, 0.35)',
+        glow: isDark ? 'rgba(129, 140, 248, 0.35)' : 'rgba(79, 70, 229, 0.15)',
         convRate: quotesCount > 0 ? Math.min(100, Math.round(((activeQuotesCount + acceptedCount) / quotesCount) * 100)) : 85,
         convLabel: 'Engagement Rate'
       },
@@ -427,10 +437,12 @@ const Dashboard = () => {
         count: activeQuotesCount,
         value: activeQuotesValue,
         icon: Target,
-        color: '#f59e0b',
-        gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.05) 100%)',
-        border: 'rgba(245, 158, 11, 0.45)',
-        glow: 'rgba(245, 158, 11, 0.35)',
+        color: isDark ? '#f59e0b' : '#d97706',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.02) 100%)',
+        border: isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.35)',
+        glow: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(217, 119, 6, 0.15)',
         convRate: (activeQuotesCount + acceptedCount) > 0 ? Math.min(100, Math.round((acceptedCount / Math.max(1, activeQuotesCount + acceptedCount)) * 100)) : 65,
         convLabel: 'Closing Ratio'
       },
@@ -441,10 +453,12 @@ const Dashboard = () => {
         count: acceptedCount,
         value: acceptedValue,
         icon: CheckCircle2,
-        color: '#10b981',
-        gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 100%)',
-        border: 'rgba(16, 185, 129, 0.5)',
-        glow: 'rgba(16, 185, 129, 0.4)',
+        color: isDark ? '#10b981' : '#059669',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.02) 100%)',
+        border: isDark ? 'rgba(16, 185, 129, 0.5)' : 'rgba(5, 150, 105, 0.35)',
+        glow: isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(5, 150, 105, 0.15)',
         convRate: quotesCount > 0 ? Math.min(100, Math.round((acceptedCount / quotesCount) * 100)) : quoteConversionRate,
         convLabel: 'Deal Win Rate'
       },
@@ -455,15 +469,17 @@ const Dashboard = () => {
         count: paidCount,
         value: paidValue,
         icon: Award,
-        color: '#22d3ee',
-        gradient: 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)',
-        border: 'rgba(34, 211, 238, 0.45)',
-        glow: 'rgba(34, 211, 238, 0.35)',
+        color: isDark ? '#22d3ee' : '#0891b2',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
+        border: isDark ? 'rgba(34, 211, 238, 0.45)' : 'rgba(8, 145, 178, 0.35)',
+        glow: isDark ? 'rgba(34, 211, 238, 0.35)' : 'rgba(8, 145, 178, 0.15)',
         convRate: invoices.length > 0 ? Math.min(100, Math.round((paidCount / Math.max(1, invoices.length)) * 100)) : 75,
         convLabel: 'Realization %'
       }
     ];
-  }, [leads, quotes, invoices, totalCollectedThisMonth, quoteConversionRate]);
+  }, [leads, quotes, invoices, totalCollectedThisMonth, quoteConversionRate, isDark]);
 
   return (
     <div style={{ position: 'relative', width: '100%', paddingBottom: '40px', animation: 'fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -485,11 +501,30 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <Link to="/quotations" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-              <FileText size={16} /> New Quotation
-            </Link>
+            <button 
+              id="dashboard-quick-sale-bill-btn"
+              onClick={() => setQuickSaleOpen(true)}
+              className="btn"
+              style={{
+                padding: '8px 18px',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                boxShadow: '0 4px 12px rgba(13, 148, 136, 0.35)',
+                cursor: 'pointer'
+              }}
+              title="Quick Hair Pin Wholesale / Retail Sale"
+            >
+              <Sparkles size={16} /> ⚡ Quick Bill (Hair Pins)
+            </button>
             <Link to="/invoices" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-              <CreditCard size={16} /> New Invoice
+              <CreditCard size={16} /> Invoices
             </Link>
             <Link to="/customers" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
               <Plus size={16} /> Add Customer
@@ -509,7 +544,7 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', color: 'var(--info)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={18} />
               </div>
             </div>
@@ -525,7 +560,7 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FileText size={18} />
               </div>
             </div>
@@ -541,11 +576,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CheckCircle2 size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
               {acceptedQuotesThisMonth.length}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -557,11 +592,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <XCircle size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--danger)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
               {rejectedQuotesThisMonth.length}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -572,19 +607,21 @@ const Dashboard = () => {
           {/* CONVERSION RATE CARD (CRITICAL SALES KPI) */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '20px', 
-            border: '2px solid rgba(16, 185, 129, 0.4)',
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
+            border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
+            background: isDark 
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
+              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--success)' }}>Conversion Rate</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--success)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Target size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
               {quoteConversionRate}%
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 700, marginTop: '4px' }}>
+            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
               Sent → Accepted this month
             </div>
           </div>
@@ -603,7 +640,7 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Invoiced (Month)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard size={18} />
               </div>
             </div>
@@ -619,11 +656,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Collected (Month)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Award size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--success)' }} className="metric-value">
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }} className="metric-value">
               LKR {totalCollectedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -635,11 +672,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Debtors</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clock size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--warning)' }} className="metric-value">
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
               LKR {totalOutstandingDebtors.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -651,11 +688,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Overdue Amount</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AlertCircle size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--danger)' }} className="metric-value">
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
               LKR {totalOverdueAmount.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -667,11 +704,11 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Renewals (30 Days)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <RefreshCw size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#c084fc' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? '#c084fc' : '#7c3aed' }}>
               {upcomingRenewalsCount}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -690,9 +727,13 @@ const Dashboard = () => {
           display: 'flex', 
           flexDirection: 'column', 
           padding: '24px',
-          background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          background: isDark 
+            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)' 
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+          boxShadow: isDark 
+            ? '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)' 
+            : '0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
           borderRadius: '16px'
         }}>
           {/* Header & Mode Switcher */}
@@ -700,12 +741,14 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <div style={{ 
                 width: '42px', height: '42px', borderRadius: '12px', 
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(16, 185, 129, 0.15) 100%)', 
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                boxShadow: '0 0 15px rgba(99, 102, 241, 0.2)',
+                background: isDark 
+                  ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(16, 185, 129, 0.15) 100%)'
+                  : 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.10) 100%)', 
+                border: isDark ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(99, 102, 241, 0.2)',
+                boxShadow: isDark ? '0 0 15px rgba(99, 102, 241, 0.2)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center' 
               }}>
-                <BarChart3 color="#818cf8" size={22} />
+                <BarChart3 color={isDark ? "#818cf8" : "#4f46e5"} size={22} />
               </div>
               <div>
                 <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
@@ -720,10 +763,10 @@ const Dashboard = () => {
             {/* Mode Switcher Tabs */}
             <div style={{
               display: 'flex',
-              background: 'rgba(15, 23, 42, 0.6)',
+              background: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(15, 23, 42, 0.05)',
               padding: '4px',
               borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)',
               gap: '4px'
             }}>
               <button
@@ -733,7 +776,7 @@ const Dashboard = () => {
                   padding: '6px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', transition: 'all 0.2s ease',
                   background: financeChartMode === 'revenue_collections' ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(79, 70, 229, 0.9) 100%)' : 'transparent',
-                  color: financeChartMode === 'revenue_collections' ? '#ffffff' : 'var(--text-secondary)',
+                  color: financeChartMode === 'revenue_collections' ? '#ffffff' : (isDark ? 'var(--text-secondary)' : '#475569'),
                   boxShadow: financeChartMode === 'revenue_collections' ? '0 4px 12px rgba(99, 102, 241, 0.35)' : 'none'
                 }}
               >
@@ -746,7 +789,7 @@ const Dashboard = () => {
                   padding: '6px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', transition: 'all 0.2s ease',
                   background: financeChartMode === 'cashflow_profit' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.8) 0%, rgba(5, 150, 105, 0.9) 100%)' : 'transparent',
-                  color: financeChartMode === 'cashflow_profit' ? '#ffffff' : 'var(--text-secondary)',
+                  color: financeChartMode === 'cashflow_profit' ? '#ffffff' : (isDark ? 'var(--text-secondary)' : '#475569'),
                   boxShadow: financeChartMode === 'cashflow_profit' ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none'
                 }}
               >
@@ -759,7 +802,7 @@ const Dashboard = () => {
                   padding: '6px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', transition: 'all 0.2s ease',
                   background: financeChartMode === 'billing_trajectory' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.8) 0%, rgba(2, 132, 199, 0.9) 100%)' : 'transparent',
-                  color: financeChartMode === 'billing_trajectory' ? '#ffffff' : 'var(--text-secondary)',
+                  color: financeChartMode === 'billing_trajectory' ? '#ffffff' : (isDark ? 'var(--text-secondary)' : '#475569'),
                   boxShadow: financeChartMode === 'billing_trajectory' ? '0 4px 12px rgba(56, 189, 248, 0.35)' : 'none'
                 }}
               >
@@ -770,34 +813,34 @@ const Dashboard = () => {
 
           {/* Quick Financial Summary Chips */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" style={{
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
             padding: '12px 16px',
             borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(15, 23, 42, 0.06)'
           }}>
             <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>6M Invoiced</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#818cf8', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#94a3b8' : '#64748b' }}>6M Invoiced</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#818cf8' : '#4f46e5', marginTop: '2px' }}>
                 LKR {financialTotals.totalInvoiced.toLocaleString()}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>6M Cash Collected</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#94a3b8' : '#64748b' }}>6M Cash Collected</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', marginTop: '2px' }}>
                 LKR {financialTotals.totalCollected.toLocaleString()}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>6M Operating Expenses</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fb7185', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#94a3b8' : '#64748b' }}>6M Operating Expenses</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#fb7185' : '#e11d48', marginTop: '2px' }}>
                 LKR {financialTotals.totalExpenses.toLocaleString()}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>Operating Net Cash</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#94a3b8' : '#64748b' }}>Operating Net Cash</div>
               <div style={{ 
                 fontSize: '1.05rem', fontWeight: 800, 
-                color: financialTotals.totalNet >= 0 ? '#38bdf8' : '#f43f5e',
+                color: financialTotals.totalNet >= 0 ? (isDark ? '#38bdf8' : '#0284c7') : (isDark ? '#f43f5e' : '#dc2626'),
                 marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px'
               }}>
                 {financialTotals.totalNet >= 0 ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
@@ -813,56 +856,56 @@ const Dashboard = () => {
                  <AreaChart data={financialStudioData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                    <defs>
                      <linearGradient id="neonInvoiced" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#818cf8" stopOpacity={0.45}/>
-                       <stop offset="95%" stopColor="#818cf8" stopOpacity={0.01}/>
+                       <stop offset="5%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.45}/>
+                       <stop offset="95%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.01}/>
                      </linearGradient>
                      <linearGradient id="neonCollected" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
-                       <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                       <stop offset="5%" stopColor={isDark ? "#10b981" : "#059669"} stopOpacity={0.5}/>
+                       <stop offset="95%" stopColor={isDark ? "#10b981" : "#059669"} stopOpacity={0.01}/>
                      </linearGradient>
                    </defs>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.06)" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} dy={10}/>
-                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
-                   <Tooltip content={<ModernGlassTooltip />} />
-                   <Area type="monotone" dataKey="invoiced" name="Invoiced Revenue" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#neonInvoiced)" animationDuration={1200} />
-                   <Area type="monotone" dataKey="collected" name="Cash Collected" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#neonCollected)" animationDuration={1600} />
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} dy={10}/>
+                   <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
+                   <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
+                   <Area type="monotone" dataKey="invoiced" name="Invoiced Revenue" stroke={isDark ? "#818cf8" : "#4f46e5"} strokeWidth={3} fillOpacity={1} fill="url(#neonInvoiced)" animationDuration={1200} />
+                   <Area type="monotone" dataKey="collected" name="Cash Collected" stroke={isDark ? "#10b981" : "#059669"} strokeWidth={3} fillOpacity={1} fill="url(#neonCollected)" animationDuration={1600} />
                  </AreaChart>
                ) : financeChartMode === 'cashflow_profit' ? (
                  <BarChart data={financialStudioData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                    <defs>
                      <linearGradient id="barCollected" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#34d399" stopOpacity={0.9}/>
-                       <stop offset="100%" stopColor="#059669" stopOpacity={0.7}/>
+                       <stop offset="0%" stopColor={isDark ? "#34d399" : "#059669"} stopOpacity={0.9}/>
+                       <stop offset="100%" stopColor={isDark ? "#059669" : "#047857"} stopOpacity={0.7}/>
                      </linearGradient>
                      <linearGradient id="barExpenses" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9}/>
-                       <stop offset="100%" stopColor="#be123c" stopOpacity={0.7}/>
+                       <stop offset="0%" stopColor={isDark ? "#f43f5e" : "#e11d48"} stopOpacity={0.9}/>
+                       <stop offset="100%" stopColor={isDark ? "#be123c" : "#9f1239"} stopOpacity={0.7}/>
                      </linearGradient>
                    </defs>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.06)" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} dy={10}/>
-                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
-                   <Tooltip content={<ModernGlassTooltip />} />
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} dy={10}/>
+                   <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
+                   <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
                    <Bar dataKey="collected" name="Cash Inflow" fill="url(#barCollected)" radius={[6, 6, 0, 0]} maxBarSize={38} />
                    <Bar dataKey="expenses" name="Operational Outflow" fill="url(#barExpenses)" radius={[6, 6, 0, 0]} maxBarSize={38} />
-                   <Line type="monotone" dataKey="netProfit" name="Net Cash Margin" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#38bdf8', strokeWidth: 2, stroke: '#0b0f14' }} />
+                   <Line type="monotone" dataKey="netProfit" name="Net Cash Margin" stroke={isDark ? "#38bdf8" : "#0284c7"} strokeWidth={3} dot={{ r: 4, fill: isDark ? '#38bdf8' : '#0284c7', strokeWidth: 2, stroke: isDark ? '#0b0f14' : '#ffffff' }} />
                  </BarChart>
                ) : (
                  <BarChart data={financialStudioData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                    <defs>
                      <linearGradient id="barTrajectory" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.95}/>
-                       <stop offset="100%" stopColor="#6366f1" stopOpacity={0.65}/>
+                       <stop offset="0%" stopColor={isDark ? "#38bdf8" : "#0284c7"} stopOpacity={0.95}/>
+                       <stop offset="100%" stopColor={isDark ? "#6366f1" : "#4f46e5"} stopOpacity={0.65}/>
                      </linearGradient>
                    </defs>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.06)" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} dy={10}/>
-                   <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
-                   <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#34d399', fontSize: 11, fontWeight: 700}} domain={[0, 100]} tickFormatter={(v) => `${v}%`}/>
-                   <Tooltip content={<ModernGlassTooltip />} />
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} dy={10}/>
+                   <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
+                   <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: isDark ? '#34d399' : '#059669', fontSize: 11, fontWeight: 700}} domain={[0, 100]} tickFormatter={(v) => `${v}%`}/>
+                   <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
                    <Bar yAxisId="left" dataKey="invoiced" name="Gross Billing" fill="url(#barTrajectory)" radius={[8, 8, 0, 0]} maxBarSize={48} />
-                   <Line yAxisId="right" type="monotone" dataKey="collectionRate" name="Collection Rate (%)" stroke="#34d399" strokeWidth={3} dot={{ r: 5, fill: '#34d399', strokeWidth: 2, stroke: '#0b0f14' }} />
+                   <Line yAxisId="right" type="monotone" dataKey="collectionRate" name="Collection Rate (%)" stroke={isDark ? "#34d399" : "#059669"} strokeWidth={3} dot={{ r: 5, fill: isDark ? '#34d399' : '#059669', strokeWidth: 2, stroke: isDark ? '#0b0f14' : '#ffffff' }} />
                  </BarChart>
                )}
              </ResponsiveContainer>
@@ -874,20 +917,26 @@ const Dashboard = () => {
           display: 'flex', 
           flexDirection: 'column', 
           padding: '24px',
-          background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          background: isDark 
+            ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)' 
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+          boxShadow: isDark 
+            ? '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)' 
+            : '0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
           borderRadius: '16px'
         }}>
           <div className="flex items-center gap-3 mb-4">
              <div style={{ 
                width: '42px', height: '42px', borderRadius: '12px', 
-               background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%)', 
-               border: '1px solid rgba(56, 189, 248, 0.3)',
-               boxShadow: '0 0 15px rgba(56, 189, 248, 0.2)',
+               background: isDark 
+                 ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%)' 
+                 : 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%)', 
+               border: isDark ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(56, 189, 248, 0.2)',
+               boxShadow: isDark ? '0 0 15px rgba(56, 189, 248, 0.2)' : 'none',
                display: 'flex', alignItems: 'center', justifyContent: 'center' 
              }}>
-                <Target color="#38bdf8" size={22} />
+                <Target color={isDark ? "#38bdf8" : "#0284c7"} size={22} />
              </div>
              <div>
                 <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
@@ -916,7 +965,7 @@ const Dashboard = () => {
                         outerRadius="88%"
                         paddingAngle={5}
                         dataKey="value"
-                        stroke="rgba(11, 15, 20, 0.8)"
+                        stroke={isDark ? 'rgba(11, 15, 20, 0.8)' : '#ffffff'}
                         strokeWidth={2}
                       >
                         {quoteStatusDonut.map((entry, idx) => (
@@ -927,7 +976,7 @@ const Dashboard = () => {
                           />
                         ))}
                       </Pie>
-                      <Tooltip content={<ModernGlassTooltip currency="" />} />
+                      <Tooltip content={<ModernGlassTooltip currency="" isDark={isDark} />} />
                     </PieChart>
                   </ResponsiveContainer>
 
@@ -940,12 +989,12 @@ const Dashboard = () => {
                     <div style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
                       {quotes.length}
                     </div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginTop: '3px' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
                       Total Deals
                     </div>
                     <div style={{ 
-                      fontSize: '0.68rem', fontWeight: 800, color: '#10b981', 
-                      background: 'rgba(16, 185, 129, 0.14)', padding: '2px 6px', borderRadius: '4px',
+                      fontSize: '0.68rem', fontWeight: 800, color: isDark ? '#10b981' : '#059669', 
+                      background: isDark ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.12)', padding: '2px 6px', borderRadius: '4px',
                       marginTop: '4px', display: 'inline-block'
                     }}>
                       {quoteConversionRate}% Won
@@ -963,8 +1012,8 @@ const Dashboard = () => {
                         style={{ 
                           display: 'flex', alignItems: 'center', gap: '8px', 
                           padding: '6px 10px', borderRadius: '8px', 
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.03)',
+                          border: isDark ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(15, 23, 42, 0.08)',
                           fontSize: '0.72rem' 
                         }}
                       >
@@ -974,7 +1023,7 @@ const Dashboard = () => {
                         }}></span>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{item.name}</span>
                         <strong style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{item.value}</strong>
-                        <span style={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 700 }}>({pct}%)</span>
+                        <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.65rem', fontWeight: 700 }}>({pct}%)</span>
                       </div>
                     );
                   })}
@@ -989,9 +1038,13 @@ const Dashboard = () => {
       {/* COMPREHENSIVE VISUAL SUITE - ROW 2: SALES CONVERSION FUNNEL (FULL WIDTH) */}
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        background: isDark 
+          ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)' 
+          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+        border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+        boxShadow: isDark 
+          ? '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)' 
+          : '0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         borderRadius: '16px'
       }}>
         {/* Funnel Header */}
@@ -999,12 +1052,14 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <div style={{ 
               width: '42px', height: '42px', borderRadius: '12px', 
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)', 
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              boxShadow: '0 0 15px rgba(16, 185, 129, 0.2)',
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)' 
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%)', 
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(16, 185, 129, 0.2)',
+              boxShadow: isDark ? '0 0 15px rgba(16, 185, 129, 0.2)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center' 
             }}>
-              <Zap color="#34d399" size={22} />
+              <Zap color={isDark ? "#34d399" : "#059669"} size={22} />
             </div>
             <div>
               <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
@@ -1020,10 +1075,11 @@ const Dashboard = () => {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '6px 14px', borderRadius: '10px',
-              background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)'
+              background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.14)',
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(16, 185, 129, 0.25)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#34d399' }}>Deal Win Rate:</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#ffffff' }}>{quoteConversionRate}%</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>Deal Win Rate:</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: isDark ? '#ffffff' : '#065f46' }}>{quoteConversionRate}%</span>
             </div>
           </div>
         </div>
@@ -1041,8 +1097,8 @@ const Dashboard = () => {
                   position: 'relative',
                   padding: '18px 16px',
                   borderRadius: '14px',
-                  background: isSelected ? stage.gradient : 'rgba(255, 255, 255, 0.02)',
-                  border: isSelected ? `2px solid ${stage.color}` : `1px solid rgba(255, 255, 255, 0.06)`,
+                  background: isSelected ? stage.gradient : (isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)'),
+                  border: isSelected ? `2px solid ${stage.color}` : (isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)'),
                   boxShadow: isSelected ? `0 0 20px ${stage.glow}` : 'none',
                   cursor: 'pointer',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -1085,12 +1141,12 @@ const Dashboard = () => {
                 </div>
 
                 {/* Conversion Bridge Pill */}
-                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
                   <div className="flex justify-between items-center mb-1">
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8' }}>{stage.convLabel}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b' }}>{stage.convLabel}</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: stage.color }}>{stage.convRate}%</span>
                   </div>
-                  <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)', overflow: 'hidden' }}>
                     <div style={{ 
                       width: `${stage.convRate}%`, height: '100%', borderRadius: '3px', 
                       background: stage.color, boxShadow: `0 0 8px ${stage.color}` 
@@ -1108,8 +1164,8 @@ const Dashboard = () => {
             marginTop: '16px',
             padding: '14px 18px',
             borderRadius: '12px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.03)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -1135,21 +1191,27 @@ const Dashboard = () => {
       {/* COMPREHENSIVE VISUAL SUITE - ROW 3: DEBTOR AGING ANALYSIS (BAR CHART) */}
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        background: isDark 
+          ? 'linear-gradient(135deg, rgba(17, 24, 39, 0.7) 0%, rgba(13, 18, 24, 0.85) 100%)' 
+          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+        border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+        boxShadow: isDark 
+          ? '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)' 
+          : '0 10px 25px -5px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         borderRadius: '16px'
       }}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div style={{ 
               width: '42px', height: '42px', borderRadius: '12px', 
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(245, 158, 11, 0.15) 100%)', 
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)',
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(245, 158, 11, 0.15) 100%)' 
+                : 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)', 
+              border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(239, 68, 68, 0.2)',
+              boxShadow: isDark ? '0 0 15px rgba(239, 68, 68, 0.2)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center' 
             }}>
-              <ShieldAlert color="#f87171" size={22} />
+              <ShieldAlert color={isDark ? "#f87171" : "#dc2626"} size={22} />
             </div>
             <div>
               <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
@@ -1165,10 +1227,11 @@ const Dashboard = () => {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '6px 14px', borderRadius: '10px',
-              background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)'
+              background: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.14)',
+              border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(239, 68, 68, 0.25)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#f87171' }}>Critical Overdue (60+d):</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#ffffff' }}>LKR {criticalDebt.toLocaleString()}</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#f87171' : '#dc2626' }}>Critical Overdue (60+d):</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: isDark ? '#ffffff' : '#991b1b' }}>LKR {criticalDebt.toLocaleString()}</span>
             </div>
             <Link to="/debtors" className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.78rem' }}>
               Debtors Module <ArrowRight size={13} />
@@ -1192,10 +1255,10 @@ const Dashboard = () => {
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.06)" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} dy={10}/>
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
-                  <Tooltip content={<ModernGlassTooltip />} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} dy={10}/>
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
+                  <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
                   <Bar dataKey="amount" name="Outstanding Balance" radius={[8, 8, 0, 0]} maxBarSize={56}>
                     {debtorAgingData.map((entry, index) => (
                       <Cell 
@@ -1211,8 +1274,11 @@ const Dashboard = () => {
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 textAlign: 'center', padding: '32px 20px', width: '100%',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.02) 100%)',
-                borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.2)'
+                background: isDark 
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.02) 100%)' 
+                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.03) 100%)',
+                borderRadius: '14px', 
+                border: isDark ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(16, 185, 129, 0.25)'
               }}>
                 <div style={{ 
                   width: '54px', height: '54px', borderRadius: '16px', 
@@ -1248,8 +1314,8 @@ const Dashboard = () => {
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '12px 16px', borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: `1px solid ${bucket.color}30`,
+                  background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
+                  border: isDark ? `1px solid ${bucket.color}30` : `1px solid ${bucket.color}40`,
                   boxShadow: `inset 3px 0 0 ${bucket.color}`
                 }}
               >
@@ -1266,10 +1332,10 @@ const Dashboard = () => {
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: totalAgingDebt > 0 ? bucket.color : '#94a3b8' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: bucket.color }}>
                     LKR {bucket.amount.toLocaleString()}
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: totalAgingDebt > 0 ? '#94a3b8' : '#10b981', fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.65rem', color: totalAgingDebt > 0 ? (isDark ? '#94a3b8' : '#64748b') : 'var(--success)', fontWeight: 700 }}>
                     {totalAgingDebt > 0 ? `${Math.round((bucket.amount / totalAgingDebt) * 100)}% of total` : 'All Settled'}
                   </div>
                 </div>
@@ -1287,7 +1353,7 @@ const Dashboard = () => {
         <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="flex items-center gap-3">
-               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Award size={20} />
                </div>
                <div>
@@ -1321,8 +1387,9 @@ const Dashboard = () => {
                         <div className="flex items-center gap-3">
                           <span style={{ 
                             width: '24px', height: '24px', borderRadius: '50%', 
-                            background: idx === 0 ? 'var(--warning)' : idx === 1 ? '#94a3b8' : 'var(--subtle-bg)',
-                            color: idx < 2 ? '#000' : 'var(--text-secondary)',
+                            background: idx === 0 ? 'var(--warning)' : idx === 1 ? (isDark ? '#94a3b8' : '#cbd5e1') : (isDark ? 'var(--subtle-bg)' : '#f1f5f9'),
+                            color: idx === 0 ? '#000' : (isDark ? 'var(--text-secondary)' : '#334155'),
+                            border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(15, 23, 42, 0.12)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: '0.72rem', fontWeight: 800
                           }}>
@@ -1358,8 +1425,8 @@ const Dashboard = () => {
         <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="flex items-center gap-3">
-               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'var(--danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertCircle color="var(--danger)" size={20} />
+               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: isDark ? 'var(--danger-bg)' : 'rgba(225, 29, 72, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertCircle color={isDark ? "var(--danger)" : "#dc2626"} size={20} />
                </div>
                <div>
                   <h3 className="h3">Immediate Action Required</h3>
@@ -1413,6 +1480,12 @@ const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* QUICK SALE BILLING MODAL */}
+      <QuickSaleModal 
+        isOpen={quickSaleOpen} 
+        onClose={() => setQuickSaleOpen(false)} 
+      />
 
     </div>
   );

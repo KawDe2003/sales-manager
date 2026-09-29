@@ -6,7 +6,7 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Factory
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Factory, Zap
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -34,6 +34,7 @@ import Manufacturing from './pages/Manufacturing';
 import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
+import QuickSaleModal from './components/QuickSaleModal';
 
 const LoadingFallback = () => {
   const { brandName, logo } = (() => {
@@ -250,6 +251,7 @@ const AppContent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -482,6 +484,31 @@ const AppContent = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Quick Hair Pin Billing */}
+          <button
+            id="quick-sale-bill-header-btn"
+            onClick={() => setQuickSaleOpen(true)}
+            className="btn"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 10px rgba(13, 148, 136, 0.35)',
+              cursor: 'pointer'
+            }}
+            title="Fast Hair Pin Billing / Wholesale Counter Sale"
+          >
+            <Sparkles size={15} /> <span>⚡ Quick Bill</span>
+          </button>
+
           {/* Quick Actions */}
           <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
             <MessageSquare size={15} /> SMS Portal
@@ -671,7 +698,7 @@ const AppContent = () => {
           {/* Logout */}
           {user && (
             <button 
-              className="btn btn-secondary" 
+              className="btn btn-secondary hidden-mobile" 
               style={{ color: 'var(--danger)', height: '36px', padding: '0 12px', fontSize: '0.8rem' }}
               onClick={() => {
                 signOut();
@@ -759,6 +786,12 @@ const AppContent = () => {
            </div>
         </div>
       )}
+
+      {/* ===== QUICK HAIR PIN SALE & BILLING MODAL ===== */}
+      <QuickSaleModal 
+        isOpen={quickSaleOpen} 
+        onClose={() => setQuickSaleOpen(false)} 
+      />
 
       {/* ===== MAIN LAYOUT ===== */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
@@ -956,20 +989,40 @@ const AppContent = () => {
         {/* ===== MOBILE BOTTOM NAVIGATION DOCK (PHONES) ===== */}
         <nav className="mobile-bottom-dock hidden-desktop" aria-label="Mobile Navigation">
           <NavLink to="/" end onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <LayoutDashboard size={19} />
+            <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink to="/customers" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <Users size={19} />
-            <span>Clients</span>
+          <NavLink to="/manufacturing" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <Factory size={18} />
+            <span>Factory</span>
           </NavLink>
+
+          {/* Quick Bill Center Floating Button */}
+          <button 
+            type="button" 
+            onClick={() => { closeSidebar(); setQuickSaleOpen(true); }}
+            className="dock-item dock-item-highlight"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              position: 'relative', top: '-10px', padding: 0
+            }}
+            title="⚡ Quick Hair Pin Bill"
+          >
+            <div style={{
+              width: '46px', height: '46px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+              color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(13, 148, 136, 0.5), 0 0 0 3px var(--bg-secondary)',
+              transition: 'transform 0.15s ease'
+            }}>
+              <Zap size={22} />
+            </div>
+            <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.64rem', marginTop: '2px' }}>⚡ Bill</span>
+          </button>
+
           <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <Receipt size={19} />
+            <Receipt size={18} />
             <span>Invoices</span>
-          </NavLink>
-          <NavLink to="/sms" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <MessageSquare size={19} />
-            <span>SMS</span>
           </NavLink>
           <button 
             type="button" 
@@ -977,7 +1030,7 @@ const AppContent = () => {
             className={`dock-item ${sidebarOpen ? 'active' : ''}`}
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <Menu size={19} />
+            <Menu size={18} />
             <span>More</span>
           </button>
         </nav>

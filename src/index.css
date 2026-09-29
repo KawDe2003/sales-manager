@@ -1349,13 +1349,24 @@ tbody tr:hover td {
 }
 
 @media (max-width: 768px) {
+  /* Prevent horizontal bounce / overflow */
+  html, body, #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .container-fluid {
+    padding: 0 !important;
+  }
+
   .mobile-bottom-dock {
     display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 58px;
+    height: 60px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--panel-border);
     backdrop-filter: blur(20px);
@@ -1363,9 +1374,9 @@ tbody tr:hover td {
     z-index: 950;
     align-items: center;
     justify-content: space-around;
-    padding: 0 6px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+    padding: 0 4px;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
   }
 
   .mobile-bottom-dock .dock-item {
@@ -1384,6 +1395,7 @@ tbody tr:hover td {
     border-radius: 8px;
     padding: 4px 0;
     background: transparent;
+    touch-action: manipulation;
   }
 
   .mobile-bottom-dock .dock-item:hover,
@@ -1399,6 +1411,22 @@ tbody tr:hover td {
     color: var(--accent-primary);
     transform: scale(1.1);
   }
+
+  /* Center Floating Quick Bill Action on Mobile Dock */
+  .dock-item-highlight {
+    position: relative;
+    top: -12px !important;
+    z-index: 960;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1.1 !important;
+  }
+
+  .dock-item-highlight:active div {
+    transform: scale(0.92);
+  }
 }
 
 /* 7. Table & Data Grid Responsiveness */
@@ -1413,29 +1441,38 @@ tbody tr:hover td {
 
 @media (max-width: 768px) {
   table th, table td {
-    padding: 10px 12px !important;
+    padding: 9px 12px !important;
     font-size: 0.8rem !important;
+    white-space: nowrap !important;
   }
   .table-container {
     border-radius: var(--radius-md) !important;
+    border: 1px solid var(--panel-border) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
 }
 
 /* 8. Modal & Form Responsiveness */
 @media (max-width: 768px) {
-  .modal-backdrop {
-    padding: 10px !important;
+  .modal-backdrop,
+  .app-modal-backdrop,
+  .modal-overlay {
+    padding: 8px !important;
   }
-  .modal-card {
+  .modal-card,
+  .app-modal-dialog,
+  .modal-content {
     max-height: 94vh !important;
     border-radius: var(--radius-lg) !important;
     width: 100% !important;
     margin: 0 !important;
   }
-  .modal-header {
-    padding: 16px 14px !important;
+  .modal-header,
+  .modal-header-solid {
+    padding: 14px 16px !important;
   }
-  .modal-body {
+  .modal-body,
+  .modal-body-solid {
     padding: 16px 14px !important;
   }
   /* Forms inside modals automatically stack to 1 column on mobile */
@@ -1461,6 +1498,39 @@ tbody tr:hover td {
   flex-wrap: wrap;
 }
 
+@media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zooming on focus */
+  .form-input, .form-select, .form-textarea, select, 
+  input[type="text"], input[type="number"], input[type="email"], 
+  input[type="date"], input[type="password"], textarea {
+    font-size: 16px !important;
+    min-height: 42px !important;
+    touch-action: manipulation;
+  }
+
+  .btn {
+    min-height: 40px;
+    touch-action: manipulation;
+    font-size: 0.85rem;
+  }
+
+  /* Responsive spacing on mobile main container */
+  .main-container, .main-container.sidebar-collapsed {
+    padding: 14px 12px !important;
+    margin-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 100vw;
+  }
+
+  .page-hero {
+    margin: -14px -12px 18px -12px !important;
+    padding: 16px 14px !important;
+  }
+
+  .glass-panel, .card {
+    padding: 16px 14px !important;
+  }
+}
+
 @media (max-width: 640px) {
   /* Header save button text hidden on mobile, compact pulsing icon remains */
   #header-save-data-btn span {
@@ -1471,8 +1541,8 @@ tbody tr:hover td {
     height: 34px !important;
   }
   .layout-header {
-    height: 58px !important;
-    padding: 0 12px !important;
+    height: 56px !important;
+    padding: 0 10px !important;
   }
   .action-bar {
     width: 100%;
@@ -1481,22 +1551,14 @@ tbody tr:hover td {
   .action-bar .btn {
     flex: 1 1 auto;
   }
-  .form-input, .form-select, .form-textarea, select.form-input {
-    font-size: 0.94rem;
-  }
-  .glass-panel {
-    padding: 14px !important;
-  }
   .page-hero .flex-wrap {
     width: 100% !important;
+    gap: 8px !important;
   }
   .page-hero .flex-wrap .btn {
     flex: 1 1 auto !important;
     justify-content: center !important;
     text-align: center !important;
-  }
-  .btn, .form-input, .form-select, select {
-    min-height: 40px;
   }
 }
 
@@ -1506,13 +1568,13 @@ tbody tr:hover td {
     letter-spacing: -0.02em;
   }
   .main-container, .main-container.sidebar-collapsed {
-    padding: 12px 10px !important;
+    padding: 12px 8px !important;
   }
   .page-hero {
-    margin: -12px -10px 16px -10px !important;
-    padding: 16px 12px !important;
+    margin: -12px -8px 14px -8px !important;
+    padding: 14px 10px !important;
   }
-  .glass-panel {
+  .glass-panel, .card {
     padding: 12px 10px !important;
   }
 }

@@ -65,60 +65,67 @@ export default function StoreContextProvider({ children }) {
     return '76bb4580-2006-464f-aab8-64029dbe9540';
   };
 
-  // Initialize sample dummy data
+  // Initialize sample dummy data for Hair Pin Manufacturing & Wholesale
   const sampleCustomers = [
-    { id: 'c-101', gymName: 'Fitness First Colombo', name: 'Kamal Perera', email: 'kamal@fitnessfirst.lk', phone: '0771234567', dob: '1988-04-12', purchaseDate: '2025-01-15', renewalDate: '2026-08-15', annualFee: 450000, status: 'Active', notes: [{ id: 'n1', text: 'Premium enterprise subscription', timestamp: new Date().toISOString() }] },
-    { id: 'c-102', gymName: 'Power World Gym Kandy', name: 'Nalin Fernando', email: 'nalin@powerworld.lk', phone: '0719876543', dob: '1992-09-20', purchaseDate: '2025-02-10', renewalDate: '2026-08-20', annualFee: 320000, status: 'Active', notes: [] },
-    { id: 'c-103', gymName: "Gold's Gym Galle", name: 'Dinesh Jayawardena', email: 'dinesh@goldsgym.lk', phone: '0765554321', dob: '1985-11-05', purchaseDate: '2025-03-01', renewalDate: '2026-07-01', annualFee: 600000, status: 'Active', notes: [] },
-    { id: 'c-104', gymName: 'High Octane Fitness Negombo', name: 'Ruwan Silva', email: 'ruwan@highoctane.lk', phone: '0752223333', dob: '1990-06-18', purchaseDate: '2025-04-12', renewalDate: '2026-09-12', annualFee: 280000, status: 'Active', notes: [] },
-    { id: 'c-105', gymName: 'Ironworks Gym Matara', name: 'Sanjaya Wickramasinghe', email: 'sanjaya@ironworks.lk', phone: '0701112222', dob: '1995-02-28', purchaseDate: '2025-05-20', renewalDate: '2026-10-20', annualFee: 190000, status: 'Pending', notes: [] }
+    { id: 'c-101', gymName: 'Lanka Fancy Center (Wholesale Pettah)', name: 'M. Farook', email: 'farook@lankafancy.lk', phone: '0772345678', dob: '1982-04-12', purchaseDate: '2025-01-15', renewalDate: '2026-08-15', annualFee: 450000, status: 'Active', tag: 'Wholesale Distributor', notes: [{ id: 'n1', text: 'Buys 15-20 cartons bobby pins monthly', timestamp: new Date().toISOString() }] },
+    { id: 'c-102', gymName: 'Queens Bridal & Beauty Salon', name: 'Nilmini Perera', email: 'nilmini@queensbridal.lk', phone: '0718765432', dob: '1990-09-20', purchaseDate: '2025-02-10', renewalDate: '2026-08-20', annualFee: 320000, status: 'Active', tag: 'Beauty Salon Chain', notes: [] },
+    { id: 'c-103', gymName: 'Sunil Cosmetics & Novelty Stores', name: 'Sunil Gamage', email: 'sunil@sunilcosmetics.lk', phone: '0765432109', dob: '1985-11-05', purchaseDate: '2025-03-01', renewalDate: '2026-07-01', annualFee: 600000, status: 'Active', tag: 'Retail Fancy Shop', notes: [] },
+    { id: 'c-104', gymName: 'New Fashion Corner Kurunegala', name: 'K. Bandara', email: 'bandara@newfashion.lk', phone: '0754321098', dob: '1988-06-18', purchaseDate: '2025-04-12', renewalDate: '2026-09-12', annualFee: 280000, status: 'Active', tag: 'Retail & Wholesale', notes: [] },
+    { id: 'c-105', gymName: 'Salon Chamari Hair Care', name: 'Chamari Silva', email: 'chamari@salonchamari.lk', phone: '0703210987', dob: '1993-02-28', purchaseDate: '2025-05-20', renewalDate: '2026-10-20', annualFee: 190000, status: 'Pending', tag: 'Salon Customer', notes: [] }
   ];
 
   const sampleInventory = [
-    { id: 'inv-101', name: 'Commercial Treadmill Heavy Duty X9', type: 'Equipment', price: 480000, costPrice: 320000, stock: 12, reorderLevel: 3, desc: 'AC 5.0HP Motor commercial treadmill with touch screen' },
-    { id: 'inv-102', name: 'Olympic Barbell 20kg Hard Chrome', type: 'Equipment', price: 42000, costPrice: 26000, stock: 45, reorderLevel: 10, desc: '2200mm 1500lbs rating chrome Olympic bar' },
-    { id: 'inv-103', name: 'Rubber Bumper Plate Set 100kg', type: 'Accessories', price: 95000, costPrice: 62000, stock: 28, reorderLevel: 5, desc: 'High density rubber bumper weight plates' },
-    { id: 'inv-104', name: 'Whey Protein Isolate 5lb (Vanilla)', type: 'Supplements', price: 24500, costPrice: 16500, stock: 110, reorderLevel: 20, desc: '100% Ultra filtered whey isolate 28g protein per scoop' },
-    { id: 'inv-105', name: 'Commercial Cable Crossover Machine', type: 'Equipment', price: 850000, costPrice: 580000, stock: 4, reorderLevel: 2, desc: 'Dual stack multi station cable crossover machine' }
+    { id: 'inv-101', name: 'Classic Black Bobby Pins (Box of 50 Pkts)', type: 'Bobby Pins', price: 250, costPrice: 140, stock: 450, reorderLevel: 50, desc: 'High-tensile tempered steel bobby pins with protective ball tips' },
+    { id: 'inv-102', name: 'Golden Wave Hair Grips (Card of 24 pcs)', type: 'Wave Grips', price: 320, costPrice: 180, stock: 320, reorderLevel: 40, desc: 'Anti-rust gold-tone wave contoured hair grip pins' },
+    { id: 'inv-103', name: 'Salon Jumbo U-Pins (Box of 100 pcs - Black)', type: 'U-Pins', price: 450, costPrice: 260, stock: 280, reorderLevel: 30, desc: 'Professional salon grade 6.5cm hair updo U-pins' },
+    { id: 'inv-104', name: 'Classic Snap Hair Clips 5cm (Card of 12 pcs)', type: 'Snap Clips', price: 380, costPrice: 210, stock: 550, reorderLevel: 60, desc: 'Durable spring-steel snap hair clips in black gloss finish' },
+    { id: 'inv-105', name: 'Kids Colorful Pastel Snap Clips (Card of 10 pcs)', type: 'Kids Clips', price: 420, costPrice: 220, stock: 380, reorderLevel: 40, desc: 'Vibrant enamel coated hair clips with rounded safety corners' },
+    { id: 'inv-106', name: 'Bridal Pearl & Crystal Fancy Hair Pins (Pack of 6)', type: 'Fancy Pins', price: 850, costPrice: 420, stock: 140, reorderLevel: 25, desc: 'Handcrafted wedding and bridal decorative pearl flower hair pins' },
+    { id: 'inv-107', name: 'Wholesale Bulk Bobby Pins (1 Gross = 144 pins)', type: 'Wholesale Pack', price: 720, costPrice: 390, stock: 210, reorderLevel: 30, desc: 'Master wholesale 1-gross polybag pack for cosmetic shops' },
+    { id: 'inv-108', name: 'Master Shipping Carton Bobby Pins (50 Gross)', type: 'Master Carton', price: 34000, costPrice: 19500, stock: 28, reorderLevel: 5, desc: 'Factory sealed master carton containing 7,200 hair pins' },
+    { id: 'inv-109', name: 'Spring Steel Wire 1.0mm (25kg Spool)', type: 'Raw Material', price: 9800, costPrice: 8500, stock: 20, reorderLevel: 4, desc: 'Cold-drawn high-carbon spring steel wire for pin forming' },
+    { id: 'inv-110', name: 'Rust-Proof Black Baking Enamel (5L Can)', type: 'Raw Material', price: 7500, costPrice: 6200, stock: 12, reorderLevel: 3, desc: 'Industrial thermosetting gloss black lacquer' },
+    { id: 'inv-111', name: 'Printed Hair Pin Display Cards (Pack of 1,000)', type: 'Packaging', price: 3500, costPrice: 2800, stock: 45, reorderLevel: 10, desc: 'Custom printed 350gsm brand backing cards with euro slot' }
   ];
 
   const sampleLeads = [
-    { id: 'lead-1', gymName: 'Titan Fitness Kurunegala', name: 'Sunil Cooray', phone: '0773334444', email: 'sunil@titan.lk', location: 'Kurunegala', status: 'Contacted', value: 350000, createdAt: new Date().toISOString() },
-    { id: 'lead-2', gymName: 'Pulse Gym Jaffna', name: 'K. Selvam', phone: '0718889999', email: 'selvam@pulse.lk', location: 'Jaffna', status: 'Demo Scheduled', value: 420000, createdAt: new Date().toISOString() },
-    { id: 'lead-3', gymName: 'Metro Fitness Battaramulla', name: 'Anura Dissanayake', phone: '0761110000', email: 'anura@metro.lk', location: 'Battaramulla', status: 'Interested', value: 290000, createdAt: new Date().toISOString() }
+    { id: 'lead-1', gymName: 'City Fancy Center Pettah', name: 'M. Riaz', phone: '0771122334', email: 'riaz@cityfancy.lk', location: 'Colombo 11', status: 'Contacted', value: 350000, createdAt: new Date().toISOString() },
+    { id: 'lead-2', gymName: 'Salon Majestic & Bridal Wear Kandy', name: 'S. Kumari', phone: '0714455667', email: 'kumari@majestic.lk', location: 'Kandy', status: 'Demo Scheduled', value: 240000, createdAt: new Date().toISOString() },
+    { id: 'lead-3', gymName: 'Glamour Cosmetics Galle Fort', name: 'Niluka Silva', phone: '0767788990', email: 'niluka@glamour.lk', location: 'Galle', status: 'Interested', value: 180000, createdAt: new Date().toISOString() }
   ];
 
   const sampleQuotes = [
-    { id: 'q-101', shareKey: 'SNX-Q101', quoteNumber: 'QT-1001', date: '2026-07-20', prospectName: 'Pulse Gym Jaffna', prospectPhone: '0718889999', amount: 420000, status: 'Pending', items: [{ name: 'Gym Software Setup + Hardware Package', qty: 1, unitPrice: 420000, amount: 420000 }] },
-    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Metro Fitness Battaramulla', prospectPhone: '0761110000', amount: 290000, status: 'Accepted', items: [{ name: 'Annual Software License + Turnstile Gate Module', qty: 1, unitPrice: 290000, amount: 290000 }] }
+    { id: 'q-101', shareKey: 'SNX-Q101', quoteNumber: 'QT-1001', date: '2026-07-20', prospectName: 'Lanka Fancy Center', prospectPhone: '0772345678', amount: 480000, status: 'Pending', items: [{ name: 'Wholesale Bobby Pins (20 Cartons)', qty: 20, unitPrice: 24000, amount: 480000 }] },
+    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Queens Bridal & Beauty Salon', prospectPhone: '0718765432', amount: 145000, status: 'Accepted', items: [{ name: 'Salon Jumbo U-Pins + Pearl Bridal Sets', qty: 100, unitPrice: 1450, amount: 145000 }] }
   ];
 
   const sampleInvoices = [
-    { id: 'inv-201', shareKey: 'SNX-INV201', invoiceNumber: 'INV-1001', date: '2026-06-01', dueDate: '2026-06-15', customerId: 'c-101', prospectName: 'Fitness First Colombo', amount: 450000, status: 'Paid', items: [{ name: 'Annual GymSales Software License 2026', qty: 1, unitPrice: 450000, amount: 450000 }], reminderSent: true },
-    { id: 'inv-202', shareKey: 'SNX-INV202', invoiceNumber: 'INV-1002', date: '2026-06-10', dueDate: '2026-06-25', customerId: 'c-102', prospectName: 'Power World Gym Kandy', amount: 320000, status: 'Paid', items: [{ name: 'Annual GymSales License + Biometric Module', qty: 1, unitPrice: 320000, amount: 320000 }], reminderSent: true },
-    { id: 'inv-203', shareKey: 'SNX-INV203', invoiceNumber: 'INV-1003', date: '2026-07-01', dueDate: '2026-07-15', customerId: 'c-103', prospectName: "Gold's Gym Galle", amount: 600000, status: 'Overdue', items: [{ name: 'Multi-Branch Enterprise Software License', qty: 1, unitPrice: 600000, amount: 600000 }], reminderSent: false },
-    { id: 'inv-204', shareKey: 'SNX-INV204', invoiceNumber: 'INV-1004', date: '2026-08-01', dueDate: '2026-08-25', customerId: 'c-104', prospectName: 'High Octane Fitness Negombo', amount: 280000, status: 'Sent', items: [{ name: 'Standard Gym Management Module', qty: 1, unitPrice: 280000, amount: 280000 }], reminderSent: false }
+    { id: 'inv-201', shareKey: 'SNX-INV201', invoiceNumber: 'INV-1001', date: '2026-06-01', dueDate: '2026-06-15', customerId: 'c-101', prospectName: 'Lanka Fancy Center', amount: 450000, status: 'Paid', items: [{ name: 'Classic Black Bobby Pins (15 Master Cartons)', qty: 15, unitPrice: 30000, amount: 450000 }], reminderSent: true },
+    { id: 'inv-202', shareKey: 'SNX-INV202', invoiceNumber: 'INV-1002', date: '2026-06-10', dueDate: '2026-06-25', customerId: 'c-102', prospectName: 'Queens Bridal & Beauty Salon', amount: 145000, status: 'Paid', items: [{ name: 'Salon Jumbo U-Pins & Pearl Hair Pins Package', qty: 1, unitPrice: 145000, amount: 145000 }], reminderSent: true },
+    { id: 'inv-203', shareKey: 'SNX-INV203', invoiceNumber: 'INV-1003', date: '2026-07-01', dueDate: '2026-07-15', customerId: 'c-103', prospectName: 'Sunil Cosmetics & Novelty Stores', amount: 280000, status: 'Overdue', items: [{ name: 'Wholesale Bobby Pins & Snap Clips Assortment', qty: 1, unitPrice: 280000, amount: 280000 }], reminderSent: false },
+    { id: 'inv-204', shareKey: 'SNX-INV204', invoiceNumber: 'INV-1004', date: '2026-08-01', dueDate: '2026-08-25', customerId: 'c-104', prospectName: 'New Fashion Corner Kurunegala', amount: 195000, status: 'Sent', items: [{ name: 'Kids Snap Clips & Golden Wave Grips Pack', qty: 1, unitPrice: 195000, amount: 195000 }], reminderSent: false }
   ];
 
   const sampleExpenses = [
-    { id: 'exp-1', category: 'Operational', amount: 45000, date: '2026-07-05', description: 'AWS Cloud Server & Database Infrastructure Hosting' },
-    { id: 'exp-2', category: 'Marketing', amount: 85000, date: '2026-07-10', description: 'Facebook & Google Ads Marketing Campaign' },
-    { id: 'exp-3', category: 'Staff', amount: 120000, date: '2026-07-28', description: 'Sales Team Monthly Bonus & Commissions' },
-    { id: 'exp-4', category: 'Administrative', amount: 180000, date: '2026-08-01', description: 'Headquarters Office Rent & Fibre Internet' }
+    { id: 'exp-1', category: 'Operational', amount: 55000, date: '2026-07-05', description: 'Factory 3-Phase Machine Power & Electricity Bill' },
+    { id: 'exp-2', category: 'Operational', amount: 32000, date: '2026-07-10', description: 'Forming Machine Hydraulic Oil & Cutter Tool Sharpening' },
+    { id: 'exp-3', category: 'Staff', amount: 145000, date: '2026-07-28', description: 'Workshop Machine Operators & Packing Piece-Rate Wages' },
+    { id: 'exp-4', category: 'Administrative', amount: 48000, date: '2026-08-01', description: 'Wholesale Delivery Van Diesel Fuel & Maintenance' }
   ];
 
   const sampleFixedAssets = [
-    { id: 'fa-1', assetCode: 'FA-1001', name: 'High Performance Server Workstations', category: 'IT Equipment', purchaseDate: '2025-01-10', purchaseCost: 1200000, usefulLifeYears: 5, salvageValue: 100000, depreciationMethod: 'Straight Line (SLM)', location: 'Colombo HQ', status: 'Active' },
-    { id: 'fa-2', assetCode: 'FA-1002', name: 'Showroom Demo Equipment Set', category: 'Fitness Equipment', purchaseDate: '2025-03-15', purchaseCost: 2500000, usefulLifeYears: 7, salvageValue: 300000, depreciationMethod: 'Straight Line (SLM)', location: 'Kandy Branch', status: 'Active' }
+    { id: 'fa-1', assetCode: 'FA-1001', name: 'Automatic Wire Bending & Pin Forming Machine (HP-2024)', category: 'Production Machinery', purchaseDate: '2025-01-10', purchaseCost: 1850000, usefulLifeYears: 8, salvageValue: 200000, depreciationMethod: 'Straight Line (SLM)', location: 'Factory Line 1', status: 'Active' },
+    { id: 'fa-2', assetCode: 'FA-1002', name: 'High-Temperature Enamel Baking & Curing Conveyor Oven', category: 'Production Machinery', purchaseDate: '2025-03-15', purchaseCost: 950000, usefulLifeYears: 10, salvageValue: 100000, depreciationMethod: 'Straight Line (SLM)', location: 'Baking Cell', status: 'Active' },
+    { id: 'fa-3', assetCode: 'FA-1003', name: 'Card Mounting & Shrink Packaging Sealer', category: 'Packaging Equipment', purchaseDate: '2025-05-20', purchaseCost: 580000, usefulLifeYears: 6, salvageValue: 50000, depreciationMethod: 'Straight Line (SLM)', location: 'Packaging Bay', status: 'Active' }
   ];
 
   const sampleJournalEntries = [
-    { id: 'je-1', date: '2026-01-01', reference: 'GEN-001', description: 'Initial Capital Contribution', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
-    { id: 'je-2', date: '2026-06-01', reference: 'GEN-002', description: 'Fitness First Invoice INV-1001 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-01').toISOString() },
-    { id: 'je-3', date: '2026-06-10', reference: 'GEN-003', description: 'Power World Gym INV-1002 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-10').toISOString() },
-    { id: 'je-4', date: '2026-07-01', reference: 'GEN-004', description: 'Gold\'s Gym Invoice INV-1003 Billed (Receivable)', createdBy: 'System', timestamp: new Date('2026-07-01').toISOString() },
-    { id: 'je-5', date: '2026-07-05', reference: 'GEN-005', description: 'Cloud Infrastructure & Hosting Expense', createdBy: 'System', timestamp: new Date('2026-07-05').toISOString() },
-    { id: 'je-6', date: '2026-07-10', reference: 'GEN-006', description: 'Digital Marketing & Lead Generation Expense', createdBy: 'System', timestamp: new Date('2026-07-10').toISOString() }
+    { id: 'je-1', date: '2026-01-01', reference: 'GEN-001', description: 'Initial Manufacturing Capital Contribution', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
+    { id: 'je-2', date: '2026-06-01', reference: 'GEN-002', description: 'Lanka Fancy Center INV-1001 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-01').toISOString() },
+    { id: 'je-3', date: '2026-06-10', reference: 'GEN-003', description: 'Queens Bridal Salon INV-1002 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-10').toISOString() },
+    { id: 'je-4', date: '2026-07-01', reference: 'GEN-004', description: 'Sunil Cosmetics Invoice INV-1003 Billed (Debtor)', createdBy: 'System', timestamp: new Date('2026-07-01').toISOString() },
+    { id: 'je-5', date: '2026-07-05', reference: 'GEN-005', description: 'Factory Power & Machine Operating Expense', createdBy: 'System', timestamp: new Date('2026-07-05').toISOString() },
+    { id: 'je-6', date: '2026-07-10', reference: 'GEN-006', description: 'Machine Tooling & Maintenance Expense', createdBy: 'System', timestamp: new Date('2026-07-10').toISOString() }
   ];
 
   const sampleJournalLines = [
@@ -126,14 +133,14 @@ export default function StoreContextProvider({ children }) {
     { id: 'jl-2', journalEntryId: 'je-1', accountId: '3010', debit: 0, credit: 5000000 },
     { id: 'jl-3', journalEntryId: 'je-2', accountId: '1020', debit: 450000, credit: 0 },
     { id: 'jl-4', journalEntryId: 'je-2', accountId: '4010', debit: 0, credit: 450000 },
-    { id: 'jl-5', journalEntryId: 'je-3', accountId: '1020', debit: 320000, credit: 0 },
-    { id: 'jl-6', journalEntryId: 'je-3', accountId: '4010', debit: 0, credit: 320000 },
-    { id: 'jl-7', journalEntryId: 'je-4', accountId: '1100', debit: 600000, credit: 0 },
-    { id: 'jl-8', journalEntryId: 'je-4', accountId: '4010', debit: 0, credit: 600000 },
-    { id: 'jl-9', journalEntryId: 'je-5', accountId: '5050', debit: 45000, credit: 0 },
-    { id: 'jl-10', journalEntryId: 'je-5', accountId: '1020', debit: 0, credit: 45000 },
-    { id: 'jl-11', journalEntryId: 'je-6', accountId: '5060', debit: 85000, credit: 0 },
-    { id: 'jl-12', journalEntryId: 'je-6', accountId: '1020', debit: 0, credit: 85000 }
+    { id: 'jl-5', journalEntryId: 'je-3', accountId: '1020', debit: 145000, credit: 0 },
+    { id: 'jl-6', journalEntryId: 'je-3', accountId: '4010', debit: 0, credit: 145000 },
+    { id: 'jl-7', journalEntryId: 'je-4', accountId: '1100', debit: 280000, credit: 0 },
+    { id: 'jl-8', journalEntryId: 'je-4', accountId: '4010', debit: 0, credit: 280000 },
+    { id: 'jl-9', journalEntryId: 'je-5', accountId: '5050', debit: 55000, credit: 0 },
+    { id: 'jl-10', journalEntryId: 'je-5', accountId: '1020', debit: 0, credit: 55000 },
+    { id: 'jl-11', journalEntryId: 'je-6', accountId: '5060', debit: 32000, credit: 0 },
+    { id: 'jl-12', journalEntryId: 'je-6', accountId: '1020', debit: 0, credit: 32000 }
   ];
 
   const [customers, setCustomers] = useState(() => {
@@ -212,9 +219,9 @@ export default function StoreContextProvider({ children }) {
 
   // --- PROCUREMENT & PURCHASE ORDER (PO) ERP STATE ---
   const sampleSuppliers = [
-    { id: 'sup-1', name: 'TechnoGym Sri Lanka', contactPerson: 'Kanishka Silva', phone: '0112345678', email: 'sales@technogym.lk', category: 'Fitness Equipment', address: 'No 45, Galle Road, Colombo 03', status: 'Active' },
-    { id: 'sup-2', name: 'Matrix Fitness Hardware', contactPerson: 'Nalin Perera', phone: '0117654321', email: 'orders@matrixfitness.lk', category: 'Gym Hardware & Sensors', address: 'No 112, Kandy Road, Kelaniya', status: 'Active' },
-    { id: 'sup-3', name: 'Seynex Tech Hardware Supplying', contactPerson: 'Devinda de Silva', phone: '0728408880', email: 'hardware@seynex.lk', category: 'Biometric Access Control', address: 'No 680/1B, Gonwala, Kelaniya', status: 'Active' }
+    { id: 'sup-1', name: 'Lanka Steel & Wire Mills', contactPerson: 'Kanishka Silva', phone: '0112345678', email: 'sales@lankawire.lk', category: 'Spring Steel Wire & Metals', address: 'No 45, Industrial Zone, Kelaniya', status: 'Active' },
+    { id: 'sup-2', name: 'Apex Industrial Paints & Lacquers', contactPerson: 'Nalin Perera', phone: '0117654321', email: 'orders@apexpaints.lk', category: 'Enamel & Protective Coatings', address: 'No 112, Kandy Road, Ekala', status: 'Active' },
+    { id: 'sup-3', name: 'ColorPack Printing & Packaging', contactPerson: 'Devinda de Silva', phone: '0728408880', email: 'packaging@colorpack.lk', category: 'Cards, Pouches & Master Cartons', address: 'No 680/1B, Colombo 10', status: 'Active' }
   ];
 
   const samplePurchaseOrders = [
@@ -222,27 +229,26 @@ export default function StoreContextProvider({ children }) {
       id: 'po-1',
       poNumber: 'PO-1001',
       supplierId: 'sup-1',
-      supplierName: 'TechnoGym Sri Lanka',
+      supplierName: 'Lanka Steel & Wire Mills',
       date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
       expectedDelivery: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
       status: 'Ordered',
-      totalAmount: 450000,
+      totalAmount: 170000,
       items: [
-        { name: 'Commercial Treadmill X10', quantity: 1, unitCost: 350000, totalCost: 350000 },
-        { name: 'Rubber Bumper Plates 20kg', quantity: 4, unitCost: 25000, totalCost: 100000 }
+        { name: 'Spring Steel Wire 1.0mm (25kg Spool)', quantity: 20, unitCost: 8500, totalCost: 170000 }
       ]
     },
     {
       id: 'po-2',
       poNumber: 'PO-1002',
       supplierId: 'sup-3',
-      supplierName: 'Seynex Tech Hardware Supplying',
+      supplierName: 'ColorPack Printing & Packaging',
       date: new Date(Date.now() - 12 * 86400000).toISOString().split('T')[0],
       expectedDelivery: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
       status: 'Received',
-      totalAmount: 180000,
+      totalAmount: 84000,
       items: [
-        { name: 'Biometric Turnstile Controller', quantity: 2, unitCost: 90000, totalCost: 180000 }
+        { name: 'Printed Hair Pin Display Cards (Pack of 1,000)', quantity: 30, unitCost: 2800, totalCost: 84000 }
       ]
     }
   ];
@@ -268,90 +274,90 @@ export default function StoreContextProvider({ children }) {
     {
       id: 'bom-1',
       code: 'BOM-1001',
-      productSku: 'BOM-1001',
-      name: 'Commercial Multi-Grip Pullup Station',
-      productName: 'Commercial Multi-Grip Pullup Station',
-      productCategory: 'Equipment',
-      outputUnit: 'Units',
-      batchYield: 1,
+      productSku: 'HP-BP-101',
+      name: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
+      productName: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
+      productCategory: 'Bobby Pins',
+      outputUnit: 'Packets',
+      batchYield: 100,
       components: [
-        { name: 'Structural Steel Tube 75x75x3mm', materialName: 'Structural Steel Tube 75x75x3mm', materialSku: 'STL-75-3', quantity: 8, unit: 'meters', unitCost: 4500, totalCost: 36000 },
-        { name: 'Laser-Cut Heavy Mounting Flange Plates', materialName: 'Laser-Cut Heavy Mounting Flange Plates', materialSku: 'FLG-12MM', quantity: 4, unit: 'pcs', unitCost: 2800, totalCost: 11200 },
-        { name: 'High-Density Knurled Rubber Grip Sleeves', materialName: 'High-Density Knurled Rubber Grip Sleeves', materialSku: 'GRP-KNR', quantity: 6, unit: 'pcs', unitCost: 1200, totalCost: 7200 },
-        { name: 'Industrial Epoxy Powder Coat Finish', materialName: 'Industrial Epoxy Powder Coat Finish', materialSku: 'PWT-BLK', quantity: 2, unit: 'kg', unitCost: 3500, totalCost: 7000 },
-        { name: 'Grade 8.8 High-Tensile M12 Fastener Kit', materialName: 'Grade 8.8 High-Tensile M12 Fastener Kit', materialSku: 'FST-M12', quantity: 1, unit: 'sets', unitCost: 3200, totalCost: 3200 }
+        { name: 'Spring Steel Wire 1.0mm', materialName: 'Spring Steel Wire 1.0mm', materialSku: 'RM-WIRE-01', quantity: 12, unit: 'kg', unitCost: 340, totalCost: 4080 },
+        { name: 'Rust-Proof Black Baking Enamel', materialName: 'Rust-Proof Black Baking Enamel', materialSku: 'RM-ENML-02', quantity: 1, unit: 'L', unitCost: 1240, totalCost: 1240 },
+        { name: 'Protective Ball-End Dipping Plastic', materialName: 'Protective Ball-End Dipping Plastic', materialSku: 'RM-TIP-03', quantity: 0.5, unit: 'kg', unitCost: 900, totalCost: 450 },
+        { name: 'Printed Backing Cards', materialName: 'Printed Backing Cards', materialSku: 'PK-CARD-05', quantity: 100, unit: 'pcs', unitCost: 3.5, totalCost: 350 },
+        { name: 'Clear OPP Hanging Pouches', materialName: 'Clear OPP Hanging Pouches', materialSku: 'PK-BAG-06', quantity: 100, unit: 'pcs', unitCost: 2.2, totalCost: 220 }
       ],
-      laborHours: 10,
-      laborRatePerHour: 1800,
-      laborCost: 18000,
-      overheadCost: 9500,
-      machineOverhead: 9500,
-      materialCostPerUnit: 64600,
-      totalCost: 92100,
-      totalCostPerUnit: 92100,
-      suggestedPrice: 145000,
-      suggestedRetailPrice: 145000,
-      marginPercent: 36,
-      routing: ['Raw Material Cutting & Deburring', 'CNC Hole Punching', 'Precision MIG Welding', 'Shot Blasting & Epoxy Coating', 'Assembly & Final QC Inspection'],
-      notes: 'Standard heavy commercial gym grade station with ceiling and wall anchorage.'
+      laborHours: 3.5,
+      laborRatePerHour: 850,
+      laborCost: 2975,
+      overheadCost: 1650,
+      machineOverhead: 1650,
+      materialCostPerUnit: 63.4,
+      totalCost: 10965,
+      totalCostPerUnit: 109.65,
+      suggestedPrice: 250,
+      suggestedRetailPrice: 250,
+      marginPercent: 56,
+      routing: ['High-Speed Automatic Wire Feeding & Bending', 'Heat Treatment & Spring Quenching', 'Electrostatically Applied Enamel & Oven Baking', 'Smooth Safety Ball-Tip Resin Dipping', 'Automated Card Mounting & OPP Bag Sealing', 'Final Batch Quality Inspection'],
+      notes: 'Master batch formulation producing 100 retail packets (120 pins per packet).'
     },
     {
       id: 'bom-2',
       code: 'BOM-1002',
-      productSku: 'BOM-1002',
-      name: 'Adjustable Incline Weight Bench Pro',
-      productName: 'Adjustable Incline Weight Bench Pro',
-      productCategory: 'Equipment',
-      outputUnit: 'Units',
-      batchYield: 1,
+      productSku: 'HP-GW-102',
+      name: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
+      productName: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
+      productCategory: 'Wave Grips',
+      outputUnit: 'Cards',
+      batchYield: 50,
       components: [
-        { name: 'Rectangular Hollow Steel 100x50x3mm', materialName: 'Rectangular Hollow Steel 100x50x3mm', materialSku: 'STL-100-50', quantity: 6, unit: 'meters', unitCost: 4200, totalCost: 25200 },
-        { name: 'High-Density Rebonded Foam Pad Base', materialName: 'High-Density Rebonded Foam Pad Base', materialSku: 'PAD-FOAM', quantity: 2, unit: 'pcs', unitCost: 4500, totalCost: 9000 },
-        { name: 'Heavy-Duty Commercial Vinyl Upholstery', materialName: 'Heavy-Duty Commercial Vinyl Upholstery', materialSku: 'VIN-UPH', quantity: 2, unit: 'sqm', unitCost: 3800, totalCost: 7600 },
-        { name: 'Spring-Loaded Locking Pull-Pin Mechanism', materialName: 'Spring-Loaded Locking Pull-Pin Mechanism', materialSku: 'PIN-MECH', quantity: 2, unit: 'pcs', unitCost: 2400, totalCost: 4800 },
-        { name: 'Non-Slip Heavy Molded Rubber Foot Endcaps', materialName: 'Non-Slip Heavy Molded Rubber Foot Endcaps', materialSku: 'CAP-RUB', quantity: 4, unit: 'pcs', unitCost: 950, totalCost: 3800 }
+        { name: 'Cold-Formed Spring Flat Wire', materialName: 'Cold-Formed Spring Flat Wire', materialSku: 'RM-FLAT-01', quantity: 5, unit: 'kg', unitCost: 450, totalCost: 2250 },
+        { name: 'Gold Metallic Lacquer & Luster Coating', materialName: 'Gold Metallic Lacquer & Luster Coating', materialSku: 'RM-GOLD-03', quantity: 0.4, unit: 'kg', unitCost: 4500, totalCost: 1800 },
+        { name: 'Gold-Tone Display Hanging Cards', materialName: 'Gold-Tone Display Hanging Cards', materialSku: 'PK-GCARD-02', quantity: 50, unit: 'pcs', unitCost: 5, totalCost: 250 },
+        { name: 'Polybag Packaging Sleeves', materialName: 'Polybag Packaging Sleeves', materialSku: 'PK-BAG-06', quantity: 50, unit: 'pcs', unitCost: 2, totalCost: 100 }
       ],
-      laborHours: 8,
-      laborRatePerHour: 1750,
-      laborCost: 14000,
-      overheadCost: 6500,
-      machineOverhead: 6500,
-      materialCostPerUnit: 50400,
-      totalCost: 70900,
-      totalCostPerUnit: 70900,
-      suggestedPrice: 115000,
-      suggestedRetailPrice: 115000,
-      marginPercent: 38,
-      routing: ['Steel Frame Fabrication', 'Upholstery Sewing & Stretching', 'Hardware Assembly', 'Stability & Load Testing'],
-      notes: '0° to 85° multi-angle laser-notched ladder backrest.'
+      laborHours: 2.5,
+      laborRatePerHour: 850,
+      laborCost: 2125,
+      overheadCost: 1200,
+      machineOverhead: 1200,
+      materialCostPerUnit: 88,
+      totalCost: 7725,
+      totalCostPerUnit: 154.5,
+      suggestedPrice: 320,
+      suggestedRetailPrice: 320,
+      marginPercent: 52,
+      routing: ['Precision Wave Die Pressing', 'Anti-Corrosion Polishing', 'Gold Dipping & Thermo-Cure', 'Card Attachment & Packaging'],
+      notes: 'Produces 50 display cards (24 pins per card / 2 Dozen).'
     },
     {
       id: 'bom-3',
       code: 'BOM-1003',
-      productSku: 'BOM-1003',
-      name: 'Commercial Olympic Bumper Plate 20kg (Pair)',
-      productName: 'Commercial Olympic Bumper Plate 20kg (Pair)',
-      productCategory: 'Accessories',
-      outputUnit: 'Pairs',
-      batchYield: 1,
+      productSku: 'HP-SC-104',
+      name: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
+      productName: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
+      productCategory: 'Snap Clips',
+      outputUnit: 'Cards',
+      batchYield: 100,
       components: [
-        { name: 'Precision Stainless Steel 50.4mm Center Bushing', materialName: 'Precision Stainless Steel 50.4mm Center Bushing', materialSku: 'BSH-50MM', quantity: 2, unit: 'pcs', unitCost: 4500, totalCost: 9000 },
-        { name: 'Virgin Vulcanized Rubber Compound Blend', materialName: 'Virgin Vulcanized Rubber Compound Blend', materialSku: 'RBR-CMP', quantity: 40, unit: 'kg', unitCost: 1100, totalCost: 44000 },
-        { name: 'Embossed White Color Ink & Labeling Film', materialName: 'Embossed White Color Ink & Labeling Film', materialSku: 'LBL-INK', quantity: 1, unit: 'sets', unitCost: 1500, totalCost: 1500 }
+        { name: 'Spring Steel Strip Coil 0.8mm', materialName: 'Spring Steel Strip Coil 0.8mm', materialSku: 'RM-COIL-01', quantity: 7, unit: 'kg', unitCost: 480, totalCost: 3360 },
+        { name: 'Gloss Black Powder Coating', materialName: 'Gloss Black Powder Coating', materialSku: 'RM-ENML-02', quantity: 0.8, unit: 'kg', unitCost: 1100, totalCost: 880 },
+        { name: 'Center Click Spring Tongue Inserts', materialName: 'Center Click Spring Tongue Inserts', materialSku: 'RM-CLICK-03', quantity: 1200, unit: 'pcs', unitCost: 1.8, totalCost: 2160 },
+        { name: '1-Dozen Display Hanging Cards', materialName: '1-Dozen Display Hanging Cards', materialSku: 'PK-CARD-05', quantity: 100, unit: 'pcs', unitCost: 3.5, totalCost: 350 }
       ],
       laborHours: 4,
-      laborRatePerHour: 2000,
-      laborCost: 8000,
-      overheadCost: 4500,
-      machineOverhead: 4500,
-      materialCostPerUnit: 54500,
-      totalCost: 67000,
-      totalCostPerUnit: 67000,
-      suggestedPrice: 95000,
-      suggestedRetailPrice: 95000,
-      marginPercent: 29,
-      routing: ['High-Pressure Hydraulic Compression Molding', 'Curing & Cooling', 'Center Ring Hydraulic Press Fit', 'Weight Calibration & Drop Test'],
-      notes: 'IWF standard 450mm diameter, Shore A durometer 88 hardness.'
+      laborRatePerHour: 850,
+      laborCost: 3400,
+      overheadCost: 1800,
+      machineOverhead: 1800,
+      materialCostPerUnit: 67.5,
+      totalCost: 11950,
+      totalCostPerUnit: 119.5,
+      suggestedPrice: 380,
+      suggestedRetailPrice: 380,
+      marginPercent: 68,
+      routing: ['Progressive Stamping Press', 'Tumble Deburring & Edge Softening', 'Center Click Assembly', 'Electrostatic Black Coating', 'Card Insertion & QC'],
+      notes: 'Produces 100 retail dozen cards (12 clips per card = 1,200 clips).'
     }
   ];
 
@@ -360,34 +366,34 @@ export default function StoreContextProvider({ children }) {
       id: 'mo-1',
       orderNumber: 'MO-2026-001',
       bomId: 'bom-1',
-      productName: 'Commercial Multi-Grip Pullup Station',
-      productSku: 'BOM-1001',
+      productName: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
+      productSku: 'HP-BP-101',
       quantity: 5,
       quantityToProduce: 5,
       status: 'In Progress',
       priority: 'High',
       startDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Main Heavy Fabrication Bay A',
-      supervisor: 'Kasun Rajapaksha',
-      workstation: 'Main Heavy Fabrication Bay A',
-      materialCost: 323000,
-      laborCost: 90000,
-      overheadCost: 47500,
-      totalCost: 460500,
-      totalBatchCost: 460500,
-      costPerUnit: 92100,
-      unitCost: 92100,
+      assignedTo: 'Automatic Forming Machine 1',
+      supervisor: 'Father (Master Craftsman)',
+      workstation: 'Automatic Forming Machine 1',
+      materialCost: 31700,
+      laborCost: 14875,
+      overheadCost: 8250,
+      totalCost: 54825,
+      totalBatchCost: 54825,
+      costPerUnit: 109.65,
+      unitCost: 109.65,
       batchNumber: 'LOT-2026-09A',
       components: sampleBOMs[0].components,
-      notes: 'High-priority order for Fitness First Colombo order.'
+      notes: 'Wholesale order for Lanka Fancy Center Pettah distributor.'
     },
     {
       id: 'mo-2',
       orderNumber: 'MO-2026-002',
       bomId: 'bom-2',
-      productName: 'Adjustable Incline Weight Bench Pro',
-      productSku: 'BOM-1002',
+      productName: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
+      productSku: 'HP-GW-102',
       quantity: 10,
       quantityToProduce: 10,
       status: 'Completed',
@@ -395,48 +401,48 @@ export default function StoreContextProvider({ children }) {
       startDate: new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0],
       dueDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
       completedDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Assembly & Upholstery Cell 2',
-      supervisor: 'Kasun Rajapaksha',
-      workstation: 'Assembly & Upholstery Cell 2',
-      materialCost: 504000,
-      laborCost: 140000,
-      overheadCost: 65000,
-      totalCost: 709000,
-      totalBatchCost: 709000,
-      costPerUnit: 70900,
-      unitCost: 70900,
+      assignedTo: 'Wave Forming Line 2',
+      supervisor: 'Father (Master Craftsman)',
+      workstation: 'Wave Forming Line 2',
+      materialCost: 44000,
+      laborCost: 21250,
+      overheadCost: 12000,
+      totalCost: 77250,
+      totalBatchCost: 77250,
+      costPerUnit: 154.5,
+      unitCost: 154.5,
       batchNumber: 'LOT-2026-08B',
       components: sampleBOMs[1].components,
       qcPassedQty: 10,
       qcRejectedQty: 0,
-      qcInspector: 'Dinesh Jayawardena',
-      notes: 'Completed ahead of schedule, zero defects recorded during QA load stress test.'
+      qcInspector: 'Father (Master Craftsman)',
+      notes: 'Completed ahead of schedule, zero defects recorded during spring tension test.'
     },
     {
       id: 'mo-3',
       orderNumber: 'MO-2026-003',
       bomId: 'bom-3',
-      productName: 'Commercial Olympic Bumper Plate 20kg (Pair)',
-      productSku: 'BOM-1003',
-      quantity: 25,
-      quantityToProduce: 25,
+      productName: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
+      productSku: 'HP-SC-104',
+      quantity: 15,
+      quantityToProduce: 15,
       status: 'Planned',
       priority: 'Urgent',
       startDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Vulcanizing Press Line 1',
-      supervisor: 'Kasun Rajapaksha',
-      workstation: 'Vulcanizing Press Line 1',
-      materialCost: 1362500,
-      laborCost: 200000,
-      overheadCost: 112500,
-      totalCost: 1675000,
-      totalBatchCost: 1675000,
-      costPerUnit: 67000,
-      unitCost: 67000,
+      assignedTo: 'Stamping Press 1',
+      supervisor: 'Father (Master Craftsman)',
+      workstation: 'Stamping Press 1',
+      materialCost: 101250,
+      laborCost: 51000,
+      overheadCost: 27000,
+      totalCost: 179250,
+      totalBatchCost: 179250,
+      costPerUnit: 119.5,
+      unitCost: 119.5,
       batchNumber: 'LOT-2026-09C',
       components: sampleBOMs[2].components,
-      notes: 'Planned batch replenishment for central warehouse showroom inventory.'
+      notes: 'Planned batch replenishment for wholesale warehouse stock.'
     }
   ];
 
@@ -1138,27 +1144,27 @@ export default function StoreContextProvider({ children }) {
   const DEFAULT_SMS_CONFIG = {
     apiKey: '2179165276941c4e5eb994053957585',
     email: 'seynextech@gmail.com',
-    senderID: 'QKSendDemo',
-    companyName: 'Seynex Technology',
-    dashboardName: 'Seynex Technology',
+    senderID: 'SEYNEX',
+    companyName: 'Royal Hair Pin Industries',
+    dashboardName: 'Royal Hair Pins & Accessories',
     receiptLogo: '',
     companyLogo: '',
-    companyAddress: 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya',
+    companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
     companyPhone: '072 840 8880',
     adminPhone: '072 840 8880',
-    companyEmail: 'seynextech@gmail.com',
+    companyEmail: 'royalhairpins@gmail.com',
     bankDetails: {
-      accountName: 'B M A P K DE SILVA',
+      accountName: 'ROYAL HAIR PIN INDUSTRIES',
       bank: 'Sampath Bank',
-      branch: 'Ratmalana Branch',
+      branch: 'Kelaniya Branch',
       accountNumber: '1018 5281 9432'
     },
-    quoteTemplate: 'Hi {name},\nHere is your quotation for {gym}.\nTotal Amount: LKR {amount}\nView your Quote here: {link}',
-    thankYouTemplate: 'Hi {name},\nThank you! We have received payment for Invoice {invoiceNumber}.\nYour account is up to date.',
-    renewalTemplate: 'Hi {name},\nNotice: Your annual software renewal of LKR {amount} for {gym} is due on {date}. Please contact us to renew.',
-    invoiceReminderTemplate: 'Hi {name},\nReminder: Payment of LKR {amount} for Invoice {invoiceNumber} is due on {date}. Please arrange payment.',
-    birthdayTemplate: 'Happy Birthday {name}! Wishing you and the team at {gym} a fantastic year ahead! - {companyName}',
-    cashReceivedTemplate: 'Hi {name},\nCash Received! We have successfully received a deposit of LKR {amount} for {documentType} #{number}. Thank you!',
+    quoteTemplate: 'Hi {name},\nHere is your hair pin quotation from Royal Hair Pins.\nTotal Amount: LKR {amount}\nView Quote: {link}',
+    thankYouTemplate: 'Hi {name},\nThank you for choosing Royal Hair Pins! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
+    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply order for {gym} is due on {date}. Contact Royal Hair Pins to confirm delivery.',
+    invoiceReminderTemplate: 'Hi {name},\nReminder from Royal Hair Pins: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
+    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Royal Hair Pins!',
+    cashReceivedTemplate: 'Hi {name},\nCash Received! Royal Hair Pins received LKR {amount} for {documentType} #{number}. Thank you!',
     autoRenewalEnabled: false,
     autoRenewalDays: '15,7,1',
     autoInvoiceEnabled: false,
@@ -1168,16 +1174,16 @@ export default function StoreContextProvider({ children }) {
     smsFooter: '',
     smsEncoding: 'GSM',
     deliveryReports: true,
-    pdfColor: '#3b82f6',
-    pdfFooterText: 'Thank you for your business. Please process payment promptly.',
-    pdfNotes: 'This document is computer-generated by Seynex Technology Sales Management Suite.',
+    pdfColor: '#0d9488',
+    pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
+    pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.',
     sessionTimeout: 5,
     balance: 0,
     invoicePrefix: 'INV-',
     nextInvoiceNumber: 1001,
     quotePrefix: 'QT-',
     nextQuoteNumber: 1001,
-    debtorNudgeTemplate: 'Hi {name},\nThis is a friendly reminder that you have an outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle as soon as possible. Thank you!'
+    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
   };
 
   const [smsConfig, setSmsConfig] = useState(() => {
@@ -1491,6 +1497,12 @@ export default function StoreContextProvider({ children }) {
     setSuppliers(sampleSuppliers);
     setPurchaseOrders(samplePurchaseOrders);
     setEmployees(sampleEmployees);
+    if (typeof normalizeBOM === 'function') {
+      setBoms(sampleBOMs.map(normalizeBOM));
+    }
+    if (typeof normalizeProductionOrder === 'function') {
+      setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
+    }
 
     localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
     localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
@@ -1504,8 +1516,60 @@ export default function StoreContextProvider({ children }) {
     localStorage.setItem('gym_suppliers', JSON.stringify(sampleSuppliers));
     localStorage.setItem('gym_purchase_orders', JSON.stringify(samplePurchaseOrders));
     localStorage.setItem('gym_employees', JSON.stringify(sampleEmployees));
+    localStorage.setItem('gym_boms', JSON.stringify(sampleBOMs));
+    localStorage.setItem('gym_production_orders', JSON.stringify(sampleProductionOrders));
 
     showNotification('Loaded enterprise demo dataset successfully!');
+  };
+
+  const loadHairPinIndustryDefaults = () => {
+    setCustomers(sampleCustomers);
+    setInventory(sampleInventory);
+    setLeads(sampleLeads);
+    setQuotes(sampleQuotes);
+    setInvoices(sampleInvoices);
+    setExpenses(sampleExpenses);
+    setFixedAssets(sampleFixedAssets);
+    setJournalEntries(sampleJournalEntries);
+    setJournalLines(sampleJournalLines);
+    setSuppliers(sampleSuppliers);
+    setPurchaseOrders(samplePurchaseOrders);
+    setEmployees(sampleEmployees);
+    if (typeof normalizeBOM === 'function') {
+      setBoms(sampleBOMs.map(normalizeBOM));
+    }
+    if (typeof normalizeProductionOrder === 'function') {
+      setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
+    }
+
+    const updatedConfig = {
+      ...smsConfig,
+      companyName: 'Royal Hair Pin Industries',
+      dashboardName: 'Royal Hair Pins & Accessories',
+      companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
+      pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
+      pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.'
+    };
+    setSmsConfig(updatedConfig);
+
+    localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
+    localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
+    localStorage.setItem('gym_leads', JSON.stringify(sampleLeads));
+    localStorage.setItem('gym_quotes', JSON.stringify(sampleQuotes));
+    localStorage.setItem('gym_invoices', JSON.stringify(sampleInvoices));
+    localStorage.setItem('gym_expenses', JSON.stringify(sampleExpenses));
+    localStorage.setItem('gym_fixed_assets', JSON.stringify(sampleFixedAssets));
+    localStorage.setItem('gym_journal_entries', JSON.stringify(sampleJournalEntries));
+    localStorage.setItem('gym_journal_lines', JSON.stringify(sampleJournalLines));
+    localStorage.setItem('gym_suppliers', JSON.stringify(sampleSuppliers));
+    localStorage.setItem('gym_purchase_orders', JSON.stringify(samplePurchaseOrders));
+    localStorage.setItem('gym_employees', JSON.stringify(sampleEmployees));
+    localStorage.setItem('gym_boms', JSON.stringify(sampleBOMs));
+    localStorage.setItem('gym_production_orders', JSON.stringify(sampleProductionOrders));
+    localStorage.setItem('gym_sms_config', JSON.stringify(updatedConfig));
+
+    setHasUnsavedChanges(true);
+    showNotification('🏭 Loaded Hair Pin Manufacturing & Wholesale Catalog successfully!', 'success');
   };
 
   const resetToSeynexDefaults = async () => {
@@ -2088,19 +2152,45 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
-      const { error } = await supabase
+      let { error } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: effId,
           config,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
+
+      // If foreign key constraint failed on user_id, fallback to system admin UUID
+      if (error && error.code === '23503' && effId !== '76bb4580-2006-464f-aab8-64029dbe9540') {
+        const fallbackRes = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: '76bb4580-2006-464f-aab8-64029dbe9540',
+            config,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+        error = fallbackRes.error;
+      }
+
+      // Also ensure all existing profiles have the latest company configuration so no stale row overrides it
+      try {
+        await supabase
+          .from('user_profiles')
+          .update({
+            config,
+            updated_at: new Date().toISOString()
+          })
+          .neq('user_id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {
+        // Non-fatal if update fails
+      }
+
       if (error) {
         console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
         setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
-        setLastSyncTime(new Date());
+        setLastSyncTime(new Date().toISOString());
       }
     } catch (err) {
       console.warn('[Supabase Sync] Config Exception:', err.message);
@@ -2142,7 +2232,7 @@ export default function StoreContextProvider({ children }) {
         safeFetch('tasks', supabase.from('tasks').select('*')),
         safeFetch('fixed_assets', supabase.from('fixed_assets').select('*')),
         safeFetch('activity_logs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
-        safeFetch('user_profiles', supabase.from('user_profiles').select('config').limit(1))
+        safeFetch('user_profiles', supabase.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5))
       ]);
 
       const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData] = fetchResults;
@@ -2170,7 +2260,15 @@ export default function StoreContextProvider({ children }) {
       }
 
       // 2. Company Config & Branding Profile
-      const remoteConfig = Array.isArray(profData) ? profData[0]?.config : profData?.config;
+      let remoteConfig = null;
+      if (Array.isArray(profData) && profData.length > 0) {
+        const effId = getEffectiveUserId();
+        const matched = profData.find(p => p.user_id === effId) || profData[0];
+        remoteConfig = matched?.config;
+      } else if (profData && typeof profData === 'object') {
+        remoteConfig = profData.config;
+      }
+
       if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {
         setSmsConfig(prev => {
           const merged = { ...prev, ...remoteConfig };
@@ -2372,11 +2470,16 @@ export default function StoreContextProvider({ children }) {
       const safeUpsert = async (table, payload, onConflict = 'id') => {
         try {
           let res = await supabase.from(table).upsert(payload, { onConflict });
-          // If foreign key constraint failed on user_id, retry without user_id
+          // If foreign key constraint failed on user_id, retry with fallback
           if (res.error && res.error.code === '23503' && payload.user_id) {
-            const fallback = { ...payload };
-            delete fallback.user_id;
-            res = await supabase.from(table).upsert(fallback, { onConflict });
+            if (table === 'user_profiles') {
+              const fallback = { ...payload, user_id: '76bb4580-2006-464f-aab8-64029dbe9540' };
+              res = await supabase.from(table).upsert(fallback, { onConflict });
+            } else {
+              const fallback = { ...payload };
+              delete fallback.user_id;
+              res = await supabase.from(table).upsert(fallback, { onConflict });
+            }
           }
           if (res.error) {
             if (res.error.code === '42501' || res.error.message?.includes('row-level security')) {
@@ -2552,6 +2655,14 @@ export default function StoreContextProvider({ children }) {
         config: smsConfig,
         updated_at: new Date().toISOString()
       }, 'user_id');
+
+      // Also ensure all existing profiles have the latest config
+      try {
+        await supabase.from('user_profiles').update({
+          config: smsConfig,
+          updated_at: new Date().toISOString()
+        }).neq('user_id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {}
 
       if (rlsBlocked) {
         setCloudSyncStatus('error');
@@ -4852,7 +4963,7 @@ export default function StoreContextProvider({ children }) {
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
-      resetToSeynexDefaults, seedDummyData,
+      resetToSeynexDefaults, seedDummyData, loadHairPinIndustryDefaults,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
       boms, addBOM, updateBOM, deleteBOM,

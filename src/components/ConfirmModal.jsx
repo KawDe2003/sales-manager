@@ -28,7 +28,7 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
       onTouchMove={(e) => e.stopPropagation()}
     >
       <div className="modal-card" style={{
-        maxWidth: '440px', padding: '28px', borderRadius: '20px',
+        maxWidth: '440px', width: '100%', padding: '24px 20px', borderRadius: '18px',
         border: isDanger ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(99, 102, 241, 0.4)',
         boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.3)' : '0 25px 50px -12px rgba(99, 102, 241, 0.3)',
         position: 'relative'
@@ -47,36 +47,36 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
 
         <div className="flex items-center gap-4 mb-4">
           <div style={{
-            width: '52px', height: '52px', borderRadius: '16px',
+            width: '48px', height: '48px', borderRadius: '14px',
             background: isDanger ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
             border: `1px solid ${isDanger ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             {isDanger ? (
-              <Trash2 size={26} color="var(--danger)" />
+              <Trash2 size={24} color="var(--danger)" />
             ) : variant === 'warning' ? (
-              <AlertTriangle size={26} color="var(--warning)" />
+              <AlertTriangle size={24} color="var(--warning)" />
             ) : (
-              <CheckCircle2 size={26} color="var(--accent-primary)" />
+              <CheckCircle2 size={24} color="var(--accent-primary)" />
             )}
           </div>
           <div style={{ paddingRight: '24px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', lineHeight: 1.2 }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', lineHeight: 1.25 }}>
               {title}
             </h3>
           </div>
         </div>
 
-        <p style={{ margin: '0 0 24px 0', fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+        <p style={{ margin: '0 0 20px 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           {message}
         </p>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex gap-2.5" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button 
             type="button" 
             className="btn btn-secondary" 
             onClick={onClose}
-            style={{ padding: '10px 20px', fontSize: '0.88rem', fontWeight: 600 }}
+            style={{ minHeight: '42px', padding: '10px 18px', fontSize: '0.88rem', fontWeight: 600, flex: '1 1 auto', justifyContent: 'center' }}
           >
             {cancelText}
           </button>
@@ -88,11 +88,13 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
               onClose();
             }}
             style={{ 
-              padding: '10px 22px', fontSize: '0.88rem', fontWeight: 700,
+              minHeight: '42px', padding: '10px 20px', fontSize: '0.88rem', fontWeight: 700,
               color: '#ffffff',
               background: isDanger ? 'linear-gradient(135deg, #ef4444, #dc2626)' : undefined,
               boxShadow: isDanger ? '0 4px 14px rgba(239, 68, 68, 0.4)' : undefined,
-              border: isDanger ? '1px solid rgba(255,255,255,0.15)' : undefined
+              border: isDanger ? '1px solid rgba(255,255,255,0.15)' : undefined,
+              flex: '1 1 auto',
+              justifyContent: 'center'
             }}
           >
             {confirmText}

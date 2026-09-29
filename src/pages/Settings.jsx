@@ -8,7 +8,7 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt
+  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Factory, Sparkles
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -64,7 +64,7 @@ const generateRandomPassword = () => {
 const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
-    handleTestSms, resetToSeynexDefaults, seedDummyData,
+    handleTestSms, resetToSeynexDefaults, seedDummyData, loadHairPinIndustryDefaults,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
@@ -113,11 +113,14 @@ const Settings = () => {
     handleRefreshBalance();
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (updateSmsConfig) {
       updateSmsConfig({ ...smsConfig });
     }
-    showNotification('System configuration and business identity saved successfully.');
+    if (syncAllToCloud) {
+      await syncAllToCloud();
+    }
+    showNotification('System configuration and SMS settings saved successfully to cloud.');
   };
 
   return (
@@ -801,6 +804,74 @@ END $$;`;
             </div>
           </div>
 
+          {/* Hair Pin Industry Setup Preset Card */}
+          <div className="glass-panel" style={{ 
+            padding: '24px 28px', 
+            border: '1px solid rgba(13, 148, 136, 0.35)', 
+            background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)',
+            borderRadius: '16px'
+          }}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+              <div className="flex items-center gap-4">
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: 'rgba(13, 148, 136, 0.18)',
+                  color: 'var(--accent-primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Factory size={26} />
+                </div>
+                <div>
+                  <h3 className="h3" style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Hair Pin Manufacturing & Wholesale Catalog
+                  </h3>
+                  <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
+                    1-Click Setup: Preload complete hair pin product catalog (Bobby pins, U-pins, Wave grips, Snap clips, Pearl pins), raw materials (steel wire, enamel paint, cards), wholesale customers, suppliers, BOM formulations, and production orders.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="settings-load-hairpins-btn"
+                className="btn"
+                onClick={() => {
+                  if (confirmAction) {
+                    confirmAction({
+                      title: 'Load Hair Pin Industry Setup?',
+                      message: 'This will load the full hair pin manufacturing inventory, raw materials, wholesale clients, and BOM recipes. Existing unsaved custom data will be replaced with the hair pin industry preset.',
+                      confirmText: 'Load Hair Pin Catalog',
+                      variant: 'primary',
+                      onConfirm: () => {
+                        loadHairPinIndustryDefaults && loadHairPinIndustryDefaults();
+                      }
+                    });
+                  } else {
+                    loadHairPinIndustryDefaults && loadHairPinIndustryDefaults();
+                  }
+                }}
+                style={{
+                  height: '44px',
+                  padding: '0 22px',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  gap: '8px',
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(13, 148, 136, 0.35)',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <Sparkles size={16} /> Load Hair Pin Setup
+              </button>
+            </div>
+          </div>
+
           {/* Danger Zone: Permanent Data Erase Card */}
           <div className="glass-panel" style={{ 
             padding: '24px 28px', 
@@ -1373,7 +1444,29 @@ END $$;`;
                 value={smsConfig.senderID || ''} 
                 onChange={e => updateSmsConfig({...smsConfig, senderID: e.target.value})} 
               />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '5px', display: 'block' }}>
+                Your telecom-registered sender mask (max 11 characters) displayed on recipient phones.
+              </span>
             </div>
+
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handleSave}
+              style={{ 
+                width: '100%', 
+                marginTop: '16px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px', 
+                padding: '10px 18px', 
+                fontWeight: 700, 
+                fontSize: '0.88rem' 
+              }}
+            >
+              <Save size={16} /> Save Gateway & Sender ID
+            </button>
 
             <div style={{ 
               marginTop: '24px', 
@@ -1678,6 +1771,22 @@ END $$;`;
             </div>
           </div>
 
+        </div>
+
+        {/* Full-width SMS Save Bar */}
+        <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-4" style={{ gridColumn: '1 / -1', padding: '18px 24px', marginTop: '4px' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Save SMS Gateway & Automation Settings</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Changes are saved locally and synced directly to Supabase cloud.</div>
+          </div>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={handleSave}
+            style={{ padding: '11px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Save size={18} /> Save All SMS Settings
+          </button>
         </div>
 
       </div>
