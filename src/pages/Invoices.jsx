@@ -1,13 +1,18 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
 
 const Invoices = () => {
-  const { invoices = [], customers = [], payments = [], addInvoice, updateInvoice, updateInvoiceStatus, inventory = [], triggerSMS, showNotification, generateRecurringInvoices } = useContext(StoreContext) || {};
+  const { 
+    invoices = [], customers = [], payments = [], 
+    addInvoice, updateInvoice, updateInvoiceStatus, deleteInvoice, confirmAction,
+    inventory = [], triggerSMS, showNotification, generateRecurringInvoices,
+    sendDirectSMS, smsConfig = {}
+  } = useContext(StoreContext) || {};
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -16,9 +21,130 @@ const Invoices = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer ? customer.gymName : 'Unknown Gym';
+  // SMS Modal States
+  const [smsModalInvoice, setSmsModalInvoice] = useState(null);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsMessage, setSmsMessage] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
+
+  const getCustomerName = (customerId, invoice = {}) => {
+    const customer = customers.find(c => c.id === customerId) || 
+                     customers.find(c => c.gymName && (c.gymName === invoice.prospectName || c.gymName === invoice.customerName)) ||
+                     customers.find(c => c.name && (c.name === invoice.prospectName || c.name === invoice.customerName));
+    return customer ? (customer.gymName || customer.name) : (invoice.prospectName || invoice.customerName || 'Wholesale Client');
+  };
+
+  const getInvoiceShareUrl = (invoice) => {
+    return `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey || invoice.invoiceNumber}`;
+  };
+
+  const formatPhoneForWhatsApp = (rawPhone) => {
+    if (!rawPhone) return '';
+    let digits = String(rawPhone).replace(/[^0-9]/g, '');
+    if (digits.startsWith('0') && digits.length === 10) {
+      digits = '94' + digits.substring(1);
+    } else if (digits.length === 9) {
+      digits = '94' + digits;
+    }
+    return digits;
+  };
+
+  // 1-Tap Action: Auto-Download PDF & Open WhatsApp with Link
+  const handleSendWhatsApp = (invoice) => {
+    const customer = customers.find(c => c.id === invoice.customerId) || 
+                     customers.find(c => c.gymName === invoice.prospectName) || {};
+    const clientName = customer.gymName || customer.name || invoice.prospectName || 'Valued Customer';
+    const phone = formatPhoneForWhatsApp(customer.phone || invoice.prospectPhone);
+    const company = smsConfig?.companyName || 'Hair Pins & Accessories Co.';
+    const shareUrl = getInvoiceShareUrl(invoice);
+    const amountVal = Number(invoice.amount != null ? invoice.amount : invoice.totalAmount) || 0;
+    const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const dueVal = Math.max(0, amountVal - historicalPayments);
+
+    // 1. Automatically generate and download the PDF for user
+    const docData = { ...invoice, gymName: clientName };
+    try {
+      generateDocumentPDF('Invoice', docData, invoice.items || []);
+    } catch (e) {
+      console.warn('PDF download warning:', e);
+    }
+
+    // 2. Prepare WhatsApp message with public web link
+    const msg = 
+`*OFFICIAL INVOICE #${invoice.invoiceNumber}*
+Dear ${clientName},
+
+Greetings from *${company}*!
+Here is your official Invoice *#${invoice.invoiceNumber}*.
+
+*Total Balance Due:* LKR ${dueVal.toLocaleString()}
+*Due Date:* ${invoice.dueDate || 'Upon Receipt'}
+
+*View & Pay Online:*
+${shareUrl}
+
+📄 *PDF Attachment:* The official invoice PDF has also been generated and downloaded to your device for easy attaching.
+Thank you for your business!`;
+
+    const waUrl = phone 
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+    showNotification?.(`Invoice PDF downloaded! Opening WhatsApp to share with ${clientName}...`, 'success');
+    window.open(waUrl, '_blank');
+  };
+
+  // SMS Dispatch Helpers
+  const handleOpenSmsModal = (invoice) => {
+    const customer = customers.find(c => c.id === invoice.customerId) || 
+                     customers.find(c => c.gymName === invoice.prospectName) || {};
+    const phone = customer.phone || invoice.prospectPhone || '';
+    const company = smsConfig?.companyName || 'Hair Pins & Accessories Co.';
+    const shareUrl = getInvoiceShareUrl(invoice);
+    const amountVal = Number(invoice.amount != null ? invoice.amount : invoice.totalAmount) || 0;
+    const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const dueVal = Math.max(0, amountVal - historicalPayments);
+
+    const defaultMsg = `Invoice #${invoice.invoiceNumber} from ${company}. Balance: LKR ${dueVal.toLocaleString()}. Due: ${invoice.dueDate || 'Soon'}. View & pay online: ${shareUrl}`;
+
+    setSmsPhone(phone);
+    setSmsMessage(defaultMsg);
+    setSmsModalInvoice(invoice);
+  };
+
+  const handleSendGatewaySms = async () => {
+    if (!smsPhone.trim()) {
+      showNotification?.('Please enter a recipient phone number.', 'error');
+      return;
+    }
+    setSendingSms(true);
+    try {
+      if (sendDirectSMS) {
+        const cleanPhone = smsPhone.replace(/[^0-9]/g, '');
+        const res = await sendDirectSMS(cleanPhone, smsMessage);
+        if (res && res.success !== false) {
+          showNotification?.(`Invoice SMS sent to ${smsPhone}!`, 'success');
+          setSmsModalInvoice(null);
+        }
+      } else {
+        openNativeSmsApp(smsPhone, smsMessage);
+        setSmsModalInvoice(null);
+      }
+    } catch (err) {
+      console.error('Failed to send SMS:', err);
+      showNotification?.('Gateway issue. Opening native messages app...', 'warning');
+      openNativeSmsApp(smsPhone, smsMessage);
+    } finally {
+      setSendingSms(false);
+    }
+  };
+
+  const openNativeSmsApp = (phone, text) => {
+    const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const separator = isIOS ? '&' : '?';
+    const smsUrl = `sms:${cleanPhone}${separator}body=${encodeURIComponent(text)}`;
+    window.location.href = smsUrl;
   };
 
   const handleExport = () => {
@@ -37,28 +163,29 @@ const Invoices = () => {
 
   const getFilteredInvoices = () => {
     return invoices.filter(inv => {
-      const gymName = getCustomerName(inv.customerId).toLowerCase();
+      const gymName = getCustomerName(inv.customerId, inv).toLowerCase();
       const searchMatch = gymName.includes(searchTerm.toLowerCase()) ||
                           (inv.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
       const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
       let dateMatch = true;
       if (dateFilter === 'Last30') {
-        const d = new Date(inv.date);
+        const d = new Date(inv.date || inv.issueDate || Date.now());
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         dateMatch = d >= thirtyDaysAgo;
       } else if (dateFilter === 'ThisYear') {
-        const d = new Date(inv.date);
+        const d = new Date(inv.date || inv.issueDate || Date.now());
         dateMatch = d.getFullYear() === new Date().getFullYear();
       }
       return searchMatch && statusMatch && dateMatch;
     });
   };
 
-  // Compute stats
-  const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const totalCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  // Compute stats safely
+  const getInvAmt = (i) => Number(i.amount != null && !isNaN(i.amount) ? i.amount : (i.totalAmount != null && !isNaN(i.totalAmount) ? i.totalAmount : (i.items?.[0]?.amount || 0))) || 0;
+  const totalInvoiced = invoices.reduce((s, i) => s + getInvAmt(i), 0);
+  const totalCollected = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + getInvAmt(i), 0);
+  const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + getInvAmt(i), 0);
   const installmentInvoices = invoices.filter(i => i.installmentPlan?.enabled).length;
   const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
 
@@ -216,18 +343,20 @@ const Invoices = () => {
               onEdit={() => { setEditingInvoice(invoice); setShowModal(true); }}
               onRecordPayment={() => navigate('/payments')}
               onViewInstallments={() => setViewingInstallmentInvoice(invoice)}
-              onSendSms={() => {
-                const customer = customers.find(c => c.id === invoice.customerId);
-                if (!customer || !customer.phone) {
-                  showNotification(`Cannot send SMS! No phone attached to ${getCustomerName(invoice.customerId)}.`, 'error');
-                  return;
-                }
-                if (triggerSMS) triggerSMS('InvoiceReminder', customer, invoice);
-              }}
+              onSendWhatsApp={() => handleSendWhatsApp(invoice)}
+              onSendSms={() => handleOpenSmsModal(invoice)}
               onDownload={() => {
-                const docData = { ...invoice, gymName: getCustomerName(invoice.customerId) };
+                const docData = { ...invoice, gymName: getCustomerName(invoice.customerId, invoice) };
                 showNotification && showNotification(`Generating PDF for Invoice #${invoice.invoiceNumber || 'Document'}...`, 'info');
                 generateDocumentPDF('Invoice', docData, invoice.items || []);
+              }}
+              onDelete={() => {
+                const num = invoice.invoiceNumber || 'this invoice';
+                confirmAction?.({
+                  title: 'Delete Invoice',
+                  message: `Are you sure you want to remove Invoice #${num}?`,
+                  onConfirm: () => deleteInvoice && deleteInvoice(invoice.id)
+                });
               }}
             />
           ));
@@ -255,17 +384,155 @@ const Invoices = () => {
           getCustomerName={getCustomerName}
         />
       )}
+
+      {/* ===== MODAL: SEND INVOICE LINK VIA SMS ===== */}
+      {smsModalInvoice && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          padding: '20px', animation: 'backdropFade 0.15s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '520px', padding: 0, borderRadius: '22px',
+            overflow: 'hidden', border: '1px solid var(--panel-border)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)', background: 'var(--card-bg)'
+          }}>
+            <div style={{
+              padding: '18px 22px', borderBottom: '1px solid var(--subtle-border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: 'var(--subtle-bg)'
+            }}>
+              <div className="flex items-center gap-2">
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Smartphone size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800 }}>Send Invoice via SMS</h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    #{smsModalInvoice.invoiceNumber} • {getCustomerName(smsModalInvoice.customerId, smsModalInvoice)}
+                  </span>
+                </div>
+              </div>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                onClick={() => setSmsModalInvoice(null)}
+                style={{ padding: '6px' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                  Recipient Mobile Number
+                </label>
+                <input 
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 0771234567 or +94771234567"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                  style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}
+                />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Sri Lanka mobile formats accepted: 07XXXXXXXX, +947XXXXXXXX, 947XXXXXXXX.
+                </span>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    SMS Message (Includes Live Link)
+                  </label>
+                  <span style={{ 
+                    fontSize: '0.72rem', 
+                    fontWeight: 700, 
+                    color: smsMessage.length > 160 ? '#f59e0b' : 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    {smsMessage.length} chars ({Math.ceil(smsMessage.length / 160) || 1} SMS)
+                  </span>
+                </div>
+                <textarea 
+                  className="form-input"
+                  rows={4}
+                  value={smsMessage}
+                  onChange={(e) => setSmsMessage(e.target.value)}
+                  style={{ fontSize: '0.85rem', lineHeight: '1.4', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.2)',
+                borderRadius: '12px', padding: '12px 14px', fontSize: '0.78rem',
+                color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px'
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>💡 Delivery Channels:</span>
+                </div>
+                <div>• <strong>Cloud SMS Gateway:</strong> Dispatches immediately via configured SMS provider ({smsConfig?.provider || 'Seynex Gateway'}).</div>
+                <div>• <strong>Phone SMS App:</strong> 1-click opens your native Messages app on mobile or desktop (100% free using your carrier bundle).</div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                <button 
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    openNativeSmsApp(smsPhone, smsMessage);
+                    setSmsModalInvoice(null);
+                  }}
+                  style={{ height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 700 }}
+                  title="Open native SMS messaging app"
+                >
+                  <Smartphone size={16} /> Open Phone App
+                </button>
+
+                <button 
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={sendingSms || !smsPhone.trim()}
+                  onClick={handleSendGatewaySms}
+                  style={{ height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 800 }}
+                  title="Send via Cloud SMS Gateway"
+                >
+                  {sendingSms ? (
+                    <>
+                      <RefreshCw size={16} className="spin" /> Sending...
+                    </>
+                  ) : (
+                    <>
+                      <SendHorizontal size={16} /> Send Gateway SMS
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendSms, onDownload }) => {
+const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendWhatsApp, onSendSms, onDownload, onDelete }) => {
   const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
-  const customer = customers.find(c => c.id === invoice.customerId) || {};
+  const customer = customers.find(c => c.id === invoice.customerId) || 
+                   customers.find(c => c.gymName && (c.gymName === invoice.prospectName || c.gymName === invoice.customerName)) ||
+                   customers.find(c => c.name && (c.name === invoice.prospectName || c.name === invoice.customerName)) || {};
 
-  const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + p.amount, 0);
-  const amountDue = invoice.amount - historicalPayments;
+  const invoiceAmount = Number(invoice.amount != null && !isNaN(invoice.amount) ? invoice.amount : (invoice.totalAmount != null && !isNaN(invoice.totalAmount) ? invoice.totalAmount : (invoice.items?.[0]?.amount || 0))) || 0;
+
+  const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const amountDue = Math.max(0, invoiceAmount - historicalPayments);
 
   const isPaid = invoice.status === 'Paid' || amountDue <= 0;
   const isOverdue = invoice.status === 'Overdue' || (new Date(invoice.dueDate) < new Date() && !isPaid);
@@ -298,7 +565,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '2px', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {customer.gymName || 'Unknown Entity'}
+              {customer.gymName || customer.name || invoice.prospectName || invoice.customerName || 'Wholesale Client'}
             </div>
             <div className="flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>#{invoice.invoiceNumber}</span>
@@ -316,9 +583,9 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
                 </span>
               )}
               <span style={{ opacity: 0.3 }}>•</span>
-              <span className="sm-hidden">{customer.name || 'No Contact'}</span>
+              <span className="sm-hidden">{customer.name || customer.phone || invoice.prospectPhone || 'Client Contact'}</span>
               <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
-              <span>Due {new Date(invoice.dueDate).toLocaleDateString()}</span>
+              <span>Due {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</span>
               {plan?.enabled && (
                 <>
                   <span style={{ opacity: 0.3 }}>•</span>
@@ -362,7 +629,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Outstanding Balance</div>
           <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>
             <span style={{ color: 'var(--accent-primary)', fontSize: '0.8rem', marginRight: '4px' }}>LKR</span>
-            {Math.max(0, amountDue).toLocaleString() || 0}
+            {amountDue.toLocaleString()}
           </div>
           {historicalPayments > 0 && amountDue > 0 && (
             <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 600, marginTop: '2px' }}>
@@ -371,7 +638,31 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           )}
         </div>
 
-        <div className="action-bar md:justify-end w-full flex gap-2">
+        <div className="action-bar md:justify-end w-full flex items-center gap-2 flex-wrap">
+          {/* WhatsApp + Auto PDF Download Button */}
+          <button 
+            className="btn btn-sm"
+            style={{ 
+              background: '#25D366', color: '#ffffff', border: 'none', 
+              height: '40px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', 
+              gap: '6px', fontWeight: 800, fontSize: '0.82rem', borderRadius: '10px'
+            }}
+            onClick={onSendWhatsApp}
+            title="Download PDF & Send Invoice Link via WhatsApp"
+          >
+            <MessageSquare size={16} /> <span>WhatsApp + PDF</span>
+          </button>
+
+          {/* SMS Button (Gateway + Native Messages App) */}
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: '40px', height: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            onClick={onSendSms} 
+            title="Send Invoice Link via SMS"
+          >
+            <Smartphone size={16} style={{ color: 'var(--accent-primary)' }} />
+          </button>
+
           <a
             href={previewLink}
             target="_blank"
@@ -390,15 +681,22 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           >
             <LinkIcon size={16} />
           </button>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendSms} title="Notify Client">
-            <Smartphone size={16} className="text-secondary" />
-          </button>
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Record">
             <Edit2 size={16} />
           </button>
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
             <Download size={16} />
           </button>
+          {onDelete && (
+            <button 
+              className="btn btn-secondary" 
+              style={{ width: '40px', height: '40px', padding: 0, color: 'var(--danger)' }} 
+              onClick={onDelete} 
+              title="Delete Invoice"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
           {!isPaid && (
             <button
               className="btn btn-primary"

@@ -1,4 +1,5 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Zap, ShoppingCart, Plus, Minus, Trash2, Printer, 
   CheckCircle, Search, User, CreditCard, DollarSign, 
@@ -380,18 +381,26 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div 
       className="modal-overlay"
       style={{ 
-        zIndex: 99999, 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        inset: 0,
+        zIndex: 999999, 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center', 
         padding: isMobile ? '0' : '16px',
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(8px)'
+        background: 'rgba(2, 6, 23, 0.85)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)'
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -411,7 +420,9 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             ? '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 35px rgba(245, 158, 11, 0.2)' 
             : '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 30px rgba(217, 119, 6, 0.1)',
           border: isMobile ? 'none' : (isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(217, 119, 6, 0.25)'),
-          overflow: 'hidden'
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1000000
         }}
       >
         {/* MODAL HEADER */}
@@ -1342,7 +1353,8 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

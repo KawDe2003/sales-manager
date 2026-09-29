@@ -48,6 +48,7 @@ export default function StoreContextProvider({ children }) {
     try { return localStorage.getItem('gym_last_sync_time') || null; } catch(e) { return null; }
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const isHydratedRef = useRef(false);
   const isInitialMountRef = useRef(true);
 
@@ -162,7 +163,20 @@ export default function StoreContextProvider({ children }) {
   const [invoices, setInvoices] = useState(() => {
     try {
       const saved = localStorage.getItem('gym_invoices');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(inv => {
+            const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
+            const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
+            return {
+              ...inv,
+              amount: validAmt,
+              totalAmount: validAmt
+            };
+          });
+        }
+      }
     } catch (e) {}
     return [];
   });
@@ -219,9 +233,45 @@ export default function StoreContextProvider({ children }) {
 
   // --- PROCUREMENT & PURCHASE ORDER (PO) ERP STATE ---
   const sampleSuppliers = [
-    { id: 'sup-1', name: 'Lanka Steel & Wire Mills', contactPerson: 'Kanishka Silva', phone: '0112345678', email: 'sales@lankawire.lk', category: 'Spring Steel Wire & Metals', address: 'No 45, Industrial Zone, Kelaniya', status: 'Active' },
-    { id: 'sup-2', name: 'Apex Industrial Paints & Lacquers', contactPerson: 'Nalin Perera', phone: '0117654321', email: 'orders@apexpaints.lk', category: 'Enamel & Protective Coatings', address: 'No 112, Kandy Road, Ekala', status: 'Active' },
-    { id: 'sup-3', name: 'ColorPack Printing & Packaging', contactPerson: 'Devinda de Silva', phone: '0728408880', email: 'packaging@colorpack.lk', category: 'Cards, Pouches & Master Cartons', address: 'No 680/1B, Colombo 10', status: 'Active' }
+    { 
+      id: 'sup-1', 
+      name: 'Lanka Steel & Wire Mills', 
+      contactPerson: 'Kanishka Silva', 
+      phone: '0112345678', 
+      email: 'sales@lankawire.lk', 
+      category: 'Spring Steel Wire & Metals', 
+      address: 'No 45, Industrial Zone, Kelaniya', 
+      status: 'Active',
+      isVatRegistered: true,
+      vatNumber: 'VAT-102938475-7000',
+      vatRate: 18
+    },
+    { 
+      id: 'sup-2', 
+      name: 'Apex Industrial Paints & Lacquers', 
+      contactPerson: 'Nalin Perera', 
+      phone: '0117654321', 
+      email: 'orders@apexpaints.lk', 
+      category: 'Enamel & Protective Coatings', 
+      address: 'No 112, Kandy Road, Ekala', 
+      status: 'Active',
+      isVatRegistered: false,
+      vatNumber: '',
+      vatRate: 18
+    },
+    { 
+      id: 'sup-3', 
+      name: 'ColorPack Printing & Packaging', 
+      contactPerson: 'Devinda de Silva', 
+      phone: '0728408880', 
+      email: 'packaging@colorpack.lk', 
+      category: 'Cards, Pouches & Master Cartons', 
+      address: 'No 680/1B, Colombo 10', 
+      status: 'Active',
+      isVatRegistered: true,
+      vatNumber: 'VAT-884920194-7000',
+      vatRate: 18
+    }
   ];
 
   const samplePurchaseOrders = [
@@ -230,10 +280,20 @@ export default function StoreContextProvider({ children }) {
       poNumber: 'PO-1001',
       supplierId: 'sup-1',
       supplierName: 'Lanka Steel & Wire Mills',
+      supplierPhone: '0112345678',
+      supplierEmail: 'sales@lankawire.lk',
+      supplierAddress: 'No 45, Industrial Zone, Kelaniya',
       date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
       expectedDelivery: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
       status: 'Ordered',
-      totalAmount: 170000,
+      subtotal: 170000,
+      applyVat: true,
+      vatRate: 18,
+      vatAmount: 30600,
+      totalAmount: 200600,
+      isVatRegistered: true,
+      supplierVatNumber: 'VAT-102938475-7000',
+      shareKey: 'po_share_1001',
       items: [
         { name: 'Spring Steel Wire 1.0mm (25kg Spool)', quantity: 20, unitCost: 8500, totalCost: 170000 }
       ]
@@ -243,10 +303,20 @@ export default function StoreContextProvider({ children }) {
       poNumber: 'PO-1002',
       supplierId: 'sup-3',
       supplierName: 'ColorPack Printing & Packaging',
+      supplierPhone: '0728408880',
+      supplierEmail: 'packaging@colorpack.lk',
+      supplierAddress: 'No 680/1B, Colombo 10',
       date: new Date(Date.now() - 12 * 86400000).toISOString().split('T')[0],
       expectedDelivery: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
       status: 'Received',
-      totalAmount: 84000,
+      subtotal: 84000,
+      applyVat: true,
+      vatRate: 18,
+      vatAmount: 15120,
+      totalAmount: 99120,
+      isVatRegistered: true,
+      supplierVatNumber: 'VAT-884920194-7000',
+      shareKey: 'po_share_1002',
       items: [
         { name: 'Printed Hair Pin Display Cards (Pack of 1,000)', quantity: 30, unitCost: 2800, totalCost: 84000 }
       ]
@@ -256,17 +326,23 @@ export default function StoreContextProvider({ children }) {
   const [suppliers, setSuppliers] = useState(() => {
     try {
       const saved = localStorage.getItem('gym_suppliers');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {}
-    return [];
+    return sampleSuppliers;
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('gym_purchase_orders');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {}
-    return [];
+    return samplePurchaseOrders;
   });
 
   // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
@@ -2979,8 +3055,17 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addInvoice = (invoice) => {
-    const newInvoice = { ...invoice, id: uuidv4(), shareKey: generateShareKey(), status: 'Sent' };
-    setInvoices([...invoices, newInvoice]);
+    const rawAmt = Number(invoice.amount != null && !isNaN(invoice.amount) ? invoice.amount : (invoice.totalAmount != null && !isNaN(invoice.totalAmount) ? invoice.totalAmount : 0)) || 0;
+    const newInvoice = { 
+      ...invoice, 
+      id: invoice.id || uuidv4(), 
+      shareKey: invoice.shareKey || generateShareKey(), 
+      status: invoice.status || 'Sent',
+      amount: rawAmt,
+      totalAmount: rawAmt,
+      date: invoice.date || invoice.issueDate || new Date().toISOString().split('T')[0]
+    };
+    setInvoices(prev => [...prev, newInvoice]);
     syncInvoiceToSupabase(newInvoice);
 
     try {
@@ -3939,20 +4024,49 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addPurchaseOrder = (poData) => {
+    const matchedSupplier = suppliers.find(s => s.id === poData.supplierId);
+    const subtotal = Number(poData.subtotal != null 
+      ? poData.subtotal 
+      : (poData.items || []).reduce((acc, it) => acc + ((Number(it.quantity) || 1) * (Number(it.unitCost) || 0)), 0));
+    
+    // Auto-detect VAT registration from supplier if not explicitly set
+    const applyVat = poData.applyVat !== undefined 
+      ? Boolean(poData.applyVat) 
+      : Boolean(matchedSupplier?.isVatRegistered);
+    
+    const vatRate = Number(poData.vatRate != null ? poData.vatRate : (matchedSupplier?.vatRate || 18));
+    const vatAmount = applyVat ? Math.round(subtotal * (vatRate / 100)) : 0;
+    const totalAmount = poData.totalAmount != null ? Number(poData.totalAmount) : (subtotal + vatAmount);
+
     const newPO = {
       ...poData,
-      id: `po-${Date.now()}`,
+      id: poData.id || `po-${Date.now()}`,
+      shareKey: poData.shareKey || `po_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
       poNumber: poData.poNumber || `PO-${1000 + purchaseOrders.length + 1}`,
+      supplierName: poData.supplierName || matchedSupplier?.name || 'Unknown Supplier',
+      supplierPhone: poData.supplierPhone || matchedSupplier?.phone || '',
+      supplierEmail: poData.supplierEmail || matchedSupplier?.email || '',
+      supplierAddress: poData.supplierAddress || matchedSupplier?.address || '',
+      supplierContact: poData.supplierContact || matchedSupplier?.contactPerson || '',
+      supplierVatNumber: poData.supplierVatNumber || matchedSupplier?.vatNumber || '',
+      isVatRegistered: matchedSupplier ? Boolean(matchedSupplier.isVatRegistered) : applyVat,
       status: poData.status || 'Ordered',
-      date: poData.date || new Date().toISOString().split('T')[0]
+      date: poData.date || new Date().toISOString().split('T')[0],
+      subtotal,
+      applyVat,
+      vatRate,
+      vatAmount,
+      totalAmount
     };
+
     setPurchaseOrders(prev => [newPO, ...prev]);
-    addLog('Procurement', `Issued Purchase Order ${newPO.poNumber} to ${newPO.supplierName}`);
+    addLog('Procurement', `Issued Purchase Order ${newPO.poNumber} to ${newPO.supplierName} (Total: LKR ${totalAmount.toLocaleString()}${applyVat ? ` incl. ${vatRate}% VAT` : ' Non-VAT'})`);
     showNotification(`Purchase Order #${newPO.poNumber} created!`, 'success');
 
     if (newPO.status === 'Received') {
       fulfillPurchaseOrderItems(newPO);
     }
+    return newPO;
   };
 
   const updatePurchaseOrderStatus = (id, newStatus) => {
@@ -4480,32 +4594,53 @@ export default function StoreContextProvider({ children }) {
     showNotification('Stock transfer order deleted.', 'info');
   };
 
-  // --- AUTOMATED MEMBERSHIP AUTO-INVOICING RENEWAL ENGINE ---
+  // --- AUTOMATED WHOLESALE / CLIENT AUTO-INVOICING RENEWAL ENGINE ---
   const generateRecurringInvoices = () => {
     let generatedCount = 0;
     const activeClients = customers.filter(c => c.status === 'Active' || c.status === 'Overdue');
 
+    if (activeClients.length === 0) {
+      showNotification('No active wholesale clients found to generate renewals for.', 'info');
+      return;
+    }
+
     activeClients.forEach(client => {
-      const annualVal = Number(client.annualValue) || 120000;
+      const annualVal = Number(client.annualFee != null ? client.annualFee : client.annualValue) || 240000;
       const monthlyVal = Math.round(annualVal / 12);
       const invNum = `INV-REC-${Math.floor(1000 + Math.random() * 9000)}`;
+      const clientDisplayName = client.gymName || client.name || 'Wholesale Client';
 
       addInvoice({
         invoiceNumber: invNum,
-        prospectName: client.gymName,
+        customerId: client.id,
+        prospectName: clientDisplayName,
         billingCycle: 'Monthly Recurring',
+        date: new Date().toISOString().split('T')[0],
         issueDate: new Date().toISOString().split('T')[0],
         dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        amount: monthlyVal,
         totalAmount: monthlyVal,
-        status: 'Unpaid',
+        status: 'Sent',
         items: [
-          { name: `Monthly Gym Management System Subscription (${client.packageName || 'Pro Plan'})`, amount: monthlyVal }
+          { 
+            name: `Monthly Standing Order — Hair Pins & Accessories Wholesale (${client.tag || 'Regular Supply'})`, 
+            quantity: 1,
+            unitPrice: monthlyVal,
+            amount: monthlyVal 
+          }
         ]
       });
 
       if (client.phone) {
         try {
-          triggerSMS && triggerSMS('payment_due', client, { invoiceNumber: invNum, totalAmount: monthlyVal, dueDate: '14 days' });
+          const invLink = `${window.location.origin}/share/invoice/${invNum}`;
+          triggerSMS && triggerSMS('payment_due', client, { 
+            invoiceNumber: invNum, 
+            totalAmount: monthlyVal, 
+            amount: monthlyVal,
+            dueDate: '14 days',
+            link: invLink
+          });
         } catch (e) {
           console.warn('[SMS Trigger Error]', e);
         }
@@ -4963,6 +5098,7 @@ export default function StoreContextProvider({ children }) {
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
+      quickSaleOpen, setQuickSaleOpen,
       resetToSeynexDefaults, seedDummyData, loadHairPinIndustryDefaults,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,

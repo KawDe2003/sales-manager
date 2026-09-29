@@ -216,7 +216,8 @@ const AppContent = () => {
     customRoles = [], featureToggles = {},
     inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
-    resetEverythingWithConfirmation, hasUnsavedChanges
+    resetEverythingWithConfirmation, hasUnsavedChanges,
+    quickSaleOpen, setQuickSaleOpen
   } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -251,7 +252,6 @@ const AppContent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -270,6 +270,21 @@ const AppContent = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Lock background scroll when Search Modal is open
+  useEffect(() => {
+    if (searchOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [searchOpen]);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
   const toggleSidebarCollapse = () => setIsSidebarCollapsed(prev => !prev);
@@ -714,7 +729,17 @@ const AppContent = () => {
 
       {/* ===== GLOBAL SEARCH MODAL ===== */}
       {searchOpen && (
-        <div className="global-search-backdrop" onClick={() => setSearchOpen(false)}>
+        <div 
+          className="global-search-backdrop" 
+          onClick={() => setSearchOpen(false)}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+          style={{ overscrollBehavior: 'contain' }}
+        >
            <div style={{ 
              width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
              border: '1px solid var(--panel-border)', borderRadius: 'var(--radius-lg)',
@@ -733,7 +758,7 @@ const AppContent = () => {
                  />
                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--panel-border)' }}>ESC</div>
               </div>
-              <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px' }}>
+              <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
                  {searchQuery.length < 2 ? (
                     <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Type to search across your data...</div>
                  ) : (

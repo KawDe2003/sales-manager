@@ -1323,6 +1323,17 @@ export const generatePurchaseOrderPDF = (poData) => {
       doc.text(`Email: ${poData.supplierEmail}`, 16, supplierDetailY);
       supplierDetailY += 4.5;
     }
+    if (poData.supplierVatNumber) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`VAT Reg No: ${poData.supplierVatNumber}`, 16, supplierDetailY);
+      supplierDetailY += 4.5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+    } else if (poData.isVatRegistered === false) {
+      doc.text(`Tax Status: Non-VAT Registered`, 16, supplierDetailY);
+      supplierDetailY += 4.5;
+    }
 
     // Right: Status Badge
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
@@ -1336,6 +1347,7 @@ export const generatePurchaseOrderPDF = (poData) => {
     const statusColors = {
       'Ordered': [59, 130, 246],
       'Delivered': [16, 185, 129],
+      'Received': [16, 185, 129],
       'Cancelled': [239, 68, 68],
       'Partial': [245, 158, 11]
     };
@@ -1396,28 +1408,71 @@ export const generatePurchaseOrderPDF = (poData) => {
       styles: { lineColor: [226, 232, 240], lineWidth: 0.3 }
     });
 
-    // ── Grand Total ──────────────────────────────────────────────────────────
+    // ── Financial Summary & Grand Total ──────────────────────────────────────
     const totalY = (doc.lastAutoTable?.finalY || tableStartY + 30) + 8;
-    const totalAmount = Number(poData.totalAmount) || items.reduce((sum, item) => sum + ((Number(item.quantity) || 1) * (Number(item.unitCost) || 0)), 0);
+    const itemsTotal = items.reduce((sum, item) => sum + ((Number(item.quantity) || 1) * (Number(item.unitCost) || 0)), 0);
+    const subtotal = poData.subtotal != null ? Number(poData.subtotal) : itemsTotal;
+    const applyVat = Boolean(poData.applyVat);
+    const vatRate = Number(poData.vatRate != null ? poData.vatRate : 18);
+    const vatAmount = poData.vatAmount != null ? Number(poData.vatAmount) : (applyVat ? Math.round(subtotal * (vatRate / 100)) : 0);
+    const totalAmount = Number(poData.totalAmount) || (subtotal + vatAmount);
 
-    // Total box
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(14, totalY, pageWidth - 28, 20, 3, 3, 'F');
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(14, totalY, pageWidth - 28, 20, 3, 3, 'S');
+    if (applyVat) {
+      // VAT Box (Multi-line breakdown)
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(pageWidth - 110, totalY, 96, 36, 3, 3, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(pageWidth - 110, totalY, 96, 36, 3, 3, 'S');
 
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(71, 85, 105);
-    doc.text('Total Purchase Order Value:', 20, totalY + 13);
+      // Subtotal
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Subtotal:', pageWidth - 104, totalY + 8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`LKR ${subtotal.toLocaleString()}`, pageWidth - 18, totalY + 8, { align: 'right' });
 
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`LKR ${totalAmount.toLocaleString()}`, pageWidth - 20, totalY + 13, { align: 'right' });
+      // VAT Line
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`VAT (${vatRate}%):`, pageWidth - 104, totalY + 16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`+ LKR ${vatAmount.toLocaleString()}`, pageWidth - 18, totalY + 16, { align: 'right' });
+
+      // Divider
+      doc.setDrawColor(226, 232, 240);
+      doc.line(pageWidth - 104, totalY + 20, pageWidth - 18, totalY + 20);
+
+      // Grand Total
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('Grand Total:', pageWidth - 104, totalY + 29);
+      doc.setFontSize(13);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`LKR ${totalAmount.toLocaleString()}`, pageWidth - 18, totalY + 29, { align: 'right' });
+    } else {
+      // Non-VAT Total Box
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, totalY, pageWidth - 28, 22, 3, 3, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, totalY, pageWidth - 28, 22, 3, 3, 'S');
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Total Order Value (Non-VAT):', 20, totalY + 14);
+
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`LKR ${totalAmount.toLocaleString()}`, pageWidth - 20, totalY + 14, { align: 'right' });
+    }
 
     // ── Notes / Terms ────────────────────────────────────────────────────────
-    let notesY = totalY + 32;
+    let notesY = totalY + (applyVat ? 44 : 32);
     if (poData.notes) {
       if (notesY + 20 > pageHeight - 40) { doc.addPage(); notesY = 20; }
       doc.setFontSize(10);

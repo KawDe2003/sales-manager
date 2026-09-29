@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DatePicker from '../components/DatePicker';
-import QuickSaleModal from '../components/QuickSaleModal';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis,
@@ -82,12 +81,12 @@ const Dashboard = () => {
     expenses = [],
     payments = [],
     activityLogs = [],
-    theme = 'dark'
+    theme = 'dark',
+    setQuickSaleOpen
   } = useContext(StoreContext) || {};
   const isDark = theme !== 'light';
 
   // --- GLOBAL DATE FILTER STATE ---
-  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState('30d'); // 'today', '7d', '30d', 'custom'
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -1480,12 +1479,6 @@ const Dashboard = () => {
         </div>
 
       </div>
-
-      {/* QUICK SALE BILLING MODAL */}
-      <QuickSaleModal 
-        isOpen={quickSaleOpen} 
-        onClose={() => setQuickSaleOpen(false)} 
-      />
 
     </div>
   );

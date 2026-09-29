@@ -2,14 +2,18 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
-import { generateDocumentPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send } from 'lucide-react';
+import { generateDocumentPDF, generatePurchaseOrderPDF } from '../utils/pdfGenerator';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
-  const { quotes = [], invoices = [], customers = [], acceptQuote, proposeBudget, rejectQuote, showNotification, smsConfig = {} } = useContext(StoreContext) || {};
+  const { 
+    quotes = [], invoices = [], customers = [], 
+    purchaseOrders = [], suppliers = [],
+    acceptQuote, proposeBudget, rejectQuote, showNotification, smsConfig = {} 
+  } = useContext(StoreContext) || {};
   const [docData, setDocData] = useState(null);
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,9 +27,10 @@ const SharedDocument = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isPO = type === 'po';
   const isQuote = type === 'quote';
   const isReceipt = type === 'receipt';
-  const docTitle = isReceipt ? 'Payment Receipt' : isQuote ? 'Quotation' : 'Invoice';
+  const docTitle = isPO ? 'Purchase Order' : isReceipt ? 'Payment Receipt' : isQuote ? 'Quotation' : 'Invoice';
 
   useEffect(() => {
     const loadDocument = async () => {
@@ -34,7 +39,21 @@ const SharedDocument = () => {
         let foundDoc = null;
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-        if (type === 'quote') {
+        if (type === 'po') {
+          // Check in StoreContext purchaseOrders or localStorage
+          foundDoc = purchaseOrders.find(item => item.id === id || item.shareKey === id || item.poNumber === id);
+          if (!foundDoc) {
+            try {
+              const localPOs = JSON.parse(localStorage.getItem('gym_purchase_orders') || '[]');
+              foundDoc = localPOs.find(item => item.id === id || item.shareKey === id || item.poNumber === id);
+            } catch (e) {}
+          }
+          if (foundDoc) {
+            setDocData(foundDoc);
+            const sup = suppliers.find(s => s.id === foundDoc.supplierId || s.name === foundDoc.supplierName);
+            setCustomerName(foundDoc.supplierName || sup?.name || 'Authorized Supplier');
+          }
+        } else if (type === 'quote') {
           foundDoc = quotes.find(item => item.id === id || item.shareKey === id);
           if (!foundDoc) {
             const query = supabase.from('quotations').select('*');
@@ -91,10 +110,14 @@ const SharedDocument = () => {
     };
 
     loadDocument();
-  }, [type, id, quotes, invoices, customers]);
+  }, [type, id, quotes, invoices, customers, purchaseOrders, suppliers]);
 
   const handleDownloadPDF = () => {
     if (!docData) return;
+    if (isPO) {
+      generatePurchaseOrderPDF(docData);
+      return;
+    }
     const payload = isQuote
       ? { 
           ...docData, 
@@ -135,22 +158,32 @@ const SharedDocument = () => {
     );
   }
 
-  const docNumber = isQuote ? docData.quoteNumber : docData.invoiceNumber;
-  const standardItems = (docData.items || []).filter(i => !i.isDiscount);
+  const docNumber = isPO ? docData.poNumber : isQuote ? docData.quoteNumber : docData.invoiceNumber;
+  const standardItems = Array.isArray(docData.items) ? docData.items.filter(i => !i.isDiscount) : [];
   const discountItem = (docData.items || []).find(i => i.isDiscount);
   
-  const getItemName = (item) => item.name || item.description || item.title || item.item_name || 'FP MACHINE';
+  const getItemName = (item) => item.name || item.description || item.title || item.item_name || 'Purchase Item';
   const getItemQty = (item) => Number(item.quantity || item.qty || item.count || 1);
-  const getItemPrice = (item) => Number(item.price || item.unitPrice || item.rate || item.unit_price || item.amount || 25000);
+  const getItemPrice = (item) => Number(item.unitCost != null ? item.unitCost : (item.price || item.unitPrice || item.rate || item.unit_price || item.amount || 0));
 
   const discountAmount = discountItem ? Math.abs(getItemPrice(discountItem)) : 0;
 
-  const subTotal = standardItems.length > 0
-    ? standardItems.reduce((sum, item) => sum + (getItemPrice(item) * getItemQty(item)), 0)
-    : Number(docData.amount || 25000) + discountAmount;
+  const calculatedItemsTotal = standardItems.reduce((sum, item) => sum + (getItemPrice(item) * getItemQty(item)), 0);
+
+  const subTotal = isPO 
+    ? (docData.subtotal != null ? Number(docData.subtotal) : calculatedItemsTotal)
+    : (standardItems.length > 0 ? calculatedItemsTotal : Number(docData.amount || 25000) + discountAmount);
     
-  const totalAmount = subTotal - discountAmount;
-  const isApproved = docData.status === 'Paid' || docData.status === 'Accepted';
+  const poVatRate = Number(docData.vatRate != null ? docData.vatRate : 18);
+  const poVatAmount = isPO
+    ? (docData.vatAmount != null ? Number(docData.vatAmount) : (docData.applyVat ? Math.round(subTotal * (poVatRate / 100)) : 0))
+    : 0;
+
+  const totalAmount = isPO
+    ? (docData.totalAmount != null ? Number(docData.totalAmount) : (subTotal + poVatAmount))
+    : (subTotal - discountAmount);
+
+  const isApproved = isPO ? (docData.status === 'Received' || docData.status === 'Delivered') : (docData.status === 'Paid' || docData.status === 'Accepted');
 
   return (
     <div style={{ 
@@ -246,9 +279,39 @@ const SharedDocument = () => {
                 )}
               </div>
               
-              <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 12px 0', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+              <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 8px 0', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
                 {customerName}
               </h1>
+
+              {isPO && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                  {docData.applyVat ? (
+                    <span style={{ 
+                      background: 'rgba(16, 185, 129, 0.12)', color: '#059669', 
+                      padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800,
+                      border: '1px solid rgba(16, 185, 129, 0.25)', display: 'inline-flex', alignItems: 'center', gap: '5px' 
+                    }}>
+                      <Check size={12} /> VAT Registered ({poVatRate}%) {docData.supplierVatNumber ? `• ${docData.supplierVatNumber}` : ''}
+                    </span>
+                  ) : (
+                    <span style={{ 
+                      background: '#f1f5f9', color: '#64748b', 
+                      padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 
+                    }}>
+                      Non-VAT Registered Supplier
+                    </span>
+                  )}
+                  {docData.expectedDelivery && (
+                    <span style={{ 
+                      background: '#eff6ff', color: '#2563eb', 
+                      padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700,
+                      display: 'inline-flex', alignItems: 'center', gap: '5px'
+                    }}>
+                      <Clock size={12} /> Expected Delivery: {docData.expectedDelivery}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div>
                 <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
@@ -408,7 +471,23 @@ const SharedDocument = () => {
                 </div>
               </div>
 
-              {discountAmount > 0 && (
+              {isPO && docData.applyVat ? (
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
+                    <span style={{ color: '#cbd5e1' }}>Items Subtotal:</span>
+                    <span style={{ color: '#ffffff', fontWeight: 700, fontFamily: 'monospace' }}>LKR {subTotal.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#34d399' }}>
+                    <span style={{ fontWeight: 700 }}>VAT ({poVatRate}%):</span>
+                    <span style={{ fontWeight: 900, fontFamily: 'monospace' }}>+ LKR {poVatAmount.toLocaleString()}</span>
+                  </div>
+                  {docData.supplierVatNumber && (
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', textAlign: 'right' }}>
+                      Vendor VAT Reg: {docData.supplierVatNumber}
+                    </div>
+                  )}
+                </div>
+              ) : discountAmount > 0 ? (
                 <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
                     <span style={{ color: '#cbd5e1' }}>Gross Subtotal:</span>
@@ -419,13 +498,13 @@ const SharedDocument = () => {
                     <span style={{ fontWeight: 900, fontFamily: 'monospace' }}>- LKR {discountAmount.toLocaleString()}</span>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', marginBottom: '20px' }}></div>
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ color: '#3b82f6', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                  {isQuote ? 'PROJECTED INVESTMENT' : 'CURRENT BALANCE DUE'}
+                  {isPO ? (docData.applyVat ? 'TOTAL PURCHASE ORDER VALUE (INCL. VAT)' : 'TOTAL PURCHASE ORDER VALUE (NON-VAT)') : isQuote ? 'PROJECTED INVESTMENT' : 'CURRENT BALANCE DUE'}
                 </div>
                 <div style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.04em', lineHeight: 1, wordBreak: 'break-word' }}>
                   <span style={{ fontSize: '1rem', color: '#94a3b8', marginRight: '8px', fontWeight: 700 }}>LKR</span>
@@ -434,6 +513,50 @@ const SharedDocument = () => {
               </div>
             </div>
           </div>
+
+          {/* PO SUPPLIER ACTIONS & ACKNOWLEDGMENT */}
+          {isPO && (
+            <div className="no-print" style={{ marginTop: '36px' }}>
+              <div style={{
+                padding: '24px', borderRadius: '20px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.03))',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'flex', flexDirection: 'column', gap: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontWeight: 800, fontSize: '1.05rem', marginBottom: '4px' }}>
+                      <ShoppingBag size={20} /> OFFICIAL PURCHASE ORDER ISSUED
+                    </div>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>
+                      This order has been officially placed by {smsConfig.companyName || 'Hair Pins & Accessories Manufacturing Co.'}. Please confirm order acceptance and schedule shipment.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => {
+                        const buyerPhone = (smsConfig?.companyPhone || '0728408880').replace(/[^0-9]/g, '');
+                        const cleanPhone = buyerPhone.startsWith('0') ? '94' + buyerPhone.slice(1) : (buyerPhone.startsWith('94') ? buyerPhone : '94' + buyerPhone);
+                        const msg = encodeURIComponent(`Hi! This is ${customerName}. We acknowledge receipt of Purchase Order #${docData.poNumber} (Total: LKR ${totalAmount.toLocaleString()}${docData.applyVat ? ` incl. ${poVatRate}% VAT` : ''}). We confirm the items and are processing dispatch by ${docData.expectedDelivery || 'the agreed date'}.`);
+                        window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+                      }}
+                      className="btn"
+                      style={{ background: '#25D366', color: '#ffffff', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0 20px', height: '42px', borderRadius: '12px', border: 'none', cursor: 'pointer' }}
+                    >
+                      <MessageSquare size={16} /> Acknowledge via WhatsApp
+                    </button>
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="btn btn-secondary"
+                      style={{ height: '42px', borderRadius: '12px' }}
+                    >
+                      <Download size={16} /> Download PO PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* QUOTATION STATUS NOTICES & INTERACTIVE CUSTOMER ACTIONS */}
           {isQuote && (

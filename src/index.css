@@ -1328,18 +1328,21 @@ tbody tr:hover td {
 .global-search-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 9999;
-  background: rgba(2, 6, 23, 0.75);
-  backdrop-filter: blur(10px);
+  z-index: 99999;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 80px 20px;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 @media (max-width: 640px) {
   .global-search-backdrop {
-    padding: 20px 12px !important;
+    padding: 24px 12px !important;
   }
 }
 

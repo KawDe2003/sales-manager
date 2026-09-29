@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Trash2, X, CheckCircle2 } from 'lucide-react';
 
 const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelText = 'Cancel', variant = 'danger', onConfirm, onClose }) => {
@@ -17,12 +18,29 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
   }, [isOpen]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const isDanger = variant === 'danger';
 
-  return (
+  return createPortal(
     <div 
       className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(2, 6, 23, 0.82)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        padding: '16px'
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       onWheel={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
@@ -101,7 +119,8 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
