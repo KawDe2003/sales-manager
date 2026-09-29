@@ -49,7 +49,7 @@ const Invoices = () => {
     return digits;
   };
 
-  // 1-Tap Action: Auto-Download PDF & Open WhatsApp with Link
+  // 1-Tap Action: Send Invoice Link via WhatsApp
   const handleSendWhatsApp = (invoice) => {
     const customer = customers.find(c => c.id === invoice.customerId) || 
                      customers.find(c => c.gymName === invoice.prospectName) || {};
@@ -61,15 +61,6 @@ const Invoices = () => {
     const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const dueVal = Math.max(0, amountVal - historicalPayments);
 
-    // 1. Automatically generate and download the PDF for user
-    const docData = { ...invoice, gymName: clientName };
-    try {
-      generateDocumentPDF('Invoice', docData, invoice.items || []);
-    } catch (e) {
-      console.warn('PDF download warning:', e);
-    }
-
-    // 2. Prepare WhatsApp message with public web link
     const msg = 
 `*OFFICIAL INVOICE #${invoice.invoiceNumber}*
 Dear ${clientName},
@@ -83,14 +74,13 @@ Here is your official Invoice *#${invoice.invoiceNumber}*.
 *View & Pay Online:*
 ${shareUrl}
 
-📄 *PDF Attachment:* The official invoice PDF has also been generated and downloaded to your device for easy attaching.
 Thank you for your business!`;
 
     const waUrl = phone 
       ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
       : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
-    showNotification?.(`Invoice PDF downloaded! Opening WhatsApp to share with ${clientName}...`, 'success');
+    showNotification?.(`Opening WhatsApp to send invoice link to ${clientName}...`, 'success');
     window.open(waUrl, '_blank');
   };
 
@@ -639,7 +629,7 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
         </div>
 
         <div className="action-bar md:justify-end w-full flex items-center gap-2 flex-wrap">
-          {/* WhatsApp + Auto PDF Download Button */}
+          {/* WhatsApp Button (Sends Invoice Link) */}
           <button 
             className="btn btn-sm"
             style={{ 
@@ -648,9 +638,9 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
               gap: '6px', fontWeight: 800, fontSize: '0.82rem', borderRadius: '10px'
             }}
             onClick={onSendWhatsApp}
-            title="Download PDF & Send Invoice Link via WhatsApp"
+            title="Send Invoice Link via WhatsApp"
           >
-            <MessageSquare size={16} /> <span>WhatsApp + PDF</span>
+            <MessageSquare size={16} /> <span>WhatsApp</span>
           </button>
 
           {/* SMS Button (Gateway + Native Messages App) */}

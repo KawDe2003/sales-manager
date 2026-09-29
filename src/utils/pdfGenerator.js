@@ -490,6 +490,14 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const safeFileName = `${safeDocPrefix}_${docNumber}_${(targetName).replace(/[^a-z0-9]/gi, '_')}.pdf`;
     savePdfDoc(doc, safeFileName);
 
+    try {
+      const blob = doc.output('blob');
+      const file = new File([blob], safeFileName, { type: 'application/pdf' });
+      return { doc, blob, file, fileName: safeFileName };
+    } catch (e) {
+      return { doc, fileName: safeFileName };
+    }
+
   } catch (err) {
     console.error('PDF generation error details:', err.message, err.stack);
     alert(`Could not generate PDF: ${err.message || 'Unknown error'}. Please check the console.`);

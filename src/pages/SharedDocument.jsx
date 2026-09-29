@@ -136,6 +136,12 @@ const SharedDocument = () => {
 
   const handlePrint = () => window.print();
 
+  useEffect(() => {
+    if (docData && searchParams.get('download') === 'pdf') {
+      handleDownloadPDF();
+    }
+  }, [docData, searchParams]);
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#070b14' }}>
