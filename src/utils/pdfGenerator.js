@@ -95,33 +95,39 @@ export const renderCompanyHeader = (doc, {
   refVal = ''
 }) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const rawCompanyName = savedConfig.companyName || savedConfig.dashboardName || defaultCompanyName;
+  const rawCompanyName = savedConfig.companyName || savedConfig.dashboardName || defaultCompanyName || 'Seynex Technology';
   const companyName = rawCompanyName.replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology').trim();
-  const companyAddress = savedConfig.companyAddress || '';
-  const companyEmail = savedConfig.companyEmail || '';
-  const companyPhone = savedConfig.companyPhone || '';
+  const companyAddress = savedConfig.companyAddress || 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya';
+  const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
+  const companyPhone = savedConfig.companyPhone || '072 840 8880';
   const vatNumber = savedConfig.vatNumber || savedConfig.taxNumber || '';
   const website = savedConfig.companyWebsite || '';
   const logo = savedConfig.receiptLogo || savedConfig.companyLogo;
 
   let textStartX = 14;
-  let textStartY = 19;
+  let textStartY = 18;
 
   if (logo) {
     try {
-      // Draw logo with clean dimensions at (14, 10, 28, 28)
-      doc.addImage(logo, 'PNG', 14, 10, 28, 28);
-      textStartX = 46; // Shift text comfortably to the right of the logo - ZERO OVERLAP!
+      const imgFormat = (typeof logo === 'string' && (logo.includes('image/jpeg') || logo.includes('image/jpg'))) ? 'JPEG' : 'PNG';
+      doc.addImage(logo, imgFormat, 14, 10, 24, 24);
+      textStartX = 42; // Logo is at (14, 10, 24, 24) -> right edge is 38. Text starts cleanly at 42 with ZERO overlap!
       textStartY = 16;
     } catch (e) {
-      console.warn('Could not render logo in PDF, falling back to text:', e);
-      textStartX = 14;
-      textStartY = 19;
+      try {
+        doc.addImage(logo, 14, 10, 24, 24);
+        textStartX = 42;
+        textStartY = 16;
+      } catch (e2) {
+        console.warn('Could not render logo in PDF, falling back to text:', e2);
+        textStartX = 14;
+        textStartY = 18;
+      }
     }
   }
 
   // Company Name
-  doc.setFontSize(logo ? 13.5 : 18);
+  doc.setFontSize(logo ? 13 : 18);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.text(companyName, textStartX, textStartY);
@@ -131,10 +137,10 @@ export const renderCompanyHeader = (doc, {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
   
-  let currentY = textStartY + 5;
+  let currentY = textStartY + 4.8;
   if (companyAddress) {
     doc.text(companyAddress, textStartX, currentY);
-    currentY += 4.2;
+    currentY += 4.0;
   }
 
   const contactLine = [
@@ -144,7 +150,7 @@ export const renderCompanyHeader = (doc, {
 
   if (contactLine) {
     doc.text(contactLine, textStartX, currentY);
-    currentY += 4.2;
+    currentY += 4.0;
   }
 
   if (vatNumber) {
@@ -153,39 +159,42 @@ export const renderCompanyHeader = (doc, {
     doc.text(`VAT Reg No: ${vatNumber}`, textStartX, currentY);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139);
-    currentY += 4.2;
+    currentY += 4.0;
   } else if (website) {
     doc.text(`Web: ${website}`, textStartX, currentY);
-    currentY += 4.2;
+    currentY += 4.0;
   }
 
   // Right Side: Document Title & Meta
   if (title) {
-    doc.setFontSize(22);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text(title, pageWidth - 14, 20, { align: 'right' });
 
-    let rightY = 28;
+    let rightY = 27;
     if (numberVal) {
       doc.setFontSize(9.5);
-      doc.setTextColor(30, 41, 59);
-      doc.text(`${numberLabel || 'No'}: ${numberVal}`, pageWidth - 14, rightY, { align: 'right' });
-      rightY += 5.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`${numberLabel ? numberLabel + ': ' : ''}${numberVal}`, pageWidth - 14, rightY, { align: 'right' });
+      rightY += 5;
     }
 
     if (dateVal) {
-      doc.setFontSize(8.5);
+      doc.setFontSize(8.2);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
       doc.text(`${dateLabel}: ${dateVal}`, pageWidth - 14, rightY, { align: 'right' });
-      rightY += 5;
+      rightY += 4.5;
     }
 
     if (dueDateVal && dueDateVal !== '—') {
-      doc.setFontSize(8.5);
+      doc.setFontSize(8.2);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
       doc.text(`${dueDateLabel || 'Due Date'}: ${dueDateVal}`, pageWidth - 14, rightY, { align: 'right' });
-      rightY += 5;
+      rightY += 4.5;
     }
 
     if (refVal) {
@@ -196,7 +205,12 @@ export const renderCompanyHeader = (doc, {
     }
   }
 
-  return Math.max(currentY, 44);
+  // Draw clean divider line
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.4);
+  doc.line(14, 40, pageWidth - 14, 40);
+
+  return 40;
 };
 
 // Universal Bulletproof Download Trigger with Strict PDF Extension & Real Filename Guarantee
@@ -314,7 +328,8 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const companyName = rawCompanyName.replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology').trim();
     const companyAddress = savedConfig.companyAddress || 'No 680/1B, Hendrik Perera Road, Gonwala, Kelaniya';
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
-    const companyPhone = savedConfig.companyPhone || '';
+    const companyPhone = savedConfig.companyPhone || '072 840 8880';
+    const quoteRef = documentData?.quotationNumber || documentData?.quoteRef || documentData?.linkedQuoteNumber || '';
 
     // Normalise type string
     const isInvoice = type?.toLowerCase().includes('invoice');
@@ -627,29 +642,16 @@ export const generateStockReportPDF = (inventoryItems) => {
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
     const pageHeight = doc.internal.pageSize.getHeight();
-    const dateStr = new Date().toLocaleDateString();
-
-    // Header
-    if (savedConfig.receiptLogo) {
-      try {
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
-      } catch (e) {
-        doc.setFontSize(22);
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(companyName, 14, 22);
-      }
-    } else {
-      doc.setFontSize(22);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(companyName, 14, 22);
-    }
-
-    doc.setFontSize(18);
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text('MASTER STOCK VALUATION REPORT', 196, 22, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.text(`Report Date: ${dateStr}`, 196, 30, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'STOCK VALUATION',
+      numberLabel: 'Report Ref',
+      numberVal: 'STK-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      dateLabel: 'Report Date',
+      dateVal: formatDatePretty(new Date())
+    });
 
     // Table
     const tableBody = inventoryItems.map(item => [
@@ -710,29 +712,16 @@ export const generateAccountingReportPDF = (data) => {
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
     const pageHeight = doc.internal.pageSize.getHeight();
-    const dateStr = new Date().toLocaleDateString();
-
-    // Header
-    if (savedConfig.receiptLogo) {
-      try {
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 32, 32);
-      } catch (e) {
-        doc.setFontSize(22);
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(companyName, 14, 22);
-      }
-    } else {
-      doc.setFontSize(22);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(companyName, 14, 22);
-    }
-
-    doc.setFontSize(18);
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text('ACCOUNTING SUMMARY REPORT', 196, 22, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${dateStr}`, 196, 30, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'ACCOUNTING SUMMARY',
+      numberLabel: 'Summary Ref',
+      numberVal: 'ACC-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      dateLabel: 'Generated on',
+      dateVal: formatDatePretty(new Date())
+    });
 
     // Table Data
     const tableBody = data.map(row => [
@@ -787,24 +776,18 @@ export const generatePnLReportPDF = (pnlData) => {
     const companyPhone = savedConfig.companyPhone || '';
 
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
-    const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
+    const dateStr = formatDatePretty(new Date());
 
-    // Company Header
-    doc.setFontSize(22);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(companyName, 14, 22);
-
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    doc.text(companyAddress, 14, 28);
-    doc.text(`Email: ${companyEmail} ${companyPhone ? '| Phone: ' + companyPhone : ''}`, 14, 33);
-
-    // Title
-    doc.setFontSize(18);
-    doc.setTextColor(20, 20, 20);
-    doc.text('PROFIT & LOSS STATEMENT (P&L)', 196, 22, { align: 'right' });
-    doc.setFontSize(10);
-    doc.text(`For Period Ending: ${dateStr}`, 196, 30, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'PROFIT & LOSS',
+      numberLabel: 'Statement Ref',
+      numberVal: 'PNL-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      dateLabel: 'Period Ending',
+      dateVal: dateStr
+    });
 
     // P&L Data Table
     const tableBody = [
@@ -832,7 +815,7 @@ export const generatePnLReportPDF = (pnlData) => {
     ];
 
     runAutoTable(doc, {
-      startY: 42,
+      startY: 48,
       head: [['Financial Category', 'Amount (LKR)']],
       body: tableBody,
       theme: 'grid',
@@ -857,30 +840,19 @@ export const printPnLReportPDF = (pnlData) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = (savedConfig.companyName || 'Seynex Technology').replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology');
-    const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
-    const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
-    const companyPhone = savedConfig.companyPhone || '';
-
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
-    const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
+    const dateStr = formatDatePretty(new Date());
 
-    // Company Header
-    doc.setFontSize(22);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(companyName, 14, 22);
-
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    doc.text(companyAddress, 14, 28);
-    doc.text(`Email: ${companyEmail} ${companyPhone ? '| Phone: ' + companyPhone : ''}`, 14, 33);
-
-    // Title
-    doc.setFontSize(18);
-    doc.setTextColor(20, 20, 20);
-    doc.text('PROFIT & LOSS STATEMENT (P&L)', 196, 22, { align: 'right' });
-    doc.setFontSize(10);
-    doc.text(`For Period Ending: ${dateStr}`, 196, 30, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'PROFIT & LOSS',
+      numberLabel: 'Statement Ref',
+      numberVal: 'PNL-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      dateLabel: 'Period Ending',
+      dateVal: dateStr
+    });
 
     // P&L Data Table
     const tableBody = [
@@ -908,7 +880,7 @@ export const printPnLReportPDF = (pnlData) => {
     ];
 
     runAutoTable(doc, {
-      startY: 42,
+      startY: 48,
       head: [['Financial Category', 'Amount (LKR)']],
       body: tableBody,
       theme: 'grid',
@@ -1816,38 +1788,32 @@ export const generateCustomerStatementPDF = (customer, invoices = [], payments =
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6', [59, 130, 246]);
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(companyName, 14, 20);
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text('STATEMENT OF ACCOUNT', pageWidth - 14, 20, { align: 'right' });
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Statement Date: ${formatDatePretty(new Date())}`, pageWidth - 14, 26, { align: 'right' });
-    doc.text(`Account Code: ${customer.customerCode || customer.id || 'CUST-001'}`, pageWidth - 14, 31, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'STATEMENT OF ACCOUNT',
+      numberLabel: 'Account Code',
+      numberVal: customer.customerCode || customer.id || 'CUST-001',
+      dateLabel: 'Statement Date',
+      dateVal: formatDatePretty(new Date())
+    });
 
     // Client Details
     doc.setFillColor(248, 250, 252);
-    doc.rect(14, 38, pageWidth - 28, 22, 'F');
+    doc.rect(14, 46, pageWidth - 28, 18, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(14, 38, pageWidth - 28, 22, 'S');
+    doc.rect(14, 46, pageWidth - 28, 18, 'S');
 
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text(customer.gymName || customer.name || 'Valued Client', 20, 47);
+    doc.text(customer.gymName || customer.name || 'Valued Client', 18, 53);
 
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139);
-    doc.text(`Contact: ${customer.contactPerson || customer.name || '—'} | Mobile: ${customer.phone || '—'} | Email: ${customer.email || '—'}`, 20, 54);
+    doc.text(`Contact: ${customer.contactPerson || customer.name || '—'}  •  Mobile: ${customer.phone || '—'}  •  Email: ${customer.email || '—'}`, 18, 59);
 
     // Compute Transactions
     const custInvoices = invoices.filter(inv => inv.customerId === customer.id || inv.prospectName === customer.gymName);
@@ -1935,21 +1901,16 @@ export const generateDebtorReportPDF = (debtorsList, options = {}) => {
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#f59e0b', [245, 158, 11]);
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(245, 158, 11);
-    doc.text(companyName, 14, 20);
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text('ACCOUNTS RECEIVABLE & DEBTORS REPORT', pageWidth - 14, 20, { align: 'right' });
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(`As of Date: ${formatDatePretty(new Date())} | Scope: Outstanding Invoices > LKR 0.00`, pageWidth - 14, 26, { align: 'right' });
+    // Standard Enterprise Header
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      title: 'ACCOUNTS RECEIVABLE',
+      numberLabel: 'Scope',
+      numberVal: 'Outstanding Debtors',
+      dateLabel: 'As of Date',
+      dateVal: formatDatePretty(new Date())
+    });
 
     let grandTotalDebt = 0;
     const tableBody = (debtorsList || []).map(row => {
@@ -1969,7 +1930,7 @@ export const generateDebtorReportPDF = (debtorsList, options = {}) => {
     });
 
     runAutoTable(doc, {
-      startY: 36,
+      startY: 48,
       head: [['Customer', 'Invoice #', 'Date', 'Due Date', 'Total', 'Paid', 'Outstanding', 'Aging', 'Status']],
       body: tableBody.length > 0 ? tableBody : [['—', '—', '—', '—', '—', '—', 'No outstanding debtors', '—', '—']],
       theme: 'grid',
