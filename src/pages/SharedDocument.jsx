@@ -69,7 +69,11 @@ const SharedDocument = () => {
                 ...data, 
                 shareKey: data.share_key, 
                 quoteNumber: data.quote_number,
-                prospectName: data.prospect_name
+                prospectName: data.prospect_name,
+                convertedInvoiceId: data.converted_invoice_id || data.convertedInvoiceId || null,
+                convertedInvoiceNumber: data.converted_invoice_number || data.convertedInvoiceNumber || null,
+                sentAt: data.sent_at || data.sentAt || null,
+                acceptedAt: data.accepted_at || data.acceptedAt || null
               };
             }
           }
@@ -81,19 +85,24 @@ const SharedDocument = () => {
               try { allInvs = JSON.parse(localStorage.getItem('gym_invoices') || '[]'); } catch (e) {}
             }
 
-            // Strictly check for an invoice genuinely linked to this specific quotation
-            const matchingInv = allInvs.find(inv => {
+            // Only match via EXPLICIT link fields — never via loose quoteRef to avoid false positives
+            const hasExplicitLink = Boolean(
+              foundDoc.convertedInvoiceId || 
+              foundDoc.converted_invoice_id || 
+              foundDoc.convertedInvoiceNumber
+            );
+
+            const matchingInv = hasExplicitLink ? allInvs.find(inv => {
               if (foundDoc.convertedInvoiceId && (inv.id === foundDoc.convertedInvoiceId || inv.shareKey === foundDoc.convertedInvoiceId)) return true;
               if (foundDoc.converted_invoice_id && (inv.id === foundDoc.converted_invoice_id || inv.shareKey === foundDoc.converted_invoice_id)) return true;
               if (foundDoc.convertedInvoiceNumber && (inv.invoiceNumber === foundDoc.convertedInvoiceNumber || inv.invoice_number === foundDoc.convertedInvoiceNumber)) return true;
               if (inv.quotationId && String(inv.quotationId) === String(foundDoc.id)) return true;
-              if (qNum && inv.quoteRef && String(inv.quoteRef).trim() === qNum) return true;
-              if (qNum && inv.quotationNumber && String(inv.quotationNumber).trim() === qNum) return true;
               return false;
-            });
+            }) : null;
 
+            // Only treat as converted if the stored status explicitly says so AND we can verify a linked invoice
             const isLegitConverted = Boolean(
-              (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted' || foundDoc.convertedInvoiceNumber || foundDoc.converted_invoice_id) && 
+              (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') && 
               matchingInv
             );
 
@@ -102,7 +111,8 @@ const SharedDocument = () => {
               foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey;
               foundDoc.status = 'Converted to Invoice';
             } else {
-              // Self-heal: quotation was not legitimately accepted/converted
+              // Self-heal: if stored as 'Converted to Invoice' but no linked invoice found, reset to Sent/Pending
+              // (keep 'Accepted' as-is — the invoice may not be linked yet but acceptance is still valid)
               if (foundDoc.status === 'Converted to Invoice') {
                 foundDoc.status = foundDoc.sentAt ? 'Sent' : 'Pending';
                 delete foundDoc.convertedInvoiceNumber;

@@ -1773,7 +1773,12 @@ export const getNextSequentialQuoteNumber = (quotes = [], config = {}) => {
           prospect_phone: quote.prospectPhone || '',
           amount: Number(quote.amount) || 0,
           status: quote.status || 'Pending',
-          items: quote.items || []
+          items: quote.items || [],
+          // Explicit invoice link fields — critical for SharedDocument status resolution
+          converted_invoice_id: quote.convertedInvoiceId || null,
+          converted_invoice_number: quote.convertedInvoiceNumber || null,
+          sent_at: quote.sentAt || null,
+          accepted_at: quote.acceptedAt || null
         }, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase Sync] Quote Warning:', error.message);
