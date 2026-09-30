@@ -54,14 +54,14 @@ const SharedDocument = () => {
             setCustomerName(foundDoc.supplierName || sup?.name || 'Authorized Supplier');
           }
         } else if (type === 'quote') {
-          const rawQuote = quotes.find(item => item.id === id || item.shareKey === id);
+          const rawQuote = quotes.find(item => item.id === id || item.shareKey === id || item.quoteNumber === id || item.quote_number === id);
           if (rawQuote) {
             foundDoc = { ...rawQuote };
           }
           if (!foundDoc) {
             const query = supabase.from('quotations').select('*');
             if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
-            else query.eq('share_key', id);
+            else query.or(`share_key.eq.${id},quote_number.eq.${id}`);
 
             const { data, error } = await query.single();
             if (data && !error) {

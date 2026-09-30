@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { StoreContext } from '../context/StoreContext';
+import { StoreContext, getNextSequentialQuoteNumber } from '../context/StoreContext';
 import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
@@ -412,7 +412,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
 };
 
 const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] }) => {
-  const { smsConfig = {}, showNotification } = useContext(StoreContext) || {};
+  const { smsConfig = {}, showNotification, quotes = [] } = useContext(StoreContext) || {};
   const isLocked = Boolean(
     initialData && (
       initialData.status === 'Sent' || 
@@ -429,7 +429,10 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
 
   const [formData, setFormData] = useState({
-    quoteNumber: initialData?.quoteNumber || `${smsConfig.quotePrefix || 'QT-'}${smsConfig.nextQuoteNumber || 1001}`, 
+    quoteNumber: initialData?.quoteNumber || (() => {
+      // Always scan existing quotes to avoid duplicates (never trust stale config value alone)
+      return getNextSequentialQuoteNumber(quotes, smsConfig).formattedNumber;
+    })(),
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     prospectName: initialData?.prospectName || '', 
     prospectPhone: initialData?.prospectPhone || '',

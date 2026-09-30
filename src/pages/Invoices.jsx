@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StoreContext } from '../context/StoreContext';
+import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
@@ -795,7 +795,7 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
 };
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
-  const { smsConfig = {}, generateInstallmentSchedule, payments = [], showNotification } = useContext(StoreContext) || {};
+  const { smsConfig = {}, generateInstallmentSchedule, payments = [], showNotification, invoices = [] } = useContext(StoreContext) || {};
   const isLocked = Boolean(
     initialData && (
       initialData.status === 'Sent' || 
@@ -813,7 +813,10 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
 
   const [formData, setFormData] = useState({
-    invoiceNumber: initialData?.invoiceNumber || `${smsConfig.invoicePrefix || 'INV-'}${smsConfig.nextInvoiceNumber || 1001}`,
+    invoiceNumber: initialData?.invoiceNumber || (() => {
+      // Always scan existing invoices to avoid duplicates (never trust stale config value alone)
+      return getNextSequentialInvoiceNumber(invoices, smsConfig).formattedNumber;
+    })(),
     date: initialData?.date || new Date().toISOString().split('T')[0],
     dueDate: initialData?.dueDate || '',
     customerId: initialData?.customerId || (customers[0]?.id || ''),

@@ -1217,6 +1217,53 @@ export default function StoreContextProvider({ children }) {
   };
 
   // SMS Configuration (Base Defaults with localStorage mirror)
+// Bulletproof Sequential Numbering Helpers (guarantees zero duplicate invoice/quote numbers)
+export const getNextSequentialInvoiceNumber = (invoices = [], config = {}) => {
+  const prefix = config.invoicePrefix || 'INV-';
+  const configuredStart = parseInt(config.nextInvoiceNumber || 1001, 10);
+  
+  let highestNum = configuredStart - 1;
+  (invoices || []).forEach(inv => {
+    const raw = String(inv.invoiceNumber || inv.invoice_number || '').trim();
+    const match = raw.match(/(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > highestNum) {
+        highestNum = n;
+      }
+    }
+  });
+  
+  const nextNum = Math.max(configuredStart, highestNum + 1);
+  return {
+    nextNumber: nextNum,
+    formattedNumber: `${prefix}${nextNum}`
+  };
+};
+
+export const getNextSequentialQuoteNumber = (quotes = [], config = {}) => {
+  const prefix = config.quotePrefix || 'QT-';
+  const configuredStart = parseInt(config.nextQuoteNumber || 1001, 10);
+  
+  let highestNum = configuredStart - 1;
+  (quotes || []).forEach(q => {
+    const raw = String(q.quoteNumber || q.quote_number || '').trim();
+    const match = raw.match(/(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > highestNum) {
+        highestNum = n;
+      }
+    }
+  });
+  
+  const nextNum = Math.max(configuredStart, highestNum + 1);
+  return {
+    nextNumber: nextNum,
+    formattedNumber: `${prefix}${nextNum}`
+  };
+};
+
   const DEFAULT_SMS_CONFIG = {
     apiKey: '2179165276941c4e5eb994053957585',
     email: 'seynextech@gmail.com',
@@ -3099,11 +3146,16 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addInvoice = (invoice) => {
+    let finalInvoiceNumber = String(invoice.invoiceNumber || '').trim();
+    if (!finalInvoiceNumber || invoices.some(i => i.invoiceNumber === finalInvoiceNumber)) {
+      finalInvoiceNumber = getNextSequentialInvoiceNumber(invoices, smsConfig).formattedNumber;
+    }
     const rawAmt = Number(invoice.amount != null && !isNaN(invoice.amount) ? invoice.amount : (invoice.totalAmount != null && !isNaN(invoice.totalAmount) ? invoice.totalAmount : 0)) || 0;
     const newInvoice = { 
       ...invoice, 
       id: invoice.id || uuidv4(), 
       shareKey: invoice.shareKey || generateShareKey(), 
+      invoiceNumber: finalInvoiceNumber,
       status: invoice.status || 'Sent',
       amount: rawAmt,
       totalAmount: rawAmt,
@@ -3131,11 +3183,13 @@ export default function StoreContextProvider({ children }) {
       deductStockForInvoice(invoice.items);
     }
 
-    // Auto-increment Next Invoice Number if it matches the current sequence
-    const currentPrefix = smsConfig.invoicePrefix || 'INV-';
-    const currentNext = parseInt(smsConfig.nextInvoiceNumber || 1001);
-    if (invoice.invoiceNumber === `${currentPrefix}${currentNext}`) {
-        updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentNext + 1 });
+    // Auto-advance nextInvoiceNumber based on this newly added invoice
+    const match = finalInvoiceNumber.match(/(\d+)$/);
+    if (match) {
+      const addedNum = parseInt(match[1], 10);
+      if (!isNaN(addedNum) && addedNum >= (smsConfig.nextInvoiceNumber || 1001)) {
+        updateSmsConfig(prev => ({ ...prev, nextInvoiceNumber: addedNum + 1 }));
+      }
     }
     showNotification(`Invoice #${newInvoice.invoiceNumber} created!`, 'success');
   };
@@ -3285,15 +3339,27 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addQuote = (quote) => {
-    const newQuote = { ...quote, id: uuidv4(), shareKey: generateShareKey(), status: 'Pending' };
-    setQuotes([...quotes, newQuote]);
+    let finalQuoteNumber = String(quote.quoteNumber || '').trim();
+    if (!finalQuoteNumber || quotes.some(q => q.quoteNumber === finalQuoteNumber)) {
+      finalQuoteNumber = getNextSequentialQuoteNumber(quotes, smsConfig).formattedNumber;
+    }
+    const newQuote = { 
+      ...quote, 
+      id: quote.id || uuidv4(), 
+      shareKey: quote.shareKey || generateShareKey(), 
+      quoteNumber: finalQuoteNumber,
+      status: quote.status || 'Pending' 
+    };
+    setQuotes(prev => [...prev, newQuote]);
     syncQuoteToSupabase(newQuote);
 
-    // Auto-increment Next Quote Number if it matches current sequence
-    const currentPrefix = smsConfig.quotePrefix || 'QT-';
-    const currentNext = parseInt(smsConfig.nextQuoteNumber || 1001);
-    if (quote.quoteNumber === `${currentPrefix}${currentNext}`) {
-        updateSmsConfig({ ...smsConfig, nextQuoteNumber: currentNext + 1 });
+    // Auto-advance nextQuoteNumber based on this newly added quote
+    const match = finalQuoteNumber.match(/(\d+)$/);
+    if (match) {
+      const addedNum = parseInt(match[1], 10);
+      if (!isNaN(addedNum) && addedNum >= (smsConfig.nextQuoteNumber || 1001)) {
+        updateSmsConfig(prev => ({ ...prev, nextQuoteNumber: addedNum + 1 }));
+      }
     }
     showNotification(`Quotation #${newQuote.quoteNumber} created!`, 'success');
   };
@@ -3607,10 +3673,8 @@ export default function StoreContextProvider({ children }) {
       syncCustomerToSupabase(customer);
     }
 
-    const currentInvPrefix = smsConfig.invoicePrefix || 'INV-';
-    const currentInvNext = parseInt(smsConfig.nextInvoiceNumber || 1001);
-    const invoiceNumber = `${currentInvPrefix}${currentInvNext}`;
-    updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentInvNext + 1 });
+    const { nextNumber, formattedNumber: invoiceNumber } = getNextSequentialInvoiceNumber(invoices, smsConfig);
+    updateSmsConfig(prev => ({ ...prev, nextInvoiceNumber: nextNumber + 1 }));
 
     const quoteRef = quote.quoteNumber || 'QT';
 
@@ -3926,10 +3990,8 @@ export default function StoreContextProvider({ children }) {
       return null;
     }
 
-    const currentInvPrefix = smsConfig.invoicePrefix || 'INV-';
-    const currentInvNext = parseInt(smsConfig.nextInvoiceNumber || 1001);
-    const invoiceNumber = `${currentInvPrefix}${currentInvNext}`;
-    updateSmsConfig({ ...smsConfig, nextInvoiceNumber: currentInvNext + 1 });
+    const { nextNumber, formattedNumber: invoiceNumber } = getNextSequentialInvoiceNumber(invoices, smsConfig);
+    updateSmsConfig(prev => ({ ...prev, nextInvoiceNumber: nextNumber + 1 }));
 
     const renewalItems = previousInvoice?.items?.length > 0
       ? previousInvoice.items
@@ -5177,11 +5239,18 @@ export default function StoreContextProvider({ children }) {
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
       .replace(/{receiptNumber}/g, documentData?.receiptNumber || '')
       .replace(/{number}/g, documentData?.invoiceNumber || documentData?.receiptNumber || documentData?.quoteNumber || '')
-      .replace(/{documentType}/g, documentData?.documentType || (type === 'Renewal' ? 'Renewal Invoice' : type === 'Payment' ? 'Receipt' : 'Invoice'))
-      .replace(/{link}/g, (documentData?.invoiceNumber || documentData?.receiptNumber || documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
-        type.toLowerCase() === 'quotation' ? 'quote' : 
-        (type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment') ? 'receipt' : 'invoice'
-      }/${documentData?.invoiceNumber || documentData?.shareKey || documentData?.id || documentData?.receiptNumber}` : '')
+      .replace(/{link}/g, () => {
+        if (!documentData) return '';
+        const isQuote = type.toLowerCase() === 'quotation';
+        const isPayment = type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment';
+        const route = isQuote ? 'quote' : isPayment ? 'receipt' : 'invoice';
+        const token = isQuote 
+          ? (documentData.quoteNumber || documentData.quote_number || documentData.shareKey || documentData.id)
+          : isPayment
+          ? (documentData.receiptNumber || documentData.shareKey || documentData.id)
+          : (documentData.invoiceNumber || documentData.invoice_number || documentData.shareKey || documentData.id);
+        return `${window.location.origin}/share/${route}/${token}`;
+      })
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : (documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : new Date().toLocaleDateString()))
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')
@@ -5239,6 +5308,7 @@ export default function StoreContextProvider({ children }) {
       activityLogs, addLog, recordAuditLog, clearActivityLogs,
       addCustomerNote,
       deleteInvoice, deleteQuote,
+      getNextSequentialInvoiceNumber, getNextSequentialQuoteNumber,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
       teamMembers, addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
       customRoles, addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole,
