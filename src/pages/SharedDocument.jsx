@@ -54,7 +54,10 @@ const SharedDocument = () => {
             setCustomerName(foundDoc.supplierName || sup?.name || 'Authorized Supplier');
           }
         } else if (type === 'quote') {
-          foundDoc = quotes.find(item => item.id === id || item.shareKey === id);
+          const rawQuote = quotes.find(item => item.id === id || item.shareKey === id);
+          if (rawQuote) {
+            foundDoc = { ...rawQuote };
+          }
           if (!foundDoc) {
             const query = supabase.from('quotations').select('*');
             if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
@@ -72,23 +75,41 @@ const SharedDocument = () => {
           }
 
           if (foundDoc) {
-            // Find converted invoice if already converted
+            const qNum = String(foundDoc.quoteNumber || foundDoc.quote_number || '').trim();
             let allInvs = Array.isArray(invoices) && invoices.length > 0 ? invoices : [];
             if (allInvs.length === 0) {
               try { allInvs = JSON.parse(localStorage.getItem('gym_invoices') || '[]'); } catch (e) {}
             }
-            const matchingInv = allInvs.find(inv => 
-              (inv.quotationId && inv.quotationId === foundDoc.id) || 
-              (inv.quoteRef && (inv.quoteRef === foundDoc.quoteNumber || inv.quoteRef === foundDoc.quote_number)) ||
-              (inv.quotationNumber && (inv.quotationNumber === foundDoc.quoteNumber || inv.quotationNumber === foundDoc.quote_number)) ||
-              (inv.notes && (inv.notes.includes(foundDoc.quoteNumber || '') || inv.notes.includes(foundDoc.quote_number || ''))) ||
-              (foundDoc.converted_invoice_id && inv.id === foundDoc.converted_invoice_id)
+
+            // Strictly check for an invoice genuinely linked to this specific quotation
+            const matchingInv = allInvs.find(inv => {
+              if (foundDoc.convertedInvoiceId && (inv.id === foundDoc.convertedInvoiceId || inv.shareKey === foundDoc.convertedInvoiceId)) return true;
+              if (foundDoc.converted_invoice_id && (inv.id === foundDoc.converted_invoice_id || inv.shareKey === foundDoc.converted_invoice_id)) return true;
+              if (foundDoc.convertedInvoiceNumber && (inv.invoiceNumber === foundDoc.convertedInvoiceNumber || inv.invoice_number === foundDoc.convertedInvoiceNumber)) return true;
+              if (inv.quotationId && String(inv.quotationId) === String(foundDoc.id)) return true;
+              if (qNum && inv.quoteRef && String(inv.quoteRef).trim() === qNum) return true;
+              if (qNum && inv.quotationNumber && String(inv.quotationNumber).trim() === qNum) return true;
+              return false;
+            });
+
+            const isLegitConverted = Boolean(
+              (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted' || foundDoc.convertedInvoiceNumber || foundDoc.converted_invoice_id) && 
+              matchingInv
             );
-            if (matchingInv) {
-              foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber;
+
+            if (isLegitConverted) {
+              foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber || matchingInv.invoice_number;
               foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey;
               foundDoc.status = 'Converted to Invoice';
+            } else {
+              // Self-heal: quotation was not legitimately accepted/converted
+              if (foundDoc.status === 'Converted to Invoice') {
+                foundDoc.status = foundDoc.sentAt ? 'Sent' : 'Pending';
+                delete foundDoc.convertedInvoiceNumber;
+                delete foundDoc.convertedInvoiceId;
+              }
             }
+
             setDocData(foundDoc);
             setCustomerName(foundDoc.prospectName || 'Valued Client');
           }
@@ -708,8 +729,15 @@ const SharedDocument = () => {
                   <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                     {isReceipt ? 'RECEIPT STATUS' : 'ACCOUNT STATUS'}
                   </div>
-                  <div style={{ color: (isApproved || isReceipt) ? '#10b981' : '#f59e0b', fontWeight: 900, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle size={16} />
+                  <div style={{ 
+                    color: (isApproved || isReceipt) ? '#10b981' : docData.status === 'Rejected' ? '#ef4444' : '#f59e0b', 
+                    fontWeight: 900, 
+                    fontSize: '1rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px' 
+                  }}>
+                    {(isApproved || isReceipt) ? <CheckCircle size={16} /> : docData.status === 'Rejected' ? <XCircle size={16} /> : <Clock size={16} />}
                     {isReceipt ? 'SETTLED & CREDITED' : (docData.status || 'Active').toUpperCase()}
                   </div>
                 </div>
@@ -913,7 +941,7 @@ const SharedDocument = () => {
                 </div>
               )}
 
-              {(docData.status === 'Pending' || docData.status === 'Sent' || docData.status === 'Draft') && !isPreview && (
+              {(docData.status === 'Pending' || docData.status === 'Sent' || docData.status === 'Draft' || docData.status === 'Counter Offer') && !isPreview && (
                 <div className="cta-container" style={{ 
                   padding: '36px 32px', 
                   background: '#f8fafc', 
@@ -922,10 +950,12 @@ const SharedDocument = () => {
                   textAlign: 'center' 
                 }}>
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
-                    Ready to proceed?
+                    {docData.status === 'Counter Offer' ? 'Review & Update Response' : 'Ready to proceed?'}
                   </h3>
                   <p style={{ maxWidth: '600px', margin: '0 auto 28px auto', fontSize: '0.95rem', color: '#64748b' }}>
-                    Choose an option below to approve the proposal, propose a custom budget, or decline.
+                    {docData.status === 'Counter Offer'
+                      ? 'You can accept the proposal at any time, submit an updated budget offer, or decline.'
+                      : 'Choose an option below to approve the proposal, propose a custom budget, or decline.'}
                   </p>
 
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
@@ -962,7 +992,8 @@ const SharedDocument = () => {
                         fontWeight: 800,
                         fontSize: '0.95rem',
                         boxShadow: '0 8px 20px rgba(16, 185, 129, 0.35)',
-                        border: 'none'
+                        border: 'none',
+                        cursor: 'pointer'
                       }}>
                       <CheckCircle size={18} /> ACCEPT QUOTATION
                     </button>
@@ -983,9 +1014,10 @@ const SharedDocument = () => {
                         fontWeight: 800,
                         fontSize: '0.95rem',
                         boxShadow: '0 8px 20px rgba(245, 158, 11, 0.25)',
-                        border: 'none'
+                        border: 'none',
+                        cursor: 'pointer'
                       }}>
-                      <DollarSign size={18} /> PROPOSE BUDGET
+                      <DollarSign size={18} /> {docData.status === 'Counter Offer' ? 'REVISE COUNTER OFFER' : 'PROPOSE BUDGET'}
                     </button>
 
                     {/* REJECT BUTTON */}
@@ -1000,7 +1032,8 @@ const SharedDocument = () => {
                         border: '1px solid #fee2e2', 
                         padding: '14px 22px', 
                         fontWeight: 700,
-                        fontSize: '0.95rem'
+                        fontSize: '0.95rem',
+                        cursor: 'pointer'
                       }}>
                       <XCircle size={18} /> REJECT QUOTATION
                     </button>

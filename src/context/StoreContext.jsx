@@ -2384,19 +2384,41 @@ export default function StoreContextProvider({ children }) {
 
       // 5. Quotations
       if (Array.isArray(qData)) {
-        const loadedQuotes = qData.map(q => ({
-          id: q.id,
-          shareKey: q.share_key,
-          quoteNumber: q.quote_number,
-          date: q.date,
-          prospectName: q.prospect_name,
-          prospectPhone: q.prospect_phone,
-          amount: Number(q.amount) || 0,
-          status: q.status,
-          items: q.items || []
-        }));
-        setQuotes(loadedQuotes);
-        try { localStorage.setItem('gym_quotes', JSON.stringify(loadedQuotes)); } catch(e) {}
+        let localQuotes = [];
+        try {
+          localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+        } catch (e) {}
+
+        const loadedQuotes = qData.map(q => {
+          const localMatch = localQuotes.find(lq => lq.id === q.id || lq.quoteNumber === q.quote_number);
+          return {
+            id: q.id,
+            shareKey: q.share_key,
+            quoteNumber: q.quote_number,
+            date: q.date,
+            prospectName: q.prospect_name,
+            prospectPhone: q.prospect_phone,
+            amount: Number(q.amount) || 0,
+            status: q.status || localMatch?.status || 'Pending',
+            items: q.items || localMatch?.items || [],
+            validUntil: q.valid_until || localMatch?.validUntil || null,
+            agreementTerms: q.agreement_terms || localMatch?.agreementTerms || '',
+            counterOffers: q.counter_offers || localMatch?.counterOffers || [],
+            acceptedAt: q.accepted_at || localMatch?.acceptedAt || null,
+            convertedInvoiceNumber: q.converted_invoice_number || localMatch?.convertedInvoiceNumber || null,
+            convertedInvoiceId: q.converted_invoice_id || localMatch?.convertedInvoiceId || null,
+            sentAt: q.sent_at || localMatch?.sentAt || null
+          };
+        });
+
+        // Merge any local quotes created offline or before sync
+        const remoteQIds = new Set(loadedQuotes.map(q => q.id));
+        const remoteQNumbers = new Set(loadedQuotes.map(q => q.quoteNumber));
+        const unSyncedLocalQuotes = localQuotes.filter(lq => lq && lq.id && !remoteQIds.has(lq.id) && !remoteQNumbers.has(lq.quoteNumber));
+        const mergedQuotes = [...loadedQuotes, ...unSyncedLocalQuotes];
+
+        setQuotes(mergedQuotes);
+        try { localStorage.setItem('gym_quotes', JSON.stringify(mergedQuotes)); } catch(e) {}
       }
 
       // 6. Invoices
@@ -2413,12 +2435,13 @@ export default function StoreContextProvider({ children }) {
         const loadedInvoices = iData.map(inv => {
           const localMatch = localInvoices.find(li => li.id === inv.id || li.invoiceNumber === inv.invoice_number);
           
-          // Match quotation reference from quotations if available
+          // Strict quotation reference matching
           const matchingQuote = Array.isArray(qData) ? qData.find(q => 
             q.converted_invoice_id === inv.id || 
             q.converted_invoice_number === inv.invoice_number ||
-            q.quote_number === localMatch?.quoteRef ||
-            (q.items && q.items.length > 0 && inv.items && inv.items.length > 0 && q.prospect_name === inv.prospect_name)
+            (localMatch?.quoteRef && q.quote_number === localMatch.quoteRef) ||
+            (inv.quote_ref && q.quote_number === inv.quote_ref) ||
+            (inv.quotation_id && q.id === inv.quotation_id)
           ) : null;
 
           let parsed = {
@@ -2438,7 +2461,7 @@ export default function StoreContextProvider({ children }) {
               : (localMatch?.installmentPlan || null),
             quoteRef: inv.quote_ref || localMatch?.quoteRef || matchingQuote?.quote_number || null,
             quotationNumber: inv.quotation_number || localMatch?.quotationNumber || matchingQuote?.quote_number || null,
-            notes: inv.notes || localMatch?.notes || (matchingQuote?.quote_number ? `Ref: #${matchingQuote.quote_number}` : '')
+            notes: inv.notes || localMatch?.notes || ''
           };
 
           if (parsed.status !== 'Paid' && parsed.status !== 'Overdue' && parsed.dueDate) {

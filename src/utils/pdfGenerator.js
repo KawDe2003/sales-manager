@@ -166,13 +166,13 @@ export const renderCompanyHeader = (doc, {
   }
 
   // Right Side: Document Title & Meta
+  let rightY = 27;
   if (title) {
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text(title, pageWidth - 14, 20, { align: 'right' });
 
-    let rightY = 27;
     if (numberVal) {
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
@@ -202,15 +202,17 @@ export const renderCompanyHeader = (doc, {
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.text(`${refLabel || 'Ref'}: #${refVal}`, pageWidth - 14, rightY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
+      rightY += 5;
     }
   }
 
-  // Draw clean divider line
+  // Draw clean divider line — positioned below whichever side (left or right) is taller
+  const dividerY = Math.max(40, rightY + 2);
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.4);
-  doc.line(14, 40, pageWidth - 14, 40);
+  doc.line(14, dividerY, pageWidth - 14, dividerY);
 
-  return 40;
+  return dividerY;
 };
 
 // Universal Bulletproof Download Trigger with Strict PDF Extension & Real Filename Guarantee
@@ -378,7 +380,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
     const totalAmount = subTotal - discountAmount;
 
     // ── Standard Company Header (Zero Overlap Guaranteed) ───────────────────────
-    renderCompanyHeader(doc, {
+    const headerEndY = renderCompanyHeader(doc, {
       savedConfig,
       primaryColor,
       defaultCompanyName: 'Seynex Technology',
@@ -392,6 +394,8 @@ export const generateDocumentPDF = (type, documentData, items) => {
       refLabel: 'Ref',
       refVal: isInvoice ? quoteRef : ''
     });
+    const billToY = headerEndY + 6;
+    const tableStartY = billToY + 30;
 
     // PAID Watermark for Invoices marked as Paid
     if (isInvoice && documentData?.status === 'Paid') {
@@ -406,17 +410,17 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // ── Bill To ─────────────────────────────────────────────────────────────
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.rect(14, 46, 95, 23, 'F');
+    doc.rect(14, billToY, 95, 23, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(14, 46, 95, 23, 'S');
+    doc.rect(14, billToY, 95, 23, 'S');
 
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('BILL TO / RECIPIENT:', 18, 52);
+    doc.text('BILL TO / RECIPIENT:', 18, billToY + 6);
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text(targetName, 18, 59);
+    doc.text(targetName, 18, billToY + 13);
 
     const recipientDetails = [];
     if (documentData?.contactPerson) {
@@ -430,7 +434,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
-      doc.text(recipientDetails.join('  •  '), 18, 65);
+      doc.text(recipientDetails.join('  •  '), 18, billToY + 19);
     }
 
     // ── Line Items Table ──────────────────────────────────────────────────────
@@ -450,7 +454,7 @@ export const generateDocumentPDF = (type, documentData, items) => {
     }
 
     runAutoTable(doc, {
-      startY: 76,
+      startY: tableStartY,
       head: [['Item Description', 'Classification', 'Unit Price', 'Qty', 'Line Total']],
       body: tableBody,
       theme: 'grid',
