@@ -224,7 +224,6 @@ const SharedDocument = () => {
     generateDocumentPDF(isQuote ? 'Quotation' : 'Invoice', payload, docData.items || []);
   };
 
-  const handlePrint = () => window.print();
 
   useEffect(() => {
     if (docData && searchParams.get('download') === 'pdf') {
@@ -324,6 +323,22 @@ const SharedDocument = () => {
             border-radius: 18px !important;
             margin-bottom: 20px !important;
           }
+        @media print {
+          .shared-doc-wrapper {
+            background: #ffffff !important;
+            padding: 0 !important;
+          }
+          .shared-doc-card {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
           .desktop-billing-table {
             display: none !important;
           }
@@ -367,8 +382,8 @@ const SharedDocument = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handlePrint} className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', height: '42px' }}>
-            <Printer size={18} /> Print
+          <button onClick={handleDownloadPDF} className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', height: '42px' }}>
+            <Printer size={18} /> Print PDF
           </button>
           <button onClick={handleDownloadPDF} className="btn btn-primary" style={{ height: '42px', padding: '0 20px', fontSize: '0.9rem' }}>
             <Download size={18} /> Download {isQuote ? 'Quotation' : 'Invoice'}
@@ -384,7 +399,7 @@ const SharedDocument = () => {
       </div>
 
       {/* MAIN DOCUMENT CARD (PURE CRISP WHITE) */}
-      <div className="shared-doc-card" style={{ 
+      <div className="shared-doc-card printable-area" style={{ 
         maxWidth: '960px', 
         margin: '0 auto', 
         background: '#ffffff', 

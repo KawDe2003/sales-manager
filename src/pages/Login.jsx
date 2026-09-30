@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Lock, Mail, User, AlertCircle, CheckCircle, 
-  ArrowRight, ShieldCheck, Eye, EyeOff, Loader2,
-  Sparkles, Check, Building2, KeyRound, Globe, HelpCircle, X,
-  Briefcase, Calculator, Shield
-} from 'lucide-react';
+import { Lock, Mail, User, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff, Loader2, KeyRound, X, Shield, Briefcase, Calculator } from 'lucide-react';
 
 const Login = () => {
   const [name, setName] = useState('');
@@ -18,14 +13,16 @@ const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [message, setMessage] = useState(null);
   const [showForgotModal, setShowForgotModal] = useState(false);
-  
+  const [showDemo, setShowDemo] = useState(false);
+
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleQuickFill = (roleEmail, rolePass) => {
+  const handleQuickFill = (e, roleEmail, rolePass) => {
     setEmail(roleEmail);
     setPassword(rolePass);
     setError(null);
+    setShowDemo(false);
   };
 
   const handleSubmit = async (e) => {
@@ -33,13 +30,12 @@ const Login = () => {
     setError(null);
     setMessage(null);
     setLoading(true);
-
     try {
       if (isSignUp) {
         if (!name.trim()) throw new Error('Please enter your full name');
         const { error } = await signUp({ email: email.trim(), password, name: name.trim() });
         if (error) throw error;
-        setMessage('Account created successfully! Logging you in...');
+        setMessage('Account created! Signing you in...');
         setTimeout(() => navigate('/'), 800);
       } else {
         const { error } = await signIn({ email: email.trim(), password });
@@ -47,435 +43,347 @@ const Login = () => {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify your credentials.');
+      setError(err.message || 'Authentication failed. Check your credentials.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fieldStyle = (hasLeftIcon = true) => ({
+    width: '100%',
+    height: '46px',
+    padding: hasLeftIcon ? '0 44px 0 42px' : '0 14px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '10px',
+    color: '#e2e8f0',
+    fontSize: '0.88rem',
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.18s, box-shadow 0.18s',
+    fontFamily: 'inherit',
+  });
+
+  const onFocus = (e) => {
+    e.target.style.borderColor = '#10b981';
+    e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.13)';
+  };
+  const onBlur = (e) => {
+    e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+    e.target.style.boxShadow = 'none';
   };
 
   return (
     <div style={{
       minHeight: '100vh',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'radial-gradient(ellipse at 50% 0%, #0d1527 0%, #070b14 60%, #030712 100%)',
-      padding: '24px',
-      position: 'relative',
-      overflow: 'hidden',
-      fontFamily: 'var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)'
+      background: '#080e1d',
+      padding: '20px 16px',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>
-      
-      {/* Dynamic Ambient Background Glows */}
-      <div style={{
-        position: 'absolute', top: '-15%', left: '10%',
-        width: '500px', height: '500px',
-        background: 'radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)',
-        filter: 'blur(90px)', pointerEvents: 'none', zIndex: 0
-      }}></div>
-      <div style={{
-        position: 'absolute', bottom: '-15%', right: '10%',
-        width: '550px', height: '550px',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)',
-        filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0
-      }}></div>
-      <div style={{
-        position: 'absolute', top: '40%', right: '-5%',
-        width: '350px', height: '350px',
-        background: 'radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%)',
-        filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0
-      }}></div>
 
-      {/* Main Glassmorphism Authentication Card */}
-      <div className="auth-card" style={{
+      {/* Card */}
+      <div style={{
         width: '100%',
-        maxWidth: '460px',
-        padding: '40px 36px',
-        zIndex: 1,
-        background: 'rgba(15, 23, 42, 0.72)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-        animation: 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+        maxWidth: '380px',
+        background: 'rgba(15,22,40,0.95)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '18px',
+        overflow: 'hidden',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
       }}>
-        
-        {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ 
-            width: '58px', height: '58px', borderRadius: '16px', 
+
+        {/* Card Header */}
+        <div style={{
+          padding: '32px 28px 24px',
+          textAlign: 'center',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          {/* Logo Icon */}
+          <div style={{
+            width: '52px', height: '52px',
+            borderRadius: '14px',
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
-            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.35)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
+            boxShadow: '0 8px 24px rgba(16,185,129,0.25)',
           }}>
-            <ShieldCheck size={32} color="#ffffff" strokeWidth={2.2} />
+            <ShieldCheck size={28} color="#fff" strokeWidth={2.3} />
           </div>
 
-          <div style={{ 
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '4px 12px', borderRadius: '20px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
-            color: '#34d399', fontSize: '0.72rem', fontWeight: 800,
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'
-          }}>
-            <Sparkles size={12} /> Seynex Enterprise Cloud
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+            Seynex
           </div>
-
-          <h1 style={{ 
-            fontSize: '1.85rem', fontWeight: 900, color: '#f8fafc', 
-            letterSpacing: '-0.03em', margin: '4px 0 6px 0' 
-          }}>
-            {isSignUp ? 'Create Staff Profile' : 'Sign in to Workspace'}
-          </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
-            {isSignUp 
-              ? 'Register with authorized company credentials' 
-              : 'Secure access to quotes, invoices & SLFRS financial ledger'}
-          </p>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
+            Enterprise Management Portal
+          </div>
         </div>
 
-        {/* Tab Switcher: Sign In vs Sign Up */}
-        <div style={{ 
-          display: 'flex', 
-          background: 'rgba(2, 6, 23, 0.6)', 
-          padding: '4px', 
-          borderRadius: '12px', 
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          marginBottom: '24px' 
-        }}>
-          <button
-            type="button"
-            onClick={() => { setIsSignUp(false); setError(null); setMessage(null); }}
-            style={{
-              flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px',
-              fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-              background: !isSignUp ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-              color: !isSignUp ? '#ffffff' : '#64748b',
-              transition: 'all 0.2s ease',
-              boxShadow: !isSignUp ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsSignUp(true); setError(null); setMessage(null); }}
-            style={{
-              flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px',
-              fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-              background: isSignUp ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-              color: isSignUp ? '#ffffff' : '#64748b',
-              transition: 'all 0.2s ease',
-              boxShadow: isSignUp ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
-            }}
-          >
-            Create Account
-          </button>
+        {/* Tab Switcher */}
+        <div style={{ padding: '16px 28px 0' }}>
+          <div style={{
+            display: 'flex',
+            background: 'rgba(0,0,0,0.3)',
+            padding: '3px',
+            borderRadius: '9px',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            {[{ label: 'Sign In', su: false }, { label: 'Register', su: true }].map(({ label, su }) => (
+              <button key={label} type="button"
+                onClick={() => { setIsSignUp(su); setError(null); setMessage(null); }}
+                style={{
+                  flex: 1, padding: '7px 10px', border: 'none', borderRadius: '6px',
+                  fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                  background: isSignUp === su ? 'rgba(255,255,255,0.09)' : 'transparent',
+                  color: isSignUp === su ? '#f1f5f9' : '#475569',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit',
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            padding: '12px 14px',
-            borderRadius: '10px',
-            color: '#f87171',
-            fontSize: '0.82rem',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            lineHeight: 1.4
-          }}>
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Form Body */}
+        <div style={{ padding: '20px 28px 28px' }}>
 
-        {/* Success Alert */}
-        {message && (
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            padding: '12px 14px',
-            borderRadius: '10px',
-            color: '#34d399',
-            fontSize: '0.82rem',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            lineHeight: 1.4
-          }}>
-            <CheckCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{message}</span>
-          </div>
-        )}
-
-        {/* Authentication Form */}
-        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          {isSignUp && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
-                Full Name
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#64748b' }} />
-                <input
-                  type="text"
-                  placeholder="e.g. Priyantha Jayawardena"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{
-                    width: '100%', height: '46px', padding: '0 14px 0 42px',
-                    background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '10px', color: '#ffffff', fontSize: '0.9rem', outline: 'none',
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    boxSizing: 'border-box'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.15)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.target.style.boxShadow = 'none'; }}
-                />
-              </div>
+          {/* Error */}
+          {error && (
+            <div style={{
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+              padding: '10px 12px', borderRadius: '8px', color: '#f87171',
+              fontSize: '0.79rem', marginBottom: '16px',
+              display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: 1.5,
+            }}>
+              <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>{error}</span>
             </div>
           )}
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
-              Email Address
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#64748b' }} />
-              <input
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                style={{
-                  width: '100%', height: '46px', padding: '0 14px 0 42px',
-                  background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '10px', color: '#ffffff', fontSize: '0.9rem', outline: 'none',
-                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.15)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.target.style.boxShadow = 'none'; }}
-              />
+          {/* Success */}
+          {message && (
+            <div style={{
+              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+              padding: '10px 12px', borderRadius: '8px', color: '#34d399',
+              fontSize: '0.79rem', marginBottom: '16px',
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <CheckCircle size={15} />
+              <span>{message}</span>
             </div>
-          </div>
+          )}
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#cbd5e1' }}>
-                Password
-              </label>
-              {!isSignUp && (
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Forgot password?
-                </button>
-              )}
-            </div>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '15px', color: '#64748b' }} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                style={{
-                  width: '100%', height: '46px', padding: '0 42px 0 42px',
-                  background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '10px', color: '#ffffff', fontSize: '0.9rem', outline: 'none',
-                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.15)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.target.style.boxShadow = 'none'; }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute', right: '12px', top: '14px',
-                  background: 'none', border: 'none', color: '#64748b',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center'
-                }}
-                title={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
+          <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ 
-              height: '48px', 
-              fontSize: '0.95rem', 
-              fontWeight: 800,
-              marginTop: '8px',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {loading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                <span>Authenticating Workspace...</span>
-              </>
-            ) : (
-              <>
-                <span>{isSignUp ? 'Complete Registration' : 'Sign in to Workspace'}</span>
-                <ArrowRight size={18} />
-              </>
+            {/* Name field (sign up only) */}
+            {isSignUp && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 700, color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.02em' }}>
+                  FULL NAME
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <User size={15} style={{ position: 'absolute', left: '13px', top: '15px', color: '#475569', pointerEvents: 'none' }} />
+                  <input type="text" placeholder="Your full name"
+                    value={name} onChange={e => setName(e.target.value)}
+                    required disabled={loading}
+                    style={fieldStyle()}
+                    onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+              </div>
             )}
-          </button>
-        </form>
 
-        {/* Demo Roles Quick Fill */}
-        <div style={{ 
-          marginTop: '22px', 
-          padding: '12px 14px', 
-          background: 'rgba(255, 255, 255, 0.02)', 
-          borderRadius: '12px', 
-          border: '1px solid rgba(255, 255, 255, 0.06)' 
-        }}>
-          <div style={{ 
-            fontSize: '0.68rem', fontWeight: 800, color: '#64748b', 
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px',
-            display: 'flex', alignItems: 'center', gap: '6px'
-          }}>
-            <KeyRound size={12} color="#10b981" /> 1-Click Role Fill (Testing & Evaluation)
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '6px' }}>
-            <button 
-              type="button" 
-              onClick={() => handleQuickFill('admin@company.com', 'adminpassword123')}
-              style={{ 
-                padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
-                borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)',
-                background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-              }}
+            {/* Email */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 700, color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.02em' }}>
+                WORK EMAIL
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{ position: 'absolute', left: '13px', top: '15px', color: '#475569', pointerEvents: 'none' }} />
+                <input type="email" placeholder="name@company.com"
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  required disabled={loading}
+                  style={fieldStyle()}
+                  onFocus={onFocus} onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.73rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.02em' }}>
+                  PASSWORD
+                </label>
+                {!isSignUp && (
+                  <button type="button" onClick={() => setShowForgotModal(true)}
+                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: '13px', top: '15px', color: '#475569', pointerEvents: 'none' }} />
+                <input type={showPassword ? 'text' : 'password'} placeholder="••••••••••••"
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  required disabled={loading}
+                  style={fieldStyle()}
+                  onFocus={onFocus} onBlur={onBlur}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute', right: '12px', top: '14px',
+                    background: 'none', border: 'none', color: '#475569',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0,
+                  }}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button type="submit" disabled={loading} style={{
+              height: '46px', width: '100%', marginTop: '4px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              background: loading ? '#059669aa' : '#10b981',
+              color: '#fff', border: 'none', borderRadius: '10px',
+              fontSize: '0.9rem', fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s, transform 0.1s',
+              fontFamily: 'inherit',
+              letterSpacing: '0.01em',
+            }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#059669'; }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#10b981'; }}
             >
-              <Shield size={12} /> Admin
+              {loading ? (
+                <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /><span>Verifying...</span></>
+              ) : (
+                <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
+              )}
             </button>
-            <button 
-              type="button" 
-              onClick={() => handleQuickFill('sales@company.com', 'salespassword123')}
-              style={{ 
-                padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
-                borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.25)',
-                background: 'rgba(56, 189, 248, 0.08)', color: '#38bdf8', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-              }}
-            >
-              <Briefcase size={12} /> Sales Rep
-            </button>
-            <button 
-              type="button" 
-              onClick={() => handleQuickFill('accounts@company.com', 'accountspassword123')}
-              style={{ 
-                padding: '6px 8px', fontSize: '0.72rem', fontWeight: 700, 
-                borderRadius: '6px', border: '1px solid rgba(168, 85, 247, 0.25)',
-                background: 'rgba(168, 85, 247, 0.08)', color: '#c084fc', cursor: 'pointer',
-                textAlign: 'center', transition: 'all 0.15s ease',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-              }}
-            >
-              <Calculator size={12} /> Accountant
-            </button>
-          </div>
+
+          </form>
         </div>
-
-        {/* Security & System Trust Indicators */}
-        <div style={{ 
-          marginTop: '24px', paddingTop: '16px', 
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          fontSize: '0.72rem', color: '#64748b'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-            <span>256-Bit SSL Enforced</span>
-          </div>
-          <div>
-            <span>Seynex Technology</span>
-          </div>
-        </div>
-
       </div>
+
+      {/* SSL Badge */}
+      <div style={{
+        marginTop: '20px',
+        display: 'flex', alignItems: 'center', gap: '6px',
+        fontSize: '0.7rem', color: '#334155', fontWeight: 500,
+      }}>
+        <ShieldCheck size={13} color="#1e3a2f" />
+        <span>256-bit SSL encrypted</span>
+        <span style={{ color: '#1e2a1e', margin: '0 4px' }}>·</span>
+        <button type="button" onClick={() => setShowDemo(!showDemo)}
+          style={{ background: 'none', border: 'none', color: '#334155', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600, padding: 0, fontFamily: 'inherit' }}>
+          {showDemo ? 'Hide demo' : 'Demo login'}
+        </button>
+      </div>
+
+      {/* Demo quick-fill — collapsed */}
+      {showDemo && (
+        <div style={{
+          marginTop: '12px',
+          width: '100%', maxWidth: '380px',
+          background: 'rgba(15,22,40,0.95)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: '12px',
+          padding: '14px 16px',
+        }}>
+          <div style={{ fontSize: '0.67rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+            Demo Credentials
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Admin', icon: <Shield size={11} />, e: 'admin@company.com', p: 'adminpassword123', color: '#34d399', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)' },
+              { label: 'Sales Rep', icon: <Briefcase size={11} />, e: 'sales@company.com', p: 'salespassword123', color: '#38bdf8', bg: 'rgba(56,189,248,0.06)', border: 'rgba(56,189,248,0.2)' },
+              { label: 'Accountant', icon: <Calculator size={11} />, e: 'accounts@company.com', p: 'accountspassword123', color: '#c084fc', bg: 'rgba(168,85,247,0.06)', border: 'rgba(168,85,247,0.2)' },
+            ].map(r => (
+              <button key={r.label} type="button"
+                onClick={e => handleQuickFill(e, r.e, r.p)}
+                style={{
+                  padding: '5px 12px', fontSize: '0.72rem', fontWeight: 700,
+                  borderRadius: '8px', border: `1px solid ${r.border}`,
+                  background: r.bg, color: r.color, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  fontFamily: 'inherit',
+                }}>
+                {r.icon}{r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
+          position: 'fixed', inset: 0,
+          background: 'rgba(2,6,23,0.88)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000, padding: '20px'
+          zIndex: 1000, padding: '20px',
         }}>
           <div style={{
-            maxWidth: '400px', width: '100%', background: '#0f172a',
-            border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '18px',
-            padding: '28px', position: 'relative'
+            maxWidth: '340px', width: '100%',
+            background: '#0f172a',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px', padding: '24px', position: 'relative',
           }}>
-            <button
-              onClick={() => setShowForgotModal(false)}
-              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-            >
+            <button onClick={() => setShowForgotModal(false)}
+              style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}>
               <X size={18} />
             </button>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-              <KeyRound size={22} />
+
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '10px',
+              background: 'rgba(59,130,246,0.12)', color: '#3b82f6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px',
+            }}>
+              <KeyRound size={20} />
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>Password Recovery</h3>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5, marginBottom: '20px' }}>
-              Password resets are managed by your Seynex System Administrator to ensure enterprise financial access security.
+
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f1f5f9', marginBottom: '6px' }}>
+              Password Recovery
+            </div>
+            <p style={{ fontSize: '0.81rem', color: '#64748b', lineHeight: 1.6, marginBottom: '16px' }}>
+              Password resets are managed by your System Administrator to maintain enterprise access security.
             </p>
-            <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '12px 14px', borderRadius: '10px', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '20px' }}>
-              <strong>IT Desk Contact:</strong><br />
-              Email: <code>seynextech@gmail.com</code><br />
-              Hotline: <code>072 840 8880</code>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              padding: '12px 14px', borderRadius: '8px',
+              fontSize: '0.79rem', color: '#94a3b8', lineHeight: 1.8, marginBottom: '16px',
+            }}>
+              <strong style={{ color: '#cbd5e1' }}>IT Support</strong><br />
+              seynextech@gmail.com<br />
+              072 840 8880
             </div>
-            <button
-              onClick={() => setShowForgotModal(false)}
-              style={{ width: '100%', height: '40px', background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
-            >
+
+            <button onClick={() => setShowForgotModal(false)}
+              style={{
+                width: '100%', height: '40px',
+                background: 'rgba(255,255,255,0.07)',
+                color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
+                fontSize: '0.85rem', fontFamily: 'inherit',
+              }}>
               Close
             </button>
           </div>
         </div>
       )}
 
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input::placeholder { color: #334155; }
+      `}</style>
     </div>
   );
 };
