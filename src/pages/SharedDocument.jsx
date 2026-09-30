@@ -72,8 +72,25 @@ const SharedDocument = () => {
           }
 
           if (foundDoc) {
+            // Find converted invoice if already converted
+            let allInvs = Array.isArray(invoices) && invoices.length > 0 ? invoices : [];
+            if (allInvs.length === 0) {
+              try { allInvs = JSON.parse(localStorage.getItem('gym_invoices') || '[]'); } catch (e) {}
+            }
+            const matchingInv = allInvs.find(inv => 
+              (inv.quotationId && inv.quotationId === foundDoc.id) || 
+              (inv.quoteRef && (inv.quoteRef === foundDoc.quoteNumber || inv.quoteRef === foundDoc.quote_number)) ||
+              (inv.quotationNumber && (inv.quotationNumber === foundDoc.quoteNumber || inv.quotationNumber === foundDoc.quote_number)) ||
+              (inv.notes && (inv.notes.includes(foundDoc.quoteNumber || '') || inv.notes.includes(foundDoc.quote_number || ''))) ||
+              (foundDoc.converted_invoice_id && inv.id === foundDoc.converted_invoice_id)
+            );
+            if (matchingInv) {
+              foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber;
+              foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey;
+              foundDoc.status = 'Converted to Invoice';
+            }
             setDocData(foundDoc);
-            setCustomerName(foundDoc.prospectName || 'My Fitness Gym');
+            setCustomerName(foundDoc.prospectName || 'Valued Client');
           }
         } else if (type === 'receipt') {
           // 1. Search in local and Context payments
@@ -677,17 +694,33 @@ const SharedDocument = () => {
                 </div>
               )}
 
-              {docData.status === 'Accepted' && (
+              {(docData.status === 'Accepted' || docData.status === 'Converted to Invoice') && (
                 <div style={{
-                  padding: '24px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.08)',
+                  padding: '28px 24px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.08)',
                   border: '1px solid rgba(16, 185, 129, 0.25)', textAlign: 'center'
                 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 800, fontSize: '1.05rem', marginBottom: '6px' }}>
-                    <CheckCircle size={22} /> QUOTATION ACCEPTED
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
+                    <CheckCircle size={24} /> QUOTATION ACCEPTED
                   </div>
-                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
-                    This proposal was accepted on {docData.acceptedAt ? new Date(docData.acceptedAt).toLocaleDateString() : 'record'}. Our team is finalizing your invoice and onboarding.
+                  <p style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '0.92rem' }}>
+                    This proposal was accepted {docData.acceptedAt ? `on ${new Date(docData.acceptedAt).toLocaleDateString()}` : 'on record'}.
+                    {docData.convertedInvoiceNumber ? ` Tax Invoice #${docData.convertedInvoiceNumber} has been automatically created.` : ' Our team has been notified and issued your invoice.'}
                   </p>
+                  {docData.convertedInvoiceNumber && (
+                    <a
+                      href={`/share/invoice/${docData.convertedInvoiceId || docData.convertedInvoiceNumber}`}
+                      className="btn btn-primary"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#fff', textDecoration: 'none', padding: '12px 26px',
+                        borderRadius: '12px', fontWeight: 800, fontSize: '0.92rem',
+                        boxShadow: '0 8px 20px rgba(16, 185, 129, 0.3)'
+                      }}
+                    >
+                      <Receipt size={18} /> VIEW TAX INVOICE #{docData.convertedInvoiceNumber}
+                    </a>
+                  )}
                 </div>
               )}
 
@@ -743,13 +776,13 @@ const SharedDocument = () => {
                         setIsSubmitting(true);
                         try {
                           if (acceptQuote) {
-                            const res = await acceptQuote(docData.id || id);
+                            const res = await acceptQuote(docData.id || id, '', docData);
                             if (res?.invoice) {
                               setDocData(prev => ({ 
                                 ...prev, 
                                 status: 'Converted to Invoice', 
                                 convertedInvoiceNumber: res.invoice.invoiceNumber,
-                                convertedInvoiceId: res.invoice.id,
+                                convertedInvoiceId: res.invoice.id || res.invoice.shareKey,
                                 acceptedAt: new Date().toISOString() 
                               }));
                             } else {

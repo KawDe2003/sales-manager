@@ -1237,12 +1237,12 @@ export default function StoreContextProvider({ children }) {
     },
     quoteTemplate: 'Hi {name},\nHere is your hair pin quotation from Royal Hair Pins.\nTotal Amount: LKR {amount}\nView Quote: {link}',
     thankYouTemplate: 'Hi {name},\nThank you for choosing Royal Hair Pins! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
-    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply order for {gym} is due on {date}. Contact Royal Hair Pins to confirm delivery.',
+    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply & service renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
     invoiceReminderTemplate: 'Hi {name},\nReminder from Royal Hair Pins: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
     birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Royal Hair Pins!',
     cashReceivedTemplate: 'Hi {name},\nCash Received! Royal Hair Pins received LKR {amount} for {documentType} #{number}. Thank you!',
-    autoRenewalEnabled: false,
-    autoRenewalDays: '15,7,1',
+    autoRenewalEnabled: true,
+    autoRenewalDays: '15,7,3,1,0',
     autoInvoiceEnabled: false,
     autoInvoiceDays: 3,
     birthdayWishEnabled: true,
@@ -1745,51 +1745,45 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
+
+      // Clean core payload strictly matching columns verified in remote Supabase
+      const cleanCorePayload = {
+        id: toUuid(invoice.id),
+        user_id: effId,
+        share_key: invoice.shareKey || generateShareKey(),
+        invoice_number: invoice.invoiceNumber || 'INV-1001',
+        date: invoice.date || new Date().toISOString().split('T')[0],
+        due_date: invoice.dueDate || null,
+        customer_id: isUuid(invoice.customerId) ? invoice.customerId : null,
+        prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
+        amount: Number(invoice.amount) || 0,
+        status: invoice.status || 'Draft',
+        items: Array.isArray(invoice.items) ? invoice.items : [],
+        reminder_sent: !!invoice.reminderSent
+      };
+
+      // Extended payload including optional relational fields
+      const extendedPayload = {
+        ...cleanCorePayload,
+        notes: invoice.notes || '',
+        quote_ref: invoice.quoteRef || invoice.quotationNumber || null,
+        quotation_number: invoice.quotationNumber || invoice.quoteRef || null,
+        installment_plan: invoice.installmentPlan || {},
+        quotation_id: isUuid(invoice.quotationId) ? invoice.quotationId : null
+      };
+
       let { error } = await supabase
         .from('invoices')
-        .upsert({
-          id: toUuid(invoice.id),
-          user_id: effId,
-          share_key: invoice.shareKey || generateShareKey(),
-          invoice_number: invoice.invoiceNumber || 'INV-1001',
-          date: invoice.date || new Date().toISOString().split('T')[0],
-          due_date: invoice.dueDate || null,
-          customer_id: isUuid(invoice.customerId) ? invoice.customerId : null,
-          prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
-          prospect_phone: invoice.prospectPhone || customers.find(c => c.id === invoice.customerId)?.phone || '',
-          amount: Number(invoice.amount) || 0,
-          status: invoice.status || 'Draft',
-          items: invoice.items || [],
-          reminder_sent: !!invoice.reminderSent,
-          installment_plan: invoice.installmentPlan || {},
-          quotation_id: isUuid(invoice.quotationId) ? invoice.quotationId : null,
-          quote_ref: invoice.quoteRef || invoice.quotationNumber || null,
-          quotation_number: invoice.quotationNumber || invoice.quoteRef || null,
-          notes: invoice.notes || ''
-        }, { onConflict: 'id' });
+        .upsert(extendedPayload, { onConflict: 'id' });
 
-      // Fallback without new columns in case remote database hasn't applied migration yet
-      if (error && (error.message?.includes('quote_ref') || error.message?.includes('quotation_number') || error.code === 'PGRST204')) {
-        const fallbackRes = await supabase.from('invoices').upsert({
-          id: toUuid(invoice.id),
-          user_id: effId,
-          share_key: invoice.shareKey || generateShareKey(),
-          invoice_number: invoice.invoiceNumber || 'INV-1001',
-          date: invoice.date || new Date().toISOString().split('T')[0],
-          due_date: invoice.dueDate || null,
-          customer_id: isUuid(invoice.customerId) ? invoice.customerId : null,
-          prospect_name: invoice.prospectName || customers.find(c => c.id === invoice.customerId)?.gymName || '',
-          prospect_phone: invoice.prospectPhone || customers.find(c => c.id === invoice.customerId)?.phone || '',
-          amount: Number(invoice.amount) || 0,
-          status: invoice.status || 'Draft',
-          items: invoice.items || [],
-          reminder_sent: !!invoice.reminderSent,
-          installment_plan: invoice.installmentPlan || {},
-          quotation_id: isUuid(invoice.quotationId) ? invoice.quotationId : null,
-          notes: invoice.notes || ''
-        }, { onConflict: 'id' });
-        error = fallbackRes.error;
+      // If extended columns do not exist in the remote database, immediately fallback to clean core schema
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
+        const cleanRes = await supabase
+          .from('invoices')
+          .upsert(cleanCorePayload, { onConflict: 'id' });
+        error = cleanRes.error;
       }
+
       if (error) {
         console.warn('[Supabase Sync] Invoice Warning:', error.message);
         setCloudSyncStatus('error');
@@ -2410,20 +2404,41 @@ export default function StoreContextProvider({ children }) {
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
 
+        // Retrieve existing local cache to prevent data loss of local-only attributes
+        let localInvoices = [];
+        try {
+          localInvoices = JSON.parse(localStorage.getItem('gym_invoices') || '[]');
+        } catch (e) {}
+
         const loadedInvoices = iData.map(inv => {
+          const localMatch = localInvoices.find(li => li.id === inv.id || li.invoiceNumber === inv.invoice_number);
+          
+          // Match quotation reference from quotations if available
+          const matchingQuote = Array.isArray(qData) ? qData.find(q => 
+            q.converted_invoice_id === inv.id || 
+            q.converted_invoice_number === inv.invoice_number ||
+            q.quote_number === localMatch?.quoteRef ||
+            (q.items && q.items.length > 0 && inv.items && inv.items.length > 0 && q.prospect_name === inv.prospect_name)
+          ) : null;
+
           let parsed = {
             id: inv.id,
             shareKey: inv.share_key,
             invoiceNumber: inv.invoice_number,
             date: inv.date,
             dueDate: inv.due_date,
-            customerId: inv.customer_id || 'unknown',
+            customerId: inv.customer_id || localMatch?.customerId || 'unknown',
             amount: Number(inv.amount) || 0,
             status: inv.status,
-            items: inv.items || [],
-            prospectName: inv.prospect_name,
+            items: inv.items || localMatch?.items || [],
+            prospectName: inv.prospect_name || localMatch?.prospectName || '',
             reminderSent: inv.reminder_sent,
-            installmentPlan: (inv.installment_plan && inv.installment_plan.enabled) ? inv.installment_plan : null
+            installmentPlan: (inv.installment_plan && inv.installment_plan.enabled) 
+              ? inv.installment_plan 
+              : (localMatch?.installmentPlan || null),
+            quoteRef: inv.quote_ref || localMatch?.quoteRef || matchingQuote?.quote_number || null,
+            quotationNumber: inv.quotation_number || localMatch?.quotationNumber || matchingQuote?.quote_number || null,
+            notes: inv.notes || localMatch?.notes || (matchingQuote?.quote_number ? `Ref: #${matchingQuote.quote_number}` : '')
           };
 
           if (parsed.status !== 'Paid' && parsed.status !== 'Overdue' && parsed.dueDate) {
@@ -2437,8 +2452,14 @@ export default function StoreContextProvider({ children }) {
           return parsed;
         });
 
-        setInvoices(loadedInvoices);
-        try { localStorage.setItem('gym_invoices', JSON.stringify(loadedInvoices)); } catch(e) {}
+        // Merge any local invoices that were created locally but haven't synced to remote yet
+        const remoteIds = new Set(loadedInvoices.map(i => i.id));
+        const remoteNumbers = new Set(loadedInvoices.map(i => i.invoiceNumber));
+        const unSyncedLocalInvoices = localInvoices.filter(li => li && li.id && !remoteIds.has(li.id) && !remoteNumbers.has(li.invoiceNumber));
+        const mergedInvoices = [...loadedInvoices, ...unSyncedLocalInvoices];
+
+        setInvoices(mergedInvoices);
+        try { localStorage.setItem('gym_invoices', JSON.stringify(mergedInvoices)); } catch(e) {}
       }
 
       // 7. Leads
@@ -3332,9 +3353,29 @@ export default function StoreContextProvider({ children }) {
   }, [quotes.length]);
 
   // Customer Response: Accept Quotation -> Automatically Create Invoice with Ref: QT Number and Alert Owner
-  const acceptQuote = async (quoteId, notes = '') => {
-    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
-    if (!quote) return;
+  const acceptQuote = async (quoteId, notes = '', directQuote = null) => {
+    let quote = directQuote || quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+    if (!quote && quoteId) {
+      try {
+        const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+        quote = localQuotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+      } catch (e) {}
+    }
+    if (!quote && quoteId) {
+      try {
+        const { data } = await supabase.from('quotations').select('*').or(`id.eq.${quoteId},share_key.eq.${quoteId}`).maybeSingle();
+        if (data) {
+          quote = {
+            ...data,
+            shareKey: data.share_key,
+            quoteNumber: data.quote_number,
+            prospectName: data.prospect_name,
+            prospectPhone: data.prospect_phone
+          };
+        }
+      } catch (e) {}
+    }
+    if (!quote) return null;
     const acceptanceTime = new Date().toISOString();
     
     // 1. Mark Quote Accepted
@@ -3345,7 +3386,13 @@ export default function StoreContextProvider({ children }) {
       acceptanceNotes: notes || quote.acceptanceNotes
     };
 
-    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? acceptedQuote : q));
+    setQuotes(prev => {
+      const updated = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey)
+        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? acceptedQuote : q)
+        : [acceptedQuote, ...prev];
+      try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
+      return updated;
+    });
     syncQuoteToSupabase(acceptedQuote);
 
     // In-App Notification
@@ -3360,7 +3407,7 @@ export default function StoreContextProvider({ children }) {
     addLog('System', `Quotation #${quote.quoteNumber} ACCEPTED by customer ${quote.prospectName}`);
 
     // 2. Automatically Convert to Invoice with Ref: QT Number and Alert Business Owner
-    const newInvoice = convertQuoteToInvoice(quote.id);
+    const newInvoice = convertQuoteToInvoice(quote.id, acceptedQuote);
 
     showNotification(`Quotation #${quote.quoteNumber} accepted! Invoice #${newInvoice?.invoiceNumber || ''} (Ref: #${quote.quoteNumber}) created automatically.`, 'success');
     return { quote: acceptedQuote, invoice: newInvoice };
@@ -3475,9 +3522,15 @@ export default function StoreContextProvider({ children }) {
     return updatedQuote;
   };
 
-  const convertQuoteToInvoice = (quoteId) => {
-    const quote = quotes.find(q => q.id === quoteId);
-    if (!quote) return;
+  const convertQuoteToInvoice = (quoteId, explicitQuote = null) => {
+    let quote = explicitQuote || quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+    if (!quote && quoteId) {
+      try {
+        const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+        quote = localQuotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+      } catch (e) {}
+    }
+    if (!quote) return null;
 
     let customer = customers.find(c => c.gymName === quote.prospectName || (c.phone && quote.prospectPhone && c.phone === quote.prospectPhone));
     if (!customer) {
@@ -3536,7 +3589,12 @@ export default function StoreContextProvider({ children }) {
       deductStockForInvoice(quote.items);
     }
 
-    setInvoices(prev => [newInvoice, ...prev]);
+    // Immediately persist to local memory AND localStorage so invoice is never lost on refresh/navigation
+    setInvoices(prev => {
+      const updated = [newInvoice, ...prev.filter(i => i.id !== newInvoice.id && i.invoiceNumber !== newInvoice.invoiceNumber)];
+      try { localStorage.setItem('gym_invoices', JSON.stringify(updated)); } catch(e) {}
+      return updated;
+    });
     syncInvoiceToSupabase(newInvoice);
 
     // Maintain relationship: QT-XXXX -> INV-XXXX
@@ -3547,7 +3605,11 @@ export default function StoreContextProvider({ children }) {
       convertedInvoiceNumber: newInvoice.invoiceNumber,
       convertedAt: new Date().toISOString()
     };
-    setQuotes(prev => prev.map(q => q.id === quote.id ? updatedQuote : q));
+    setQuotes(prev => {
+      const updated = prev.map(q => q.id === quote.id ? updatedQuote : q);
+      try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
+      return updated;
+    });
     syncQuoteToSupabase(updatedQuote);
 
     addLog('System', `Converted Quotation #${quote.quoteNumber} into Invoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef})`);
@@ -3843,7 +3905,11 @@ export default function StoreContextProvider({ children }) {
       createdAt: new Date().toISOString()
     };
 
-    setInvoices(prev => [renewalInvoice, ...prev]);
+    setInvoices(prev => {
+      const updated = [renewalInvoice, ...prev.filter(i => i.id !== renewalInvoice.id)];
+      try { localStorage.setItem('gym_invoices', JSON.stringify(updated)); } catch(e) {}
+      return updated;
+    });
     syncInvoiceToSupabase(renewalInvoice);
 
     // Calculate new next renewal date
@@ -3868,9 +3934,14 @@ export default function StoreContextProvider({ children }) {
       ...customer,
       lastRenewalDate: new Date().toISOString().split('T')[0],
       renewalDate: nextRenewal,
-      renewalStatus: 'Renewed'
+      renewalStatus: 'Renewed',
+      lastRenewalNoticeDate: new Date().toISOString().split('T')[0]
     };
-    setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCust : c));
+    setCustomers(prev => {
+      const updated = prev.map(c => c.id === customer.id ? updatedCust : c);
+      try { localStorage.setItem('gym_customers', JSON.stringify(updated)); } catch(e) {}
+      return updated;
+    });
     syncCustomerToSupabase(updatedCust);
 
     addLog('System', `Generated Renewal Invoice #${renewalInvoice.invoiceNumber} for ${customer.gymName} (Linked: RENEWAL of ${previousInvoice?.invoiceNumber || 'N/A'})`);
@@ -3882,7 +3953,17 @@ export default function StoreContextProvider({ children }) {
       time: new Date().toISOString()
     });
 
-    showNotification(`Renewal Invoice #${renewalInvoice.invoiceNumber} generated successfully!`, 'success');
+    // ── AUTOMATED RENEWAL MESSAGE TO CUSTOMER (SMS / WHATSAPP) ────────────────
+    const custPhone = customer.phone || customer.prospectPhone;
+    if (custPhone) {
+      try {
+        triggerSMS('Renewal', updatedCust, renewalInvoice);
+      } catch (smsErr) {
+        console.warn('[Auto-Renewal SMS Notification to Customer Failed]:', smsErr);
+      }
+    }
+
+    showNotification(`Renewal Invoice #${renewalInvoice.invoiceNumber} generated & renewal message sent to ${customer.gymName}!`, 'success');
     return renewalInvoice;
   };
 
@@ -4634,23 +4715,24 @@ export default function StoreContextProvider({ children }) {
       if (client.phone) {
         try {
           const invLink = `${window.location.origin}/share/invoice/${invNum}`;
-          triggerSMS && triggerSMS('payment_due', client, { 
+          triggerSMS && triggerSMS('Renewal', client, { 
             invoiceNumber: invNum, 
             totalAmount: monthlyVal, 
             amount: monthlyVal,
-            dueDate: '14 days',
-            link: invLink
+            dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+            link: invLink,
+            prospectName: clientDisplayName
           });
         } catch (e) {
-          console.warn('[SMS Trigger Error]', e);
+          console.warn('[Auto Renewal SMS Trigger Error]', e);
         }
       }
 
       generatedCount++;
     });
 
-    addLog('Invoicing', `Executed Auto-Renewal Engine: Generated ${generatedCount} recurring invoices.`);
-    showNotification(`Auto-Renewal Engine complete: ${generatedCount} recurring invoices generated!`, 'success');
+    addLog('Invoicing', `Executed Auto-Renewal Engine: Generated ${generatedCount} recurring invoices with automatic customer renewal notices.`);
+    showNotification(`Auto-Renewal Engine complete: ${generatedCount} recurring invoices & renewal notices dispatched!`, 'success');
   };
 
   // --- HR PERFORMANCE APPRAISALS ---
@@ -4762,40 +4844,38 @@ export default function StoreContextProvider({ children }) {
 
 
 
-  // Automated Scheduler for Renewals and Invoices
+  // Automated Scheduler for Renewals, Invoices and Greetings
   useEffect(() => {
+    if (!customers || customers.length === 0) return;
+
     let updatedCustomers = [...customers];
     let customersChanged = false;
     
     let updatedInvoices = [...invoices];
     let invoicesChanged = false;
     
-    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0); 
+    const todayStr = today.toISOString().split('T')[0];
     
-    // Only trigger automated schedules from 8:00 AM onwards
-    if (now.getHours() < 8) return;
-    
-    // 1. Check Renewals
-    if (smsConfig?.autoRenewalEnabled) {
-      const daysArray = String(smsConfig.autoRenewalDays || '7').split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d));
+    // 1. Check Upcoming & Due Renewals
+    if (smsConfig?.autoRenewalEnabled !== false) {
+      const daysArray = String(smsConfig?.autoRenewalDays || '15,7,3,1,0').split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d));
 
       customers.forEach((c, index) => {
-        if (c.renewalDate && c.status === 'Active') {
+        if (c.renewalDate && (c.status === 'Active' || c.status === 'Pending')) {
           const renewalDate = new Date(c.renewalDate);
           renewalDate.setHours(0, 0, 0, 0);
           const timeDiff = renewalDate.getTime() - today.getTime();
           const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
           
-          if (daysArray.includes(daysDiff)) {
+          if (daysArray.includes(daysDiff) || (daysDiff <= 0 && daysDiff >= -3)) {
             // Prevent multiple sends on the same exact day
-            if (c.lastReminderDaysDiff !== daysDiff) {
+            if (c.lastReminderDaysDiff !== daysDiff && c.lastRenewalNoticeDate !== todayStr) {
               console.log(`[Auto Schedule] Sending renewal SMS to ${c.name} (${c.gymName})`);
-              // Trigger actual SMS
               triggerSMS('Renewal', c, null);
-              showNotification(`Auto-scheduled renewal reminder sent to ${c.gymName}`);
-              updatedCustomers[index] = { ...c, lastReminderDaysDiff: daysDiff };
+              showNotification(`Auto-scheduled renewal reminder sent to ${c.gymName}`, 'info');
+              updatedCustomers[index] = { ...c, lastReminderDaysDiff: daysDiff, lastRenewalNoticeDate: todayStr };
               customersChanged = true;
             }
           }
@@ -4815,7 +4895,6 @@ export default function StoreContextProvider({ children }) {
           if (daysDiff <= (smsConfig.autoInvoiceDays || 3) && daysDiff >= 0) {
             const customer = customers.find(c => c.id === inv.customerId);
             if (customer) {
-              // Trigger actual SMS
               triggerSMS('InvoiceReminder', customer, inv);
               showNotification(`Auto-scheduled invoice reminder sent to ${customer.gymName}`);
               updatedInvoices[index] = { ...inv, reminderSent: true };
@@ -4834,9 +4913,7 @@ export default function StoreContextProvider({ children }) {
           const currentYear = today.getFullYear();
           
           if (dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate()) {
-            // Check if already sent this year
             if (c.lastBirthdaySentYear !== currentYear) {
-              // Trigger actual SMS
               triggerSMS('Birthday', c, null);
               showNotification(`Auto-scheduled birthday wish sent to ${c.name}`);
               updatedCustomers[index] = { ...c, lastBirthdaySentYear: currentYear };
@@ -4847,9 +4924,15 @@ export default function StoreContextProvider({ children }) {
       });
     }
 
-    if (customersChanged) setCustomers(updatedCustomers);
-    if (invoicesChanged) setInvoices(updatedInvoices);
-  }, []); // Run once on startup
+    if (customersChanged) {
+      setCustomers(updatedCustomers);
+      try { localStorage.setItem('gym_customers', JSON.stringify(updatedCustomers)); } catch(e) {}
+    }
+    if (invoicesChanged) {
+      setInvoices(updatedInvoices);
+      try { localStorage.setItem('gym_invoices', JSON.stringify(updatedInvoices)); } catch(e) {}
+    }
+  }, [customers.length, invoices.length, smsConfig?.autoRenewalEnabled]);
 
   // SMS Service Core
   const updateSmsConfig = (newConfig) => {
@@ -5024,19 +5107,19 @@ export default function StoreContextProvider({ children }) {
     msg = templateWithBranding
       .replace(/{name}/g, cName)
       .replace(/{gym}/g, cGym)
-      .replace(/{companyName}/g, smsConfig.companyName || 'Seynex Technology')
+      .replace(/{companyName}/g, smsConfig.companyName || 'Royal Hair Pin Industries')
       .replace(/{amount}/g, (documentData?.amount || customer?.annualFee || 0).toLocaleString())
-      .replace(/{remainingBalance}/g, (documentData?.remainingBalance || 0).toLocaleString())
-      .replace(/{date}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
+      .replace(/{remainingBalance}/g, (documentData?.remainingBalance != null ? documentData.remainingBalance : (documentData?.amount || customer?.annualFee || 0)).toLocaleString())
+      .replace(/{date}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : new Date().toLocaleDateString())
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
       .replace(/{receiptNumber}/g, documentData?.receiptNumber || '')
-      .replace(/{number}/g, documentData?.receiptNumber || documentData?.invoiceNumber || documentData?.quoteNumber || '')
-      .replace(/{documentType}/g, documentData?.documentType || (type === 'Payment' ? 'Receipt' : 'Document'))
-      .replace(/{link}/g, (documentData?.receiptNumber || documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
+      .replace(/{number}/g, documentData?.invoiceNumber || documentData?.receiptNumber || documentData?.quoteNumber || '')
+      .replace(/{documentType}/g, documentData?.documentType || (type === 'Renewal' ? 'Renewal Invoice' : type === 'Payment' ? 'Receipt' : 'Invoice'))
+      .replace(/{link}/g, (documentData?.invoiceNumber || documentData?.receiptNumber || documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
         type.toLowerCase() === 'quotation' ? 'quote' : 
         (type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment') ? 'receipt' : 'invoice'
-      }/${documentData?.receiptNumber || documentData?.id || documentData?.shareKey}` : '')
-      .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
+      }/${documentData?.invoiceNumber || documentData?.shareKey || documentData?.id || documentData?.receiptNumber}` : '')
+      .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : (documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : new Date().toLocaleDateString()))
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')
       .replace(/{bankName}/g, smsConfig.bankDetails?.bank || '')
