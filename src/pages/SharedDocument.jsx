@@ -85,39 +85,72 @@ const SharedDocument = () => {
               try { allInvs = JSON.parse(localStorage.getItem('gym_invoices') || '[]'); } catch (e) {}
             }
 
-            // Only match via EXPLICIT link fields — never via loose quoteRef to avoid false positives
-            const hasExplicitLink = Boolean(
-              foundDoc.convertedInvoiceId || 
-              foundDoc.converted_invoice_id || 
-              foundDoc.convertedInvoiceNumber
-            );
+            // Strict reciprocal match: Only link if there is explicit bidirectional evidence
+            const matchingInv = allInvs.find(inv => {
+              const qIdMatch = inv.quotationId && (
+                String(inv.quotationId) === String(foundDoc.id) || 
+                String(inv.quotationId) === String(foundDoc.shareKey)
+              );
+              const invNumMatch = foundDoc.convertedInvoiceNumber && (
+                inv.invoiceNumber === foundDoc.convertedInvoiceNumber || 
+                inv.invoice_number === foundDoc.convertedInvoiceNumber
+              );
+              const invIdMatch = (
+                (foundDoc.convertedInvoiceId && (inv.id === foundDoc.convertedInvoiceId || inv.shareKey === foundDoc.convertedInvoiceId)) ||
+                (foundDoc.converted_invoice_id && (inv.id === foundDoc.converted_invoice_id || inv.shareKey === foundDoc.converted_invoice_id))
+              );
+              const hasQuoteRef = (
+                (inv.quoteRef && inv.quoteRef === qNum) || 
+                (inv.quotationNumber && inv.quotationNumber === qNum) || 
+                inv.acceptedFromQuote ||
+                qIdMatch
+              );
 
-            const matchingInv = hasExplicitLink ? allInvs.find(inv => {
-              if (foundDoc.convertedInvoiceId && (inv.id === foundDoc.convertedInvoiceId || inv.shareKey === foundDoc.convertedInvoiceId)) return true;
-              if (foundDoc.converted_invoice_id && (inv.id === foundDoc.converted_invoice_id || inv.shareKey === foundDoc.converted_invoice_id)) return true;
-              if (foundDoc.convertedInvoiceNumber && (inv.invoiceNumber === foundDoc.convertedInvoiceNumber || inv.invoice_number === foundDoc.convertedInvoiceNumber)) return true;
-              if (inv.quotationId && String(inv.quotationId) === String(foundDoc.id)) return true;
+              if (qIdMatch) return true;
+              if (invIdMatch && hasQuoteRef) return true;
+              if (invNumMatch && hasQuoteRef) return true;
               return false;
-            }) : null;
+            });
 
-            // Only treat as converted if the stored status explicitly says so AND we can verify a linked invoice
+            // A quote is ONLY converted if stored status is Converted to Invoice AND verified matching invoice exists
             const isLegitConverted = Boolean(
-              (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') && 
-              matchingInv
+              foundDoc.status === 'Converted to Invoice' && matchingInv
             );
 
-            if (isLegitConverted) {
+            if (isLegitConverted && matchingInv) {
               foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber || matchingInv.invoice_number;
               foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey;
               foundDoc.status = 'Converted to Invoice';
             } else {
-              // Self-heal: if stored as 'Converted to Invoice' but no linked invoice found, reset to Sent/Pending
-              // (keep 'Accepted' as-is — the invoice may not be linked yet but acceptance is still valid)
-              if (foundDoc.status === 'Converted to Invoice') {
+              // Not legitimately converted — scrub any stale/polluted invoice links
+              delete foundDoc.convertedInvoiceNumber;
+              delete foundDoc.convertedInvoiceId;
+              delete foundDoc.converted_invoice_id;
+              
+              // If status was marked 'Converted to Invoice' or 'Accepted' without a verified converted invoice,
+              // reset back to the real pre-conversion status ('Sent' or 'Pending')
+              if (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') {
                 foundDoc.status = foundDoc.sentAt ? 'Sent' : 'Pending';
-                delete foundDoc.convertedInvoiceNumber;
-                delete foundDoc.convertedInvoiceId;
               }
+
+              // Self-heal localStorage so subsequent reloads stay clean
+              try {
+                const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+                if (Array.isArray(storedQuotes)) {
+                  const cleaned = storedQuotes.map(sq => {
+                    if (sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum) {
+                      return {
+                        ...sq,
+                        status: foundDoc.status,
+                        convertedInvoiceNumber: undefined,
+                        convertedInvoiceId: undefined
+                      };
+                    }
+                    return sq;
+                  });
+                  localStorage.setItem('gym_quotes', JSON.stringify(cleaned));
+                }
+              } catch (e) {}
             }
 
             setDocData(foundDoc);
@@ -951,7 +984,7 @@ const SharedDocument = () => {
                 </div>
               )}
 
-              {(docData.status === 'Pending' || docData.status === 'Sent' || docData.status === 'Draft' || docData.status === 'Counter Offer') && !isPreview && (
+              {(docData.status === 'Pending' || docData.status === 'Sent' || docData.status === 'Draft' || docData.status === 'Counter Offer') && (
                 <div className="cta-container" style={{ 
                   padding: '36px 32px', 
                   background: '#f8fafc', 
@@ -959,6 +992,25 @@ const SharedDocument = () => {
                   border: '1px solid #e2e8f0', 
                   textAlign: 'center' 
                 }}>
+                  {isPreview && (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      color: '#2563eb',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      padding: '4px 14px',
+                      borderRadius: '20px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: '16px'
+                    }}>
+                      Interactive Client Portal View
+                    </div>
+                  )}
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
                     {docData.status === 'Counter Offer' ? 'Review & Update Response' : 'Ready to proceed?'}
                   </h3>

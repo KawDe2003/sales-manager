@@ -40,6 +40,53 @@ export const PLAN_CONFIGS = {
   }
 };
 
+// Bulletproof Sequential Numbering Helpers (guarantees zero duplicate invoice/quote numbers)
+export const getNextSequentialInvoiceNumber = (invoices = [], config = {}) => {
+  const prefix = config.invoicePrefix || 'INV-';
+  const configuredStart = parseInt(config.nextInvoiceNumber || 1001, 10);
+  
+  let highestNum = configuredStart - 1;
+  (invoices || []).forEach(inv => {
+    const raw = String(inv.invoiceNumber || inv.invoice_number || '').trim();
+    const match = raw.match(/(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > highestNum) {
+        highestNum = n;
+      }
+    }
+  });
+  
+  const nextNum = Math.max(configuredStart, highestNum + 1);
+  return {
+    nextNumber: nextNum,
+    formattedNumber: `${prefix}${nextNum}`
+  };
+};
+
+export const getNextSequentialQuoteNumber = (quotes = [], config = {}) => {
+  const prefix = config.quotePrefix || 'QT-';
+  const configuredStart = parseInt(config.nextQuoteNumber || 1001, 10);
+  
+  let highestNum = configuredStart - 1;
+  (quotes || []).forEach(q => {
+    const raw = String(q.quoteNumber || q.quote_number || '').trim();
+    const match = raw.match(/(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > highestNum) {
+        highestNum = n;
+      }
+    }
+  });
+  
+  const nextNum = Math.max(configuredStart, highestNum + 1);
+  return {
+    nextNumber: nextNum,
+    formattedNumber: `${prefix}${nextNum}`
+  };
+};
+
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(false);
@@ -97,7 +144,7 @@ export default function StoreContextProvider({ children }) {
 
   const sampleQuotes = [
     { id: 'q-101', shareKey: 'SNX-Q101', quoteNumber: 'QT-1001', date: '2026-07-20', prospectName: 'Lanka Fancy Center', prospectPhone: '0772345678', amount: 480000, status: 'Pending', items: [{ name: 'Wholesale Bobby Pins (20 Cartons)', qty: 20, unitPrice: 24000, amount: 480000 }] },
-    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Queens Bridal & Beauty Salon', prospectPhone: '0718765432', amount: 145000, status: 'Accepted', items: [{ name: 'Salon Jumbo U-Pins + Pearl Bridal Sets', qty: 100, unitPrice: 1450, amount: 145000 }] }
+    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Queens Bridal & Beauty Salon', prospectPhone: '0718765432', amount: 145000, status: 'Sent', sentAt: '2026-07-25T10:00:00Z', items: [{ name: 'Salon Jumbo U-Pins + Pearl Bridal Sets', qty: 100, unitPrice: 1450, amount: 145000 }] }
   ];
 
   const sampleInvoices = [
@@ -184,7 +231,17 @@ export default function StoreContextProvider({ children }) {
   const [quotes, setQuotes] = useState(() => {
     try {
       const saved = localStorage.getItem('gym_quotes');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(q => {
+            if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
+              return { ...q, status: 'Sent', sentAt: q.sentAt || '2026-07-25T10:00:00Z', convertedInvoiceNumber: undefined, convertedInvoiceId: undefined };
+            }
+            return q;
+          });
+        }
+      }
     } catch (e) {}
     return [];
   });
@@ -1217,53 +1274,6 @@ export default function StoreContextProvider({ children }) {
   };
 
   // SMS Configuration (Base Defaults with localStorage mirror)
-// Bulletproof Sequential Numbering Helpers (guarantees zero duplicate invoice/quote numbers)
-export const getNextSequentialInvoiceNumber = (invoices = [], config = {}) => {
-  const prefix = config.invoicePrefix || 'INV-';
-  const configuredStart = parseInt(config.nextInvoiceNumber || 1001, 10);
-  
-  let highestNum = configuredStart - 1;
-  (invoices || []).forEach(inv => {
-    const raw = String(inv.invoiceNumber || inv.invoice_number || '').trim();
-    const match = raw.match(/(\d+)$/);
-    if (match) {
-      const n = parseInt(match[1], 10);
-      if (!isNaN(n) && n > highestNum) {
-        highestNum = n;
-      }
-    }
-  });
-  
-  const nextNum = Math.max(configuredStart, highestNum + 1);
-  return {
-    nextNumber: nextNum,
-    formattedNumber: `${prefix}${nextNum}`
-  };
-};
-
-export const getNextSequentialQuoteNumber = (quotes = [], config = {}) => {
-  const prefix = config.quotePrefix || 'QT-';
-  const configuredStart = parseInt(config.nextQuoteNumber || 1001, 10);
-  
-  let highestNum = configuredStart - 1;
-  (quotes || []).forEach(q => {
-    const raw = String(q.quoteNumber || q.quote_number || '').trim();
-    const match = raw.match(/(\d+)$/);
-    if (match) {
-      const n = parseInt(match[1], 10);
-      if (!isNaN(n) && n > highestNum) {
-        highestNum = n;
-      }
-    }
-  });
-  
-  const nextNum = Math.max(configuredStart, highestNum + 1);
-  return {
-    nextNumber: nextNum,
-    formattedNumber: `${prefix}${nextNum}`
-  };
-};
-
   const DEFAULT_SMS_CONFIG = {
     apiKey: '2179165276941c4e5eb994053957585',
     email: 'seynextech@gmail.com',

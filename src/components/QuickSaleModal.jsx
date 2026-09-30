@@ -7,7 +7,7 @@ import {
   Clock, AlertCircle, Phone, MapPin, Receipt, Share2,
   ArrowLeft
 } from 'lucide-react';
-import { StoreContext } from '../context/StoreContext';
+import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
 
 const HAIR_PIN_PRESETS = [
   { id: 'hp-1', name: 'Classic Black Bobby Pins (2-Inch)', unit: 'Pkt', price: 250, category: 'Bobby Pins', desc: 'Gloss black enamel, ball tips (30 pcs/pkt)' },
@@ -27,6 +27,7 @@ const HAIR_PIN_PRESETS = [
 const QuickSaleModal = ({ isOpen, onClose }) => {
   const { 
     customers = [], 
+    invoices = [],
     inventory = [], 
     addInvoice, 
     addCustomer,
@@ -283,9 +284,8 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
       }
 
       const isCash = paymentMethod === 'Cash' || paymentMethod === 'Bank';
-      const prefix = smsConfig.invoicePrefix || 'INV-';
-      const nextNum = parseInt(smsConfig.nextInvoiceNumber || 1001);
-      const invoiceNumber = `${prefix}${nextNum}`;
+      const seqInv = getNextSequentialInvoiceNumber(invoices, smsConfig);
+      const invoiceNumber = seqInv.formattedNumber;
       const nowIso = new Date().toISOString();
       const todayDate = nowIso.split('T')[0];
 
