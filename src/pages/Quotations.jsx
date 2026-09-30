@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
@@ -101,13 +101,29 @@ const Quotations = () => {
               quote={quote}
               updateQuoteStatus={updateQuoteStatus}
               convertQuoteToInvoice={convertQuoteToInvoice}
-              onEdit={() => { setEditingQuote(quote); setShowModal(true); }}
+              onEdit={() => {
+                const isSent = quote.status === 'Sent' || 
+                               quote.status === 'Accepted' || 
+                               quote.status === 'Converted to Invoice' || 
+                               quote.status === 'Rejected' || 
+                               quote.status === 'Counter Offer' || 
+                               Boolean(quote.sentAt);
+                if (isSent) {
+                  showNotification && showNotification(`Quotation #${quote.quoteNumber || 'Proposal'} has already been sent and is locked from editing.`, 'warning');
+                  return;
+                }
+                setEditingQuote(quote);
+                setShowModal(true);
+              }}
               onSendSms={() => {
                 if (!quote.prospectPhone) {
                   showNotification && showNotification(`No phone saved.`, 'error');
                   return;
                 }
                 triggerSMS && triggerSMS('Quotation', null, quote);
+                if (quote.status === 'Draft' || quote.status === 'Pending') {
+                  updateQuoteStatus && updateQuoteStatus(quote.id, 'Sent');
+                }
               }}
               onDownload={() => {
                 showNotification && showNotification(`Generating PDF for Quote #${quote.quoteNumber || 'Proposal'}...`, 'info');
@@ -143,6 +159,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
   const isExpired = quote.status === 'Expired';
   const hasCounterOffer = quote.status === 'Counter Offer' || (quote.counterOffers && quote.counterOffers.length > 0);
   const latestCounterOffer = quote.lastCounterOffer || (quote.counterOffers && quote.counterOffers[0]);
+  const isSent = quote.status === 'Sent' || isAccepted || isRejected || quote.status === 'Converted to Invoice' || hasCounterOffer || Boolean(quote.sentAt);
 
   const handleWhatsAppShare = () => {
     const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${shareLink}\n\nThank you!`;
@@ -150,6 +167,9 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
       phone: quote.prospectPhone || '',
       text
     });
+    if (quote.status === 'Draft' || quote.status === 'Pending') {
+      updateQuoteStatus && updateQuoteStatus(quote.id, 'Sent');
+    }
   };
   
   let borderLeftColor = 'var(--panel-border)';
@@ -265,8 +285,14 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-              onClick={onEdit}
+              style={{ padding: '6px 12px', fontSize: '0.75rem', opacity: isSent ? 0.6 : 1 }}
+              onClick={() => {
+                if (isSent) {
+                  showNotification && showNotification(`Quotation #${quote.quoteNumber} has already been sent to customer and cannot be edited.`, 'warning');
+                  return;
+                }
+                onEdit();
+              }}
             >
               <RefreshCw size={14} /> Revise Quote
             </button>
@@ -324,9 +350,27 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onSendSms} title="Send SMS">
             <Smartphone size={16} className="text-secondary" />
           </button>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Edit Configuration">
-            <Edit2 size={16} />
-          </button>
+          {isSent ? (
+            <button 
+              className="btn btn-secondary" 
+              style={{ 
+                width: '40px', height: '40px', padding: 0, 
+                opacity: 0.6, cursor: 'not-allowed',
+                background: 'rgba(255,255,255,0.03)',
+                borderColor: 'rgba(255,255,255,0.08)' 
+              }} 
+              onClick={() => {
+                showNotification && showNotification(`Quotation #${quote.quoteNumber} has already been sent to customer and is locked from editing.`, 'warning');
+              }} 
+              title="Locked: Quotation already sent"
+            >
+              <Lock size={16} style={{ color: 'var(--text-muted)' }} />
+            </button>
+          ) : (
+            <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Edit Configuration">
+              <Edit2 size={16} />
+            </button>
+          )}
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
             <Download size={16} />
           </button>
@@ -352,7 +396,18 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
 };
 
 const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] }) => {
-  const { smsConfig = {} } = useContext(StoreContext) || {};
+  const { smsConfig = {}, showNotification } = useContext(StoreContext) || {};
+  const isLocked = Boolean(
+    initialData && (
+      initialData.status === 'Sent' || 
+      initialData.status === 'Accepted' || 
+      initialData.status === 'Converted to Invoice' || 
+      initialData.status === 'Rejected' || 
+      initialData.status === 'Counter Offer' || 
+      Boolean(initialData.sentAt)
+    )
+  );
+
   const initialDiscountItem = initialData?.items?.find(i => i.isDiscount);
   const initialDiscount = initialDiscountItem ? Math.abs(initialDiscountItem.price) : 0;
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
@@ -362,7 +417,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     prospectName: initialData?.prospectName || '', 
     prospectPhone: initialData?.prospectPhone || '',
-    status: initialData?.status || 'Pending',
+    status: initialData?.status || 'Draft',
     items: initialItems,
     discount: initialDiscount,
     amount: initialData?.amount || 0,
@@ -412,10 +467,48 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
       <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
         <div className="modal-header">
            <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Quotation' : 'Craft New Proposal'}</h2>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>
+                 {isLocked ? 'View Quotation' : (initialData ? 'Update Quotation' : 'Craft New Proposal')}
+               </h2>
+               {isLocked && (
+                 <span style={{ 
+                   background: 'rgba(239, 68, 68, 0.12)', 
+                   color: '#ef4444', 
+                   padding: '4px 10px', 
+                   borderRadius: '20px', 
+                   fontSize: '0.72rem', 
+                   fontWeight: 800,
+                   display: 'inline-flex',
+                   alignItems: 'center',
+                   gap: '4px'
+                 }}>
+                   <Lock size={12} /> SENT & LOCKED
+                 </span>
+               )}
+             </div>
              <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
            </div>
         </div>
+
+        {isLocked && (
+          <div style={{
+            margin: '16px 24px 0 24px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#ef4444',
+            fontSize: '0.85rem',
+            fontWeight: 700
+          }}>
+            <Lock size={16} />
+            <span>This quotation has already been sent to the customer and cannot be edited. It is displayed in read-only mode.</span>
+          </div>
+        )}
 
         <form onSubmit={(e) => { 
           e.preventDefault(); 
@@ -621,8 +714,14 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
 
           <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Finalize Quotation</button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>
+              {isLocked ? 'Close' : 'Discard'}
+            </button>
+            {!isLocked && (
+              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>
+                Finalize Quotation
+              </button>
+            )}
           </div>
         </form>
       </div>

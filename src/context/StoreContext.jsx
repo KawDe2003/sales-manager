@@ -3206,6 +3206,21 @@ export default function StoreContextProvider({ children }) {
   };
 
   const updateInvoice = (id, data) => {
+    const existing = invoices.find(i => i.id === id);
+    const hasPayments = (payments || []).some(p => p.documentId === id && Number(p.amount) > 0);
+    const isLocked = existing && (
+      existing.status === 'Sent' || 
+      existing.status === 'Partially Paid' || 
+      existing.status === 'Paid' || 
+      existing.status === 'Overdue' || 
+      Boolean(existing.sentAt) || 
+      Boolean(existing.reminderSent) ||
+      hasPayments
+    );
+    if (isLocked) {
+      showNotification(`Invoice #${existing?.invoiceNumber || ''} has already been sent to customer and is locked from editing.`, 'warning');
+      return;
+    }
     const updatedInvoices = invoices.map(i => {
       if (i.id === id) {
         const updated = { ...i, ...data };
@@ -3221,7 +3236,8 @@ export default function StoreContextProvider({ children }) {
   const updateInvoiceStatus = (id, status) => {
     setInvoices(invoices.map(i => {
       if (i.id === id) {
-        const updated = { ...i, status };
+        const additionalFields = status === 'Sent' ? { sentAt: new Date().toISOString() } : {};
+        const updated = { ...i, status, ...additionalFields };
         addLog('Status', `Invoice ${i.invoiceNumber} status changed to ${status}`);
         syncInvoiceToSupabase(updated);
         showNotification(`Invoice #${i.invoiceNumber} marked as ${status}!`, 'success');
@@ -3275,6 +3291,19 @@ export default function StoreContextProvider({ children }) {
   };
 
   const updateQuote = (id, updatedData) => {
+    const existing = quotes.find(q => q.id === id);
+    const isSent = existing && (
+      existing.status === 'Sent' || 
+      existing.status === 'Accepted' || 
+      existing.status === 'Converted to Invoice' || 
+      existing.status === 'Rejected' || 
+      existing.status === 'Counter Offer' || 
+      Boolean(existing.sentAt)
+    );
+    if (isSent) {
+      showNotification(`Quotation #${existing?.quoteNumber || ''} has already been sent to customer and cannot be edited.`, 'warning');
+      return;
+    }
     setQuotes(quotes.map(q => {
       if (q.id === id) {
         const updated = { ...q, ...updatedData };
@@ -3295,7 +3324,8 @@ export default function StoreContextProvider({ children }) {
       }
     }
 
-    setQuotes(prev => prev.map(q => q.id === id ? { ...q, status } : q));
+    const additionalFields = status === 'Sent' ? { sentAt: new Date().toISOString() } : {};
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, status, ...additionalFields } : q));
     
     // Cloud Sync
     try {

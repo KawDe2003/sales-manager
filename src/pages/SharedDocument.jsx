@@ -291,10 +291,12 @@ const SharedDocument = () => {
     ? (docData.totalAmount != null ? Number(docData.totalAmount) : (subTotal + poVatAmount))
     : (subTotal - discountAmount);
 
-  const isApproved = isPO ? (docData.status === 'Received' || docData.status === 'Delivered') : (docData.status === 'Paid' || docData.status === 'Accepted');
+  const isApproved = isPO 
+    ? (docData.status === 'Received' || docData.status === 'Delivered') 
+    : (docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice');
 
   return (
-    <div style={{ 
+    <div className="shared-doc-wrapper" style={{ 
       minHeight: '100vh', 
       maxWidth: '100vw',
       overflowX: 'hidden',
@@ -305,6 +307,50 @@ const SharedDocument = () => {
       boxSizing: 'border-box',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
+      {/* Mobile Responsive Style Rules */}
+      <style>{`
+        @media (max-width: 640px) {
+          .shared-doc-wrapper {
+            padding: 16px 10px !important;
+          }
+          .shared-doc-card {
+            border-radius: 20px !important;
+          }
+          .shared-doc-card-inner {
+            padding: 20px 14px !important;
+          }
+          .shared-billing-card {
+            padding: 16px 14px !important;
+            border-radius: 18px !important;
+            margin-bottom: 20px !important;
+          }
+          .desktop-billing-table {
+            display: none !important;
+          }
+          .mobile-billing-list {
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .shared-account-card {
+            padding: 20px 16px !important;
+            border-radius: 18px !important;
+          }
+          .shared-doc-footer {
+            padding: 16px 16px !important;
+            border-bottom-left-radius: 20px !important;
+            border-bottom-right-radius: 20px !important;
+          }
+        }
+        @media (min-width: 641px) {
+          .desktop-billing-table {
+            display: block !important;
+          }
+          .mobile-billing-list {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Background Radial Glow */}
       <div style={{ position: 'absolute', top: 0, right: 0, width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}></div>
 
@@ -338,7 +384,7 @@ const SharedDocument = () => {
       </div>
 
       {/* MAIN DOCUMENT CARD (PURE CRISP WHITE) */}
-      <div style={{ 
+      <div className="shared-doc-card" style={{ 
         maxWidth: '960px', 
         margin: '0 auto', 
         background: '#ffffff', 
@@ -350,7 +396,7 @@ const SharedDocument = () => {
       }}>
         
         {/* CARD CONTENT INNER PADDING */}
-        <div style={{ padding: 'clamp(28px, 5vw, 48px)' }}>
+        <div className="shared-doc-card-inner" style={{ padding: 'clamp(28px, 5vw, 48px)' }}>
           
           {/* TOP DOCUMENT HEADER */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px', marginBottom: '36px' }}>
@@ -483,7 +529,8 @@ const SharedDocument = () => {
               BILLING ITEMS
             </div>
 
-            <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Desktop Table View (>= 641px) */}
+            <div className="desktop-billing-table" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <div style={{ minWidth: '420px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
                   <div style={{ flex: 1 }}>DESCRIPTION</div>
@@ -545,6 +592,77 @@ const SharedDocument = () => {
                 )}
               </div>
             </div>
+
+            {/* Mobile Stacked List View (<= 640px) */}
+            <div className="mobile-billing-list">
+              {standardItems.map((item, idx) => {
+                const p = getItemPrice(item);
+                const q = getItemQty(item);
+                const name = getItemName(item);
+                return (
+                  <div key={idx} style={{ 
+                    padding: '14px 0', 
+                    borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.08)' 
+                  }}>
+                    <div style={{ 
+                      color: '#ffffff', 
+                      fontWeight: 800, 
+                      fontSize: '0.92rem', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.01em',
+                      lineHeight: 1.35,
+                      marginBottom: '8px',
+                      wordBreak: 'break-word'
+                    }}>
+                      {name}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>
+                        <span style={{ color: '#64748b' }}>Qty: </span>
+                        <span style={{ color: '#ffffff', fontWeight: 800 }}>{q}</span>
+                        <span style={{ color: '#64748b', margin: '0 4px' }}>×</span>
+                        <span style={{ color: '#cbd5e1' }}>LKR {p.toLocaleString()}</span>
+                      </div>
+                      <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', fontFamily: 'monospace' }}>
+                        LKR {(p * q).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* DEDICATED DISCOUNT MODULE LINE ITEM FOR MOBILE */}
+              {discountAmount > 0 && (
+                <div style={{ 
+                  padding: '14px 0 4px 0', 
+                  borderTop: '1px dashed rgba(245, 158, 11, 0.4)',
+                  marginTop: '10px'
+                }}>
+                  <div style={{ 
+                    color: '#f59e0b', 
+                    fontWeight: 800, 
+                    fontSize: '0.85rem', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.02em', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    marginBottom: '6px'
+                  }}>
+                    <Tag size={15} color="#f59e0b" />
+                    <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ color: 'rgba(245, 158, 11, 0.85)', fontSize: '0.8rem', fontWeight: 700 }}>
+                      1 Promo Offer
+                    </div>
+                    <div style={{ color: '#f59e0b', fontWeight: 900, fontSize: '1.05rem', fontFamily: 'monospace' }}>
+                      - LKR {discountAmount.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* BOTTOM TWO CARDS ROW (VALIDITY + ACCOUNT STATUS) */}
@@ -568,7 +686,7 @@ const SharedDocument = () => {
             </div>
 
             {/* ACCOUNT STATUS & TOTAL AMOUNT DARK CARD */}
-            <div style={{ background: '#0f172a', borderRadius: '24px', padding: '28px 32px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+            <div className="shared-account-card" style={{ background: '#0f172a', borderRadius: '24px', padding: '28px 32px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
                   <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
@@ -589,6 +707,33 @@ const SharedDocument = () => {
                   </div>
                 </div>
               </div>
+
+              {/* DIRECT TAP TO VIEW INVOICE (ESPECIALLY HANDY ON MOBILE) */}
+              {docData.convertedInvoiceNumber && (
+                <div style={{ marginBottom: '16px' }}>
+                  <a
+                    href={`/share/invoice/${docData.convertedInvoiceId || docData.convertedInvoiceNumber}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      textDecoration: 'none',
+                      padding: '12px 18px',
+                      borderRadius: '14px',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <Receipt size={17} /> VIEW TAX INVOICE #{docData.convertedInvoiceNumber}
+                  </a>
+                </div>
+              )}
 
               {isPO && docData.applyVat ? (
                 <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
@@ -851,7 +996,7 @@ const SharedDocument = () => {
         </div>
 
         {/* FOOTER BAR */}
-        <div style={{ 
+        <div className="shared-doc-footer" style={{ 
           background: '#0f172a', 
           padding: '20px 32px', 
           position: 'relative',

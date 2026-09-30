@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
@@ -82,6 +82,9 @@ Thank you for your business!`;
 
     showNotification?.(`Opening WhatsApp to send invoice link to ${clientName}...`, 'success');
     window.open(waUrl, '_blank');
+    if (invoice.status === 'Draft') {
+      updateInvoiceStatus && updateInvoiceStatus(invoice.id, 'Sent');
+    }
   };
 
   // SMS Dispatch Helpers
@@ -114,9 +117,15 @@ Thank you for your business!`;
         const res = await sendDirectSMS(cleanPhone, smsMessage);
         if (res && res.success !== false) {
           showNotification?.(`Invoice SMS sent to ${smsPhone}!`, 'success');
+          if (smsModalInvoice?.status === 'Draft') {
+            updateInvoiceStatus && updateInvoiceStatus(smsModalInvoice.id, 'Sent');
+          }
           setSmsModalInvoice(null);
         }
       } else {
+        if (smsModalInvoice?.status === 'Draft') {
+          updateInvoiceStatus && updateInvoiceStatus(smsModalInvoice.id, 'Sent');
+        }
         openNativeSmsApp(smsPhone, smsMessage);
         setSmsModalInvoice(null);
       }
@@ -330,7 +339,22 @@ Thank you for your business!`;
               customers={customers}
               payments={payments}
               updateInvoiceStatus={updateInvoiceStatus}
-              onEdit={() => { setEditingInvoice(invoice); setShowModal(true); }}
+              onEdit={() => {
+                const invoicePayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                const isLocked = invoice.status === 'Sent' || 
+                                 invoice.status === 'Partially Paid' || 
+                                 invoice.status === 'Paid' || 
+                                 invoice.status === 'Overdue' || 
+                                 invoicePayments > 0 || 
+                                 Boolean(invoice.sentAt) || 
+                                 Boolean(invoice.reminderSent);
+                if (isLocked) {
+                  showNotification && showNotification(`Invoice #${invoice.invoiceNumber || 'Document'} has already been sent to customer and is locked from editing.`, 'warning');
+                  return;
+                }
+                setEditingInvoice(invoice);
+                setShowModal(true);
+              }}
               onRecordPayment={() => navigate('/payments')}
               onViewInstallments={() => setViewingInstallmentInvoice(invoice)}
               onSendWhatsApp={() => handleSendWhatsApp(invoice)}
@@ -526,6 +550,13 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
 
   const isPaid = invoice.status === 'Paid' || amountDue <= 0;
   const isOverdue = invoice.status === 'Overdue' || (new Date(invoice.dueDate) < new Date() && !isPaid);
+  const isLocked = invoice.status === 'Sent' || 
+                   invoice.status === 'Partially Paid' || 
+                   isPaid || 
+                   isOverdue || 
+                   historicalPayments > 0 || 
+                   Boolean(invoice.sentAt) || 
+                   Boolean(invoice.reminderSent);
 
   let borderLeftColor = 'var(--panel-border)';
   if (isPaid) borderLeftColor = 'var(--success)';
@@ -671,9 +702,27 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
           >
             <LinkIcon size={16} />
           </button>
-          <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Record">
-            <Edit2 size={16} />
-          </button>
+          {isLocked ? (
+            <button 
+              className="btn btn-secondary" 
+              style={{ 
+                width: '40px', height: '40px', padding: 0, 
+                opacity: 0.6, cursor: 'not-allowed',
+                background: 'rgba(255,255,255,0.03)',
+                borderColor: 'rgba(255,255,255,0.08)' 
+              }} 
+              onClick={() => {
+                showNotification && showNotification(`Invoice #${invoice.invoiceNumber} has already been sent to customer and is locked from editing.`, 'warning');
+              }} 
+              title="Locked: Invoice already sent / processed"
+            >
+              <Lock size={16} style={{ color: 'var(--text-muted)' }} />
+            </button>
+          ) : (
+            <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onEdit} title="Modify Record">
+              <Edit2 size={16} />
+            </button>
+          )}
           <button className="btn btn-secondary" style={{ width: '40px', height: '40px', padding: 0 }} onClick={onDownload} title="Export PDF">
             <Download size={16} />
           </button>
@@ -746,7 +795,19 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
 };
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
-  const { smsConfig = {}, generateInstallmentSchedule } = useContext(StoreContext) || {};
+  const { smsConfig = {}, generateInstallmentSchedule, payments = [], showNotification } = useContext(StoreContext) || {};
+  const isLocked = Boolean(
+    initialData && (
+      initialData.status === 'Sent' || 
+      initialData.status === 'Partially Paid' || 
+      initialData.status === 'Paid' || 
+      initialData.status === 'Overdue' || 
+      Boolean(initialData.sentAt) || 
+      Boolean(initialData.reminderSent) ||
+      payments.some(p => p.documentId === initialData.id && Number(p.amount) > 0)
+    )
+  );
+
   const initialDiscountItem = initialData?.items?.find(i => i.isDiscount);
   const initialDiscount = initialDiscountItem ? Math.abs(initialDiscountItem.price) : 0;
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
@@ -795,9 +856,47 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     >
       <div className="app-modal-dialog" style={{ maxWidth: '800px', maxHeight: '92vh', overflowY: 'auto' }}>
         <div className="modal-header-solid">
-          <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>{initialData ? 'Update Invoice' : 'Draft New Invoice'}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>
+              {isLocked ? 'View Invoice' : (initialData ? 'Update Invoice' : 'Draft New Invoice')}
+            </h2>
+            {isLocked && (
+              <span style={{ 
+                background: 'rgba(239, 68, 68, 0.12)', 
+                color: '#ef4444', 
+                padding: '4px 10px', 
+                borderRadius: '20px', 
+                fontSize: '0.72rem', 
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Lock size={12} /> SENT & LOCKED
+              </span>
+            )}
+          </div>
           <button className="btn btn-secondary" style={{ padding: '8px', flexShrink: 0 }} onClick={onClose}><X size={20} /></button>
         </div>
+
+        {isLocked && (
+          <div style={{
+            margin: '16px 20px 0 20px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#ef4444',
+            fontSize: '0.85rem',
+            fontWeight: 700
+          }}>
+            <Lock size={16} />
+            <span>This invoice has already been sent to customer or processed, and cannot be edited. It is displayed in read-only mode.</span>
+          </div>
+        )}
 
         <form onSubmit={(e) => {
           e.preventDefault();
@@ -1048,8 +1147,14 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           <div style={{ height: '1px', background: 'var(--panel-border)', margin: '32px 0 24px 0' }}></div>
 
           <div className="flex justify-end gap-3">
-            <button type="button" className="btn btn-secondary" style={{ padding: '11px 24px' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px' }}>Finalize Ledger</button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '11px 24px' }} onClick={onClose}>
+              {isLocked ? 'Close' : 'Discard'}
+            </button>
+            {!isLocked && (
+              <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px' }}>
+                Finalize Ledger
+              </button>
+            )}
           </div>
         </form>
       </div>
