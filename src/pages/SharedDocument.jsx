@@ -339,6 +339,7 @@ const SharedDocument = () => {
             display: none !important;
           }
         }
+        @media (max-width: 640px) {
           .desktop-billing-table {
             display: none !important;
           }

@@ -213,28 +213,44 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
         </div>
 
         <div style={{ flexShrink: 0 }}>
-          <CustomSelect 
-            value={quote.status || 'Pending'}
-            onChange={(val) => updateQuoteStatus && updateQuoteStatus(quote.id, val)}
-            options={[
-              { value: 'Draft', label: 'Draft' },
-              { value: 'Sent', label: 'Sent' },
-              { value: 'Pending', label: 'Pending' },
-              { value: 'Counter Offer', label: 'Counter Offer' },
-              { value: 'Accepted', label: 'Accepted' },
-              { value: 'Rejected', label: 'Rejected' },
-              { value: 'Expired', label: 'Expired' },
-              { value: 'Converted to Invoice', label: 'Converted to Invoice' }
-            ]}
-            size="sm"
-            style={{ minWidth: '120px' }}
-            triggerStyle={{
-              height: '32px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '4px 10px'
-            }}
-          />
+          {isSent ? (
+            <div style={{
+              height: '32px', padding: '4px 10px',
+              borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              minWidth: '120px', justifyContent: 'center',
+              cursor: 'default', userSelect: 'none'
+            }} title="Status is locked after sending">
+              <Lock size={11} style={{ opacity: 0.6 }} />
+              {quote.status || 'Sent'}
+            </div>
+          ) : (
+            <CustomSelect 
+              value={quote.status || 'Pending'}
+              onChange={(val) => updateQuoteStatus && updateQuoteStatus(quote.id, val)}
+              options={[
+                { value: 'Draft', label: 'Draft' },
+                { value: 'Sent', label: 'Sent' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Counter Offer', label: 'Counter Offer' },
+                { value: 'Accepted', label: 'Accepted' },
+                { value: 'Rejected', label: 'Rejected' },
+                { value: 'Expired', label: 'Expired' },
+                { value: 'Converted to Invoice', label: 'Converted to Invoice' }
+              ]}
+              size="sm"
+              style={{ minWidth: '120px' }}
+              triggerStyle={{
+                height: '32px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                padding: '4px 10px'
+              }}
+            />
+          )}
         </div>
       </div>
 

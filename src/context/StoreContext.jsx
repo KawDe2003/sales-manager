@@ -4720,8 +4720,13 @@ export default function StoreContextProvider({ children }) {
       const monthlyVal = Math.round(annualVal / 12);
       const invNum = `INV-REC-${Math.floor(1000 + Math.random() * 9000)}`;
       const clientDisplayName = client.gymName || client.name || 'Wholesale Client';
+      const companyName = smsConfig?.companyName || 'Our Company';
+      const invId = uuidv4();
+      const invShareKey = generateShareKey();
 
       addInvoice({
+        id: invId,
+        shareKey: invShareKey,
         invoiceNumber: invNum,
         customerId: client.id,
         prospectName: clientDisplayName,
@@ -4732,9 +4737,10 @@ export default function StoreContextProvider({ children }) {
         amount: monthlyVal,
         totalAmount: monthlyVal,
         status: 'Sent',
+        sentAt: new Date().toISOString(),
         items: [
           { 
-            name: `Monthly Standing Order — Hair Pins & Accessories Wholesale (${client.tag || 'Regular Supply'})`, 
+            name: `Monthly Standing Order — ${companyName} (${client.tag || 'Regular Supply'})`, 
             quantity: 1,
             unitPrice: monthlyVal,
             amount: monthlyVal 
@@ -4744,7 +4750,8 @@ export default function StoreContextProvider({ children }) {
 
       if (client.phone) {
         try {
-          const invLink = `${window.location.origin}/share/invoice/${invNum}`;
+          // Use shareKey in URL so SharedDocument can look up by shareKey OR id
+          const invLink = `${window.location.origin}/share/invoice/${invShareKey}`;
           triggerSMS && triggerSMS('Renewal', client, { 
             invoiceNumber: invNum, 
             totalAmount: monthlyVal, 
@@ -4757,6 +4764,7 @@ export default function StoreContextProvider({ children }) {
           console.warn('[Auto Renewal SMS Trigger Error]', e);
         }
       }
+
 
       generatedCount++;
     });
