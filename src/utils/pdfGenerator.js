@@ -5,7 +5,17 @@ import autoTable from 'jspdf-autotable';
 export const createPDFDoc = (options) => {
   const Constructor = typeof jsPDF === 'function' ? jsPDF : (jsPDF?.jsPDF || jsPDF?.default);
   if (typeof Constructor === 'function') {
-    return new Constructor(options);
+    const doc = new Constructor(options);
+    const wrapColor = (fn) => function(c1, c2, c3, c4) {
+      if (Array.isArray(c1)) {
+        return fn.call(this, c1[0], c1[1], c1[2], c1[3]);
+      }
+      return fn.call(this, c1, c2, c3, c4);
+    };
+    doc.setTextColor = wrapColor(doc.setTextColor.bind(doc));
+    doc.setFillColor = wrapColor(doc.setFillColor.bind(doc));
+    doc.setDrawColor = wrapColor(doc.setDrawColor.bind(doc));
+    return doc;
   }
   throw new Error('Unable to initialize jsPDF engine.');
 };
@@ -67,6 +77,126 @@ export const applyPageHeaderFooter = (doc, { title, subtitle, docNumber, pageCou
     // Right: Page counter cleanly right-aligned at margin
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
   }
+};
+
+// Helper: Render Standard High-Fidelity Company Header (Zero Overlap Guaranteed)
+export const renderCompanyHeader = (doc, {
+  savedConfig = {},
+  primaryColor = [59, 130, 246],
+  defaultCompanyName = 'Seynex Technology',
+  title = '',
+  numberLabel = '',
+  numberVal = '',
+  dateLabel = 'Date',
+  dateVal = '',
+  dueDateLabel = '',
+  dueDateVal = '',
+  refLabel = '',
+  refVal = ''
+}) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const rawCompanyName = savedConfig.companyName || savedConfig.dashboardName || defaultCompanyName;
+  const companyName = rawCompanyName.replace(/GymSales\s*(Pro)?/gi, 'Seynex Technology').trim();
+  const companyAddress = savedConfig.companyAddress || '';
+  const companyEmail = savedConfig.companyEmail || '';
+  const companyPhone = savedConfig.companyPhone || '';
+  const vatNumber = savedConfig.vatNumber || savedConfig.taxNumber || '';
+  const website = savedConfig.companyWebsite || '';
+  const logo = savedConfig.receiptLogo || savedConfig.companyLogo;
+
+  let textStartX = 14;
+  let textStartY = 19;
+
+  if (logo) {
+    try {
+      // Draw logo with clean dimensions at (14, 10, 28, 28)
+      doc.addImage(logo, 'PNG', 14, 10, 28, 28);
+      textStartX = 46; // Shift text comfortably to the right of the logo - ZERO OVERLAP!
+      textStartY = 16;
+    } catch (e) {
+      console.warn('Could not render logo in PDF, falling back to text:', e);
+      textStartX = 14;
+      textStartY = 19;
+    }
+  }
+
+  // Company Name
+  doc.setFontSize(logo ? 13.5 : 18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text(companyName, textStartX, textStartY);
+
+  // Company Details (Address, Contacts, VAT, Website)
+  doc.setFontSize(8.2);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  
+  let currentY = textStartY + 5;
+  if (companyAddress) {
+    doc.text(companyAddress, textStartX, currentY);
+    currentY += 4.2;
+  }
+
+  const contactLine = [
+    companyEmail ? `Email: ${companyEmail}` : '',
+    companyPhone ? `Phone: ${companyPhone}` : ''
+  ].filter(Boolean).join(' | ');
+
+  if (contactLine) {
+    doc.text(contactLine, textStartX, currentY);
+    currentY += 4.2;
+  }
+
+  if (vatNumber) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`VAT Reg No: ${vatNumber}`, textStartX, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    currentY += 4.2;
+  } else if (website) {
+    doc.text(`Web: ${website}`, textStartX, currentY);
+    currentY += 4.2;
+  }
+
+  // Right Side: Document Title & Meta
+  if (title) {
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(title, pageWidth - 14, 20, { align: 'right' });
+
+    let rightY = 28;
+    if (numberVal) {
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${numberLabel || 'No'}: ${numberVal}`, pageWidth - 14, rightY, { align: 'right' });
+      rightY += 5.5;
+    }
+
+    if (dateVal) {
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`${dateLabel}: ${dateVal}`, pageWidth - 14, rightY, { align: 'right' });
+      rightY += 5;
+    }
+
+    if (dueDateVal && dueDateVal !== '—') {
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`${dueDateLabel || 'Due Date'}: ${dueDateVal}`, pageWidth - 14, rightY, { align: 'right' });
+      rightY += 5;
+    }
+
+    if (refVal) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`${refLabel || 'Ref'}: #${refVal}`, pageWidth - 14, rightY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+    }
+  }
+
+  return Math.max(currentY, 44);
 };
 
 // Universal Bulletproof Download Trigger with Strict PDF Extension & Real Filename Guarantee
@@ -232,54 +362,21 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     const totalAmount = subTotal - discountAmount;
 
-    // Add company logo if available (priority logic)
-    if (savedConfig.receiptLogo) {
-      try {
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 30, 30);
-      } catch (e) {
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(companyName, 14, 22);
-      }
-    } else {
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(companyName, 14, 22);
-    }
-
-    doc.setFontSize(8.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(companyAddress, 14, 28);
-    doc.text(`Email: ${companyEmail} | Phone: ${companyPhone}`, 14, 33);
-
-    // Doc Type Title (right side)
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(docTitle, pageWidth - 14, 22, { align: 'right' });
-
-    // Doc meta (right side)
-    doc.setFontSize(9.5);
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text(`${isInvoice ? 'Invoice' : 'Quotation'} #: ${docNumber}`, pageWidth - 14, 30, { align: 'right' });
-    doc.setFontSize(8.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Date: ${dateStr}`, pageWidth - 14, 36, { align: 'right' });
-    let rightMetaY = 41;
-    if (isInvoice && dueDateStr !== '—') {
-      doc.text(`Due Date: ${dueDateStr}`, pageWidth - 14, rightMetaY, { align: 'right' });
-      rightMetaY += 5;
-    }
-    const quoteRef = documentData?.quotationNumber || documentData?.quoteRef || documentData?.quotation_number;
-    if (isInvoice && quoteRef) {
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(`Ref: #${quoteRef}`, pageWidth - 14, rightMetaY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-    }
+    // ── Standard Company Header (Zero Overlap Guaranteed) ───────────────────────
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      defaultCompanyName: 'Seynex Technology',
+      title: docTitle,
+      numberLabel: isInvoice ? 'Invoice #' : 'Quotation #',
+      numberVal: docNumber,
+      dateLabel: 'Date',
+      dateVal: dateStr,
+      dueDateLabel: 'Due Date',
+      dueDateVal: dueDateStr,
+      refLabel: 'Ref',
+      refVal: isInvoice ? quoteRef : ''
+    });
 
     // PAID Watermark for Invoices marked as Paid
     if (isInvoice && documentData?.status === 'Paid') {
@@ -294,22 +391,31 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // ── Bill To ─────────────────────────────────────────────────────────────
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.rect(14, 48, 95, 22, 'F');
+    doc.rect(14, 46, 95, 23, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(14, 48, 95, 22, 'S');
+    doc.rect(14, 46, 95, 23, 'S');
 
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('BILL TO / RECIPIENT:', 18, 55);
-    doc.setFontSize(10.5);
+    doc.text('BILL TO / RECIPIENT:', 18, 52);
+    doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text(targetName, 18, 62);
-    if (documentData?.contactPerson || documentData?.prospectPhone) {
+    doc.text(targetName, 18, 59);
+
+    const recipientDetails = [];
+    if (documentData?.contactPerson) {
+      recipientDetails.push(`Attn: ${documentData.contactPerson}`);
+    }
+    const recipientPhone = documentData?.prospectPhone || documentData?.customerPhone || documentData?.phone;
+    if (recipientPhone) {
+      recipientDetails.push(`Tel: ${recipientPhone}`);
+    }
+    if (recipientDetails.length > 0) {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
-      doc.text(`${documentData.contactPerson ? 'Attn: ' + documentData.contactPerson : ''} ${documentData.prospectPhone ? '| ' + documentData.prospectPhone : ''}`, 18, 67);
+      doc.text(recipientDetails.join('  •  '), 18, 65);
     }
 
     // ── Line Items Table ──────────────────────────────────────────────────────
@@ -446,27 +552,34 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // ── Footer ────────────────────────────────────────────────────────────────
     // ── Bank Account / Verification ──────────────────────────────────────────
-    if (isInvoice && savedConfig.bankDetails) {
+    const showBank = (isInvoice || savedConfig.showBankDetailsOnDocs) && savedConfig.bankDetails?.accountNumber;
+    if (showBank) {
       const bankY = pageHeight - 45;
       doc.setFontSize(8);
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('PAYMENT BANK DETAILS:', 14, bankY);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 100, 100);
-      doc.text(`Bank: ${savedConfig.bankDetails.bank} | Branch: ${savedConfig.bankDetails.branch}`, 14, bankY + 5);
-      doc.text(`A/C Name: ${savedConfig.bankDetails.accountName}`, 14, bankY + 9);
+      doc.text(`Bank: ${savedConfig.bankDetails.bank} | Branch: ${savedConfig.bankDetails.branch || '-'}`, 14, bankY + 4.5);
+      doc.text(`A/C Name: ${savedConfig.bankDetails.accountName || '-'}`, 14, bankY + 8.5);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFontSize(10);
-      doc.text(`Account No: ${savedConfig.bankDetails.accountNumber}`, 14, bankY + 14);
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Account No: ${savedConfig.bankDetails.accountNumber}`, 14, bankY + 13);
+      doc.setFont('helvetica', 'normal');
     }
 
     // Default Notes & Footer (Properly Spaced Above Divider Line)
+    const quoteValidity = savedConfig.quoteValidityDays 
+      ? `This quotation is valid for ${savedConfig.quoteValidityDays} days from issue date.`
+      : 'Thank you for your interest. This proposal is valid for 30 days from issue date.';
+
     const footerMsg = isReceipt 
       ? 'This is a computer generated receipt. No signature required.' 
       : (isInvoice 
           ? (savedConfig.pdfFooterText || 'Thank you for your business. Please remit payment promptly.')
-          : 'Thank you for your interest. This proposal is valid for 30 days from issue date.');
+          : (savedConfig.pdfFooterTextQuote || quoteValidity));
 
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
@@ -1249,51 +1362,22 @@ export const generatePurchaseOrderPDF = (poData) => {
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // ── Company Logo / Name ──────────────────────────────────────────────────
-    if (savedConfig.receiptLogo) {
-      try {
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 10, 32, 32);
-      } catch (e) {
-        doc.setFontSize(20);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(companyName, 14, 22);
-      }
-    } else {
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(companyName, 14, 22);
-    }
-
-    // Company details below logo
-    let companyY = 28;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    if (companyAddress) { doc.text(companyAddress, 14, companyY); companyY += 4.5; }
-    if (companyEmail) { doc.text(`Email: ${companyEmail}`, 14, companyY); companyY += 4.5; }
-    if (companyPhone) { doc.text(`Phone: ${companyPhone}`, 14, companyY); companyY += 4.5; }
-
-    // ── Title (right side) ───────────────────────────────────────────────────
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text('PURCHASE ORDER', pageWidth - 14, 20, { align: 'right' });
-
-    doc.setFontSize(11);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`#${poData.poNumber || 'PO-0001'}`, pageWidth - 14, 28, { align: 'right' });
-
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Order Date: ${poData.date || new Date().toISOString().split('T')[0]}`, pageWidth - 14, 35, { align: 'right' });
-    if (poData.expectedDelivery) {
-      doc.text(`Expected Delivery: ${poData.expectedDelivery}`, pageWidth - 14, 40, { align: 'right' });
-    }
+    // ── Standard Company Header (Zero Overlap Guaranteed) ───────────────────────
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      defaultCompanyName: 'Seynex Technology',
+      title: 'PURCHASE ORDER',
+      numberLabel: 'PO #',
+      numberVal: `#${poData.poNumber || 'PO-0001'}`,
+      dateLabel: 'Order Date',
+      dateVal: poData.date || new Date().toISOString().split('T')[0],
+      dueDateLabel: 'Expected Delivery',
+      dueDateVal: poData.expectedDelivery || ''
+    });
 
     // ── Horizontal rule ──────────────────────────────────────────────────────
-    const sectionStartY = Math.max(companyY + 4, 48);
+    const sectionStartY = 48;
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
     doc.line(14, sectionStartY, pageWidth - 14, sectionStartY);
@@ -1538,7 +1622,7 @@ export const generatePurchaseOrderPDF = (poData) => {
 
 
 // 1. STANDALONE PAYMENT RECEIPT PDF
-export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, customerData = {}) => {
+export const generatePaymentReceiptPDF = (paymentData = {}, arg2 = {}, arg3 = {}) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
@@ -1547,51 +1631,34 @@ export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, custome
     const companyPhone = savedConfig.companyPhone || '072 840 8880';
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
 
+    // Flexible Argument Support: allows both (payment, invoice, customer) and (payment, customer, invoice)
+    let invoiceData = {};
+    let customerData = {};
+    if (arg2 && (arg2.gymName !== undefined || arg2.contactPerson !== undefined || (arg2.name && !arg2.invoiceNumber && !arg2.items))) {
+      customerData = arg2 || {};
+      invoiceData = arg3 || {};
+    } else {
+      invoiceData = arg2 || {};
+      customerData = arg3 || {};
+    }
+
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#10b981', [16, 185, 129]);
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Company Header / Logo
-    if (savedConfig.receiptLogo) {
-      try {
-        doc.addImage(savedConfig.receiptLogo, 'PNG', 14, 12, 30, 30);
-      } catch (e) {
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(companyName, 14, 24);
-      }
-    } else {
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(companyName, 14, 24);
-    }
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(companyAddress, 14, 30);
-    doc.text(`Email: ${companyEmail} | Hotline: ${companyPhone}`, 14, 35);
-
-    // Title on Right
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text('OFFICIAL PAYMENT RECEIPT', pageWidth - 14, 22, { align: 'right' });
-
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`Receipt #: ${paymentData.receiptNumber || 'REC-' + (paymentData.id ? String(paymentData.id).slice(0, 6).toUpperCase() : '001')}`, pageWidth - 14, 30, { align: 'right' });
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Payment Date: ${formatDatePretty(paymentData.paymentTimestamp || paymentData.date || new Date())}`, pageWidth - 14, 36, { align: 'right' });
-    if (paymentData.invoiceNumber || invoiceData.invoiceNumber) {
-      doc.text(`Invoice Ref: #${paymentData.invoiceNumber || invoiceData.invoiceNumber}`, pageWidth - 14, 41, { align: 'right' });
-    }
+    // ── Standard Company Header (Zero Overlap Guaranteed) ───────────────────────
+    renderCompanyHeader(doc, {
+      savedConfig,
+      primaryColor,
+      defaultCompanyName: 'Seynex Technology',
+      title: 'PAYMENT RECEIPT',
+      numberLabel: 'Receipt #',
+      numberVal: paymentData.receiptNumber || 'REC-' + (paymentData.id ? String(paymentData.id).slice(0, 6).toUpperCase() : '001'),
+      dateLabel: 'Payment Date',
+      dateVal: formatDatePretty(paymentData.paymentTimestamp || paymentData.timestamp || paymentData.date || new Date()),
+      refLabel: 'Invoice Ref',
+      refVal: paymentData.invoiceNumber || invoiceData.invoiceNumber || ''
+    });
 
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
@@ -1607,7 +1674,7 @@ export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, custome
     doc.restoreGraphicsState();
 
     // Client Info Box
-    const clientName = customerData.gymName || customerData.name || paymentData.customerName || invoiceData.prospectName || 'Valued Client';
+    const clientName = customerData.gymName || customerData.name || paymentData.customerName || invoiceData.prospectName || invoiceData.clientName || 'Valued Client';
     const clientContact = customerData.contactPerson || customerData.name || '';
     const clientPhone = customerData.phone || '';
 
@@ -1645,19 +1712,21 @@ export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, custome
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 41, 59);
-    doc.text(`Method: ${paymentData.paymentMethod || paymentData.paymentType || 'Bank Transfer'}`, pageWidth - 91, 66);
+    doc.text(`Method: ${paymentData.paymentMethod || paymentData.method || paymentData.paymentType || 'Bank Transfer'}`, pageWidth - 91, 66);
     doc.text(`Ref / Chq #: ${paymentData.referenceNumber || paymentData.reference || 'N/A'}`, pageWidth - 91, 72);
 
     // Payment Breakdown Table
     const paymentAmount = Number(paymentData.amount || 0);
-    const invoiceTotal = Number(invoiceData.amount || paymentAmount);
-    const remainingBalance = paymentData.remainingBalance !== undefined ? Number(paymentData.remainingBalance) : Math.max(0, invoiceTotal - paymentAmount);
+    const invoiceTotal = Number(invoiceData.amount || invoiceData.total || paymentAmount);
+    const remainingBalance = paymentData.remainingBalance !== undefined
+      ? Number(paymentData.remainingBalance)
+      : (invoiceData.remainingBalance !== undefined ? Number(invoiceData.remainingBalance) : Math.max(0, invoiceTotal - paymentAmount));
 
     const tableBody = [
       [
         invoiceData.invoiceNumber ? `Payment against Invoice #${invoiceData.invoiceNumber}` : 'Account Settlement Deposit',
-        formatDatePretty(paymentData.paymentTimestamp || paymentData.date),
-        paymentData.paymentMethod || 'Bank Transfer',
+        formatDatePretty(paymentData.paymentTimestamp || paymentData.timestamp || paymentData.date),
+        paymentData.paymentMethod || paymentData.method || 'Bank Transfer',
         formatLKR(paymentAmount)
       ]
     ];
@@ -1681,7 +1750,7 @@ export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, custome
       styles: { fontSize: 9, cellPadding: 4.5, textColor: [30, 41, 59] }
     });
 
-    let currentY = doc.lastAutoTable.finalY + 8;
+    let currentY = (doc.lastAutoTable?.finalY || 120) + 8;
 
     // Summary Box
     doc.setFillColor(248, 250, 252);
@@ -1701,7 +1770,8 @@ export const generatePaymentReceiptPDF = (paymentData, invoiceData = {}, custome
     doc.setTextColor(100, 116, 139);
     doc.text('Remaining Due:', pageWidth - 86, currentY + 15);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(remainingBalance > 0 ? [239, 68, 68] : [100, 116, 139]);
+    const balColor = remainingBalance > 0 ? [239, 68, 68] : [100, 116, 139];
+    doc.setTextColor(balColor[0], balColor[1], balColor[2]);
     doc.text(formatLKR(remainingBalance), pageWidth - 18, currentY + 15, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
@@ -1822,7 +1892,7 @@ export const generateCustomerStatementPDF = (customer, invoices = [], payments =
       styles: { fontSize: 8.5, cellPadding: 3.5 }
     });
 
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc.lastAutoTable?.finalY || 120) + 10;
     doc.setFillColor(248, 250, 252);
     doc.rect(pageWidth - 85, finalY, 71, 26, 'F');
     doc.setDrawColor(226, 232, 240);
@@ -1838,7 +1908,8 @@ export const generateCustomerStatementPDF = (customer, invoices = [], payments =
     doc.text(formatLKR(totalPaid), pageWidth - 18, finalY + 13, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(netBalance > 0 ? [239, 68, 68] : [16, 185, 129]);
+    const netColor = netBalance > 0 ? [239, 68, 68] : [16, 185, 129];
+    doc.setTextColor(netColor[0], netColor[1], netColor[2]);
     doc.text('Net Balance Due:', pageWidth - 80, finalY + 21);
     doc.text(formatLKR(netBalance), pageWidth - 18, finalY + 21, { align: 'right' });
 
@@ -1982,7 +2053,8 @@ export const generateSalesReportPDF = (reportData, options = {}) => {
 
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(idx === 1 ? [16, 185, 129] : idx === 2 ? [239, 68, 68] : [15, 23, 42]);
+      const agColor = idx === 1 ? [16, 185, 129] : idx === 2 ? [239, 68, 68] : [15, 23, 42];
+      doc.setTextColor(agColor[0], agColor[1], agColor[2]);
       doc.text(m.val, x, 52);
     });
 

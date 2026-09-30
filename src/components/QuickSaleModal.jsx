@@ -953,7 +953,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
               </div>
             )}
 
-            {/* COLUMN 2: CUSTOMER, CART ITEMS & CHECKOUT (Always on desktop, conditional on mobile) */}
+            {/* COLUMN 2: CUSTOMER, CART ITEMS & CHECKOUT */}
             {(!isMobile || mobileTab === 'checkout') && (
               <div style={{ 
                 display: 'flex', 
@@ -964,96 +964,94 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 flex: 1 
               }}>
 
-                {/* Mobile Back Button to Items */}
+                {/* Mobile Sub-Header with Add More */}
                 {isMobile && (
-                  <button
-                    onClick={() => setMobileTab('items')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--accent-primary)',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      padding: '4px 0 10px 0'
-                    }}
-                  >
-                    <ArrowLeft size={16} /> ← Add / Select More Hair Pins
-                  </button>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: '10px',
+                    marginBottom: '10px',
+                    borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)'
+                  }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Bill Details ({totalCartQty} {totalCartQty === 1 ? 'item' : 'items'})
+                    </div>
+                    <button
+                      onClick={() => setMobileTab('items')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#e6f7f0',
+                        border: '1px solid var(--accent-primary)',
+                        color: 'var(--accent-primary)',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        padding: '5px 10px',
+                        borderRadius: '6px'
+                      }}
+                    >
+                      <Plus size={13} strokeWidth={3} /> Add More
+                    </button>
+                  </div>
                 )}
                 
-                {/* 1. Customer Selection */}
+                {/* 1. Customer Selection - Clean & Simple */}
                 <div style={{ marginBottom: '14px', flexShrink: 0 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>1. Customer / Wholesale Buyer</span>
-                    <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
-                      {selectedCustomerId === 'walk-in' ? 'Walk-in Cash' : (activeCustomer?.name || 'New')}
-                    </span>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Customer / Wholesale Buyer
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <button
-                      onClick={() => setSelectedCustomerId('walk-in')}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: selectedCustomerId === 'walk-in' ? '2px solid var(--accent-primary)' : '1px solid var(--panel-border)',
-                        background: selectedCustomerId === 'walk-in' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                        color: selectedCustomerId === 'walk-in' ? 'var(--accent-primary)' : 'var(--text-secondary)'
-                      }}
-                    >
-                      🏪 Counter Cash
-                    </button>
-                    <button
-                      onClick={() => setSelectedCustomerId('new')}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: selectedCustomerId === 'new' ? '2px solid var(--accent-primary)' : '1px solid var(--panel-border)',
-                        background: selectedCustomerId === 'new' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                        color: selectedCustomerId === 'new' ? 'var(--accent-primary)' : 'var(--text-secondary)'
-                      }}
-                    >
-                      + New Shop / Buyer
-                    </button>
-                  </div>
-
-                  {/* Pick Existing Customer */}
-                  {selectedCustomerId !== 'new' && (
-                    <select
-                      value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
-                      className="form-input"
-                      style={{ height: '36px', fontSize: '0.8rem', width: '100%' }}
-                    >
-                      <option value="walk-in">-- Counter / Walk-in Customer --</option>
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name || c.gymName} {c.phone ? `(${c.phone})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                    className="form-input"
+                    style={{ 
+                      height: '40px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 700, 
+                      width: '100%',
+                      borderRadius: '8px',
+                      background: isDark ? '#1a222d' : '#f8fafc',
+                      border: '1px solid var(--panel-border)',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <option value="walk-in">🏪 Counter / Walk-in Customer (Cash)</option>
+                    {customers.length > 0 && (
+                      <optgroup label="Saved Wholesale Shops & Buyers">
+                        {customers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            🏢 {c.name || c.gymName} {c.phone ? `(${c.phone})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="new">➕ Add New Shop / Wholesale Buyer...</option>
+                  </select>
 
                   {/* Inline New Customer Fields */}
                   {selectedCustomerId === 'new' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '8px', 
+                      marginTop: '8px',
+                      padding: '10px 12px',
+                      background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid var(--panel-border)'
+                    }}>
                       <input
                         type="text"
                         placeholder="Shop or Buyer Name *"
                         value={newCustomerName}
                         onChange={(e) => setNewCustomerName(e.target.value)}
                         className="form-input"
-                        style={{ height: '34px', fontSize: '0.8rem' }}
+                        style={{ height: '36px', fontSize: '0.82rem' }}
+                        autoFocus
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <input
@@ -1062,7 +1060,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                           value={newCustomerPhone}
                           onChange={(e) => setNewCustomerPhone(e.target.value)}
                           className="form-input"
-                          style={{ height: '34px', fontSize: '0.8rem' }}
+                          style={{ height: '36px', fontSize: '0.82rem' }}
                         />
                         <input
                           type="text"
@@ -1070,7 +1068,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                           value={newCustomerCity}
                           onChange={(e) => setNewCustomerCity(e.target.value)}
                           className="form-input"
-                          style={{ height: '34px', fontSize: '0.8rem' }}
+                          style={{ height: '36px', fontSize: '0.82rem' }}
                         />
                       </div>
                     </div>
@@ -1080,11 +1078,11 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 {/* 2. Order Cart Items */}
                 <div style={{ flex: 1, minHeight: '120px', overflowY: 'auto', marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>2. Hair Pin Items ({cart.length})</span>
+                    <span>Hair Pin Items ({cart.length})</span>
                     {cart.length > 0 && (
                       <button 
                         onClick={() => setCart([])}
-                        style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
                       >
                         Clear All
                       </button>
@@ -1101,128 +1099,159 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         <button
                           onClick={() => setMobileTab('items')}
                           style={{
-                            marginTop: '8px',
+                            marginTop: '10px',
                             background: 'var(--accent-primary)',
                             color: '#ffffff',
                             border: 'none',
-                            padding: '6px 14px',
-                            borderRadius: '6px',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
                             fontWeight: 800,
-                            fontSize: '0.78rem',
+                            fontSize: '0.82rem',
                             cursor: 'pointer'
                           }}
                         >
-                          + Tap here to Pick Hair Pins
+                          + Pick Hair Pins
                         </button>
                       ) : (
                         'Click tiles on the left to add.'
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {cart.map((item, idx) => (
                         <div 
                           key={idx}
                           style={{
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.03)',
-                            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)',
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
+                            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.1)',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '8px'
+                            flexDirection: 'column',
+                            gap: '8px',
+                            boxShadow: isDark ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.04)'
                           }}
                         >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {/* Row 1: Name and Delete button */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, flex: 1 }}>
                               {item.name}
                             </div>
-                            
-                            {/* Unit Selector & Price */}
-                            <div className="flex items-center gap-1.5 mt-1">
+                            <button
+                              onClick={() => removeFromCart(idx)}
+                              style={{ 
+                                background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2', 
+                                border: 'none', 
+                                color: '#ef4444', 
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                flexShrink: 0
+                              }}
+                              title="Remove item"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+
+                          {/* Row 2: Unit / Rate on Left, Stepper + Line Total on Right */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                            {/* Unit selector & Editable Price */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <select
                                 value={item.unit}
                                 onChange={(e) => setCartItemUnitDirect(idx, e.target.value)}
                                 style={{
-                                  height: '22px', fontSize: '0.68rem', borderRadius: '4px',
+                                  height: '28px', fontSize: '0.74rem', borderRadius: '5px',
                                   background: isDark ? '#1a222d' : '#f1f5f9', border: '1px solid var(--panel-border)',
-                                  color: 'var(--text-secondary)', padding: '0 4px', fontWeight: 700
+                                  color: 'var(--text-primary)', padding: '0 4px', fontWeight: 700
                                 }}
                               >
                                 <option value="Pkt">Pkt</option>
                                 <option value="Dozen">Dozen</option>
-                                <option value="Gross">Gross (144)</option>
+                                <option value="Gross">Gross</option>
                                 <option value="Card">Card</option>
                                 <option value="Box">Box</option>
                                 <option value="Carton">Carton</option>
                               </select>
                               
-                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>@</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>@</span>
                               
                               <input
                                 type="number"
                                 value={item.unitPrice}
                                 onChange={(e) => setCartItemPriceDirect(idx, e.target.value)}
                                 style={{
-                                  width: '58px', height: '22px', fontSize: '0.72rem', borderRadius: '4px',
+                                  width: '58px', height: '28px', fontSize: '0.78rem', borderRadius: '5px',
                                   background: 'transparent', border: '1px solid var(--panel-border)',
-                                  color: 'var(--text-primary)', padding: '0 4px', fontWeight: 700
+                                  color: 'var(--text-primary)', padding: '0 4px', fontWeight: 800
                                 }}
                               />
                             </div>
-                          </div>
 
-                          {/* Qty Stepper */}
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => updateCartQty(idx, -1)}
-                              style={{
-                                width: '24px', height: '24px', borderRadius: '4px',
-                                background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', color: 'var(--text-primary)'
-                              }}
-                            >
-                              <Minus size={11} />
-                            </button>
-                            
-                            <input
-                              type="number"
-                              value={item.qty}
-                              onChange={(e) => setCartItemQtyDirect(idx, e.target.value)}
-                              style={{
-                                width: '36px', height: '24px', textAlign: 'center', fontSize: '0.8rem',
-                                fontWeight: 800, borderRadius: '4px', border: '1px solid var(--panel-border)',
-                                background: 'transparent', color: 'var(--text-primary)'
-                              }}
-                            />
+                            {/* Stepper and Line Total */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+                                borderRadius: '6px',
+                                padding: '2px',
+                                border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid var(--panel-border)'
+                              }}>
+                                <button
+                                  onClick={() => updateCartQty(idx, -1)}
+                                  style={{
+                                    width: '28px', height: '28px', borderRadius: '4px',
+                                    background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0', border: 'none',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', color: 'var(--text-primary)'
+                                  }}
+                                  title="Decrease"
+                                >
+                                  <Minus size={13} strokeWidth={2.5} />
+                                </button>
+                                
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={item.qty}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    setCartItemQtyDirect(idx, val);
+                                  }}
+                                  style={{
+                                    width: '34px', height: '28px', textAlign: 'center', fontSize: '0.92rem',
+                                    fontWeight: 900, border: 'none',
+                                    background: 'transparent', color: 'var(--text-primary)'
+                                  }}
+                                />
 
-                            <button
-                              onClick={() => updateCartQty(idx, 1)}
-                              style={{
-                                width: '24px', height: '24px', borderRadius: '4px',
-                                background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', color: 'var(--text-primary)'
-                              }}
-                            >
-                              <Plus size={11} />
-                            </button>
-                          </div>
+                                <button
+                                  onClick={() => updateCartQty(idx, 1)}
+                                  style={{
+                                    width: '28px', height: '28px', borderRadius: '4px',
+                                    background: '#f59e0b', border: 'none',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', color: '#ffffff'
+                                  }}
+                                  title="Increase"
+                                >
+                                  <Plus size={13} strokeWidth={2.5} />
+                                </button>
+                              </div>
 
-                          {/* Line Total & Remove */}
-                          <div style={{ textAlign: 'right', minWidth: '60px' }}>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                              LKR {item.amount.toLocaleString()}
+                              <div style={{ textAlign: 'right', minWidth: '68px' }}>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+                                  LKR {item.amount.toLocaleString()}
+                                </div>
+                              </div>
                             </div>
-                            <button
-                              onClick={() => removeFromCart(idx)}
-                              style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '1px', marginTop: '1px' }}
-                              title="Remove item"
-                            >
-                              <Trash2 size={11} />
-                            </button>
                           </div>
                         </div>
                       ))}
@@ -1232,20 +1261,22 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
 
                 {/* 3. Payment Method & Grand Total Card */}
                 <div style={{
-                  padding: '14px 16px',
-                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
                   background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.04)',
                   border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.1)',
                   marginBottom: '12px',
                   flexShrink: 0
                 }}>
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px' }}>Payment Mode:</div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '5px' }}>
+                      Payment Mode
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setPaymentMethod('Cash')}
                         style={{
-                          flex: 1, minHeight: '40px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
+                          flex: 1, minHeight: '38px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
                           border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                           background: paymentMethod === 'Cash' ? '#10b981' : (isDark ? '#1a222d' : '#e2e8f0'),
                           color: paymentMethod === 'Cash' ? '#ffffff' : 'var(--text-muted)',
@@ -1257,7 +1288,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       <button
                         onClick={() => setPaymentMethod('Credit')}
                         style={{
-                          flex: 1, minHeight: '40px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
+                          flex: 1, minHeight: '38px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
                           border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                           background: paymentMethod === 'Credit' ? '#f59e0b' : (isDark ? '#1a222d' : '#e2e8f0'),
                           color: paymentMethod === 'Credit' ? '#ffffff' : 'var(--text-muted)',
@@ -1270,7 +1301,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       <button
                         onClick={() => setPaymentMethod('Bank')}
                         style={{
-                          flex: 1, minHeight: '40px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
+                          flex: 1, minHeight: '38px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800,
                           border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                           background: paymentMethod === 'Bank' ? '#3b82f6' : (isDark ? '#1a222d' : '#e2e8f0'),
                           color: paymentMethod === 'Bank' ? '#ffffff' : 'var(--text-muted)',
@@ -1314,7 +1345,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         {paymentMethod === 'Credit' ? 'Pending (Added to Debtor Ledger)' : 'Paid in Full (Cash)'}
                       </div>
                     </div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono, monospace)' }}>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono, monospace)' }}>
                       LKR {grandTotal.toLocaleString()}
                     </div>
                   </div>
@@ -1326,29 +1357,28 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                   disabled={cart.length === 0 || isSubmitting}
                   className="btn btn-primary"
                   style={{
-                    minHeight: '52px',
+                    minHeight: '50px',
                     width: '100%',
-                    fontSize: '1.02rem',
+                    fontSize: '1rem',
                     fontWeight: 900,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 18px rgba(16, 185, 129, 0.45)',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
                     cursor: (cart.length === 0 || isSubmitting) ? 'not-allowed' : 'pointer',
                     opacity: (cart.length === 0 || isSubmitting) ? 0.6 : 1,
                     flexShrink: 0,
                     marginTop: 'auto'
                   }}
                 >
-                  <Check size={20} strokeWidth={3} />
-                  <span>{isSubmitting ? 'Recording Sale...' : `Complete Sale (LKR ${grandTotal.toLocaleString()})`}</span>
+                  <Check size={18} strokeWidth={3} />
+                  {isSubmitting ? 'Saving Sale...' : `Complete Sale (LKR ${grandTotal.toLocaleString()})`}
                 </button>
               </div>
             )}
-
           </div>
         )}
 

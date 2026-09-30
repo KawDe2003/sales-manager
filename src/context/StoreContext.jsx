@@ -5029,12 +5029,13 @@ export default function StoreContextProvider({ children }) {
       .replace(/{remainingBalance}/g, (documentData?.remainingBalance || 0).toLocaleString())
       .replace(/{date}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
       .replace(/{invoiceNumber}/g, documentData?.invoiceNumber || '')
-      .replace(/{number}/g, documentData?.invoiceNumber || documentData?.quoteNumber || '')
-      .replace(/{documentType}/g, documentData?.documentType || 'Document')
-      .replace(/{link}/g, (documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
+      .replace(/{receiptNumber}/g, documentData?.receiptNumber || '')
+      .replace(/{number}/g, documentData?.receiptNumber || documentData?.invoiceNumber || documentData?.quoteNumber || '')
+      .replace(/{documentType}/g, documentData?.documentType || (type === 'Payment' ? 'Receipt' : 'Document'))
+      .replace(/{link}/g, (documentData?.receiptNumber || documentData?.id || documentData?.shareKey) ? `${window.location.origin}/share/${
         type.toLowerCase() === 'quotation' ? 'quote' : 
-        type.toLowerCase() === 'cashreceived' ? 'receipt' : 'invoice'
-      }/${documentData.id || documentData.shareKey}` : '')
+        (type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment') ? 'receipt' : 'invoice'
+      }/${documentData?.receiptNumber || documentData?.id || documentData?.shareKey}` : '')
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : '')
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
       .replace(/{phone}/g, customer?.phone || documentData?.prospectPhone || '')

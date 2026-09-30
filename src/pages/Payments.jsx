@@ -2,7 +2,8 @@ import React, { useContext, useState, useMemo } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { 
   BadgeDollarSign, Search, User, FileText, CheckCircle2, AlertCircle, 
-  Send, CalendarDays, Download, MessageCircle, Clock, Check, X, ShieldCheck
+  Send, CalendarDays, Download, MessageCircle, Clock, Check, X, ShieldCheck,
+  Copy, ExternalLink, Share2, Smartphone
 } from 'lucide-react';
 import { generatePaymentReceiptPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
@@ -13,7 +14,7 @@ const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Card', 'Online Payment', 'Oth
 const Payments = () => {
   const { 
     customers = [], invoices = [], quotes = [], payments = [], 
-    recordEnhancedPayment, smsConfig = {}, showNotification 
+    recordEnhancedPayment, smsConfig = {}, showNotification, sendDirectSMS, triggerSMS 
   } = useContext(StoreContext) || {};
   
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -29,6 +30,60 @@ const Payments = () => {
   
   // Post-payment receipt modal state
   const [completedPaymentData, setCompletedPaymentData] = useState(null);
+  const [autoSendWhatsApp, setAutoSendWhatsApp] = useState(true);
+  const [copiedReceiptId, setCopiedReceiptId] = useState(null);
+  const [recipientPhone, setRecipientPhone] = useState('');
+
+  // Helper to build standardized, comprehensive payment receipt message with clickable link
+  const buildReceiptMessage = (payData, custData, invData, remBal) => {
+    const receiptNo = payData.receiptNumber || 'REC';
+    const payAmount = Number(payData.amount || 0);
+    const payMethod = payData.method || payData.paymentMethod || 'Cash';
+    const payRef = payData.reference ? ` (Ref: ${payData.reference})` : '';
+    const dateStr = new Date(payData.timestamp || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    const company = smsConfig?.companyName || 'Seynex Technology';
+    const receiptLink = `${window.location.origin}/share/receipt/${receiptNo}`;
+
+    return `*OFFICIAL PAYMENT RECEIPT*\n` +
+      `*Receipt #:* ${receiptNo}\n` +
+      `*Customer:* ${custData?.gymName || custData?.name || 'Valued Client'}\n` +
+      `*Payment Date:* ${dateStr}\n\n` +
+      `*Amount Credited:* LKR ${payAmount.toLocaleString()}\n` +
+      `*Payment Method:* ${payMethod}${payRef}\n` +
+      (invData?.invoiceNumber ? `*Invoice Ref:* #${invData.invoiceNumber}\n` : '') +
+      `*Remaining Balance Due:* LKR ${(remBal !== undefined ? Number(remBal) : 0).toLocaleString()} ${remBal === 0 ? '(PAID IN FULL - SETTLED)' : ''}\n\n` +
+      `*View & Download Official PDF Receipt:*\n${receiptLink}\n\n` +
+      `Thank you for your business!\n*${company}*`;
+  };
+
+  // Helper to send instant SMS receipt via gateway
+  const handleSendReceiptSMS = (payData, custData, invData, remBal, targetPhone) => {
+    const phone = targetPhone || custData?.phone;
+    if (!phone) {
+      showNotification('No phone number available to send SMS.', 'error');
+      return;
+    }
+    const receiptNo = payData.receiptNumber || 'REC';
+    const payAmount = Number(payData.amount || 0);
+    const receiptLink = `${window.location.origin}/share/receipt/${receiptNo}`;
+    const smsMsg = `Payment confirmed! LKR ${payAmount.toLocaleString()} credited for ${custData?.gymName || 'Client'}. Receipt #${receiptNo}. View receipt: ${receiptLink} - ${smsConfig?.companyName || 'Seynex'}`;
+
+    if (sendDirectSMS) {
+      sendDirectSMS(phone, smsMsg);
+      showNotification(`Receipt SMS sent to ${phone}!`, 'success');
+    } else {
+      showNotification('SMS gateway not available.', 'error');
+    }
+  };
+
+  // Helper to copy live receipt link
+  const handleCopyReceiptLink = (receiptNumber) => {
+    const link = `${window.location.origin}/share/receipt/${receiptNumber}`;
+    navigator.clipboard.writeText(link);
+    setCopiedReceiptId(receiptNumber);
+    showNotification('Receipt link copied to clipboard!', 'success');
+    setTimeout(() => setCopiedReceiptId(null), 3000);
+  };
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
@@ -97,12 +152,21 @@ const Payments = () => {
       });
 
       if (result) {
+        const phone = selectedCustomer?.phone || result.customer?.phone || '';
+        setRecipientPhone(phone);
         setCompletedPaymentData(result);
         setSelectedDoc(null);
         setAmount('');
         setReference('');
         setNotes('');
         setShowRenewalPrompt(false);
+
+        // If auto-send is checked, automatically open WhatsApp with the receipt
+        if (autoSendWhatsApp && phone) {
+          const msg = buildReceiptMessage(result.payment, result.customer, result.invoice, result.remainingBalance);
+          openWhatsApp(phone, msg);
+          showNotification('Payment recorded & WhatsApp receipt opened!', 'success');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -317,6 +381,18 @@ const Payments = () => {
                       />
                     </div>
 
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.88rem', color: '#22c55e', fontWeight: 700, margin: 0 }}>
+                        <input 
+                          type="checkbox" 
+                          checked={autoSendWhatsApp} 
+                          onChange={e => setAutoSendWhatsApp(e.target.checked)} 
+                          style={{ width: '18px', height: '18px', accentColor: '#22c55e', cursor: 'pointer' }}
+                        />
+                        <span>Auto-send official receipt to client via WhatsApp upon confirmation</span>
+                      </label>
+                    </div>
+
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <div className="flex items-center gap-2">
                         <button
@@ -410,10 +486,10 @@ const Payments = () => {
                             type="button"
                             className="btn btn-secondary"
                             style={{ padding: '6px', height: '32px', width: '32px' }}
-                            title="Download Payment Receipt PDF"
+                            title="Download Official PDF Receipt"
                             onClick={() => {
                               const inv = invoices.find(i => i.id === p.documentId);
-                              generatePaymentReceiptPDF(p, cust || { gymName: 'Valued Client' }, inv);
+                              generatePaymentReceiptPDF(p, inv || {}, cust || { gymName: 'Valued Client' });
                             }}
                           >
                             <Download size={14} />
@@ -422,13 +498,35 @@ const Payments = () => {
                             type="button"
                             className="btn"
                             style={{ padding: '6px', height: '32px', width: '32px', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.3)' }}
-                            title="Share Receipt via WhatsApp"
+                            title="Send Official Receipt via WhatsApp"
                             onClick={() => {
-                              const msg = `Hello ${cust?.gymName || 'Valued Customer'},\n\nPayment confirmation for *Receipt #${p.receiptNumber || 'REC'}*.\n\n*Amount Paid:* LKR ${(Number(p.amount) || 0).toLocaleString()}\n*Method:* ${p.method || 'Cash'}\n*Date:* ${new Date(p.timestamp).toLocaleDateString()}\n\nThank you for choosing ${smsConfig?.companyName || 'Seynex Technology'}!`;
-                              openWhatsApp({ phone: cust?.phone || '', text: msg });
+                              const inv = invoices.find(i => i.id === p.documentId);
+                              const msg = buildReceiptMessage(p, cust, inv, p.remainingBalance);
+                              openWhatsApp(cust?.phone || '', msg);
                             }}
                           >
                             <MessageCircle size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ padding: '6px', height: '32px', width: '32px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                            title="Send Receipt via SMS"
+                            onClick={() => {
+                              const inv = invoices.find(i => i.id === p.documentId);
+                              handleSendReceiptSMS(p, cust, inv, p.remainingBalance, cust?.phone);
+                            }}
+                          >
+                            <Smartphone size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ padding: '6px', height: '32px', width: '32px' }}
+                            title="Copy Live Receipt Link"
+                            onClick={() => handleCopyReceiptLink(p.receiptNumber || p.id)}
+                          >
+                            {copiedReceiptId === (p.receiptNumber || p.id) ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
                           </button>
                         </div>
                       </td>
@@ -502,68 +600,183 @@ const Payments = () => {
         </div>
       )}
 
-      {/* POST-PAYMENT RECEIPT SUCCESS MODAL */}
+      {/* POST-PAYMENT RECEIPT SUCCESS & SEND MODAL */}
       {completedPaymentData && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(20px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '24px'
+          background: 'rgba(2, 6, 23, 0.92)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px'
         }}>
           <div className="glass-panel" style={{ 
-            maxWidth: '480px', width: '100%', textAlign: 'center', padding: '40px 32px',
-            border: '1px solid rgba(255,255,255,0.15)', background: '#0f172a'
+            maxWidth: '520px', width: '100%', padding: '36px 30px',
+            border: '1px solid rgba(16, 185, 129, 0.3)', background: '#0a0f1d',
+            borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.15)'
           }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto'
-            }}>
-              <CheckCircle2 size={36} color="#10b981" />
+            {/* Header Success Icon & Title */}
+            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+              <div style={{
+                width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <CheckCircle2 size={34} color="#10b981" />
+              </div>
+              <h2 style={{ fontSize: '1.5rem', margin: '0 0 6px 0', color: '#ffffff', fontWeight: 900 }}>
+                Payment Recorded & Receipt Ready!
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                Official receipt generated for <strong>{completedPaymentData.customer?.gymName || 'Valued Client'}</strong>
+              </p>
             </div>
 
-            <h2 style={{ fontSize: '1.6rem', marginBottom: '8px', color: '#ffffff', fontWeight: 900 }}>
-              Payment Recorded!
-            </h2>
-            <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '24px' }}>
-              Receipt <strong>#{completedPaymentData.receiptNumber}</strong> • Amount: <strong>LKR {completedPaymentData.payment.amount.toLocaleString()}</strong>
-              <div style={{ fontSize: '0.8rem', color: completedPaymentData.remainingBalance === 0 ? '#10b981' : '#f59e0b', marginTop: '4px' }}>
-                Remaining Balance: LKR {completedPaymentData.remainingBalance.toLocaleString()} {completedPaymentData.remainingBalance === 0 ? '(PAID IN FULL - CLOSED)' : ''}
+            {/* Receipt Summary Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              padding: '16px 20px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  RECEIPT NUMBER
+                </span>
+                <span style={{ 
+                  background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', 
+                  padding: '3px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 800 
+                }}>
+                  #{completedPaymentData.receiptNumber}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Amount Credited:</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399', fontFamily: 'var(--font-display)' }}>
+                  LKR {Number(completedPaymentData.payment.amount || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <span style={{ color: '#94a3b8' }}>Remaining Due:</span>
+                <span style={{ 
+                  fontWeight: 800, 
+                  color: completedPaymentData.remainingBalance === 0 ? '#10b981' : '#f59e0b' 
+                }}>
+                  LKR {Number(completedPaymentData.remainingBalance || 0).toLocaleString()} {completedPaymentData.remainingBalance === 0 ? '✓ (PAID IN FULL)' : ''}
+                </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                style={{ height: '46px', gap: '8px', fontSize: '0.9rem' }}
-                onClick={() => {
-                  generatePaymentReceiptPDF(completedPaymentData.payment, completedPaymentData.customer, completedPaymentData.invoice);
-                }}
-              >
-                <Download size={18} /> Download Payment Receipt PDF
-              </button>
+            {/* Recipient Phone Target Field */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Customer WhatsApp / SMS Number
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Smartphone size={16} style={{ position: 'absolute', left: '14px', top: '13px', color: '#64748b' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  style={{ paddingLeft: '40px', height: '42px', fontSize: '0.9rem', background: '#0b1329', borderColor: 'rgba(255,255,255,0.12)' }}
+                  placeholder="e.g. 0771234567 or 94771234567"
+                  value={recipientPhone}
+                  onChange={e => setRecipientPhone(e.target.value)}
+                />
+              </div>
+            </div>
 
+            {/* Send Actions Suite */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              {/* Primary: WhatsApp Receipt */}
               <button 
                 type="button" 
                 className="btn" 
-                style={{ height: '46px', gap: '8px', fontSize: '0.9rem', background: '#22c55e', color: '#ffffff', fontWeight: 800 }}
+                style={{ 
+                  height: '46px', gap: '10px', fontSize: '0.92rem', 
+                  background: '#22c55e', color: '#ffffff', fontWeight: 800,
+                  boxShadow: '0 4px 14px rgba(34, 197, 94, 0.35)', borderRadius: '12px'
+                }}
                 onClick={() => {
                   const cust = completedPaymentData.customer;
                   const pay = completedPaymentData.payment;
-                  const msg = `Hello ${cust?.gymName || 'Valued Customer'},\n\nPayment confirmation for *Receipt #${pay.receiptNumber}*.\n\n*Amount Paid:* LKR ${pay.amount.toLocaleString()}\n*Method:* ${pay.method || 'Cash'}\n*Remaining Balance:* LKR ${completedPaymentData.remainingBalance.toLocaleString()}\n\nThank you for choosing ${smsConfig?.companyName || 'Seynex Technology'}!`;
-                  openWhatsApp({ phone: cust?.phone || '', text: msg });
+                  const inv = completedPaymentData.invoice;
+                  const msg = buildReceiptMessage(pay, cust, inv, completedPaymentData.remainingBalance);
+                  openWhatsApp(recipientPhone || cust?.phone || '', msg);
                 }}
               >
-                <MessageCircle size={18} /> Share Receipt via WhatsApp
+                <MessageCircle size={18} /> Send Receipt via WhatsApp
+              </button>
+
+              {/* Secondary: Instant SMS Gateway */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{ 
+                    height: '42px', gap: '8px', fontSize: '0.85rem', 
+                    background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', 
+                    border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, borderRadius: '12px'
+                  }}
+                  onClick={() => {
+                    handleSendReceiptSMS(
+                      completedPaymentData.payment, 
+                      completedPaymentData.customer, 
+                      completedPaymentData.invoice, 
+                      completedPaymentData.remainingBalance, 
+                      recipientPhone
+                    );
+                  }}
+                >
+                  <Smartphone size={16} /> Send via SMS
+                </button>
+
+                {/* PDF Download */}
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  style={{ height: '42px', gap: '8px', fontSize: '0.85rem', borderRadius: '12px', fontWeight: 700 }}
+                  onClick={() => {
+                    generatePaymentReceiptPDF(
+                      { ...completedPaymentData.payment, remainingBalance: completedPaymentData.remainingBalance },
+                      completedPaymentData.invoice || {},
+                      completedPaymentData.customer || { gymName: 'Valued Client' }
+                    );
+                  }}
+                >
+                  <Download size={16} /> Download PDF
+                </button>
+              </div>
+
+              {/* Copy Direct Online Link */}
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ 
+                  height: '38px', gap: '8px', fontSize: '0.8rem', 
+                  border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', color: '#94a3b8' 
+                }}
+                onClick={() => handleCopyReceiptLink(completedPaymentData.receiptNumber)}
+              >
+                {copiedReceiptId === completedPaymentData.receiptNumber ? (
+                  <>
+                    <Check size={14} color="#10b981" /> Link Copied to Clipboard!
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} /> Copy Online Receipt Link ({window.location.origin}/share/receipt/{completedPaymentData.receiptNumber})
+                  </>
+                )}
               </button>
             </div>
 
+            {/* Done Button */}
             <button 
               type="button" 
               className="btn btn-secondary" 
-              style={{ width: '100%', height: '42px' }}
+              style={{ width: '100%', height: '42px', borderRadius: '12px', fontWeight: 700 }}
               onClick={() => setCompletedPaymentData(null)}
             >
-              Done
+              Done & Close
             </button>
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
-import { generateDocumentPDF, generatePurchaseOrderPDF } from '../utils/pdfGenerator';
+import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
 import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check } from 'lucide-react';
 
 const SharedDocument = () => {
@@ -11,7 +11,7 @@ const SharedDocument = () => {
   const isPreview = searchParams.get('preview') === 'true';
   const { 
     quotes = [], invoices = [], customers = [], 
-    purchaseOrders = [], suppliers = [],
+    purchaseOrders = [], suppliers = [], payments = [],
     acceptQuote, proposeBudget, rejectQuote, showNotification, smsConfig = {} 
   } = useContext(StoreContext) || {};
   const [docData, setDocData] = useState(null);
@@ -75,7 +75,72 @@ const SharedDocument = () => {
             setDocData(foundDoc);
             setCustomerName(foundDoc.prospectName || 'My Fitness Gym');
           }
-        } else if (type === 'invoice' || type === 'receipt') {
+        } else if (type === 'receipt') {
+          // 1. Search in local and Context payments
+          let allPayments = Array.isArray(payments) && payments.length > 0 ? payments : [];
+          if (allPayments.length === 0) {
+            try { allPayments = JSON.parse(localStorage.getItem('gym_payments') || '[]'); } catch(e){}
+          }
+          let payMatch = allPayments.find(p => p.id === id || p.receiptNumber === id || String(p.receiptNumber).toLowerCase() === String(id).toLowerCase());
+
+          if (!payMatch && isUUID) {
+            const { data } = await supabase.from('payments').select('*').eq('id', id).maybeSingle();
+            if (data) {
+              payMatch = {
+                ...data,
+                receiptNumber: `REC-${String(data.id).slice(0, 6).toUpperCase()}`,
+                amount: data.amount,
+                timestamp: data.payment_timestamp,
+                method: data.payment_type
+              };
+            }
+          }
+
+          if (payMatch) {
+            const inv = invoices.find(i => i.id === payMatch.documentId) || {};
+            const cust = customers.find(c => c.id === (payMatch.customerId || inv.customerId)) || {};
+            const clientTitle = cust.gymName || cust.name || inv.customerName || 'Valued Client';
+            setCustomerName(clientTitle);
+            foundDoc = {
+              ...payMatch,
+              isReceipt: true,
+              invoiceNumber: payMatch.invoiceNumber || inv.invoiceNumber || '',
+              customerName: clientTitle,
+              gymName: clientTitle,
+              invoiceData: inv,
+              customerData: cust,
+              amount: payMatch.amount,
+              paymentMethod: payMatch.method || payMatch.payment_type || 'Cash',
+              receiptNumber: payMatch.receiptNumber || 'REC-001',
+              date: payMatch.timestamp || payMatch.payment_timestamp || new Date().toISOString()
+            };
+            setDocData(foundDoc);
+          } else {
+            // Fallback: search in invoices
+            foundDoc = invoices.find(item => item.id === id || item.shareKey === id || item.invoiceNumber === id);
+            if (!foundDoc) {
+              const query = supabase.from('invoices').select('*');
+              if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
+              else query.eq('share_key', id);
+              const { data } = await query.single();
+              if (data) {
+                foundDoc = { 
+                  ...data, 
+                  shareKey: data.share_key, 
+                  invoiceNumber: data.invoice_number,
+                  dueDate: data.due_date,
+                  customerId: data.customer_id,
+                  prospectName: data.prospect_name
+                };
+              }
+            }
+            if (foundDoc) {
+              setDocData({ ...foundDoc, isReceipt: true, receiptNumber: foundDoc.receiptNumber || `REC-${foundDoc.invoiceNumber || '001'}` });
+              const c = customers.find(cust => cust.id === foundDoc.customerId);
+              setCustomerName(c ? c.gymName : foundDoc.prospectName || 'Valued Client');
+            }
+          }
+        } else if (type === 'invoice') {
           foundDoc = invoices.find(item => item.id === id || item.shareKey === id);
           if (!foundDoc) {
             const query = supabase.from('invoices').select('*');
@@ -110,12 +175,20 @@ const SharedDocument = () => {
     };
 
     loadDocument();
-  }, [type, id, quotes, invoices, customers, purchaseOrders, suppliers]);
+  }, [type, id, quotes, invoices, customers, purchaseOrders, suppliers, payments]);
 
   const handleDownloadPDF = () => {
     if (!docData) return;
     if (isPO) {
       generatePurchaseOrderPDF(docData);
+      return;
+    }
+    if (isReceipt) {
+      generatePaymentReceiptPDF(
+        docData,
+        docData.invoiceData || docData,
+        docData.customerData || { gymName: customerName, name: customerName }
+      );
       return;
     }
     const payload = isQuote
@@ -164,8 +237,20 @@ const SharedDocument = () => {
     );
   }
 
-  const docNumber = isPO ? docData.poNumber : isQuote ? docData.quoteNumber : docData.invoiceNumber;
-  const standardItems = Array.isArray(docData.items) ? docData.items.filter(i => !i.isDiscount) : [];
+  const docNumber = isPO ? docData.poNumber : isReceipt ? (docData.receiptNumber || docData.receipt_number || docData.id) : isQuote ? docData.quoteNumber : docData.invoiceNumber;
+  const standardItems = Array.isArray(docData.items) && docData.items.length > 0 
+    ? docData.items.filter(i => !i.isDiscount) 
+    : isReceipt 
+    ? [
+        {
+          name: docData.invoiceNumber ? `Official Settlement against Invoice #${docData.invoiceNumber}` : 'Account Settlement Deposit',
+          qty: 1,
+          unit: 'Payment',
+          unitPrice: Number(docData.amount || 0),
+          amount: Number(docData.amount || 0)
+        }
+      ]
+    : [];
   const discountItem = (docData.items || []).find(i => i.isDiscount);
   
   const getItemName = (item) => item.name || item.description || item.title || item.item_name || 'Purchase Item';
@@ -353,12 +438,19 @@ const SharedDocument = () => {
               <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.1rem', marginBottom: '2px' }}>
                 {smsConfig.companyName || 'Seynex Technology'}
               </div>
+              {smsConfig.companyAddress && (
+                <div style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 500, marginBottom: '2px' }}>
+                  {smsConfig.companyAddress}
+                </div>
+              )}
               <div style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 500 }}>
-                {smsConfig.companyEmail || 'seynextech@gmail.com'}
+                {smsConfig.companyEmail || 'seynextech@gmail.com'} {smsConfig.companyPhone ? `• ${smsConfig.companyPhone}` : ''}
               </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 500 }}>
-                {smsConfig.companyPhone || '072 840 8880'}
-              </div>
+              {smsConfig.vatNumber && (
+                <div style={{ color: 'var(--accent-primary, #059669)', fontSize: '0.75rem', fontWeight: 700, marginTop: '2px' }}>
+                  VAT Reg No: {smsConfig.vatNumber}
+                </div>
+              )}
             </div>
           </div>
 
@@ -443,14 +535,18 @@ const SharedDocument = () => {
             
             {/* ESTIMATE VALIDITY */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', marginBottom: '10px' }}>
-                <Clock size={16} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isReceipt ? '#10b981' : '#3b82f6', marginBottom: '10px' }}>
+                {isReceipt ? <ShieldCheck size={16} /> : <Clock size={16} />}
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  ESTIMATE VALIDITY
+                  {isReceipt ? 'RECEIPT VERIFICATION' : 'ESTIMATE VALIDITY'}
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6 }}>
-                This quotation is valid for 30 days from the date of issue. Special bundle discounts applied are contingent on current stock levels.
+                {isReceipt 
+                  ? `Official Electronic Receipt issued by ${smsConfig.companyName || 'Seynex Technology'}. Authorized for finance audit, settlement acknowledgement, and bookkeeping records.`
+                  : isPO 
+                  ? 'Official Purchase Order generated by Seynex Procurement ERP.' 
+                  : 'This quotation is valid for 30 days from the date of issue. Special bundle discounts applied are contingent on current stock levels.'}
               </p>
             </div>
 
@@ -459,20 +555,20 @@ const SharedDocument = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
                   <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                    ACCOUNT STATUS
+                    {isReceipt ? 'RECEIPT STATUS' : 'ACCOUNT STATUS'}
                   </div>
-                  <div style={{ color: isApproved ? '#10b981' : '#f59e0b', fontWeight: 900, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ color: (isApproved || isReceipt) ? '#10b981' : '#f59e0b', fontWeight: 900, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <CheckCircle size={16} />
-                    {docData.status.toUpperCase()}
+                    {isReceipt ? 'SETTLED & CREDITED' : (docData.status || 'Active').toUpperCase()}
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                    TOTAL AMOUNT
+                    {isReceipt ? 'AMOUNT CREDITED' : 'TOTAL AMOUNT'}
                   </div>
                   <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.1rem' }}>
-                    LKR {totalAmount.toLocaleString()}
+                    LKR {Number(docData.amount || totalAmount).toLocaleString()}
                   </div>
                 </div>
               </div>

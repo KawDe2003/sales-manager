@@ -8,7 +8,7 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Factory, Sparkles
+  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Factory, Sparkles, FileText
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -1018,6 +1018,38 @@ END $$;`;
                     onChange={e => updateSmsConfig({...smsConfig, companyAddress: e.target.value})} />
                 </div>
               </div>
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  VAT / Tax Registration Number <Info size={12} className="text-secondary" title="Rendered on official VAT-compliant Invoices, Quotes, and POs" />
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <FileText size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                  <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
+                    placeholder="e.g. 10185281-7000 (Optional)"
+                    value={smsConfig.vatNumber || ''}
+                    onChange={e => updateSmsConfig({...smsConfig, vatNumber: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Company Website / Portal</label>
+                <div style={{ position: 'relative' }}>
+                  <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                  <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
+                    placeholder="e.g. www.royalhairpins.lk"
+                    value={smsConfig.companyWebsite || ''}
+                    onChange={e => updateSmsConfig({...smsConfig, companyWebsite: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Authorized Signatory Title</label>
+                <div style={{ position: 'relative' }}>
+                  <ShieldCheck size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                  <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
+                    placeholder="e.g. Managing Director / Authorized Signatory"
+                    value={smsConfig.signatoryTitle || ''}
+                    onChange={e => updateSmsConfig({...smsConfig, signatoryTitle: e.target.value})} />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1357,11 +1389,34 @@ END $$;`;
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-group">
+                <label className="form-label">Quotation Validity (Days)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  placeholder="30"
+                  value={smsConfig.quoteValidityDays || 30} 
+                  onChange={e => updateSmsConfig({...smsConfig, quoteValidityDays: Number(e.target.value) || 30})} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Quotation Footer Notice</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="e.g. Valid for 30 days from issue date."
+                  value={smsConfig.pdfFooterTextQuote || ''} 
+                  onChange={e => updateSmsConfig({...smsConfig, pdfFooterTextQuote: e.target.value})} 
+                />
+              </div>
+            </div>
+
             <div className="form-group">
-              <label className="form-label">PDF Master Footer Text</label>
+              <label className="form-label">Invoice Master Footer Text</label>
               <textarea 
                 className="form-input" 
-                style={{ minHeight: '60px', fontSize: '0.85rem' }}
+                style={{ minHeight: '52px', fontSize: '0.85rem' }}
                 placeholder="e.g. Thank you for your business. Please process payment promptly."
                 value={smsConfig.pdfFooterText || ''} 
                 onChange={e => updateSmsConfig({...smsConfig, pdfFooterText: e.target.value})} 
@@ -1369,19 +1424,145 @@ END $$;`;
             </div>
 
             <div className="form-group">
-              <label className="form-label">Default Document Notes (T&C)</label>
+              <label className="form-label">Default Document Notes (Terms & Conditions)</label>
               <textarea 
                 className="form-input" 
-                style={{ minHeight: '100px', fontSize: '0.85rem' }}
-                placeholder="e.g. This document is generated by GymSales Pro Management System."
+                style={{ minHeight: '80px', fontSize: '0.85rem' }}
+                placeholder="e.g. Goods sold are warranted for manufacturing defects. Payment due within agreed terms."
                 value={smsConfig.pdfNotes || ''} 
                 onChange={e => updateSmsConfig({...smsConfig, pdfNotes: e.target.value})} 
               />
             </div>
+
+            {/* Bank Details on Documents */}
+            <div style={{ marginTop: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CreditCard size={18} color="var(--accent-primary)" />
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Bank Transfer Settlement Info</span>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={smsConfig.showBankDetailsOnDocs !== false}
+                    onChange={e => updateSmsConfig({...smsConfig, showBankDetailsOnDocs: e.target.checked})}
+                  />
+                  <span>Show on Documents</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Bank Name (e.g. Sampath Bank)"
+                  value={smsConfig.bankDetails?.bank || ''} 
+                  onChange={e => updateSmsConfig({
+                    ...smsConfig, 
+                    bankDetails: { ...(smsConfig.bankDetails || {}), bank: e.target.value }
+                  })} 
+                />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Branch Name (e.g. Kelaniya Branch)"
+                  value={smsConfig.bankDetails?.branch || ''} 
+                  onChange={e => updateSmsConfig({
+                    ...smsConfig, 
+                    bankDetails: { ...(smsConfig.bankDetails || {}), branch: e.target.value }
+                  })} 
+                />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Account Name (e.g. Seynex Technology)"
+                  value={smsConfig.bankDetails?.accountName || ''} 
+                  onChange={e => updateSmsConfig({
+                    ...smsConfig, 
+                    bankDetails: { ...(smsConfig.bankDetails || {}), accountName: e.target.value }
+                  })} 
+                />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Account Number (e.g. 1018 5281 9432)"
+                  value={smsConfig.bankDetails?.accountNumber || ''} 
+                  onChange={e => updateSmsConfig({
+                    ...smsConfig, 
+                    bankDetails: { ...(smsConfig.bankDetails || {}), accountNumber: e.target.value }
+                  })} 
+                />
+              </div>
+            </div>
+
+            {/* LIVE DOCUMENT HEADER PREVIEW (Zero Overlap Guaranteed) */}
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '16px', 
+              background: '#ffffff', 
+              borderRadius: '12px', 
+              border: '1px solid #cbd5e1', 
+              color: '#0f172a',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={14} color="#059669" /> Live PDF Document Header Preview
+                </span>
+                <span style={{ fontSize: '0.68rem', background: '#e6f7f0', color: '#059669', padding: '2px 8px', borderRadius: '10px', fontWeight: 800 }}>
+                  ✓ Clean Non-Overlapping Layout
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
+                {/* Left: Brand Logo + Company Info (Side-by-side) */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
+                    <img 
+                      src={smsConfig.receiptLogo || smsConfig.companyLogo} 
+                      alt="Company Logo" 
+                      style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '2px', background: '#ffffff', flexShrink: 0 }} 
+                    />
+                  ) : null}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.05rem', color: smsConfig.pdfColor || '#059669', lineHeight: 1.2 }}>
+                      {smsConfig.companyName || 'Seynex Technology'}
+                    </div>
+                    {smsConfig.companyAddress && (
+                      <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '3px', lineHeight: 1.3 }}>
+                        {smsConfig.companyAddress}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
+                      Email: {smsConfig.companyEmail || 'seynextech@gmail.com'} {smsConfig.companyPhone ? `• Phone: ${smsConfig.companyPhone}` : ''}
+                    </div>
+                    {smsConfig.vatNumber && (
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: smsConfig.pdfColor || '#059669', marginTop: '2px' }}>
+                        VAT Reg No: {smsConfig.vatNumber}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Document Title & Meta */}
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>QUOTATION</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginTop: '2px' }}>Quotation #: QT-1001</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px' }}>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                </div>
+              </div>
+
+              {/* Bill To Sample */}
+              <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>BILL TO / RECIPIENT:</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>Wholesale Client Name (Colombo)</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px' }}>Attn: Mr. Perera • Tel: 072 840 8880</div>
+              </div>
+            </div>
             
-            <div style={{ padding: '16px', background: 'var(--subtle-bg)', borderRadius: '12px', border: '1px solid var(--panel-border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Pro Tip:</div>
-              Branding changes apply instantly to all generated Quotations, Invoices, and Payment Receipts.
+            <div style={{ marginTop: '14px', padding: '12px 14px', background: 'var(--subtle-bg)', borderRadius: '10px', border: '1px solid var(--panel-border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>Pro Tip:</div>
+              All branding customizations update automatically across Quotations, Invoices, Purchase Orders, and online WhatsApp bill links.
             </div>
           </div>
 

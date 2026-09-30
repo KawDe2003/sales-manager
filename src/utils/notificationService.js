@@ -55,16 +55,24 @@ export const interpolateTemplate = (template, data = {}, config = {}) => {
 };
 
 // Generate wa.me WhatsApp link
-export const generateWhatsAppLink = (phone, text) => {
+export const generateWhatsAppLink = (phoneOrObj, textParam) => {
+  let phone = phoneOrObj;
+  let text = textParam;
+  if (phoneOrObj && typeof phoneOrObj === 'object') {
+    phone = phoneOrObj.phone || phoneOrObj.to || '';
+    text = phoneOrObj.text || phoneOrObj.message || '';
+  }
   const formatted = formatPhoneForGateway(phone);
   const encoded = encodeURIComponent(text || '');
   return formatted ? `https://wa.me/${formatted}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
 };
 
 // Open WhatsApp in new tab/app
-export const openWhatsApp = (phone, text) => {
-  const link = generateWhatsAppLink(phone, text);
-  window.open(link, '_blank');
+export const openWhatsApp = (phoneOrObj, textParam) => {
+  const link = generateWhatsAppLink(phoneOrObj, textParam);
+  if (typeof window !== 'undefined') {
+    window.open(link, '_blank');
+  }
 };
 
 // Default Notification Templates for All Business Events
