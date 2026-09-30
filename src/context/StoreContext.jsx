@@ -3609,7 +3609,9 @@ export default function StoreContextProvider({ children }) {
       quotationId: quote.id,
       quotationNumber: quoteRef,
       quoteRef: quoteRef,
-      status: 'Draft',
+      status: 'Sent',           // Auto-sent: customer has already accepted
+      sentAt: new Date().toISOString(),
+      acceptedFromQuote: true,
       paidAmount: 0,
       remainingBalance: Number(quote.amount) || 0,
       createdAt: new Date().toISOString()

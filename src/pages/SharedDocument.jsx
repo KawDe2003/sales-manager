@@ -1046,7 +1046,7 @@ const SharedDocument = () => {
         }}>
           <div className="glass-panel" style={{ 
             maxWidth: '480px', width: '100%', textAlign: 'center', padding: '48px 32px',
-            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(16,185,129,0.25)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
             background: '#0f172a'
           }}>
             <div style={{
@@ -1055,12 +1055,42 @@ const SharedDocument = () => {
             }}>
               <CheckCircle size={48} color="#10b981" />
             </div>
-            <h2 style={{ fontSize: '2rem', marginBottom: '16px', color: '#ffffff', fontWeight: 900 }}>Quotation Accepted!</h2>
-            <p style={{ fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '32px', color: '#cbd5e1' }}>
-              Your approval for <strong>{customerName}</strong> has been registered successfully. Our team has been notified and will issue your formal invoice shortly!
+            <h2 style={{ fontSize: '1.85rem', marginBottom: '12px', color: '#ffffff', fontWeight: 900 }}>
+              Quotation Accepted!
+            </h2>
+            <p style={{ fontSize: '1rem', lineHeight: 1.6, marginBottom: '8px', color: '#cbd5e1' }}>
+              Thank you, <strong style={{ color: '#f1f5f9' }}>{customerName}</strong>! Your acceptance has been registered.
             </p>
-            <button className="btn btn-primary" style={{ width: '100%', height: '48px', fontWeight: 800 }} onClick={() => setShowGratitude(false)}>
-              Close Confirmation
+            <p style={{ fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '28px', color: '#64748b' }}>
+              Your invoice has been <strong style={{ color: '#10b981' }}>automatically generated</strong> and our team has been notified. 
+              You will receive your invoice shortly via WhatsApp or SMS.
+            </p>
+
+            {/* Invoice link if available */}
+            {docData?.convertedInvoiceId && (
+              <a
+                href={`${window.location.origin}/share/invoice/${docData.convertedInvoiceId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  width: '100%', height: '48px', fontWeight: 800, marginBottom: '12px',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none', textDecoration: 'none', borderRadius: '10px',
+                  color: '#fff', fontSize: '0.92rem'
+                }}
+              >
+                <Receipt size={18} /> View Your Invoice #{docData.convertedInvoiceNumber || ''}
+              </a>
+            )}
+
+            <button 
+              className="btn btn-secondary" 
+              style={{ width: '100%', height: '44px', fontWeight: 700, fontSize: '0.88rem' }} 
+              onClick={() => setShowGratitude(false)}
+            >
+              Close
             </button>
           </div>
         </div>
