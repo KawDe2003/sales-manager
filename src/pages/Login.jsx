@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, User, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff, Loader2, KeyRound, X, Shield, Briefcase, Calculator } from 'lucide-react';
@@ -14,6 +14,9 @@ const Login = () => {
   const [message, setMessage] = useState(null);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
+  const [successAnim, setSuccessAnim] = useState(false);
+  const [shakeError, setShakeError] = useState(false);
+  const cardRef = useRef(null);
 
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -30,20 +33,25 @@ const Login = () => {
     setError(null);
     setMessage(null);
     setLoading(true);
+    setShakeError(false);
     try {
       if (isSignUp) {
         if (!name.trim()) throw new Error('Please enter your full name');
         const { error } = await signUp({ email: email.trim(), password, name: name.trim() });
         if (error) throw error;
+        setSuccessAnim(true);
         setMessage('Account created! Signing you in...');
-        setTimeout(() => navigate('/'), 800);
+        setTimeout(() => navigate('/'), 900);
       } else {
         const { error } = await signIn({ email: email.trim(), password });
         if (error) throw error;
-        navigate('/');
+        setSuccessAnim(true);
+        setTimeout(() => navigate('/'), 600);
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Check your credentials.');
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500);
     } finally {
       setLoading(false);
     }
@@ -74,6 +82,7 @@ const Login = () => {
   };
 
   return (
+    <>
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -86,15 +95,17 @@ const Login = () => {
     }}>
 
       {/* Card */}
-      <div style={{
-        width: '100%',
-        maxWidth: '380px',
-        background: 'rgba(15,22,40,0.95)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '18px',
-        overflow: 'hidden',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-      }}>
+      <div
+        className={`login-card${successAnim ? ' success' : ''}${shakeError ? ' shake' : ''}`}
+        style={{
+          width: '100%',
+          maxWidth: '380px',
+          background: 'rgba(15,22,40,0.95)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '18px',
+          overflow: 'hidden',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+        }}>
 
         {/* Card Header */}
         <div style={{
@@ -103,7 +114,7 @@ const Login = () => {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}>
           {/* Logo Icon */}
-          <div style={{
+          <div className="login-logo" style={{
             width: '52px', height: '52px',
             borderRadius: '14px',
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -382,9 +393,50 @@ const Login = () => {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes cardUp {
+          from { opacity: 0; transform: translateY(22px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)   scale(1); }
+        }
+        @keyframes logoPop {
+          0%   { transform: scale(0.6); opacity: 0; }
+          70%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        @keyframes successGlow {
+          0%   { box-shadow: 0 24px 48px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.08); }
+          50%  { box-shadow: 0 0 0 4px rgba(16,185,129,0.35), 0 24px 48px rgba(16,185,129,0.2); border-color: #10b981; }
+          100% { box-shadow: 0 24px 48px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.08); }
+        }
+        @keyframes shake {
+          0%,100% { transform: translateX(0); }
+          20%     { transform: translateX(-7px); }
+          40%     { transform: translateX(7px); }
+          60%     { transform: translateX(-5px); }
+          80%     { transform: translateX(5px); }
+        }
+        @keyframes badgeFade {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         input::placeholder { color: #334155; }
+        .login-card {
+          animation: cardUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .login-card.success {
+          animation: successGlow 0.5s ease forwards;
+        }
+        .login-card.shake {
+          animation: shake 0.4s ease;
+        }
+        .login-logo {
+          animation: logoPop 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+        }
+        .login-badge {
+          animation: badgeFade 0.3s ease 0.3s both;
+        }
       `}</style>
     </div>
+    </>
   );
 };
 
