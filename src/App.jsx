@@ -545,42 +545,54 @@ const AppContent = () => {
             <Search size={16} className="text-secondary" />
           </button>
 
-          {/* SAVE BUTTON - APPEARS ONLY WHEN USER CHANGES SOMETHING OR IS SAVING */}
-          {(hasUnsavedChanges || cloudSyncStatus === 'syncing') && (
-            <button
-              id="header-save-data-btn"
-              onClick={() => syncAllToCloud()}
-              disabled={cloudSyncStatus === 'syncing'}
-              className="btn"
-              style={{
-                height: '36px',
-                padding: '0 14px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: cloudSyncStatus === 'syncing' 
-                  ? 'var(--accent-primary)' 
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
-                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
-                animation: 'pulse 2s infinite ease-in-out',
-                transition: 'all 0.2s ease'
-              }}
-              title={lastSyncTime ? `Unsaved changes. Click to Save Data to Supabase` : 'Save changes to Supabase Cloud'}
-            >
-              {cloudSyncStatus === 'syncing' ? (
-                <RefreshCw size={15} className="animate-spin" />
-              ) : (
-                <Save size={15} />
-              )}
-              <span>{cloudSyncStatus === 'syncing' ? 'Saving...' : 'Save Data'}</span>
-            </button>
-          )}
+          {/* AUTOMATIC CLOUD SYNC STATUS (NO MANUAL SAVE BUTTON REQUIRED) */}
+          <div
+            id="header-cloud-sync-status"
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: cloudSyncStatus === 'syncing' 
+                ? 'rgba(99, 102, 241, 0.15)' 
+                : cloudSyncStatus === 'error'
+                  ? 'rgba(239, 68, 68, 0.12)'
+                  : 'rgba(16, 185, 129, 0.12)',
+              color: cloudSyncStatus === 'syncing' 
+                ? 'var(--accent-primary)' 
+                : cloudSyncStatus === 'error'
+                  ? '#ef4444'
+                  : '#10b981',
+              border: cloudSyncStatus === 'syncing'
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : cloudSyncStatus === 'error'
+                  ? '1px solid rgba(239, 68, 68, 0.3)'
+                  : '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '20px',
+              userSelect: 'none'
+            }}
+            title={cloudSyncStatus === 'syncing' ? 'Syncing changes to cloud...' : 'All data automatically saved & synced'}
+          >
+            {cloudSyncStatus === 'syncing' ? (
+              <>
+                <RefreshCw size={13} className="animate-spin" />
+                <span className="hidden-mobile">Auto-Saving...</span>
+              </>
+            ) : cloudSyncStatus === 'error' ? (
+              <>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></span>
+                <span className="hidden-mobile">Offline</span>
+              </>
+            ) : (
+              <>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
+                <span className="hidden-mobile">Cloud Synced</span>
+              </>
+            )}
+          </div>
 
           {/* Theme Toggle */}
           <button

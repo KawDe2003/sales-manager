@@ -1349,6 +1349,7 @@ export default function StoreContextProvider({ children }) {
   // Change tracking: count actual state changes after hydration and initial cloud load
   const isHydratingCloudRef = useRef(false);
   const dataVersionRef = useRef(0);
+  const autoSaveTimerRef = useRef(null);
 
   useEffect(() => {
     // Increment change counter
@@ -1359,7 +1360,20 @@ export default function StoreContextProvider({ children }) {
       return;
     }
 
-    setHasUnsavedChanges(true);
+    // Auto-save: sync to cloud in background without requiring manual user button clicks
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      syncAllToCloud(true);
+    }, 1200);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
   }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   const [theme, setTheme] = useState(() => {
@@ -2641,9 +2655,9 @@ export default function StoreContextProvider({ children }) {
   };
 
   // PUSH ALL LOCAL DATA TO SUPABASE CLOUD (MANUAL OR AUTO INITIAL SYNC)
-  const syncAllToCloud = async () => {
+  const syncAllToCloud = async (isSilent = false) => {
     setCloudSyncStatus('syncing');
-    showNotification('Saving all data to Supabase cloud...', 'info');
+    if (!isSilent) showNotification('Saving all data to Supabase cloud...', 'info');
     const effId = getEffectiveUserId();
 
     try {
@@ -2859,12 +2873,12 @@ export default function StoreContextProvider({ children }) {
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch (e) {}
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
-      showNotification(`Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
+      if (!isSilent) showNotification(`Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
       return { success: true, count: savedCount };
     } catch (err) {
       console.error('[Cloud Save Error]', err);
       setCloudSyncStatus('error');
-      showNotification(`Save error: ${err.message}`, 'error');
+      if (!isSilent) showNotification(`Save error: ${err.message}`, 'error');
       return { success: false, error: err.message };
     }
   };
