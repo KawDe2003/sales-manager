@@ -1,4 +1,5 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Target, Phone, Mail, Trash2, User, Calendar, Edit2, FileText, X, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -215,69 +216,117 @@ const LeadModal = ({ initialData, onClose, onSave, statuses }) => {
     onSave(formData);
   };
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        
-        <div className="modal-header">
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="modal-overlay app-modal-backdrop"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(2, 6, 23, 0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '12px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        className="glass-panel app-modal-dialog" 
+        style={{ 
+          width: '100%', 
+          maxWidth: '600px', 
+          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0, 
+          overflow: 'hidden',
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
            <div className="flex justify-between items-center">
-             <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{initialData ? 'Update Pipeline Entry' : 'Add New Prospect'}</h2>
+             <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>{initialData ? 'Update Pipeline Entry' : 'Add New Prospect'}</h2>
              <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
            </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-group mb-6">
-            <label className="form-label">Commercial Gym Name</label>
-            <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="form-group">
-              <label className="form-label">Key Decision Maker</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.contactPerson} onChange={e => setFormData({...formData, contactPerson: e.target.value})} />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+            <div className="form-group mb-5">
+              <label className="form-label">Commercial Gym Name</label>
+              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
             </div>
-            <div className="form-group">
-              <label className="form-label">Pipeline Stage</label>
-              <CustomSelect 
-                value={formData.status} 
-                onChange={val => setFormData({...formData, status: val})}
-                options={statuses.map(s => ({ value: s, label: s }))}
-                style={{ width: '100%', height: '44px' }}
-              />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div className="form-group">
+                <label className="form-label">Key Decision Maker</label>
+                <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.contactPerson} onChange={e => setFormData({...formData, contactPerson: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Pipeline Stage</label>
+                <CustomSelect 
+                  value={formData.status} 
+                  onChange={val => setFormData({...formData, status: val})}
+                  options={statuses.map(s => ({ value: s, label: s }))}
+                  style={{ width: '100%', height: '44px' }}
+                />
+              </div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="form-group">
-              <label className="form-label">Contact Mobile</label>
-              <input required type="tel" className="form-input" style={{ height: '44px' }} placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div className="form-group">
+                <label className="form-label">Contact Mobile</label>
+                <input required type="tel" className="form-input" style={{ height: '44px' }} placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input type="email" className="form-input" style={{ height: '44px' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </div>
             </div>
+
             <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input type="email" className="form-input" style={{ height: '44px' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              <label className="form-label">Discovery Notes</label>
+              <textarea className="form-input" style={{ minHeight: '100px', resize: 'none' }} placeholder="Enter any background context..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} />
             </div>
           </div>
 
-          <div className="form-group mb-8">
-            <label className="form-label">Discovery Notes</label>
-            <textarea className="form-input" style={{ minHeight: '100px', resize: 'none' }} placeholder="Enter any background context..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} />
-          </div>
-
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '0 0 32px 0' }}></div>
-
-          <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px' }} onClick={onClose}>Discard</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px' }}>Commit Entry</button>
+          <div 
+            className="flex justify-end gap-3 p-4 border-t border-panel responsive-form-actions"
+            style={{
+              flexShrink: 0,
+              background: 'rgba(17, 24, 39, 0.98)',
+              backdropFilter: 'blur(8px)',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+            }}
+          >
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={onClose}>Discard</button>
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 22px' }}>Commit Entry</button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

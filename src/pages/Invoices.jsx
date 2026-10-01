@@ -1,4 +1,5 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock } from 'lucide-react';
@@ -400,12 +401,13 @@ Thank you for your business!`;
       )}
 
       {/* ===== MODAL: SEND INVOICE LINK VIA SMS ===== */}
-      {smsModalInvoice && (
+      {smsModalInvoice && typeof document !== 'undefined' && createPortal(
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.15s ease-out'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+          background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999,
+          padding: '12px', animation: 'backdropFade 0.15s ease-out'
         }}>
           <div className="glass-panel" style={{
             width: '100%', maxWidth: '520px', padding: 0, borderRadius: '22px',
@@ -530,7 +532,8 @@ Thank you for your business!`;
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -758,12 +761,29 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
   const totalInvoiceAmount = invoice.amount || 0;
   const totalPaidSoFar = payments.filter(p => p.documentId === invoice.id).reduce((s, p) => s + p.amount, 0);
 
-  return (
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
-      className="app-modal-backdrop"
+      className="app-modal-backdrop modal-overlay"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+        zIndex: 999999, background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '12px'
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="app-modal-dialog" style={{ maxWidth: '640px' }}>
+      <div className="app-modal-dialog" style={{ maxWidth: '640px', width: '100%', maxHeight: 'min(92vh, calc(100dvh - 24px))', overflowY: 'auto' }}>
         <div className="modal-header-solid" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), transparent)' }}>
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Customer Installment Plan</div>
@@ -790,7 +810,8 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
           <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '12px' }}>Payment Schedule Breakdown ({plan.count} {plan.frequency} Payments)</h3>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -852,13 +873,45 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
   };
 
-  return (
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
-      className="app-modal-backdrop"
+      className="app-modal-backdrop modal-overlay"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+        zIndex: 999999, background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '12px'
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="app-modal-dialog" style={{ maxWidth: '800px', maxHeight: '92vh', overflowY: 'auto' }}>
-        <div className="modal-header-solid">
+      <div 
+        className="app-modal-dialog glass-panel" 
+        style={{ 
+          maxWidth: '800px', 
+          width: '100%', 
+          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden', 
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header-solid" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>
               {isLocked ? 'View Invoice' : (initialData ? 'Update Invoice' : 'Draft New Invoice')}
@@ -913,7 +966,8 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             : null;
           onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan });
           onClose();
-        }} className="modal-body-solid">
+        }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
@@ -1147,21 +1201,31 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '6px' }}>This agreement will be shown on the client portal and printed on the PDF.</p>
           </div>
 
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '32px 0 24px 0' }}></div>
-
-          <div className="flex justify-end gap-3">
-            <button type="button" className="btn btn-secondary" style={{ padding: '11px 24px' }} onClick={onClose}>
+          </div>
+          
+          {/* Sticky Modal Footer Actions */}
+          <div 
+            className="flex justify-end gap-3 p-4 border-t border-panel"
+            style={{
+              flexShrink: 0,
+              background: 'rgba(17, 24, 39, 0.98)',
+              backdropFilter: 'blur(8px)',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+            }}
+          >
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 22px', fontSize: '0.9rem' }} onClick={onClose}>
               {isLocked ? 'Close' : 'Discard (Do Not Save)'}
             </button>
             {!isLocked && (
-              <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="submit" className="btn btn-primary" style={{ padding: '10px 26px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Plus size={18} strokeWidth={3} /> Create Invoice
               </button>
             )}
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

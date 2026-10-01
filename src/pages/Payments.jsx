@@ -1,4 +1,5 @@
 import React, { useContext, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { 
   BadgeDollarSign, Search, User, FileText, CheckCircle2, AlertCircle, 
@@ -540,13 +541,26 @@ const Payments = () => {
       </div>
 
       {/* RENEWAL FREQUENCY FIRST-PAYMENT PROMPT MODAL */}
-      {showRenewalPrompt && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px'
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '32px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }}>
+      {showRenewalPrompt && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="modal-overlay app-modal-backdrop"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+            background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '12px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowRenewalPrompt(false); }}
+        >
+          <div 
+            className="glass-panel app-modal-dialog" 
+            style={{ 
+              width: '100%', maxWidth: '480px', maxHeight: 'min(92vh, calc(100dvh - 24px))', overflowY: 'auto',
+              padding: '24px', background: '#111827', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '16px', boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
               <Clock size={24} color="var(--accent-primary)" />
             </div>
@@ -597,21 +611,32 @@ const Payments = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* POST-PAYMENT RECEIPT SUCCESS & SEND MODAL */}
-      {completedPaymentData && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.92)', backdropFilter: 'blur(20px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px'
-        }}>
-          <div className="glass-panel" style={{ 
-            maxWidth: '520px', width: '100%', padding: '36px 30px',
-            border: '1px solid rgba(16, 185, 129, 0.3)', background: '#0a0f1d',
-            borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.15)'
-          }}>
+      {completedPaymentData && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="modal-overlay app-modal-backdrop"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+            background: 'rgba(2, 6, 23, 0.92)', backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '12px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setCompletedPaymentData(null); }}
+        >
+          <div 
+            className="glass-panel app-modal-dialog" 
+            style={{ 
+              maxWidth: '520px', width: '100%', maxHeight: 'min(92vh, calc(100dvh - 24px))', overflowY: 'auto',
+              padding: '30px 24px',
+              border: '1px solid rgba(16, 185, 129, 0.3)', background: '#0a0f1d',
+              borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.15)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header Success Icon & Title */}
             <div style={{ textAlign: 'center', marginBottom: '22px' }}>
               <div style={{
@@ -779,7 +804,8 @@ const Payments = () => {
               Done & Close
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

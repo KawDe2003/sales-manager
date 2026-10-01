@@ -589,20 +589,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* ===== UNIVERSAL SOLID MODAL SYSTEM (ELIMINATES ALL TEXT BLEED-THROUGH) ===== */
 .app-modal-backdrop,
-.modal-overlay {
+.modal-overlay,
+.modal-backdrop {
   position: fixed !important;
   inset: 0 !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(2, 6, 23, 0.82) !important;
-  backdrop-filter: blur(3px) !important;
-  -webkit-backdrop-filter: blur(3px) !important;
+  background: rgba(2, 6, 23, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 90000 !important;
+  z-index: 999999 !important;
   padding: 1.25rem !important;
 }
 
@@ -1461,11 +1462,12 @@ tbody tr:hover td {
   .app-modal-backdrop,
   .modal-overlay {
     padding: 8px !important;
+    z-index: 999999 !important;
   }
   .modal-card,
   .app-modal-dialog,
   .modal-content {
-    max-height: 94vh !important;
+    max-height: min(94vh, calc(100dvh - 20px)) !important;
     border-radius: var(--radius-lg) !important;
     width: 100% !important;
     margin: 0 !important;
@@ -1591,12 +1593,11 @@ tbody tr:hover td {
    1. Page / Route Transition
    ------------------------------------------------------------------ */
 @keyframes pageEnter {
-  0%   { opacity: 0; transform: translateY(14px) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0)   scale(1);     }
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: none; }
 }
 .page-transition-enter {
-  animation: pageEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  will-change: opacity, transform;
+  animation: pageEnter 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ------------------------------------------------------------------

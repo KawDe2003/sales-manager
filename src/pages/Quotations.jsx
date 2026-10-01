@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialQuoteNumber } from '../context/StoreContext';
 import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock } from 'lucide-react';
@@ -535,15 +536,55 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
   };
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '24px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', padding: 0, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <div className="modal-header">
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="modal-overlay app-modal-backdrop"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(2, 6, 23, 0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '12px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        className="glass-panel app-modal-dialog" 
+        style={{ 
+          width: '100%', 
+          maxWidth: '680px', 
+          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
            <div className="flex justify-between items-center">
              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>
@@ -596,7 +637,8 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           }
           onSave({ ...formData, items: finalItems }); 
           onClose(); 
-        }} className="modal-body">
+        }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="form-group">
               <label className="form-label" style={{ fontSize: '0.85rem' }}>Quotation ID #</label>
@@ -789,21 +831,31 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '6px' }}>This agreement will be shown on the client portal and printed on the PDF.</p>
           </div>
 
-          <div style={{ height: '1px', background: 'var(--panel-border)', margin: '40px 0 32px 0' }}></div>
+          </div>
 
-          <div className="flex justify-end gap-4 responsive-form-actions">
-            <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>
+          {/* Sticky Modal Footer Actions */}
+          <div 
+            className="flex justify-end gap-3 p-4 border-t border-panel responsive-form-actions"
+            style={{
+              flexShrink: 0,
+              background: 'rgba(17, 24, 39, 0.98)',
+              backdropFilter: 'blur(8px)',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+            }}
+          >
+            <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>
               {isLocked ? 'Close' : 'Discard (Do Not Save)'}
             </button>
             {!isLocked && (
-              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="submit" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Plus size={18} strokeWidth={3} /> Create Quotation
               </button>
             )}
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

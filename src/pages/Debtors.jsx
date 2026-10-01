@@ -1,4 +1,5 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { 
   AlertCircle, Search, User, ExternalLink, 
@@ -385,13 +386,26 @@ const Debtors = () => {
       </div>
 
       {/* INLINE RECORD PAYMENT MODAL */}
-      {activePaymentInvoice && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px'
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '32px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }}>
+      {activePaymentInvoice && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="modal-overlay app-modal-backdrop"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, inset: 0,
+            background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '12px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setActivePaymentInvoice(null); }}
+        >
+          <div 
+            className="glass-panel app-modal-dialog" 
+            style={{ 
+              width: '100%', maxWidth: '480px', maxHeight: 'min(92vh, calc(100dvh - 24px))', overflowY: 'auto',
+              padding: '24px', background: '#111827', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '16px', boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="h3" style={{ margin: 0, fontSize: '1.3rem' }}>Record Payment</h3>
@@ -467,7 +481,8 @@ const Debtors = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

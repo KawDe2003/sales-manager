@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, 
   StickyNote, Send, Clock, Cake, Download, Tag, Compass, History, 
@@ -369,6 +370,15 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
     renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
   });
 
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const toggleTag = (tag) => {
     const current = formData.tags || [];
     if (current.includes(tag)) {
@@ -378,133 +388,185 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
     }
   };
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', maxHeight: '92vh', overflowY: 'auto', padding: 0 }}>
-        <div className="modal-header">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="modal-overlay app-modal-backdrop"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(2, 6, 23, 0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '12px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        className="glass-panel app-modal-dialog" 
+        style={{ 
+          width: '100%', 
+          maxWidth: '680px', 
+          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          padding: 0, 
+          overflow: 'hidden',
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky Modal Header */}
+        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>{initialData ? 'Edit Customer Record' : 'Create New Customer'}</h2>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>{initialData ? 'Edit Customer Record' : 'Create New Customer'}</h2>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Complete corporate information, lead origin, and renewal configuration.</p>
             </div>
-            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
           </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="form-group">
-              <label className="form-label">Customer ID / Code</label>
-              <input required type="text" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
-            </div>
+        {/* Scrollable Form Body with Pinned Actions */}
+        <form 
+          onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} 
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
+        >
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="form-group">
+                <label className="form-label">Customer ID / Code</label>
+                <input required type="text" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Status</label>
-              <CustomSelect 
-                value={formData.status} 
-                onChange={val => setFormData({...formData, status: val})}
-                options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <CustomSelect 
+                  value={formData.status} 
+                  onChange={val => setFormData({...formData, status: val})}
+                  options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
+                />
+              </div>
 
-            <div className="form-group md:col-span-2">
-              <label className="form-label">Customer / Company Name *</label>
-              <input required type="text" className="form-input" placeholder="e.g. High Octane Fitness Negombo" value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
-            </div>
+              <div className="form-group md:col-span-2">
+                <label className="form-label">Customer / Company Name *</label>
+                <input required type="text" className="form-input" placeholder="e.g. High Octane Fitness Negombo" value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Contact Person Name</label>
-              <input required type="text" className="form-input" placeholder="e.g. Kasun Fernando" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Contact Person Name</label>
+                <input required type="text" className="form-input" placeholder="e.g. Kasun Fernando" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Mobile Number (07X-XXXXXXX) *</label>
-              <input required type="tel" className="form-input" placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Mobile Number (07X-XXXXXXX) *</label>
+                <input required type="tel" className="form-input" placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input type="email" className="form-input" placeholder="contact@company.lk" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input type="email" className="form-input" placeholder="contact@company.lk" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Tax / VAT Information</label>
-              <input type="text" className="form-input" placeholder="VAT-10293847-7000" value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})} />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Tax / VAT Information</label>
+                <input type="text" className="form-input" placeholder="VAT-10293847-7000" value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})} />
+              </div>
 
-            <div className="form-group md:col-span-2">
-              <label className="form-label">Address</label>
-              <input type="text" className="form-input" placeholder="No. 123, Galle Road, Colombo 03" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-            </div>
+              <div className="form-group md:col-span-2">
+                <label className="form-label">Address</label>
+                <input type="text" className="form-input" placeholder="No. 123, Galle Road, Colombo 03" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Lead Source</label>
-              <CustomSelect 
-                value={formData.leadSource} 
-                onChange={val => setFormData({...formData, leadSource: val})}
-                options={LEAD_SOURCES.map(s => ({ value: s, label: s }))}
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Lead Source</label>
+                <CustomSelect 
+                  value={formData.leadSource} 
+                  onChange={val => setFormData({...formData, leadSource: val})}
+                  options={LEAD_SOURCES.map(s => ({ value: s, label: s }))}
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Renewal Frequency</label>
-              <CustomSelect 
-                value={formData.renewalFrequency} 
-                onChange={val => setFormData({...formData, renewalFrequency: val})}
-                options={[
-                  { value: 'One Time', label: 'One Time (No Recurrence)' },
-                  { value: 'Monthly', label: 'Monthly (+1 Month)' },
-                  { value: 'Bi-Annual', label: 'Bi-Annual (+6 Months)' },
-                  { value: 'Annual', label: 'Annual (+12 Months)' }
-                ]}
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Renewal Frequency</label>
+                <CustomSelect 
+                  value={formData.renewalFrequency} 
+                  onChange={val => setFormData({...formData, renewalFrequency: val})}
+                  options={[
+                    { value: 'One Time', label: 'One Time (No Recurrence)' },
+                    { value: 'Monthly', label: 'Monthly (+1 Month)' },
+                    { value: 'Bi-Annual', label: 'Bi-Annual (+6 Months)' },
+                    { value: 'Annual', label: 'Annual (+12 Months)' }
+                  ]}
+                />
+              </div>
 
-            {/* Tags Selection */}
-            <div className="form-group md:col-span-2">
-              <label className="form-label">Customer Tags / Labels</label>
-              <div className="flex gap-2 flex-wrap">
-                {CUSTOMER_TAGS.filter(t => t !== 'All').map(tag => {
-                  const isSelected = (formData.tags || []).includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleTag(tag)}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        border: '1px solid',
-                        borderColor: isSelected ? 'var(--accent-primary)' : 'var(--panel-border)',
-                        background: isSelected ? 'var(--accent-primary)20' : 'var(--subtle-bg)',
-                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Tag size={12} /> {tag}
-                    </button>
-                  );
-                })}
+              {/* Tags Selection */}
+              <div className="form-group md:col-span-2">
+                <label className="form-label">Customer Tags / Labels</label>
+                <div className="flex gap-2 flex-wrap">
+                  {CUSTOMER_TAGS.filter(t => t !== 'All').map(tag => {
+                    const isSelected = (formData.tags || []).includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          border: '1px solid',
+                          borderColor: isSelected ? 'var(--accent-primary)' : 'var(--panel-border)',
+                          background: isSelected ? 'var(--accent-primary)20' : 'var(--subtle-bg)',
+                          color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Tag size={12} /> {tag}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-panel">
+          {/* Sticky Modal Footer (Actions) */}
+          <div 
+            className="flex justify-end gap-3 p-4 border-t border-panel" 
+            style={{ 
+              flexShrink: 0, 
+              background: 'rgba(17, 24, 39, 0.98)', 
+              backdropFilter: 'blur(8px)',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+            }}
+          >
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ padding: '0 24px' }}>Save Customer Record</button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -523,14 +585,55 @@ const NotesModal = ({ customer, onClose }) => {
     setNoteText('');
   };
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', maxHeight: '88vh', overflowY: 'auto', padding: 0 }}>
-        <div className="modal-header">
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="modal-overlay app-modal-backdrop"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(2, 6, 23, 0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '12px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        className="glass-panel app-modal-dialog" 
+        style={{ 
+          width: '100%', 
+          maxWidth: '580px', 
+          maxHeight: 'min(90vh, calc(100dvh - 24px))', 
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
           <div className="flex justify-between items-center">
             <div>
               <div style={{ fontSize: '0.72rem', color: 'var(--warning)', fontWeight: 800, textTransform: 'uppercase' }}>INTERNAL USE ONLY</div>
@@ -540,7 +643,7 @@ const NotesModal = ({ customer, onClose }) => {
           </div>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
             Internal notes are visible to all staff members but are <strong>never</strong> displayed on customer-facing links or generated PDFs.
           </p>
@@ -586,7 +689,8 @@ const NotesModal = ({ customer, onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -705,15 +809,56 @@ const Customer360Modal = ({ customer, quotes = [], invoices = [], payments = [],
     return events.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [customer, custQuotes, custInvoices, custPayments]);
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
-    }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '880px', maxHeight: '92vh', overflowY: 'auto', padding: 0 }}>
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="modal-overlay app-modal-backdrop"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(2, 6, 23, 0.88)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '12px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        className="glass-panel app-modal-dialog" 
+        style={{ 
+          width: '100%', 
+          maxWidth: '880px', 
+          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: '16px',
+          background: '#111827',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="modal-header">
+        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
           <div className="flex justify-between items-start flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -737,7 +882,7 @@ const Customer360Modal = ({ customer, quotes = [], invoices = [], payments = [],
           </div>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
           {/* Key 360 Financial Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
             <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
@@ -875,7 +1020,8 @@ const Customer360Modal = ({ customer, quotes = [], invoices = [], payments = [],
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
