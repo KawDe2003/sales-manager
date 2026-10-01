@@ -1155,7 +1155,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             </button>
             {!isLocked && (
               <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle size={18} /> Save Invoice
+                <Plus size={18} strokeWidth={3} /> Create Invoice
               </button>
             )}
           </div>

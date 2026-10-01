@@ -5,9 +5,9 @@ import {
   CheckCircle, Search, User, CreditCard, DollarSign, 
   X, Check, ArrowRight, Package, Sparkles, Building2,
   Clock, AlertCircle, Phone, MapPin, Receipt, Share2,
-  ArrowLeft
+  ArrowLeft, FileText
 } from 'lucide-react';
-import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
+import { StoreContext, getNextSequentialInvoiceNumber, getNextSequentialQuoteNumber } from '../context/StoreContext';
 
 const HAIR_PIN_PRESETS = [
   { id: 'hp-1', name: 'Classic Black Bobby Pins (2-Inch)', unit: 'Pkt', price: 250, category: 'Bobby Pins', desc: 'Gloss black enamel, ball tips (30 pcs/pkt)' },
@@ -28,8 +28,10 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
   const { 
     customers = [], 
     invoices = [],
+    quotes = [],
     inventory = [], 
     addInvoice, 
+    addQuote,
     addCustomer,
     recordEnhancedPayment,
     smsConfig = {},
@@ -355,25 +357,104 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
     }
   };
 
+  // Handle Automatic Quotation (QT) Creation
+  const handleCreateQuotation = async () => {
+    if (cart.length === 0) {
+      showNotification?.('Please add at least one item to create a quote.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let custName = 'Walk-in Prospective Customer';
+      let custPhone = '';
+
+      if (selectedCustomerId === 'new') {
+        if (!newCustomerName.trim()) {
+          showNotification?.('Please enter the customer / shop name.', 'error');
+          setIsSubmitting(false);
+          return;
+        }
+        custName = newCustomerName.trim();
+        custPhone = newCustomerPhone.trim();
+      } else if (selectedCustomerId !== 'walk-in' && activeCustomer) {
+        custName = activeCustomer.name || activeCustomer.gymName;
+        custPhone = activeCustomer.phone || '';
+      }
+
+      const seqQuote = getNextSequentialQuoteNumber(quotes, smsConfig);
+      const quoteNumber = seqQuote.formattedNumber;
+      const todayDate = new Date().toISOString().split('T')[0];
+
+      const quoteData = {
+        quoteNumber,
+        date: todayDate,
+        validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        prospectName: custName,
+        prospectPhone: custPhone,
+        amount: grandTotal,
+        subtotal: subtotal,
+        discount: Number(discountAmount) || 0,
+        status: 'Pending',
+        items: cart.map(i => ({
+          name: i.name,
+          unit: i.unit,
+          qty: i.qty,
+          quantity: i.qty,
+          price: i.unitPrice,
+          unitPrice: i.unitPrice,
+          amount: i.amount
+        })),
+        notes: notes || 'Quick Quotation',
+        isQuote: true
+      };
+
+      addQuote?.(quoteData);
+
+      setCompletedInvoice({
+        ...quoteData,
+        invoiceNumber: quoteNumber,
+        customerName: custName,
+        paymentMethod: 'Quotation (Pending)',
+        status: 'Pending Quotation',
+        isQuote: true
+      });
+
+      showNotification?.(`Quotation #${quoteNumber} created automatically!`, 'success');
+      
+      // Auto cloud sync
+      setTimeout(() => {
+        syncAllToCloud?.();
+      }, 500);
+
+    } catch (err) {
+      console.error('[Quick Quote Error]', err);
+      showNotification?.('Failed to create quotation. Please check details.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Direct Print
   const handlePrintReceipt = () => {
     window.print();
   };
 
-  // WhatsApp Bill Share (Direct for wholesale buyers in Pettah, Kandy, etc.)
+  // WhatsApp Share (Quotes & Invoices)
   const handleShareWhatsApp = () => {
     if (!completedInvoice) return;
     const phone = completedInvoice.customerPhone?.replace(/[^0-9]/g, '') || '';
     const formattedPhone = phone.startsWith('0') ? '94' + phone.slice(1) : phone;
-    const itemList = completedInvoice.items.map(i => `• ${i.name} - ${i.qty} ${i.unit} @ LKR ${i.unitPrice} = LKR ${i.amount.toLocaleString()}`).join('\n');
+    const itemList = completedInvoice.items.map(i => `• ${i.name} - ${i.qty || i.quantity} ${i.unit} @ LKR ${i.unitPrice || i.price} = LKR ${i.amount.toLocaleString()}`).join('\n');
+    const docType = completedInvoice.isQuote ? 'QUOTATION' : 'INVOICE';
     const text = encodeURIComponent(
-      `*INVOICE #${completedInvoice.invoiceNumber}*\n` +
+      `*${docType} #${completedInvoice.quoteNumber || completedInvoice.invoiceNumber}*\n` +
       `*${smsConfig.companyName || 'Royal Hair Pin Industries'}*\n` +
       `Date: ${completedInvoice.date}\n` +
-      `Customer: ${completedInvoice.customerName}\n\n` +
+      `Customer: ${completedInvoice.customerName || completedInvoice.prospectName}\n\n` +
       `*Items:*\n${itemList}\n\n` +
       `*NET TOTAL: LKR ${completedInvoice.amount.toLocaleString()}*` +
-      `\nPayment: ${completedInvoice.paymentMethod} (${completedInvoice.status})\n\n` +
+      `\nStatus: ${completedInvoice.isQuote ? 'Quotation / Pending' : `${completedInvoice.paymentMethod} (${completedInvoice.status})`}\n\n` +
       `Thank you for your business!`
     );
     const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${text}` : `https://wa.me/?text=${text}`;
@@ -553,10 +634,14 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             </div>
 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
-              Sale Completed Successfully!
+              {completedInvoice.isQuote ? 'Quotation Created Automatically!' : 'Sale Completed Successfully!'}
             </h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '18px', textAlign: 'center' }}>
-              Invoice <strong style={{ color: 'var(--accent-primary)' }}>#{completedInvoice.invoiceNumber}</strong> saved. Stock deducted.
+              {completedInvoice.isQuote ? (
+                <>Quotation <strong style={{ color: 'var(--accent-primary)' }}>#{completedInvoice.quoteNumber || completedInvoice.invoiceNumber}</strong> created &amp; synced across devices.</>
+              ) : (
+                <>Invoice <strong style={{ color: 'var(--accent-primary)' }}>#{completedInvoice.invoiceNumber}</strong> saved. Stock deducted.</>
+              )}
             </p>
 
             {/* PRINTABLE RECEIPT CARD */}
@@ -581,7 +666,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                   {smsConfig.companyAddress || 'Kelaniya, Sri Lanka'} | {smsConfig.companyPhone || '072 840 8880'}
                 </div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '4px' }}>
-                  INVOICE #{completedInvoice.invoiceNumber}
+                  {completedInvoice.isQuote ? `QUOTATION #${completedInvoice.quoteNumber || completedInvoice.invoiceNumber}` : `INVOICE #${completedInvoice.invoiceNumber}`}
                 </div>
               </div>
 
@@ -1351,32 +1436,60 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* 4. Complete Action Button */}
-                <button
-                  onClick={handleCompleteSale}
-                  disabled={cart.length === 0 || isSubmitting}
-                  className="btn btn-primary"
-                  style={{
-                    minHeight: '50px',
-                    width: '100%',
-                    fontSize: '1rem',
-                    fontWeight: 900,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
-                    cursor: (cart.length === 0 || isSubmitting) ? 'not-allowed' : 'pointer',
-                    opacity: (cart.length === 0 || isSubmitting) ? 0.6 : 1,
-                    flexShrink: 0,
-                    marginTop: 'auto'
-                  }}
-                >
-                  <Check size={18} strokeWidth={3} />
-                  {isSubmitting ? 'Saving Sale...' : `Complete Sale (LKR ${grandTotal.toLocaleString()})`}
-                </button>
+                {/* 4. Complete Action Buttons: Automatically Create Invoice or Create Quotation (QT) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
+                  <button
+                    onClick={handleCompleteSale}
+                    disabled={cart.length === 0 || isSubmitting}
+                    className="btn btn-primary"
+                    style={{
+                      minHeight: '48px',
+                      width: '100%',
+                      fontSize: '0.96rem',
+                      fontWeight: 900,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      borderRadius: '10px',
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
+                      cursor: (cart.length === 0 || isSubmitting) ? 'not-allowed' : 'pointer',
+                      opacity: (cart.length === 0 || isSubmitting) ? 0.6 : 1,
+                      flexShrink: 0
+                    }}
+                  >
+                    <Check size={18} strokeWidth={3} />
+                    {isSubmitting ? 'Creating Invoice...' : `Create Invoice (LKR ${grandTotal.toLocaleString()})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateQuotation}
+                    disabled={cart.length === 0 || isSubmitting}
+                    className="btn btn-secondary"
+                    style={{
+                      minHeight: '42px',
+                      width: '100%',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+                      borderColor: 'rgba(245, 158, 11, 0.35)',
+                      color: '#f59e0b',
+                      borderRadius: '10px',
+                      cursor: (cart.length === 0 || isSubmitting) ? 'not-allowed' : 'pointer',
+                      opacity: (cart.length === 0 || isSubmitting) ? 0.6 : 1,
+                      flexShrink: 0
+                    }}
+                  >
+                    <FileText size={16} />
+                    <span>Create Quotation (QT) Automatically</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

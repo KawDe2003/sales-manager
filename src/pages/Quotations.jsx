@@ -40,7 +40,7 @@ const Quotations = () => {
             <p className="text-secondary" style={{ fontSize: '1rem' }}>Generate and track professional software offers for new prospects.</p>
           </div>
           <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setEditingQuote(null); setShowModal(true); }}>
-            <Plus size={18} /> New Quotation
+            <Plus size={18} /> Create Quotation
           </button>
         </div>
       </div>
@@ -738,7 +738,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
             </button>
             {!isLocked && (
               <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle size={18} /> Save Quotation
+                <Plus size={18} strokeWidth={3} /> Create Quotation
               </button>
             )}
           </div>
