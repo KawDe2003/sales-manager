@@ -734,11 +734,11 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
 
           <div className="flex justify-end gap-4 responsive-form-actions">
             <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '0.95rem' }} onClick={onClose}>
-              {isLocked ? 'Close' : 'Discard'}
+              {isLocked ? 'Close' : 'Discard (Do Not Save)'}
             </button>
             {!isLocked && (
-              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>
-                Finalize Quotation
+              <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={18} /> Save Quotation
               </button>
             )}
           </div>

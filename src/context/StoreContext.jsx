@@ -1795,7 +1795,8 @@ export default function StoreContextProvider({ children }) {
         setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
-        setLastSyncTime(new Date());
+        setLastSyncTime(new Date().toISOString());
+        setHasUnsavedChanges(false);
       }
     } catch (err) {
       console.warn('[Supabase Sync] Quote Exception:', err.message);
@@ -1851,7 +1852,8 @@ export default function StoreContextProvider({ children }) {
         setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
-        setLastSyncTime(new Date());
+        setLastSyncTime(new Date().toISOString());
+        setHasUnsavedChanges(false);
       }
     } catch (err) {
       console.warn('[Supabase Sync] Invoice Exception:', err.message);
@@ -2965,12 +2967,10 @@ export default function StoreContextProvider({ children }) {
     });
   };
 
-  // REALTIME SUBSCRIPTION FOR QUOTES
+  // REALTIME SUBSCRIPTION FOR QUOTES & INVOICES (LIVE CROSS-DEVICE SYNC)
   useEffect(() => {
-    const effId = getEffectiveUserId();
-    
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('schema-db-live-sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'quotations' },
@@ -2980,7 +2980,7 @@ export default function StoreContextProvider({ children }) {
             const oldItem = quotes.find(q => q.id === payload.new.id);
             if (oldItem && oldItem.status !== payload.new.status) {
               if (payload.new.status === 'Accepted') {
-                showNotification(`Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
+                showNotification?.(`Quotation for ${payload.new.prospect_name} was ACCEPTED!`, 'success');
                 setSystemNotifications(prev => [{
                   id: crypto.randomUUID(),
                   message: `Quote #${payload.new.quote_number} accepted by ${payload.new.prospect_name}`,
@@ -2988,7 +2988,7 @@ export default function StoreContextProvider({ children }) {
                   type: 'success'
                 }, ...prev]);
               } else if (payload.new.status === 'Rejected') {
-                showNotification(`Quotation #${payload.new.quote_number} was Declined.`, 'info');
+                showNotification?.(`Quotation #${payload.new.quote_number} was Declined.`, 'info');
                 setSystemNotifications(prev => [{
                   id: crypto.randomUUID(),
                   message: `Quote #${payload.new.quote_number} declined by ${payload.new.prospect_name}`,
@@ -2996,9 +2996,18 @@ export default function StoreContextProvider({ children }) {
                   type: 'error'
                 }, ...prev]);
               }
-              fetchCloudData();
             }
           }
+          // Refresh data on any remote insert/update/delete so other devices stay in sync
+          fetchCloudData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'invoices' },
+        (payload) => {
+          console.log('[Realtime] Invoice Changed on remote device:', payload);
+          fetchCloudData();
         }
       )
       .subscribe();

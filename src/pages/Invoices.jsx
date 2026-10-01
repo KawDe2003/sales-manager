@@ -1151,11 +1151,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
 
           <div className="flex justify-end gap-3">
             <button type="button" className="btn btn-secondary" style={{ padding: '11px 24px' }} onClick={onClose}>
-              {isLocked ? 'Close' : 'Discard'}
+              {isLocked ? 'Close' : 'Discard (Do Not Save)'}
             </button>
             {!isLocked && (
-              <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px' }}>
-                Finalize Ledger
+              <button type="submit" className="btn btn-primary" style={{ padding: '11px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={18} /> Save Invoice
               </button>
             )}
           </div>
