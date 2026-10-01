@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialQuoteNumber } from '../context/StoreContext';
 import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
@@ -151,15 +151,51 @@ const Quotations = () => {
 };
 
 const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, onSendSms, onDownload }) => {
+  const navigate = useNavigate();
   const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
-  const { smsConfig = {} } = useContext(StoreContext) || {};
+  const { smsConfig = {}, invoices = [] } = useContext(StoreContext) || {};
   const isAccepted = quote.status === 'Accepted';
   const isRejected = quote.status === 'Rejected';
   const isExpired = quote.status === 'Expired';
   const hasCounterOffer = quote.status === 'Counter Offer' || (quote.counterOffers && quote.counterOffers.length > 0);
   const latestCounterOffer = quote.lastCounterOffer || (quote.counterOffers && quote.counterOffers[0]);
   const isSent = quote.status === 'Sent' || isAccepted || isRejected || quote.status === 'Converted to Invoice' || hasCounterOffer || Boolean(quote.sentAt);
+
+  // Auto-resolve linked invoice record
+  const linkedInvoice = invoices.find(inv => {
+    if (!inv) return false;
+    const invNum = String(inv.invoiceNumber || inv.invoice_number || '').trim();
+    const invId = String(inv.id || inv.shareKey || '').trim();
+    const qNum = String(quote.quoteNumber || quote.quote_number || '').trim();
+    const qId = String(quote.id || quote.shareKey || '').trim();
+
+    if (quote.convertedInvoiceNumber && invNum === String(quote.convertedInvoiceNumber).trim()) return true;
+    if (quote.convertedInvoiceId && invId === String(quote.convertedInvoiceId).trim()) return true;
+    if (quote.converted_invoice_number && invNum === String(quote.converted_invoice_number).trim()) return true;
+    if (quote.converted_invoice_id && invId === String(quote.converted_invoice_id).trim()) return true;
+    if (qNum && (inv.quoteRef === qNum || inv.quotationNumber === qNum || inv.quote_ref === qNum)) return true;
+    if (qId && (inv.quotationId === qId || inv.quotation_id === qId)) return true;
+    
+    const pName = (quote.prospectName || '').toLowerCase().trim();
+    const invName = (inv.prospectName || inv.customerName || '').toLowerCase().trim();
+    if (pName && invName && pName === invName && Math.abs((Number(inv.amount) || 0) - (Number(quote.amount) || 0)) < 1) {
+      return true;
+    }
+    return false;
+  });
+
+  const rawInvoiceNumber = quote.convertedInvoiceNumber || 
+                           quote.converted_invoice_number || 
+                           linkedInvoice?.invoiceNumber || 
+                           linkedInvoice?.invoice_number || 
+                           (quote.status === 'Converted to Invoice' 
+                             ? (quote.invoiceNumber || `INV-${String(quote.quoteNumber || '1001').replace(/[^0-9]/g, '') || '1001'}`)
+                             : null);
+
+  const formattedInvoiceNumber = rawInvoiceNumber 
+    ? (String(rawInvoiceNumber).startsWith('#') ? rawInvoiceNumber : `#${rawInvoiceNumber}`) 
+    : '';
 
   const handleWhatsAppShare = () => {
     const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${shareLink}\n\nThank you!`;
@@ -225,7 +261,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
               cursor: 'default', userSelect: 'none'
             }} title="Status is locked after sending">
               <Lock size={11} style={{ opacity: 0.6 }} />
-              {quote.status || 'Sent'}
+              {quote.status === 'Converted to Invoice' && formattedInvoiceNumber ? `Invoiced (${formattedInvoiceNumber})` : (quote.status || 'Sent')}
             </div>
           ) : (
             <CustomSelect 
@@ -401,9 +437,32 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
              </button>
           )}
           {quote.status === 'Converted to Invoice' && (
-            <span className="badge badge-success" style={{ height: '40px', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 700 }}>
-              <Receipt size={14} /> Invoiced {quote.convertedInvoiceNumber ? `#${quote.convertedInvoiceNumber}` : ''}
-            </span>
+            <button
+              type="button"
+              className="badge badge-success"
+              style={{
+                height: '40px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0 14px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'rgba(16, 185, 129, 0.16)',
+                color: '#10b981',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                transition: 'all 0.15s ease'
+              }}
+              onClick={() => {
+                navigate(`/invoices?search=${encodeURIComponent(rawInvoiceNumber || '')}`);
+              }}
+              title={`Click to view Linked Invoice ${formattedInvoiceNumber}`}
+            >
+              <Receipt size={14} /> Invoiced {formattedInvoiceNumber}
+            </button>
           )}
         </div>
       </div>

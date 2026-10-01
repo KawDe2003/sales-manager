@@ -2469,6 +2469,16 @@ export default function StoreContextProvider({ children }) {
 
         const loadedQuotes = qData.map(q => {
           const localMatch = localQuotes.find(lq => lq.id === q.id || lq.quoteNumber === q.quote_number);
+          const matchedInv = Array.isArray(iData) ? iData.find(inv => 
+            (inv.id && inv.id === q.converted_invoice_id) ||
+            (inv.quotation_id && inv.quotation_id === q.id) ||
+            (inv.quote_ref && inv.quote_ref === q.quote_number) ||
+            (inv.quotation_number && inv.quotation_number === q.quote_number)
+          ) : null;
+
+          const finalConvNum = q.converted_invoice_number || localMatch?.convertedInvoiceNumber || matchedInv?.invoice_number || null;
+          const finalConvId = q.converted_invoice_id || localMatch?.convertedInvoiceId || matchedInv?.id || null;
+
           return {
             id: q.id,
             shareKey: q.share_key,
@@ -2483,8 +2493,8 @@ export default function StoreContextProvider({ children }) {
             agreementTerms: q.agreement_terms || localMatch?.agreementTerms || '',
             counterOffers: q.counter_offers || localMatch?.counterOffers || [],
             acceptedAt: q.accepted_at || localMatch?.acceptedAt || null,
-            convertedInvoiceNumber: q.converted_invoice_number || localMatch?.convertedInvoiceNumber || null,
-            convertedInvoiceId: q.converted_invoice_id || localMatch?.convertedInvoiceId || null,
+            convertedInvoiceNumber: finalConvNum,
+            convertedInvoiceId: finalConvId,
             sentAt: q.sent_at || localMatch?.sentAt || null
           };
         });
