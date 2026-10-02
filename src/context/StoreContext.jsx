@@ -275,27 +275,191 @@ export default function StoreContextProvider({ children }) {
     { id: 'jl-12', journalEntryId: 'je-6', accountId: '1020', debit: 0, credit: 32000 }
   ];
 
+  // ===================================================================
+  // MULTI-BUSINESS ERP ARCHITECTURE: MAIN BUSINESS vs HAIR PINS
+  // ===================================================================
+  const DEFAULT_BUSINESSES = [
+    {
+      id: 'biz_main',
+      name: 'Seynex Enterprises',
+      category: 'General / Technology',
+      tagline: 'Main Enterprise Operations',
+      companyName: 'Seynex Enterprises',
+      dashboardName: 'Seynex Enterprises',
+      companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
+      companyEmail: 'info@seynex.lk',
+      companyPhone: '+94 11 234 5678',
+      currency: 'LKR',
+      icon: 'Building2',
+      color: '#4f46e5'
+    },
+    {
+      id: 'biz_hairpins',
+      name: 'Royal Hair Pin Industries',
+      category: 'Hair Pin Manufacturing & Wholesale',
+      tagline: 'Bobby Pins, U-Pins, Wave Grips & Fasteners',
+      companyName: 'Royal Hair Pin Industries',
+      dashboardName: 'Royal Hair Pins & Accessories',
+      companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
+      companyEmail: 'royalhairpins@gmail.com',
+      companyPhone: '+94 77 123 4567',
+      currency: 'LKR',
+      icon: 'Sparkles',
+      color: '#0d9488'
+    }
+  ];
+
+  const sampleMainCustomers = [
+    { id: 'mc-1', gymName: 'Apex Global Technologies', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2025-01-10', renewalDate: '2026-11-10', notes: [] },
+    { id: 'mc-2', gymName: 'Metro Commercial Logistics', name: 'Samantha Silva', email: 'samantha@metrologistics.lk', phone: '0714567890', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [] },
+    { id: 'mc-3', gymName: 'Horizon Financial Services', name: 'Nishan Mendis', email: 'nishan@horizonfs.lk', phone: '0765678901', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [] }
+  ];
+
+  const sampleMainInventory = [
+    { id: 'minv-101', name: 'Enterprise Cloud ERP License (Annual)', type: 'Software', price: 185000, costPrice: 65000, stock: 100, reorderLevel: 10, desc: 'Full-featured enterprise cloud operations license' },
+    { id: 'minv-102', name: 'Annual Priority SLA & Support Contract', type: 'Service', price: 95000, costPrice: 30000, stock: 999, reorderLevel: 5, desc: '24/7 dedicated support and maintenance package' },
+    { id: 'minv-103', name: 'Commercial Network Security Gateway', type: 'Hardware', price: 145000, costPrice: 98000, stock: 18, reorderLevel: 4, desc: 'Managed hardware firewall and VPN gateway' },
+    { id: 'minv-104', name: 'Professional Systems Consulting (Day Rate)', type: 'Consulting', price: 45000, costPrice: 15000, stock: 50, reorderLevel: 5, desc: 'On-site senior enterprise technical advisory' },
+    { id: 'minv-105', name: 'Cloud Automated Backup Storage 1TB', type: 'Cloud Service', price: 36000, costPrice: 14000, stock: 200, reorderLevel: 20, desc: 'Encrypted off-site disaster recovery storage' }
+  ];
+
+  const sampleMainLeads = [
+    { 
+      id: 'mlead-1', 
+      gymName: 'Orion Solutions Colombo', 
+      contactPerson: 'Dinesh Wickramasinghe', 
+      name: 'Dinesh Wickramasinghe', 
+      phone: '0776789012', 
+      email: 'dinesh@orionsolutions.lk', 
+      location: 'Colombo 04', 
+      status: 'Proposal Sent', 
+      value: 520000, 
+      date: '2026-09-25T10:00:00.000Z',
+      lastActionDate: '2026-10-01T11:00:00.000Z',
+      nextActionDate: new Date().toISOString().split('T')[0],
+      nextActionNote: 'Review custom ERP implementation proposal with procurement committee',
+      comments: [
+        {
+          id: 'mc-1',
+          date: '2026-10-01T11:00:00.000Z',
+          text: 'Conducted demonstration for finance team. Requested itemized quotation for 5 user licenses.',
+          type: 'Meeting',
+          nextActionDate: new Date().toISOString().split('T')[0],
+          nextActionNote: 'Review custom ERP implementation proposal with procurement committee',
+          author: 'Sales Executive'
+        }
+      ]
+    },
+    { 
+      id: 'mlead-2', 
+      gymName: 'Sterling Retail Group', 
+      contactPerson: 'Anura Fernando', 
+      name: 'Anura Fernando', 
+      phone: '0717890123', 
+      email: 'anura@sterlingretail.lk', 
+      location: 'Kandy', 
+      status: 'Contacted', 
+      value: 380000, 
+      date: '2026-09-29T14:20:00.000Z',
+      lastActionDate: '2026-09-30T16:00:00.000Z',
+      nextActionDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      nextActionNote: 'Follow-up call regarding hardware specifications',
+      comments: []
+    }
+  ];
+
+  const sampleMainQuotes = [
+    {
+      id: 'mq-101',
+      quoteNumber: 'QT-2001',
+      shareKey: 'SNX-MQ101',
+      date: '2026-09-25',
+      validUntil: '2026-10-25',
+      customerId: 'mc-1',
+      prospectName: 'Orion Solutions Colombo',
+      contactPerson: 'Dinesh Wickramasinghe',
+      phone: '0776789012',
+      email: 'dinesh@orionsolutions.lk',
+      status: 'Sent',
+      sentAt: '2026-09-25T11:00:00Z',
+      amount: 520000,
+      totalAmount: 520000,
+      items: [
+        { name: 'Enterprise Cloud ERP License (Annual)', qty: 2, unitPrice: 185000, amount: 370000 },
+        { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 },
+        { name: 'Professional Systems Consulting (Day Rate)', qty: 1, unitPrice: 55000, amount: 55000 }
+      ],
+      notes: 'Standard 12-month license with guaranteed 99.9% uptime SLA.'
+    }
+  ];
+
+  const sampleMainInvoices = [
+    {
+      id: 'minv-201',
+      invoiceNumber: 'INV-2001',
+      shareKey: 'SNX-MINV201',
+      date: '2026-09-20',
+      dueDate: '2026-10-05',
+      customerId: 'mc-1',
+      prospectName: 'Apex Global Technologies',
+      amount: 650000,
+      totalAmount: 650000,
+      status: 'Paid',
+      items: [
+        { name: 'Enterprise Cloud ERP License (Annual)', qty: 3, unitPrice: 185000, amount: 555000 },
+        { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 }
+      ],
+      reminderSent: false
+    }
+  ];
+
+  const [businesses, setBusinesses] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_businesses');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_BUSINESSES;
+  });
+
+  const [activeBusinessId, setActiveBusinessId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('active_business_id');
+      if (saved) return saved;
+    } catch (e) {}
+    return 'biz_hairpins';
+  });
+
   const [customers, setCustomers] = useState(() => {
     try {
+      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`);
+      if (bizSaved) return JSON.parse(bizSaved);
       const saved = localStorage.getItem('gym_customers');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+    return activeId === 'biz_main' ? sampleMainCustomers : sampleCustomers;
   });
 
   const [inventory, setInventory] = useState(() => {
     try {
+      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`);
+      if (bizSaved) return JSON.parse(bizSaved);
       const saved = localStorage.getItem('gym_inventory');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+    return activeId === 'biz_main' ? sampleMainInventory : sampleInventory;
   });
 
   const [invoices, setInvoices] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_invoices');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`);
+      const raw = bizSaved || localStorage.getItem('gym_invoices');
+      if (raw) {
+        const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           return parsed.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
@@ -309,14 +473,17 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+    return activeId === 'biz_main' ? sampleMainInvoices : sampleInvoices;
   });
 
   const [quotes, setQuotes] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_quotes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`);
+      const raw = bizSaved || localStorage.getItem('gym_quotes');
+      if (raw) {
+        const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           return parsed.map(q => {
             if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
@@ -327,15 +494,20 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+    return activeId === 'biz_main' ? sampleMainQuotes : sampleQuotes;
   });
 
   const [leads, setLeads] = useState(() => {
     try {
+      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`);
+      if (bizSaved) return JSON.parse(bizSaved);
       const saved = localStorage.getItem('gym_leads');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+    return activeId === 'biz_main' ? sampleMainLeads : sampleLeads;
   });
 
   const [activityLogs, setActivityLogs] = useState(() => {
@@ -1425,10 +1597,347 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => {
     try {
       localStorage.setItem('gym_sms_config', JSON.stringify(smsConfig));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
+      }
     } catch (e) {
       console.warn('Failed to mirror gym_sms_config to localStorage', e);
     }
-  }, [smsConfig]);
+  }, [smsConfig, activeBusinessId]);
+
+  // Multi-Business Persistence: Mirror each entity to active business slot
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_customers', JSON.stringify(customers));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(customers));
+      }
+    } catch (e) {}
+  }, [customers, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_inventory', JSON.stringify(inventory));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(inventory));
+      }
+    } catch (e) {}
+  }, [inventory, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_leads', JSON.stringify(leads));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_leads`, JSON.stringify(leads));
+      }
+    } catch (e) {}
+  }, [leads, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_quotes', JSON.stringify(quotes));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(quotes));
+      }
+    } catch (e) {}
+  }, [quotes, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_invoices', JSON.stringify(invoices));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(invoices));
+      }
+    } catch (e) {}
+  }, [invoices, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_expenses', JSON.stringify(expenses));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(expenses));
+      }
+    } catch (e) {}
+  }, [expenses, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_suppliers', JSON.stringify(suppliers));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(suppliers));
+      }
+    } catch (e) {}
+  }, [suppliers, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(purchaseOrders));
+      }
+    } catch (e) {}
+  }, [purchaseOrders, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_boms', JSON.stringify(boms));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
+      }
+    } catch (e) {}
+  }, [boms, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_production_orders', JSON.stringify(productionOrders));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
+      }
+    } catch (e) {}
+  }, [productionOrders, activeBusinessId]);
+
+  // Load business dataset by ID
+  const loadBusinessData = (businessId) => {
+    if (businessId === 'biz_hairpins') {
+      const savedCust = localStorage.getItem('biz_data_biz_hairpins_customers') || localStorage.getItem('gym_customers');
+      const savedInv = localStorage.getItem('biz_data_biz_hairpins_inventory') || localStorage.getItem('gym_inventory');
+      const savedLeads = localStorage.getItem('biz_data_biz_hairpins_leads') || localStorage.getItem('gym_leads');
+      const savedQuotes = localStorage.getItem('biz_data_biz_hairpins_quotes') || localStorage.getItem('gym_quotes');
+      const savedInvoices = localStorage.getItem('biz_data_biz_hairpins_invoices') || localStorage.getItem('gym_invoices');
+      const savedExpenses = localStorage.getItem('biz_data_biz_hairpins_expenses') || localStorage.getItem('gym_expenses');
+      const savedFA = localStorage.getItem('biz_data_biz_hairpins_fixedAssets') || localStorage.getItem('gym_fixed_assets');
+      const savedJE = localStorage.getItem('biz_data_biz_hairpins_journalEntries') || localStorage.getItem('gym_journal_entries');
+      const savedJL = localStorage.getItem('biz_data_biz_hairpins_journalLines') || localStorage.getItem('gym_journal_lines');
+      const savedSuppliers = localStorage.getItem('biz_data_biz_hairpins_suppliers') || localStorage.getItem('gym_suppliers');
+      const savedPO = localStorage.getItem('biz_data_biz_hairpins_purchaseOrders') || localStorage.getItem('gym_purchase_orders');
+      const savedBOM = localStorage.getItem('biz_data_biz_hairpins_boms') || localStorage.getItem('gym_boms');
+      const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders') || localStorage.getItem('gym_production_orders');
+      const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
+
+      return {
+        customers: savedCust ? JSON.parse(savedCust) : sampleCustomers,
+        inventory: savedInv ? JSON.parse(savedInv) : sampleInventory,
+        leads: savedLeads ? JSON.parse(savedLeads) : sampleLeads,
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleQuotes,
+        invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleInvoices,
+        expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleExpenses,
+        fixedAssets: savedFA ? JSON.parse(savedFA) : sampleFixedAssets,
+        journalEntries: savedJE ? JSON.parse(savedJE) : sampleJournalEntries,
+        journalLines: savedJL ? JSON.parse(savedJL) : sampleJournalLines,
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : sampleSuppliers,
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : samplePurchaseOrders,
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : sampleBOMs.map(normalizeBOM),
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : sampleProductionOrders.map(normalizeProductionOrder),
+        smsConfig: savedConfig ? JSON.parse(savedConfig) : {
+          ...DEFAULT_SMS_CONFIG,
+          companyName: 'Royal Hair Pin Industries',
+          dashboardName: 'Royal Hair Pins & Accessories',
+          companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
+          companyEmail: 'royalhairpins@gmail.com',
+          companyPhone: '+94 77 123 4567',
+          pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
+          pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.'
+        }
+      };
+    }
+
+    if (businessId === 'biz_main') {
+      const savedCust = localStorage.getItem('biz_data_biz_main_customers');
+      const savedInv = localStorage.getItem('biz_data_biz_main_inventory');
+      const savedLeads = localStorage.getItem('biz_data_biz_main_leads');
+      const savedQuotes = localStorage.getItem('biz_data_biz_main_quotes');
+      const savedInvoices = localStorage.getItem('biz_data_biz_main_invoices');
+      const savedExpenses = localStorage.getItem('biz_data_biz_main_expenses');
+      const savedFA = localStorage.getItem('biz_data_biz_main_fixedAssets');
+      const savedJE = localStorage.getItem('biz_data_biz_main_journalEntries');
+      const savedJL = localStorage.getItem('biz_data_biz_main_journalLines');
+      const savedSuppliers = localStorage.getItem('biz_data_biz_main_suppliers');
+      const savedPO = localStorage.getItem('biz_data_biz_main_purchaseOrders');
+      const savedBOM = localStorage.getItem('biz_data_biz_main_boms');
+      const savedMO = localStorage.getItem('biz_data_biz_main_productionOrders');
+      const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig');
+
+      return {
+        customers: savedCust ? JSON.parse(savedCust) : sampleMainCustomers,
+        inventory: savedInv ? JSON.parse(savedInv) : sampleMainInventory,
+        leads: savedLeads ? JSON.parse(savedLeads) : sampleMainLeads,
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleMainQuotes,
+        invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleMainInvoices,
+        expenses: savedExpenses ? JSON.parse(savedExpenses) : [],
+        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
+        journalEntries: savedJE ? JSON.parse(savedJE) : [],
+        journalLines: savedJL ? JSON.parse(savedJL) : [],
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
+        smsConfig: savedConfig ? JSON.parse(savedConfig) : {
+          ...DEFAULT_SMS_CONFIG,
+          companyName: 'Seynex Enterprises',
+          dashboardName: 'Seynex Enterprises',
+          companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
+          companyEmail: 'info@seynex.lk',
+          companyPhone: '+94 11 234 5678',
+          pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
+          pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.'
+        }
+      };
+    }
+
+    // Custom Business Profile
+    const savedCust = localStorage.getItem(`biz_data_${businessId}_customers`);
+    const savedInv = localStorage.getItem(`biz_data_${businessId}_inventory`);
+    const savedLeads = localStorage.getItem(`biz_data_${businessId}_leads`);
+    const savedQuotes = localStorage.getItem(`biz_data_${businessId}_quotes`);
+    const savedInvoices = localStorage.getItem(`biz_data_${businessId}_invoices`);
+    const savedExpenses = localStorage.getItem(`biz_data_${businessId}_expenses`);
+    const savedConfig = localStorage.getItem(`biz_data_${businessId}_smsConfig`);
+
+    const bizObj = businesses.find(b => b.id === businessId) || { name: 'Custom Business' };
+
+    return {
+      customers: savedCust ? JSON.parse(savedCust) : [],
+      inventory: savedInv ? JSON.parse(savedInv) : [],
+      leads: savedLeads ? JSON.parse(savedLeads) : [],
+      quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
+      invoices: savedInvoices ? JSON.parse(savedInvoices) : [],
+      expenses: savedExpenses ? JSON.parse(savedExpenses) : [],
+      fixedAssets: [],
+      journalEntries: [],
+      journalLines: [],
+      suppliers: [],
+      purchaseOrders: [],
+      boms: [],
+      productionOrders: [],
+      smsConfig: savedConfig ? JSON.parse(savedConfig) : {
+        ...DEFAULT_SMS_CONFIG,
+        companyName: bizObj.name,
+        dashboardName: bizObj.name,
+        pdfFooterText: `Thank you for your business. ${bizObj.name}.`,
+        pdfNotes: `Computer-generated document by ${bizObj.name} Management Suite.`
+      }
+    };
+  };
+
+  const activeBusiness = businesses.find(b => b.id === activeBusinessId) || businesses[0] || DEFAULT_BUSINESSES[0];
+
+  const switchBusiness = (targetBusinessId) => {
+    if (!targetBusinessId || targetBusinessId === activeBusinessId) return;
+    const targetBiz = businesses.find(b => b.id === targetBusinessId);
+    if (!targetBiz) return;
+
+    // 1. Save current active business data
+    try {
+      localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(customers));
+      localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(inventory));
+      localStorage.setItem(`biz_data_${activeBusinessId}_leads`, JSON.stringify(leads));
+      localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(quotes));
+      localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(invoices));
+      localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(expenses));
+      localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(fixedAssets));
+      localStorage.setItem(`biz_data_${activeBusinessId}_journalEntries`, JSON.stringify(journalEntries));
+      localStorage.setItem(`biz_data_${activeBusinessId}_journalLines`, JSON.stringify(journalLines));
+      localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(suppliers));
+      localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(purchaseOrders));
+      localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
+      localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
+      localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
+    } catch (e) {
+      console.warn('Failed to save outgoing business data', e);
+    }
+
+    // 2. Load target business data
+    const loadedData = loadBusinessData(targetBusinessId);
+
+    // 3. Set React states
+    setCustomers(loadedData.customers);
+    setInventory(loadedData.inventory);
+    setLeads(loadedData.leads);
+    setQuotes(loadedData.quotes);
+    setInvoices(loadedData.invoices);
+    setExpenses(loadedData.expenses);
+    setFixedAssets(loadedData.fixedAssets);
+    setJournalEntries(loadedData.journalEntries);
+    setJournalLines(loadedData.journalLines);
+    setSuppliers(loadedData.suppliers);
+    setPurchaseOrders(loadedData.purchaseOrders);
+    setBoms(loadedData.boms);
+    setProductionOrders(loadedData.productionOrders);
+    setSmsConfig(loadedData.smsConfig);
+
+    // 4. Update active ID and mirror to localStorage
+    setActiveBusinessId(targetBusinessId);
+    localStorage.setItem('active_business_id', targetBusinessId);
+
+    // Mirror to gym_* for cross-compatibility
+    try {
+      localStorage.setItem('gym_customers', JSON.stringify(loadedData.customers));
+      localStorage.setItem('gym_inventory', JSON.stringify(loadedData.inventory));
+      localStorage.setItem('gym_leads', JSON.stringify(loadedData.leads));
+      localStorage.setItem('gym_quotes', JSON.stringify(loadedData.quotes));
+      localStorage.setItem('gym_invoices', JSON.stringify(loadedData.invoices));
+      localStorage.setItem('gym_sms_config', JSON.stringify(loadedData.smsConfig));
+    } catch (e) {}
+
+    showNotification(`Switched active business to "${targetBiz.name}"!`, 'success');
+  };
+
+  const addBusiness = ({ name, category, tagline, color, icon }) => {
+    const newId = `biz_${Date.now()}`;
+    const newBiz = {
+      id: newId,
+      name,
+      category: category || 'General',
+      tagline: tagline || `${name} Operations`,
+      color: color || '#4f46e5',
+      icon: icon || 'Building2',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [...businesses, newBiz];
+    setBusinesses(updated);
+    localStorage.setItem('app_businesses', JSON.stringify(updated));
+
+    // Initialize clean empty data for this business
+    const emptyConfig = {
+      ...DEFAULT_SMS_CONFIG,
+      companyName: name,
+      dashboardName: name,
+      pdfFooterText: `Thank you for your business. ${name}.`,
+      pdfNotes: `Computer-generated document by ${name} Management System.`
+    };
+    try {
+      localStorage.setItem(`biz_data_${newId}_customers`, JSON.stringify([]));
+      localStorage.setItem(`biz_data_${newId}_inventory`, JSON.stringify([]));
+      localStorage.setItem(`biz_data_${newId}_leads`, JSON.stringify([]));
+      localStorage.setItem(`biz_data_${newId}_quotes`, JSON.stringify([]));
+      localStorage.setItem(`biz_data_${newId}_invoices`, JSON.stringify([]));
+      localStorage.setItem(`biz_data_${newId}_smsConfig`, JSON.stringify(emptyConfig));
+    } catch (e) {}
+
+    showNotification(`Created business profile "${name}"!`, 'success');
+    return newId;
+  };
+
+  const updateBusiness = (id, updates) => {
+    const updated = businesses.map(b => b.id === id ? { ...b, ...updates } : b);
+    setBusinesses(updated);
+    localStorage.setItem('app_businesses', JSON.stringify(updated));
+    showNotification('Updated business profile');
+  };
+
+  const deleteBusiness = (id) => {
+    if (businesses.length <= 1) {
+      showNotification('Cannot delete the only business profile', 'error');
+      return;
+    }
+    const updated = businesses.filter(b => b.id !== id);
+    setBusinesses(updated);
+    localStorage.setItem('app_businesses', JSON.stringify(updated));
+    if (activeBusinessId === id) {
+      switchBusiness(updated[0].id);
+    }
+    showNotification('Business profile deleted', 'warning');
+  };
 
   // Change tracking: count actual state changes after hydration and initial cloud load
   const isHydratingCloudRef = useRef(false);
@@ -5597,7 +6106,8 @@ export default function StoreContextProvider({ children }) {
       currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
       cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud,
-      hasUnsavedChanges, setHasUnsavedChanges,
+      // Multi-Business Entity Partitioning & Switcher
+      businesses, activeBusinessId, activeBusiness, switchBusiness, addBusiness, updateBusiness, deleteBusiness, DEFAULT_BUSINESSES,
       resetEverythingWithConfirmation, executeResetEverything,
       confirmAction
     }}>

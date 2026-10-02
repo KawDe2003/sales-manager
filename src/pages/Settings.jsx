@@ -70,7 +70,8 @@ const Settings = () => {
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges,
-    customers = [], quotes = [], invoices = [], inventory = [], leads = []
+    customers = [], quotes = [], invoices = [], inventory = [], leads = [],
+    businesses = [], activeBusinessId, activeBusiness, switchBusiness
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -804,71 +805,109 @@ END $$;`;
             </div>
           </div>
 
-          {/* Hair Pin Industry Setup Preset Card */}
+          {/* Multi-Business Architecture: Hair Pins vs Main Business Separation Card */}
           <div className="glass-panel" style={{ 
             padding: '24px 28px', 
-            border: '1px solid rgba(13, 148, 136, 0.35)', 
-            background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.25)', 
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(13, 148, 136, 0.04) 100%)',
             borderRadius: '16px'
           }}>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-              <div className="flex items-center gap-4">
-                <div style={{
-                  padding: '12px',
-                  borderRadius: '12px',
-                  background: 'rgba(13, 148, 136, 0.18)',
-                  color: 'var(--accent-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <Factory size={26} />
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    color: '#818cf8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Building2 size={26} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="h3" style={{ margin: 0, color: 'var(--text-primary)' }}>
+                        Multi-Business Entity Partitioning
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(13, 148, 136, 0.18)', color: '#2dd4bf', border: '1px solid rgba(13, 148, 136, 0.3)' }}>
+                        Separated Profiles Active
+                      </span>
+                    </div>
+                    <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
+                      Hair Pins operations are partitioned as an independent business. Each business profile maintains its own isolated product catalog, leads pipeline, quotations, invoices, and company branding.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="h3" style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Hair Pin Manufacturing & Wholesale Catalog
-                  </h3>
-                  <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
-                    1-Click Setup: Preload complete hair pin product catalog (Bobby pins, U-pins, Wave grips, Snap clips, Pearl pins), raw materials (steel wire, enamel paint, cards), wholesale customers, suppliers, BOM formulations, and production orders.
-                  </p>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {businesses.map((biz) => {
+                    const isActive = biz.id === activeBusinessId;
+                    const isHairPins = biz.id === 'biz_hairpins';
+
+                    return (
+                      <button
+                        key={biz.id}
+                        type="button"
+                        onClick={() => switchBusiness && switchBusiness(biz.id)}
+                        className="btn"
+                        style={{
+                          height: '38px',
+                          padding: '0 16px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          border: isActive 
+                            ? (isHairPins ? '1px solid rgba(13, 148, 136, 0.5)' : '1px solid rgba(99, 102, 241, 0.5)')
+                            : '1px solid var(--subtle-border)',
+                          background: isActive
+                            ? (isHairPins ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' : 'var(--accent-gradient)')
+                            : 'var(--bg-secondary)',
+                          color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                        }}
+                      >
+                        {isHairPins ? <Sparkles size={14} /> : <Building2 size={14} />}
+                        <span>{biz.name}</span>
+                        {isActive && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>✓ Active</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <button
-                type="button"
-                id="settings-load-hairpins-btn"
-                className="btn"
-                onClick={() => {
-                  if (confirmAction) {
-                    confirmAction({
-                      title: 'Load Hair Pin Industry Setup?',
-                      message: 'This will load the full hair pin manufacturing inventory, raw materials, wholesale clients, and BOM recipes. Existing unsaved custom data will be replaced with the hair pin industry preset.',
-                      confirmText: 'Load Hair Pin Catalog',
-                      variant: 'primary',
-                      onConfirm: () => {
-                        loadHairPinIndustryDefaults && loadHairPinIndustryDefaults();
-                      }
-                    });
-                  } else {
-                    loadHairPinIndustryDefaults && loadHairPinIndustryDefaults();
-                  }
-                }}
-                style={{
-                  height: '44px',
-                  padding: '0 22px',
-                  fontSize: '0.88rem',
-                  fontWeight: 800,
-                  gap: '8px',
-                  color: '#ffffff',
-                  background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  boxShadow: '0 3px 12px rgba(13, 148, 136, 0.35)',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <Sparkles size={16} /> Load Hair Pin Setup
-              </button>
+
+              {/* Business Details Panel */}
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--subtle-border)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '12px',
+                fontSize: '0.8rem'
+              }}>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Current Active Entity</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {activeBusiness?.name || 'Royal Hair Pin Industries'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Business Category</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {activeBusiness?.category || 'Manufacturing & Wholesale'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Quick Switcher</div>
+                  <div style={{ color: 'var(--accent-primary)', marginTop: '2px', fontWeight: 600 }}>
+                    Top Header dropdown available on all pages
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

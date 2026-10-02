@@ -35,6 +35,7 @@ import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
 import QuickSaleModal from './components/QuickSaleModal';
+import BusinessSwitcher from './components/BusinessSwitcher';
 
 const LoadingFallback = () => {
   const { brandName, logo } = (() => {
@@ -217,7 +218,8 @@ const AppContent = () => {
     inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges,
-    quickSaleOpen, setQuickSaleOpen
+    quickSaleOpen, setQuickSaleOpen,
+    activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -496,6 +498,9 @@ const AppContent = () => {
               </h1>
             </div>
           </Link>
+
+          {/* Business Profile Switcher */}
+          <BusinessSwitcher />
         </div>
 
         <div className="flex items-center gap-2">
