@@ -137,9 +137,93 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const sampleLeads = [
-    { id: 'lead-1', gymName: 'City Fancy Center Pettah', name: 'M. Riaz', phone: '0771122334', email: 'riaz@cityfancy.lk', location: 'Colombo 11', status: 'Contacted', value: 350000, createdAt: new Date().toISOString() },
-    { id: 'lead-2', gymName: 'Salon Majestic & Bridal Wear Kandy', name: 'S. Kumari', phone: '0714455667', email: 'kumari@majestic.lk', location: 'Kandy', status: 'Demo Scheduled', value: 240000, createdAt: new Date().toISOString() },
-    { id: 'lead-3', gymName: 'Glamour Cosmetics Galle Fort', name: 'Niluka Silva', phone: '0767788990', email: 'niluka@glamour.lk', location: 'Galle', status: 'Interested', value: 180000, createdAt: new Date().toISOString() }
+    { 
+      id: 'lead-1', 
+      gymName: 'City Fancy Center Pettah', 
+      contactPerson: 'M. Riaz', 
+      name: 'M. Riaz', 
+      phone: '0771122334', 
+      email: 'riaz@cityfancy.lk', 
+      location: 'Colombo 11', 
+      status: 'Contacted', 
+      value: 350000, 
+      date: '2026-09-28T09:30:00.000Z',
+      lastActionDate: '2026-10-01T14:30:00.000Z',
+      nextActionDate: new Date().toISOString().split('T')[0], // Due Today!
+      nextActionNote: 'Call back to finalize wholesale bulk discount on 30 boxes',
+      comments: [
+        {
+          id: 'c-101',
+          date: '2026-10-01T14:30:00.000Z',
+          text: 'Spoke with Mr. Riaz. Very interested in our Classic Black Bobby Pins. Requested 5% volume rebate for 30 cartons order.',
+          type: 'Call',
+          nextActionDate: new Date().toISOString().split('T')[0],
+          nextActionNote: 'Call back to finalize wholesale bulk discount on 30 boxes',
+          author: 'Sales Executive'
+        },
+        {
+          id: 'c-100',
+          date: '2026-09-28T10:00:00.000Z',
+          text: 'Initial outreach via WhatsApp. Sent product catalog and wholesale price list.',
+          type: 'WhatsApp',
+          nextActionDate: '2026-10-01',
+          nextActionNote: 'Follow up on catalog delivery',
+          author: 'Sales Executive'
+        }
+      ]
+    },
+    { 
+      id: 'lead-2', 
+      gymName: 'Salon Majestic & Bridal Wear Kandy', 
+      contactPerson: 'S. Kumari', 
+      name: 'S. Kumari', 
+      phone: '0714455667', 
+      email: 'kumari@majestic.lk', 
+      location: 'Kandy', 
+      status: 'Demo Scheduled', 
+      value: 240000, 
+      date: '2026-09-25T11:00:00.000Z',
+      lastActionDate: '2026-09-30T16:00:00.000Z',
+      nextActionDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0], // Upcoming in 3 days
+      nextActionNote: 'Conduct on-site product presentation of Bridal Pearl Hair Pin series',
+      comments: [
+        {
+          id: 'c-201',
+          date: '2026-09-30T16:00:00.000Z',
+          text: 'Confirmed demo date with Ms. Kumari for next Monday at 10 AM at Kandy branch. Preparing bridal samples kit.',
+          type: 'Demo',
+          nextActionDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+          nextActionNote: 'Conduct on-site product presentation of Bridal Pearl Hair Pin series',
+          author: 'Admin'
+        }
+      ]
+    },
+    { 
+      id: 'lead-3', 
+      gymName: 'Glamour Cosmetics Galle Fort', 
+      contactPerson: 'Niluka Silva', 
+      name: 'Niluka Silva', 
+      phone: '0767788990', 
+      email: 'niluka@glamour.lk', 
+      location: 'Galle', 
+      status: 'Interested', 
+      value: 180000, 
+      date: '2026-09-20T10:00:00.000Z',
+      lastActionDate: '2026-09-28T11:15:00.000Z',
+      nextActionDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], // Overdue by 2 days!
+      nextActionNote: 'Send sample display stand mockups and credit payment terms',
+      comments: [
+        {
+          id: 'c-301',
+          date: '2026-09-28T11:15:00.000Z',
+          text: 'Meeting at shop. Wants counter display racks for snap clips. Overdue for follow-up on credit terms.',
+          type: 'Meeting',
+          nextActionDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
+          nextActionNote: 'Send sample display stand mockups and credit payment terms',
+          author: 'Sales Executive'
+        }
+      ]
+    }
   ];
 
   const sampleQuotes = [
@@ -1957,6 +2041,15 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
+      const notesPayload = JSON.stringify({
+        notesText: typeof lead.notes === 'string' ? lead.notes : '',
+        comments: Array.isArray(lead.comments) ? lead.comments : [],
+        lastActionDate: lead.lastActionDate || lead.date || null,
+        nextActionDate: lead.nextActionDate || null,
+        nextActionNote: lead.nextActionNote || '',
+        contactPerson: lead.contactPerson || lead.prospectName || ''
+      });
+
       const { error } = await supabase
         .from('leads')
         .upsert({
@@ -1964,11 +2057,11 @@ export default function StoreContextProvider({ children }) {
           user_id: effId,
           address: lead.address || '',
           gym_name: lead.gymName || 'Lead Gym',
-          prospect_name: lead.prospectName || lead.name || '',
+          prospect_name: lead.contactPerson || lead.prospectName || lead.name || '',
           phone: lead.phone || '',
           status: lead.status || 'New',
           date: lead.date || new Date().toISOString(),
-          notes: lead.notes || ''
+          notes: notesPayload
         }, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase Sync] Lead Warning:', error.message);
@@ -2575,17 +2668,56 @@ export default function StoreContextProvider({ children }) {
 
       // 7. Leads
       if (Array.isArray(lData)) {
-        const loadedLeads = lData.map(l => ({
-          id: l.id,
-          gymName: l.gym_name,
-          prospectName: l.prospect_name,
-          phone: l.phone,
-          status: l.status,
-          date: l.date,
-          notes: l.notes
-        }));
-        setLeads(loadedLeads);
-        try { localStorage.setItem('gym_leads', JSON.stringify(loadedLeads)); } catch(e) {}
+        let localLeads = [];
+        try {
+          localLeads = JSON.parse(localStorage.getItem('gym_leads') || '[]');
+        } catch (e) {}
+
+        const loadedLeads = lData.map(l => {
+          const localMatch = localLeads.find(ll => ll.id === l.id);
+          let comments = localMatch?.comments || [];
+          let lastActionDate = localMatch?.lastActionDate || l.date || null;
+          let nextActionDate = localMatch?.nextActionDate || null;
+          let nextActionNote = localMatch?.nextActionNote || '';
+          let notesText = typeof l.notes === 'string' ? l.notes : '';
+          let contactPerson = l.prospect_name || localMatch?.contactPerson || '';
+
+          if (notesText && notesText.startsWith('{') && notesText.includes('"comments"')) {
+            try {
+              const parsed = JSON.parse(notesText);
+              if (Array.isArray(parsed.comments)) comments = parsed.comments;
+              if (parsed.lastActionDate) lastActionDate = parsed.lastActionDate;
+              if (parsed.nextActionDate) nextActionDate = parsed.nextActionDate;
+              if (parsed.nextActionNote) nextActionNote = parsed.nextActionNote;
+              if (parsed.contactPerson) contactPerson = parsed.contactPerson;
+              notesText = parsed.notesText || '';
+            } catch (e) {}
+          }
+
+          return {
+            id: l.id,
+            gymName: l.gym_name,
+            contactPerson: contactPerson,
+            prospectName: contactPerson,
+            phone: l.phone || localMatch?.phone || '',
+            email: localMatch?.email || '',
+            status: l.status || localMatch?.status || 'New',
+            date: l.date,
+            notes: notesText || localMatch?.notes || '',
+            comments: comments,
+            lastActionDate: lastActionDate,
+            nextActionDate: nextActionDate,
+            nextActionNote: nextActionNote
+          };
+        });
+
+        // Merge any local leads created offline or before sync
+        const remoteLIds = new Set(loadedLeads.map(l => l.id));
+        const unSyncedLocalLeads = localLeads.filter(ll => ll && ll.id && !remoteLIds.has(ll.id));
+        const mergedLeads = [...loadedLeads, ...unSyncedLocalLeads];
+
+        setLeads(mergedLeads);
+        try { localStorage.setItem('gym_leads', JSON.stringify(mergedLeads)); } catch(e) {}
       }
 
       // 8. Expenses
@@ -4186,22 +4318,103 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addLead = (lead) => {
-    const newLead = { ...lead, id: uuidv4(), date: new Date().toISOString() };
-    setLeads([...leads, newLead]);
+    const creationDate = lead.date || new Date().toISOString();
+    const newLead = { 
+      ...lead, 
+      id: uuidv4(), 
+      date: creationDate,
+      comments: Array.isArray(lead.comments) ? lead.comments : [],
+      lastActionDate: lead.lastActionDate || creationDate,
+      nextActionDate: lead.nextActionDate || null,
+      nextActionNote: lead.nextActionNote || ''
+    };
+    const nextLeads = [...leads, newLead];
+    setLeads(nextLeads);
+    try { localStorage.setItem('gym_leads', JSON.stringify(nextLeads)); } catch (e) {}
     syncLeadToSupabase(newLead);
     addLog('System', `New Lead Added: ${lead.gymName}`);
     showNotification(`Lead "${lead.gymName || lead.prospectName || 'Lead'}" added!`, 'success');
+    return newLead;
   };
+
   const updateLead = (id, data) => {
-    setLeads(prev => prev.map(l => {
+    setLeads(prev => {
+      const next = prev.map(l => {
         if (l.id === id) {
-            const updated = { ...l, ...data };
-            syncLeadToSupabase(updated);
-            showNotification(`Lead "${updated.gymName || 'Lead'}" updated!`, 'success');
-            return updated;
+          const updated = { ...l, ...data };
+          syncLeadToSupabase(updated);
+          return updated;
         }
         return l;
-    }));
+      });
+      try { localStorage.setItem('gym_leads', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    showNotification('Lead updated successfully!', 'success');
+  };
+
+  const addLeadComment = (leadId, commentData) => {
+    const commentDate = commentData.date || new Date().toISOString();
+    const newComment = {
+      id: uuidv4(),
+      date: commentDate,
+      text: commentData.text || '',
+      type: commentData.type || 'Call',
+      nextActionDate: commentData.nextActionDate || null,
+      nextActionNote: commentData.nextActionNote || '',
+      author: commentData.author || user?.name || user?.email || 'Sales Rep'
+    };
+
+    let updatedLead = null;
+    setLeads(prev => {
+      const next = prev.map(l => {
+        if (l.id === leadId) {
+          const prevComments = Array.isArray(l.comments) ? l.comments : [];
+          const updated = {
+            ...l,
+            comments: [newComment, ...prevComments],
+            lastActionDate: commentDate, // Last action date is the commented date!
+            nextActionDate: commentData.nextActionDate !== undefined ? commentData.nextActionDate : l.nextActionDate,
+            nextActionNote: commentData.nextActionNote !== undefined ? commentData.nextActionNote : l.nextActionNote
+          };
+          syncLeadToSupabase(updated);
+          updatedLead = updated;
+          return updated;
+        }
+        return l;
+      });
+      try { localStorage.setItem('gym_leads', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+
+    addLog('CRM', `Lead Follow-up Comment added for ${updatedLead?.gymName || 'Lead'}`);
+    showNotification(`Comment logged! Next action: ${commentData.nextActionDate ? new Date(commentData.nextActionDate).toLocaleDateString() : 'None'}`, 'success');
+    return updatedLead;
+  };
+
+  const deleteLeadComment = (leadId, commentId) => {
+    setLeads(prev => {
+      const next = prev.map(l => {
+        if (l.id === leadId) {
+          const prevComments = Array.isArray(l.comments) ? l.comments : [];
+          const remaining = prevComments.filter(c => c.id !== commentId);
+          const latestComment = remaining[0];
+          const updated = {
+            ...l,
+            comments: remaining,
+            lastActionDate: latestComment ? latestComment.date : (l.date || new Date().toISOString()),
+            nextActionDate: latestComment ? latestComment.nextActionDate : l.nextActionDate,
+            nextActionNote: latestComment ? latestComment.nextActionNote : l.nextActionNote
+          };
+          syncLeadToSupabase(updated);
+          return updated;
+        }
+        return l;
+      });
+      try { localStorage.setItem('gym_leads', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    showNotification('Comment removed.', 'info');
   };
   const deleteLead = async (id) => {
     const target = leads.find(l => l.id === id);
@@ -5346,7 +5559,7 @@ export default function StoreContextProvider({ children }) {
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
       invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice, acceptQuote, proposeBudget, rejectQuote, checkQuotationExpirations,
-      leads, addLead, updateLead, deleteLead,
+      leads, addLead, updateLead, deleteLead, addLeadComment, deleteLeadComment,
       expenses, addExpense, updateExpense, deleteExpense,
       tasks, addTask, updateTask, deleteTask,
       fixedAssets, addFixedAsset, updateFixedAsset, deleteFixedAsset,

@@ -1,7 +1,9 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Plus, Search, CheckCircle, Clock, Trash2, CalendarDays, Edit3 } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, Trash2, CalendarDays, Edit3, X } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const Tasks = () => {
   const { tasks = [], addTask, updateTask, deleteTask } = useContext(StoreContext);
@@ -21,6 +23,14 @@ const Tasks = () => {
     relatedId: ''
   };
   const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    if (showModal) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [showModal]);
 
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = t.title?.toLowerCase().includes(searchTerm.toLowerCase()) || t.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -162,23 +172,62 @@ const Tasks = () => {
       </div>
 
       {/* Task Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <h2 className="h2 mb-6">{editingTask ? 'Edit Task' : 'New Task'}</h2>
+      {showModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="modal-overlay app-modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100dvh',
+            background: 'rgba(2, 6, 23, 0.88)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div 
+            className="glass-panel app-modal-dialog" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '560px', 
+              borderRadius: '16px',
+              background: '#111827',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)',
+              overflow: 'visible',
+              padding: '24px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>{editingTask ? 'Edit Task' : 'New Task'}</h2>
+              <button className="btn btn-secondary" style={{ padding: '6px' }} onClick={() => setShowModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleSave}>
-              <div className="form-group">
+              <div className="form-group mb-4">
                 <label className="form-label">Task Title</label>
                 <input required type="text" className="form-input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g. Call GymX for follow-up" />
               </div>
-              <div className="form-group">
+              <div className="form-group mb-4">
                 <label className="form-label">Description</label>
-                <textarea className="form-input" style={{ minHeight: '100px' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Task details..."></textarea>
+                <textarea className="form-input" style={{ minHeight: '90px' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Task details..."></textarea>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="form-group">
                   <label className="form-label">Due Date</label>
-                  <input required type="date" className="form-input" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} />
+                  <DatePicker 
+                    value={form.dueDate} 
+                    onChange={val => setForm({...form, dueDate: val})} 
+                    placeholder="Select due date..." 
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Priority</label>
@@ -190,16 +239,18 @@ const Tasks = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-4 mt-8">
+              <div className="flex justify-end gap-3 mt-6">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingTask ? 'Save Changes' : 'Create Task'}</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 };
 
 export default Tasks;
+

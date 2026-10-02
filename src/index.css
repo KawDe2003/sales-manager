@@ -565,19 +565,95 @@ select option, select.form-input option, select.form-select option, option {
   color: #f8fafc !important;
 }
 
-/* FIX: Native Date Picker Indicator Styling */
+/* ===== APP-WIDE THEME-MATCHED CALENDARS & DATE PICKERS ===== */
+:root, [data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* App-wide Native Date Inputs */
+input[type="date"],
+.form-input[type="date"] {
+  color-scheme: dark !important;
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 12px;
+  font-family: var(--font-family);
+  font-size: 0.88rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+[data-theme='light'] input[type="date"],
+[data-theme='light'] .form-input[type="date"] {
+  color-scheme: light !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Webkit Date Picker Indicator Icon Styling */
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(0.85);
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
+  filter: invert(0.85) sepia(1) saturate(5) hue-rotate(105deg); /* Tinted with emerald accent in dark theme */
+  opacity: 0.85;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 4px;
+  border-radius: 6px;
 }
+
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+  background: rgba(16, 185, 129, 0.16);
+  transform: scale(1.1);
 }
 
 [data-theme='light'] input[type="date"]::-webkit-calendar-picker-indicator {
   filter: none;
+  opacity: 0.75;
+}
+
+[data-theme='light'] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Webkit datetime edit text */
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--text-primary);
+}
+
+[data-theme='light'] input[type="date"]::-webkit-datetime-edit {
+  color: #0f172a;
+}
+
+/* App-wide Custom DatePicker Popover Theme Styling */
+.custom-calendar-popover {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='light'] .custom-calendar-popover {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 20px 45px -8px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme='light'] .custom-calendar-popover button {
+  color: #0f172a;
+}
+
+[data-theme='light'] .custom-calendar-popover button:hover {
+  background: rgba(15, 23, 42, 0.05) !important;
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus, select.form-input:focus {
