@@ -625,90 +625,117 @@ const AppContent = () => {
             </button>
             
             {notificationsOpen && (
-              <div className="glass-panel notification-dropdown">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
-                   <div className="flex items-center gap-2">
-                     <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
-                     {systemNotifications?.length > 0 && (
-                       <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
-                         {systemNotifications.length} new
-                       </span>
-                     )}
-                   </div>
-                   {systemNotifications?.length > 0 && (
-                     <button 
-                       onClick={() => { markNotificationsRead && markNotificationsRead(); }} 
-                       style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
-                     >
-                       Mark all read
-                     </button>
-                   )}
-                </div>
-                <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
-                  {(!systemNotifications || systemNotifications.length === 0) ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      <CheckCircle size={32} style={{ margin: '0 auto 8px auto', opacity: 0.3, color: 'var(--success)' }} />
-                      All caught up — no new alerts
-                    </div>
-                  ) : (
-                    systemNotifications.slice(0, 20).map(n => (
-                      <div 
-                        key={n.id} 
-                        style={{ 
-                          display: 'flex', gap: '12px', padding: '12px 18px', borderBottom: '1px solid var(--subtle-border)',
-                          cursor: n.link ? 'pointer' : 'default',
-                          transition: 'background 0.15s ease',
-                          background: 'rgba(255, 255, 255, 0.01)'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--subtle-bg)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)'; }}
-                        onClick={() => {
-                          if (n.link) {
-                            navigate(n.link);
-                            setNotificationsOpen(false);
-                          }
-                        }}
-                      >
-                        <div style={{ 
-                          width: '10px', height: '10px', borderRadius: '50%', marginTop: '5px', flexShrink: 0, 
-                          background: n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : n.type === 'info' ? 'var(--info)' : 'var(--danger)',
-                          boxShadow: `0 0 8px ${n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : 'var(--danger)'}`
-                        }}></div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {n.title && (
-                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                              {n.title}
-                            </div>
-                          )}
-                          <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-secondary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                            {n.message}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>{new Date(n.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            {n.link && <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>• View Details</span>}
-                          </div>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (markNotificationRead) markNotificationRead(n.id);
-                          }}
-                          style={{
-                            background: 'none', border: 'none', color: 'var(--text-muted)',
-                            cursor: 'pointer', padding: '2px 4px', borderRadius: '4px',
-                            height: 'fit-content', opacity: 0.6
-                          }}
-                          title="Dismiss notification"
-                          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = 'var(--danger)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                        >
-                          <X size={14} />
-                        </button>
+              <>
+                <div 
+                  className="notification-backdrop"
+                  onClick={() => setNotificationsOpen(false)}
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    inset: 0,
+                    zIndex: 10000,
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)'
+                  }}
+                />
+                <div className="glass-panel notification-dropdown" style={{ zIndex: 10001 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
+                     <div className="flex items-center gap-2">
+                       <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
+                       {systemNotifications?.length > 0 && (
+                         <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
+                           {systemNotifications.length} new
+                         </span>
+                       )}
+                     </div>
+                     <div className="flex items-center gap-3">
+                       {systemNotifications?.length > 0 && (
+                         <button 
+                           onClick={() => { markNotificationsRead && markNotificationsRead(); }} 
+                           style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, padding: '4px' }}
+                         >
+                           Mark all read
+                         </button>
+                       )}
+                       <button
+                         onClick={() => setNotificationsOpen(false)}
+                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                         title="Close activity feed"
+                       >
+                         <X size={16} />
+                       </button>
+                     </div>
+                  </div>
+                  <div style={{ maxHeight: 'min(380px, calc(100dvh - 200px))', overflowY: 'auto' }}>
+                    {(!systemNotifications || systemNotifications.length === 0) ? (
+                      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <CheckCircle size={32} style={{ margin: '0 auto 8px auto', opacity: 0.3, color: 'var(--success)' }} />
+                        All caught up — no new alerts
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      systemNotifications.slice(0, 20).map(n => (
+                        <div 
+                          key={n.id} 
+                          style={{ 
+                            display: 'flex', gap: '12px', padding: '12px 18px', borderBottom: '1px solid var(--subtle-border)',
+                            cursor: n.link ? 'pointer' : 'default',
+                            transition: 'background 0.15s ease',
+                            background: 'rgba(255, 255, 255, 0.01)'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--subtle-bg)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)'; }}
+                          onClick={() => {
+                            if (n.link) {
+                              navigate(n.link);
+                              setNotificationsOpen(false);
+                            }
+                          }}
+                        >
+                          <div style={{ 
+                            width: '10px', height: '10px', borderRadius: '50%', marginTop: '5px', flexShrink: 0, 
+                            background: n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : n.type === 'info' ? 'var(--info)' : 'var(--danger)',
+                            boxShadow: `0 0 8px ${n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : 'var(--danger)'}`
+                          }}></div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {n.title && (
+                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                                {n.title}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-secondary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                              {n.message}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>{new Date(n.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {n.link && <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>• View Details</span>}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (markNotificationRead) markNotificationRead(n.id);
+                            }}
+                            style={{
+                              background: 'none', border: 'none', color: 'var(--text-muted)',
+                              cursor: 'pointer', padding: '2px 4px', borderRadius: '4px',
+                              height: 'fit-content', opacity: 0.6
+                            }}
+                            title="Dismiss notification"
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = 'var(--danger)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.6; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 

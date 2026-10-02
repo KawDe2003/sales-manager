@@ -1288,18 +1288,27 @@ tbody tr:hover td {
   right: 0;
   width: 380px;
   max-width: calc(100vw - 20px);
-  z-index: 1000;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+  z-index: 10001;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  background: var(--bg-secondary) !important;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .notification-dropdown {
-    right: -42px !important;
-    width: calc(100vw - 16px) !important;
-    max-width: calc(100vw - 16px) !important;
+    position: fixed !important;
+    top: 60px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 16px !important;
+    max-height: calc(100dvh - 140px) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85) !important;
+    z-index: 10001 !important;
+    transform-origin: top center !important;
   }
 }
 
