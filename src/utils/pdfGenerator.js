@@ -200,7 +200,15 @@ export const renderCompanyHeader = (doc, {
     if (refVal) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(`${refLabel || 'Ref'}: #${refVal}`, pageWidth - 14, rightY, { align: 'right' });
+      let displayText = '';
+      if (!refLabel) {
+        displayText = refVal;
+      } else if (String(refVal).startsWith('#') || String(refVal).toLowerCase().includes('quote') || String(refVal).toLowerCase().includes('invoice')) {
+        displayText = `${refLabel}: ${refVal}`;
+      } else {
+        displayText = `${refLabel}: #${refVal}`;
+      }
+      doc.text(displayText, pageWidth - 14, rightY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       rightY += 5;
     }
@@ -391,8 +399,8 @@ export const generateDocumentPDF = (type, documentData, items) => {
       dateVal: dateStr,
       dueDateLabel: 'Due Date',
       dueDateVal: dueDateStr,
-      refLabel: 'Ref',
-      refVal: isInvoice ? quoteRef : ''
+      refLabel: '',
+      refVal: isInvoice && quoteRef ? `Converted from Quote: #${quoteRef.replace(/^#/, '')}` : (quoteRef ? `Ref: #${quoteRef.replace(/^#/, '')}` : '')
     });
     const billToY = headerEndY + 6;
     const tableStartY = billToY + 30;

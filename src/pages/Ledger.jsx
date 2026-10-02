@@ -12,7 +12,7 @@ import CustomSelect from '../components/CustomSelect';
 
 const Ledger = () => {
   const { 
-    accounts = [], journalEntries = [], journalLines = [], 
+    accounts = [], journalEntries = [], journalLines = [], invoices = [], quotes = [],
     createJournalEntry, addAccount, updateAccount, deleteAccount, deleteJournalEntry,
     showNotification 
   } = useContext(StoreContext);
@@ -1158,7 +1158,37 @@ const Ledger = () => {
                           </td>
 
                           <td style={{ padding: '14px 18px', fontWeight: 600, color: '#ffffff' }}>
-                            {entry?.description || line.memo || 'General Journal Posting'}
+                            <div>{entry?.description || line.memo || 'General Journal Posting'}</div>
+                            {(() => {
+                              const refStr = String(entry?.reference || '');
+                              const descStr = String(entry?.description || line.memo || '');
+                              const matchingInv = invoices.find(inv => 
+                                (inv.invoiceNumber && (refStr.includes(inv.invoiceNumber) || descStr.includes(inv.invoiceNumber))) ||
+                                (inv.id && (refStr.includes(inv.id) || descStr.includes(inv.id)))
+                              );
+                              const qRef = matchingInv?.quoteRef || matchingInv?.quotationNumber;
+                              if (qRef) {
+                                return (
+                                  <div style={{ marginTop: '4px' }}>
+                                    <span style={{ 
+                                      fontSize: '0.72rem', 
+                                      fontWeight: 800, 
+                                      color: '#a5b4fc', 
+                                      background: 'rgba(99, 102, 241, 0.15)', 
+                                      border: '1px solid rgba(99, 102, 241, 0.3)', 
+                                      padding: '2px 8px', 
+                                      borderRadius: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <FileText size={11} /> Converted from Quote: #{qRef}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </td>
 
                           <td style={{ padding: '14px 18px', color: '#94a3b8', fontSize: '0.82rem' }}>
@@ -1269,7 +1299,37 @@ const Ledger = () => {
                           </td>
 
                           <td style={{ padding: '14px 18px', fontWeight: 700, color: '#ffffff' }}>
-                            {entry.description || 'General Voucher Entry'}
+                            <div>{entry.description || 'General Voucher Entry'}</div>
+                            {(() => {
+                              const refStr = String(entry.reference || '');
+                              const descStr = String(entry.description || '');
+                              const matchingInv = invoices.find(inv => 
+                                (inv.invoiceNumber && (refStr.includes(inv.invoiceNumber) || descStr.includes(inv.invoiceNumber))) ||
+                                (inv.id && (refStr.includes(inv.id) || descStr.includes(inv.id)))
+                              );
+                              const qRef = matchingInv?.quoteRef || matchingInv?.quotationNumber;
+                              if (qRef) {
+                                return (
+                                  <div style={{ marginTop: '4px' }}>
+                                    <span style={{ 
+                                      fontSize: '0.72rem', 
+                                      fontWeight: 800, 
+                                      color: '#a5b4fc', 
+                                      background: 'rgba(99, 102, 241, 0.15)', 
+                                      border: '1px solid rgba(99, 102, 241, 0.3)', 
+                                      padding: '2px 8px', 
+                                      borderRadius: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <FileText size={11} /> Converted from Quote: #{qRef}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </td>
 
                           <td style={{ padding: '14px 18px', color: '#94a3b8', fontSize: '0.82rem' }}>

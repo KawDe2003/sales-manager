@@ -505,10 +505,12 @@ const SharedDocument = () => {
                     borderRadius: '16px', 
                     fontSize: '0.72rem', 
                     fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    letterSpacing: '0.03em',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}>
-                    Ref: #{docData.quoteRef || docData.quotationNumber || docData.quotation_number}
+                    <FileText size={12} /> Converted from Quote: #{docData.quoteRef || docData.quotationNumber || docData.quotation_number}
                   </span>
                 )}
               </div>

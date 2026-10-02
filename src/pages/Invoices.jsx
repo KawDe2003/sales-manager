@@ -151,6 +151,7 @@ Thank you for your business!`;
     const filteredInvoices = getFilteredInvoices();
     const exportData = filteredInvoices.map(inv => ({
       InvoiceNumber: inv.invoiceNumber,
+      ConvertedFromQuote: (inv.quoteRef || inv.quotationNumber) ? `Quote #${inv.quoteRef || inv.quotationNumber}` : 'Direct',
       Client: getCustomerName(inv.customerId),
       Date: inv.date,
       DueDate: inv.dueDate,
@@ -164,8 +165,11 @@ Thank you for your business!`;
   const getFilteredInvoices = () => {
     return invoices.filter(inv => {
       const gymName = getCustomerName(inv.customerId, inv).toLowerCase();
-      const searchMatch = gymName.includes(searchTerm.toLowerCase()) ||
-                          (inv.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const term = searchTerm.toLowerCase();
+      const searchMatch = gymName.includes(term) ||
+                          (inv.invoiceNumber || '').toLowerCase().includes(term) ||
+                          (inv.quoteRef || '').toLowerCase().includes(term) ||
+                          (inv.quotationNumber || '').toLowerCase().includes(term);
       const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
       let dateMatch = true;
       if (dateFilter === 'Last30') {
@@ -593,17 +597,20 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
             </div>
             <div className="flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>#{invoice.invoiceNumber}</span>
-              {(invoice.quoteRef || invoice.quotationNumber) && (
+              {(invoice.quoteRef || invoice.quotationNumber || invoice.acceptedFromQuote) && (
                 <span className="badge" style={{ 
-                  background: 'rgba(99, 102, 241, 0.12)', 
-                  color: 'var(--accent-primary)', 
-                  border: '1px solid rgba(99, 102, 241, 0.25)', 
-                  padding: '1px 8px', 
+                  background: 'rgba(99, 102, 241, 0.15)', 
+                  color: '#818cf8', 
+                  border: '1px solid rgba(99, 102, 241, 0.35)', 
+                  padding: '2px 8px', 
                   borderRadius: '6px', 
                   fontSize: '0.72rem', 
-                  fontWeight: 800 
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  Ref: #{invoice.quoteRef || invoice.quotationNumber}
+                  <FileText size={11} /> Converted from Quote: #{invoice.quoteRef || invoice.quotationNumber || 'QT'}
                 </span>
               )}
               <span style={{ opacity: 0.3 }}>•</span>
@@ -968,6 +975,25 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           onClose();
         }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+
+          {(formData.quoteRef || formData.quotationNumber) && (
+            <div style={{
+              padding: '10px 16px',
+              background: 'rgba(99, 102, 241, 0.12)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#a5b4fc',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              marginBottom: '20px'
+            }}>
+              <FileText size={16} />
+              <span>Converted from Quotation Ref: <strong>#{formData.quoteRef || formData.quotationNumber}</strong></span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">

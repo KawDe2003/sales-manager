@@ -323,6 +323,24 @@ const Debtors = () => {
                     </td>
                     <td style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
                       #{d.invoice.invoiceNumber}
+                      {(d.invoice.quoteRef || d.invoice.quotationNumber) && (
+                        <div style={{ marginTop: '2px' }}>
+                          <span style={{ 
+                            fontSize: '0.68rem', 
+                            color: '#818cf8', 
+                            fontWeight: 800,
+                            background: 'rgba(99, 102, 241, 0.12)',
+                            border: '1px solid rgba(99, 102, 241, 0.25)',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            Converted from Quote #{d.invoice.quoteRef || d.invoice.quotationNumber}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       {new Date(d.invoiceDateStr).toLocaleDateString()}

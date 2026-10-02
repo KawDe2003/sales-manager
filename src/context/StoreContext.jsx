@@ -3871,7 +3871,7 @@ export default function StoreContextProvider({ children }) {
       subtotal: Number(quote.subtotal || quote.amount) || 0,
       discount: Number(quote.discount || 0),
       tax: Number(quote.tax || 0),
-      notes: quote.notes ? `${quote.notes}\nRef: ${quoteRef}` : `Ref: ${quoteRef}`,
+      notes: quote.notes ? `${quote.notes}\nConverted from Quote: #${quoteRef}` : `Converted from Quote: #${quoteRef}`,
       agreementTerms: quote.agreementTerms || quote.terms || '',
       quotationId: quote.id,
       quotationNumber: quoteRef,
@@ -3911,11 +3911,11 @@ export default function StoreContextProvider({ children }) {
     });
     syncQuoteToSupabase(updatedQuote);
 
-    addLog('System', `Converted Quotation #${quote.quoteNumber} into Invoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef})`);
+    addLog('System', `Converted Quotation #${quote.quoteNumber} into Invoice #${newInvoice.invoiceNumber} (Converted from Quote: #${quoteRef})`);
     addNotification({
       type: 'success',
       title: 'Invoice Auto-Created',
-      message: `Invoice #${newInvoice.invoiceNumber} created from Quotation #${quote.quoteNumber} (Ref: #${quoteRef})`,
+      message: `Invoice #${newInvoice.invoiceNumber} created from Quotation #${quote.quoteNumber} (Converted from Quote: #${quoteRef})`,
       link: '/invoices',
       time: new Date().toISOString()
     });
@@ -3923,7 +3923,7 @@ export default function StoreContextProvider({ children }) {
     // ── NOTIFY BUSINESS OWNER VIA SMS & WHATSAPP ──────────────────────────────
     const ownerPhone = smsConfig.adminPhone || smsConfig.companyPhone || '072 840 8880';
     if (ownerPhone) {
-      const ownerAlertMsg = `BUSINESS WIN: Quotation #${quoteRef} was ACCEPTED by ${quote.prospectName}!\nInvoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef}) has been AUTOMATICALLY CREATED.\nAmount: LKR ${(Number(quote.amount) || 0).toLocaleString()}.\nPortal: ${window.location.origin}/share/invoice/${newInvoice.id || newInvoice.shareKey}`;
+      const ownerAlertMsg = `BUSINESS WIN: Quotation #${quoteRef} was ACCEPTED by ${quote.prospectName}!\nInvoice #${newInvoice.invoiceNumber} (Converted from Quote: #${quoteRef}) has been AUTOMATICALLY CREATED.\nAmount: LKR ${(Number(quote.amount) || 0).toLocaleString()}.\nPortal: ${window.location.origin}/share/invoice/${newInvoice.id || newInvoice.shareKey}`;
       try {
         sendDirectSMS(ownerPhone, ownerAlertMsg);
       } catch (smsErr) {
@@ -3931,7 +3931,7 @@ export default function StoreContextProvider({ children }) {
       }
     }
 
-    showNotification(`Invoice #${newInvoice.invoiceNumber} (Ref: #${quoteRef}) successfully created from quotation! Owner notified.`, 'success');
+    showNotification(`Invoice #${newInvoice.invoiceNumber} (Converted from Quote: #${quoteRef}) successfully created from quotation! Owner notified.`, 'success');
     return newInvoice;
   };
 
