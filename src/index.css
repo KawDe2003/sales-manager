@@ -13,37 +13,37 @@
   --bg-tertiary: #182130;
 
   /* 2. Panels and Cards (Glassmorphism / Contrast) */
-  --panel-bg: rgba(24, 32, 45, 0.62);
+  --panel-bg: rgba(24, 32, 45, 0.75);
   --panel-border: rgba(148, 163, 184, 0.12);
-  --panel-border-highlight: rgba(52, 211, 153, 0.35);
-  --panel-glow: rgba(16, 185, 129, 0.08);
+  --panel-border-highlight: rgba(99, 102, 241, 0.25);
+  --panel-glow: rgba(99, 102, 241, 0.04);
 
   /* 3. Typography */
   --text-primary: #eef2f6;
   --text-secondary: #97a3b6;
-  --text-muted: #5d6a80;
+  --text-muted: #64748b;
 
   /* 4. Inputs & Shadows */
-  --card-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.55);
-  --input-bg: rgba(15, 20, 28, 0.8);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+  --input-bg: rgba(15, 20, 28, 0.85);
   --input-border: rgba(148, 163, 184, 0.18);
-  --input-focus: #34d399;
+  --input-focus: #6366f1;
 
   /* 5. Header & Subtle Areas */
   --subtle-bg: rgba(148, 163, 184, 0.05);
   --subtle-border: rgba(148, 163, 184, 0.09);
   --header-bg: rgba(11, 15, 20, 0.85);
 
-  /* 6. Brand Accents */
-  --accent-primary: #10b981;
-  --accent-secondary: #6366f1;
+  /* 6. Brand Accents - Calm & Eye-friendly */
+  --accent-primary: #4f46e5;
+  --accent-secondary: #3b82f6;
   --accent-pink: #ec4899;
-  --accent-cyan: #22d3ee;
-  --accent-emerald: #34d399;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
-  --accent-rose: #fb7185;
-  --accent-glow: rgba(16, 185, 129, 0.35);
-  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --accent-rose: #f43f5e;
+  --accent-glow: rgba(79, 70, 229, 0.18);
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
 
   /* 7. Semantic Status Colors (Used heavily in CRM/Finance) */
   --success: #22c55e;
@@ -94,37 +94,37 @@
   --bg-tertiary: #e4e9ee;
 
   /* 2. Panels and Cards */
-  --panel-bg: rgba(255, 255, 255, 0.9);
+  --panel-bg: rgba(255, 255, 255, 0.95);
   --panel-border: rgba(15, 23, 42, 0.08);
-  --panel-border-highlight: rgba(5, 150, 105, 0.35);
-  --panel-glow: rgba(16, 185, 129, 0.06);
+  --panel-border-highlight: rgba(79, 70, 229, 0.25);
+  --panel-glow: rgba(79, 70, 229, 0.04);
 
   /* 3. Typography */
-  --text-primary: #101826;
-  --text-secondary: #4a5568;
-  --text-muted: #8896a8;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
 
   /* 4. Inputs & Shadows */
-  --card-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.12);
+  --card-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.1);
   --input-bg: rgba(255, 255, 255, 1);
   --input-border: rgba(15, 23, 42, 0.14);
-  --input-focus: #059669;
+  --input-focus: #4f46e5;
 
   /* 5. Header & Subtle Areas */
   --subtle-bg: rgba(15, 23, 42, 0.03);
   --subtle-border: rgba(15, 23, 42, 0.06);
   --header-bg: rgba(255, 255, 255, 0.85);
 
-  /* 6. Brand Accents */
-  --accent-primary: #059669;
-  --accent-secondary: #4f46e5;
+  /* 6. Brand Accents - Calm & Eye-friendly */
+  --accent-primary: #4f46e5;
+  --accent-secondary: #2563eb;
   --accent-pink: #db2777;
   --accent-cyan: #0891b2;
-  --accent-emerald: #10b981;
+  --accent-emerald: #059669;
   --accent-amber: #d97706;
   --accent-rose: #e11d48;
-  --accent-glow: rgba(5, 150, 105, 0.25);
-  --accent-gradient: linear-gradient(135deg, #059669 0%, #047857 100%);
+  --accent-glow: rgba(79, 70, 229, 0.18);
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
 
   /* 7. Semantic Status Colors */
   --success: #16a34a;
@@ -427,13 +427,13 @@ button, button:hover, button:focus,
 .btn-primary {
   background: var(--accent-gradient);
   color: #ffffff;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .btn-primary:hover {
-  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.5);
-  transform: translateY(-2px);
-  filter: brightness(1.08);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
 }
 
 .btn-secondary {
@@ -1546,24 +1546,24 @@ tbody tr:hover td {
   .modal-backdrop,
   .app-modal-backdrop,
   .modal-overlay {
-    padding: 8px !important;
+    padding: 6px !important;
     z-index: 999999 !important;
   }
   .modal-card,
   .app-modal-dialog,
   .modal-content {
-    max-height: min(94vh, calc(100dvh - 20px)) !important;
-    border-radius: var(--radius-lg) !important;
+    max-height: calc(100dvh - 12px) !important;
+    border-radius: 12px !important;
     width: 100% !important;
     margin: 0 !important;
   }
   .modal-header,
   .modal-header-solid {
-    padding: 14px 16px !important;
+    padding: 10px 14px !important;
   }
   .modal-body,
   .modal-body-solid {
-    padding: 16px 14px !important;
+    padding: 12px 12px !important;
   }
   /* Forms inside modals automatically stack to 1 column on mobile */
   .modal-body .grid-cols-2,
@@ -1572,7 +1572,7 @@ tbody tr:hover td {
   .modal-body .md\:grid-cols-2,
   .modal-body .md\:grid-cols-3 {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
   .modal-body .col-span-2,
   .modal-body .md\:col-span-2 {
@@ -1589,19 +1589,18 @@ tbody tr:hover td {
 }
 
 @media (max-width: 768px) {
-  /* Prevent iOS Safari auto-zooming on focus */
+  /* Prevent iOS Safari auto-zooming on focus while keeping compact heights */
   .form-input, .form-select, .form-textarea, select, 
   input[type="text"], input[type="number"], input[type="email"], 
   input[type="date"], input[type="password"], textarea {
     font-size: 16px !important;
-    min-height: 42px !important;
     touch-action: manipulation;
   }
 
   .btn {
-    min-height: 40px;
+    min-height: 36px;
     touch-action: manipulation;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
 
   /* Responsive spacing on mobile main container */
@@ -1650,22 +1649,243 @@ tbody tr:hover td {
     justify-content: center !important;
     text-align: center !important;
   }
+  /* Scale down oversized typography & spacing across mobile */
+  .h1, .page-hero .h1, h1.h1 {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+  }
+  .h2, .page-hero .h2 {
+    font-size: 1.1rem !important;
+    line-height: 1.25 !important;
+  }
+  .h3 {
+    font-size: 0.98rem !important;
+  }
+  .page-hero {
+    margin: -14px -12px 12px -12px !important;
+    padding: 12px 12px !important;
+  }
+  .page-hero p {
+    font-size: 0.8rem !important;
+    margin-top: 2px !important;
+  }
 }
 
 @media (max-width: 480px) {
   .metric-value {
-    font-size: 1.15rem !important;
+    font-size: 1.1rem !important;
     letter-spacing: -0.02em;
   }
   .main-container, .main-container.sidebar-collapsed {
-    padding: 12px 8px !important;
+    padding: 10px 8px !important;
   }
   .page-hero {
-    margin: -12px -8px 14px -8px !important;
-    padding: 14px 10px !important;
+    margin: -10px -8px 10px -8px !important;
+    padding: 10px 10px !important;
+  }
+  .h1, .page-hero .h1, h1.h1 {
+    font-size: 1.15rem !important;
   }
   .glass-panel, .card {
+    padding: 10px 8px !important;
+  }
+}
+
+/* ===== LEADS PIPELINE COMPACT & MOBILE RESPONSIVE SYSTEM ===== */
+.leads-page-hero {
+  padding: 16px 20px;
+}
+.leads-title {
+  font-size: clamp(1.2rem, 3.5vw, 1.85rem) !important;
+  line-height: 1.2;
+}
+.leads-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .leads-actions-bar {
+    width: auto;
+  }
+}
+.leads-view-switcher {
+  display: flex;
+  background: var(--subtle-bg);
+  border: 1px solid var(--subtle-border);
+  border-radius: 9px;
+  padding: 3px;
+  flex: 1 1 auto;
+}
+.leads-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  flex: 1;
+  white-space: nowrap;
+}
+.leads-view-btn.active {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+.leads-add-btn {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Metric Cards */
+.lead-metric-card {
+  padding: 14px 18px;
+  border-radius: 14px;
+  transition: transform 0.15s ease;
+}
+.lead-metric-card:hover {
+  transform: translateY(-2px);
+}
+.lead-metric-card .metric-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lead-metric-card .metric-num {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.lead-metric-card .metric-subtext {
+  font-size: 0.74rem;
+  margin-top: 3px;
+}
+
+/* Search & Filter Panel */
+.leads-filter-panel {
+  padding: 14px 18px;
+  border-radius: 14px;
+}
+.leads-search-input {
+  padding-left: 40px !important;
+  height: 38px !important;
+  font-size: 0.84rem !important;
+  background: var(--input-bg);
+}
+.leads-pill-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--subtle-border);
+  background: var(--subtle-bg);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.leads-pill-btn.active-all {
+  border-color: var(--accent-primary);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-primary);
+}
+.leads-pill-btn.active-due {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+.leads-pill-btn.active-overdue {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+.leads-stage-select-wrap {
+  width: 140px;
+}
+
+/* Mobile Screens (<= 640px) */
+@media (max-width: 640px) {
+  .leads-page-hero {
     padding: 12px 10px !important;
+    margin-bottom: 10px !important;
+  }
+  .leads-title {
+    font-size: 1.25rem !important;
+    letter-spacing: -0.02em;
+  }
+  .leads-actions-bar {
+    gap: 6px !important;
+  }
+  .leads-view-btn {
+    padding: 5px 8px !important;
+    font-size: 0.72rem !important;
+    gap: 3px !important;
+  }
+  .leads-add-btn {
+    height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 0.75rem !important;
+  }
+  .leads-kpi-grid {
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  .lead-metric-card {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    border-left-width: 3px !important;
+  }
+  .lead-metric-card .metric-label {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.02em;
+  }
+  .lead-metric-card .metric-num {
+    font-size: 1.2rem !important;
+  }
+  .lead-metric-card .metric-subtext {
+    font-size: 0.65rem !important;
+    margin-top: 1px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lead-metric-card svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  .leads-filter-panel {
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+    border-radius: 12px !important;
+  }
+  .leads-search-input {
+    height: 34px !important;
+    font-size: 0.78rem !important;
+    padding-left: 36px !important;
+  }
+  .leads-pill-btn {
+    padding: 4px 7px !important;
+    font-size: 0.7rem !important;
+  }
+  .leads-stage-select-wrap {
+    width: 110px !important;
   }
 }
 

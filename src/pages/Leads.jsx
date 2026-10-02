@@ -15,10 +15,10 @@ export const PIPELINE_STATUSES = ['New', 'Contacted', 'Interested', 'Demo Schedu
 
 export const INTERACTION_TYPES = [
   { id: 'Call', label: 'Phone Call', icon: Phone, color: '#38bdf8' },
-  { id: 'WhatsApp', label: 'WhatsApp Chat', icon: MessageCircle, color: '#22c55e' },
-  { id: 'Meeting', label: 'In-Person Meeting', icon: Calendar, color: '#a855f7' },
-  { id: 'Demo', label: 'Product Demo / Sample', icon: Target, color: '#f59e0b' },
-  { id: 'Email', label: 'Email Follow-up', icon: Mail, color: '#ec4899' },
+  { id: 'WhatsApp', label: 'WhatsApp Chat', icon: MessageCircle, color: '#34d399' },
+  { id: 'Meeting', label: 'In-Person Meeting', icon: Calendar, color: '#a78bfa' },
+  { id: 'Demo', label: 'Product Demo', icon: Target, color: '#fbbf24' },
+  { id: 'Email', label: 'Email Follow-up', icon: Mail, color: '#f472b6' },
   { id: 'Note', label: 'Internal Note', icon: FileText, color: '#94a3b8' }
 ];
 
@@ -73,47 +73,47 @@ const getActionDateStatus = (nextActionDate) => {
     const overdueDays = Math.abs(diffDays);
     return {
       status: 'overdue',
-      label: `Marked Overdue (${overdueDays}d ago)`,
+      label: `Overdue (${overdueDays}d)`,
       shortLabel: `Overdue ${overdueDays}d`,
       daysDiff: diffDays,
-      color: '#ef4444',
-      bg: 'rgba(239, 68, 68, 0.15)',
-      border: 'rgba(239, 68, 68, 0.4)'
+      color: '#f87171',
+      bg: 'rgba(248, 113, 113, 0.12)',
+      border: 'rgba(248, 113, 113, 0.3)'
     };
   }
 
   if (diffDays === 0) {
     return {
       status: 'today',
-      label: '⚡ Marked Action Due Today',
-      shortLabel: 'Due Today',
+      label: 'Due Today',
+      shortLabel: 'Today',
       daysDiff: 0,
-      color: '#f59e0b',
-      bg: 'rgba(245, 158, 11, 0.18)',
-      border: 'rgba(245, 158, 11, 0.5)'
+      color: '#fbbf24',
+      bg: 'rgba(251, 191, 36, 0.14)',
+      border: 'rgba(251, 191, 36, 0.35)'
     };
   }
 
   if (diffDays === 1) {
     return {
       status: 'upcoming',
-      label: 'Marked: Due Tomorrow',
+      label: 'Due Tomorrow',
       shortLabel: 'Tomorrow',
       daysDiff: 1,
       color: '#34d399',
-      bg: 'rgba(52, 211, 153, 0.15)',
-      border: 'rgba(52, 211, 153, 0.4)'
+      bg: 'rgba(52, 211, 153, 0.12)',
+      border: 'rgba(52, 211, 153, 0.3)'
     };
   }
 
   return {
     status: 'upcoming',
-    label: `Marked: Due in ${diffDays}d (${formatDate(nextActionDate)})`,
+    label: `In ${diffDays}d (${formatDate(nextActionDate)})`,
     shortLabel: `In ${diffDays}d`,
     daysDiff: diffDays,
-    color: '#38bdf8',
-    bg: 'rgba(56, 189, 248, 0.12)',
-    border: 'rgba(56, 189, 248, 0.35)'
+    color: '#818cf8',
+    bg: 'rgba(129, 140, 248, 0.12)',
+    border: 'rgba(129, 140, 248, 0.3)'
   };
 };
 
@@ -278,206 +278,148 @@ const Leads = () => {
     <div style={{ position: 'relative', width: '100%', paddingBottom: '60px' }}>
       
       {/* PAGE HEADER */}
-      <div className="page-hero" style={{ marginBottom: '24px' }}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="page-hero leads-page-hero">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="flex items-center gap-2 mb-1.5">
               <div style={{ 
-                padding: '6px 10px', 
+                padding: '4px 8px', 
                 background: 'rgba(16, 185, 129, 0.15)', 
                 border: '1px solid rgba(16, 185, 129, 0.35)', 
-                borderRadius: '8px', 
+                borderRadius: '6px', 
                 color: 'var(--accent-primary)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.8rem',
+                gap: '5px',
+                fontSize: '0.72rem',
                 fontWeight: 700
               }}>
-                <Flame size={14} /> CRM & Leads Pipeline
+                <Flame size={13} /> CRM & Leads Pipeline
               </div>
-              <span className="badge badge-emerald" style={{ fontSize: '0.75rem' }}>Auto-Synced</span>
+              <span className="badge badge-emerald" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>Auto-Synced</span>
             </div>
-            <h1 className="h1" style={{ color: 'var(--text-primary)', fontWeight: 800, margin: 0 }}>Leads Pipeline & Calendar</h1>
-            <p className="text-secondary" style={{ marginTop: '4px', fontSize: '0.9rem', fontWeight: 500 }}>
+            <h1 className="h1 leads-title" style={{ color: 'var(--text-primary)', fontWeight: 800, margin: 0 }}>Leads Pipeline & Calendar</h1>
+            <p className="text-secondary sm-hidden" style={{ marginTop: '2px', fontSize: '0.84rem', fontWeight: 500 }}>
               Mark next action dates, review day-by-day comment histories, and track client interactions across all calendar views.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="leads-actions-bar">
             {/* View Mode Switcher (Board | Calendar | List) */}
-            <div style={{ 
-              display: 'flex', 
-              background: 'var(--subtle-bg)', 
-              border: '1px solid var(--subtle-border)', 
-              borderRadius: '10px', 
-              padding: '3px' 
-            }}>
+            <div className="leads-view-switcher">
               <button 
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'kanban' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'kanban' ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`leads-view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
               >
-                <LayoutGrid size={14} /> Board
+                <LayoutGrid size={13} /> Board
               </button>
 
               <button 
                 type="button"
                 onClick={() => setViewMode('calendar')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'calendar' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'calendar' ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`leads-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
               >
-                <CalendarDays size={14} /> Calendar
+                <CalendarDays size={13} /> Calendar
               </button>
 
               <button 
                 type="button"
                 onClick={() => setViewMode('list')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === 'list' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`leads-view-btn ${viewMode === 'list' ? 'active' : ''}`}
               >
-                <List size={14} /> List
+                <List size={13} /> List
               </button>
             </div>
 
             <button 
-              className="btn btn-primary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 18px', fontWeight: 700 }}
+              className="btn btn-primary leads-add-btn" 
               onClick={() => { setEditingLead(null); setShowAddModal(true); }}
             >
-              <Plus size={18} /> New Prospect
+              <Plus size={15} /> <span><span className="hidden-mobile">New </span>Prospect</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* KPI METRIC CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 leads-kpi-grid">
         
         {/* Total Prospects */}
         <div 
-          className="glass-panel" 
+          className="glass-panel lead-metric-card" 
           style={{ 
-            padding: '16px 20px', 
-            borderRadius: '14px',
             borderLeft: '4px solid var(--accent-primary)',
-            cursor: 'pointer',
-            transition: 'transform 0.15s ease'
+            cursor: 'pointer'
           }}
           onClick={() => { setFilterAction('All'); setFilterStage('All'); }}
         >
           <div className="flex justify-between items-center mb-1">
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Prospects</span>
-            <Target size={16} style={{ color: 'var(--accent-primary)' }} />
+            <span className="metric-label" style={{ color: 'var(--text-secondary)' }}>Total Prospects</span>
+            <Target size={15} style={{ color: 'var(--accent-primary)' }} />
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>{metrics.total}</div>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <div className="metric-num" style={{ color: 'var(--text-primary)' }}>{metrics.total}</div>
+          <div className="metric-subtext" style={{ color: 'var(--text-muted)' }}>
             {metrics.withComments} with follow-up logs
           </div>
         </div>
 
         {/* Due Today */}
         <div 
-          className="glass-panel" 
+          className="glass-panel lead-metric-card" 
           style={{ 
-            padding: '16px 20px', 
-            borderRadius: '14px',
             borderLeft: '4px solid #f59e0b',
             background: filterAction === 'DueToday' ? 'rgba(245, 158, 11, 0.08)' : undefined,
-            cursor: 'pointer',
-            transition: 'transform 0.15s ease'
+            cursor: 'pointer'
           }}
           onClick={() => setFilterAction(filterAction === 'DueToday' ? 'All' : 'DueToday')}
         >
           <div className="flex justify-between items-center mb-1">
-            <span style={{ fontSize: '0.78rem', color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Action Due Today</span>
-            <Clock size={16} style={{ color: '#f59e0b' }} />
+            <span className="metric-label" style={{ color: '#f59e0b' }}>Action Due Today</span>
+            <Clock size={15} style={{ color: '#f59e0b' }} />
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b' }}>{metrics.dueToday}</div>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            {metrics.dueToday > 0 ? 'Requires immediate action today' : 'No calls pending today'}
+          <div className="metric-num" style={{ color: '#f59e0b' }}>{metrics.dueToday}</div>
+          <div className="metric-subtext" style={{ color: 'var(--text-secondary)' }}>
+            {metrics.dueToday > 0 ? 'Requires action today' : 'No calls pending today'}
           </div>
         </div>
 
         {/* Overdue */}
         <div 
-          className="glass-panel" 
+          className="glass-panel lead-metric-card" 
           style={{ 
-            padding: '16px 20px', 
-            borderRadius: '14px',
             borderLeft: '4px solid #ef4444',
             background: filterAction === 'Overdue' ? 'rgba(239, 68, 68, 0.08)' : undefined,
-            cursor: 'pointer',
-            transition: 'transform 0.15s ease'
+            cursor: 'pointer'
           }}
           onClick={() => setFilterAction(filterAction === 'Overdue' ? 'All' : 'Overdue')}
         >
           <div className="flex justify-between items-center mb-1">
-            <span style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Overdue Follow-ups</span>
-            <AlertCircle size={16} style={{ color: '#ef4444' }} />
+            <span className="metric-label" style={{ color: '#ef4444' }}>Overdue Follow-ups</span>
+            <AlertCircle size={15} style={{ color: '#ef4444' }} />
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ef4444' }}>{metrics.overdue}</div>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            {metrics.overdue > 0 ? 'Past scheduled follow-up date' : 'All follow-ups on track'}
+          <div className="metric-num" style={{ color: '#ef4444' }}>{metrics.overdue}</div>
+          <div className="metric-subtext" style={{ color: 'var(--text-secondary)' }}>
+            {metrics.overdue > 0 ? 'Past scheduled follow-up' : 'All follow-ups on track'}
           </div>
         </div>
 
         {/* Upcoming Actions */}
         <div 
-          className="glass-panel" 
+          className="glass-panel lead-metric-card" 
           style={{ 
-            padding: '16px 20px', 
-            borderRadius: '14px',
             borderLeft: '4px solid #38bdf8',
             background: filterAction === 'Upcoming' ? 'rgba(56, 189, 248, 0.08)' : undefined,
-            cursor: 'pointer',
-            transition: 'transform 0.15s ease'
+            cursor: 'pointer'
           }}
           onClick={() => setFilterAction(filterAction === 'Upcoming' ? 'All' : 'Upcoming')}
         >
           <div className="flex justify-between items-center mb-1">
-            <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Upcoming Actions</span>
-            <CalendarDays size={16} style={{ color: '#38bdf8' }} />
+            <span className="metric-label" style={{ color: '#38bdf8' }}>Upcoming Actions</span>
+            <CalendarDays size={15} style={{ color: '#38bdf8' }} />
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8' }}>{metrics.upcoming}</div>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          <div className="metric-num" style={{ color: '#38bdf8' }}>{metrics.upcoming}</div>
+          <div className="metric-subtext" style={{ color: 'var(--text-secondary)' }}>
             Marked future contacts
           </div>
         </div>
@@ -485,17 +427,16 @@ const Leads = () => {
       </div>
 
       {/* SEARCH AND QUICK FILTER CONTROLS */}
-      <div className="glass-panel mb-6" style={{ padding: '16px 20px', borderRadius: '16px' }}>
-        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      <div className="glass-panel mb-4 leads-filter-panel">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           
           {/* Search Input */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
-            <Search size={17} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              className="form-input"
+              className="form-input leads-search-input"
               placeholder="Search by client gym, contact person, mobile, or comment text..."
-              style={{ paddingLeft: '44px', height: '42px', background: 'var(--input-bg)', fontSize: '0.88rem' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -503,75 +444,42 @@ const Leads = () => {
               <button 
                 type="button"
                 onClick={() => setSearchTerm('')}
-                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '3px' }}
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             )}
           </div>
 
           {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 leads-filter-pills">
             
             <button
               type="button"
+              className={`leads-pill-btn ${filterAction === 'All' ? 'active-all' : ''}`}
               onClick={() => setFilterAction('All')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: filterAction === 'All' ? '1px solid var(--accent-primary)' : '1px solid var(--subtle-border)',
-                background: filterAction === 'All' ? 'rgba(16, 185, 129, 0.15)' : 'var(--subtle-bg)',
-                color: filterAction === 'All' ? 'var(--accent-primary)' : 'var(--text-secondary)'
-              }}
             >
               All Leads ({leads.length})
             </button>
 
             <button
               type="button"
+              className={`leads-pill-btn ${filterAction === 'DueToday' ? 'active-due' : ''}`}
               onClick={() => setFilterAction('DueToday')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: filterAction === 'DueToday' ? '1px solid #f59e0b' : '1px solid var(--subtle-border)',
-                background: filterAction === 'DueToday' ? 'rgba(245, 158, 11, 0.2)' : 'var(--subtle-bg)',
-                color: filterAction === 'DueToday' ? '#f59e0b' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
             >
-              <Clock size={13} /> Due Today ({metrics.dueToday})
+              <Clock size={12} /> Due Today ({metrics.dueToday})
             </button>
 
             <button
               type="button"
+              className={`leads-pill-btn ${filterAction === 'Overdue' ? 'active-overdue' : ''}`}
               onClick={() => setFilterAction('Overdue')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: filterAction === 'Overdue' ? '1px solid #ef4444' : '1px solid var(--subtle-border)',
-                background: filterAction === 'Overdue' ? 'rgba(239, 68, 68, 0.2)' : 'var(--subtle-bg)',
-                color: filterAction === 'Overdue' ? '#ef4444' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
             >
-              <AlertCircle size={13} /> Overdue ({metrics.overdue})
+              <AlertCircle size={12} /> Overdue ({metrics.overdue})
             </button>
 
             {/* Stage filter dropdown */}
-            <div style={{ width: '150px' }}>
+            <div className="leads-stage-select-wrap">
               <CustomSelect
                 value={filterStage}
                 onChange={(val) => setFilterStage(val)}
@@ -580,7 +488,7 @@ const Leads = () => {
                   ...PIPELINE_STATUSES.map(s => ({ value: s, label: s }))
                 ]}
                 size="sm"
-                triggerStyle={{ height: '34px', fontSize: '0.8rem' }}
+                triggerStyle={{ height: '32px', fontSize: '0.78rem' }}
               />
             </div>
 
@@ -1782,17 +1690,17 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
         className="glass-panel app-modal-dialog" 
         style={{ 
           width: '100%', 
-          maxWidth: '780px', 
-          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          maxWidth: '720px', 
+          maxHeight: 'min(94vh, calc(100dvh - 16px))', 
           display: 'flex',
           flexDirection: 'column',
           padding: 0, 
           overflow: 'hidden',
-          borderRadius: '18px',
-          background: 'var(--panel-bg, #0d121a)',
-          backgroundColor: 'color-mix(in srgb, var(--bg-primary, #0d1218) 95%, var(--panel-bg, #111827))',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 25px 75px -10px rgba(0, 0, 0, 0.9)'
+          borderRadius: '16px',
+          background: 'var(--panel-bg, #0f172a)',
+          backgroundColor: '#0f172a',
+          border: '1px solid var(--subtle-border)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1800,23 +1708,23 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
         <div 
           style={{ 
             flexShrink: 0, 
-            padding: '18px 24px', 
-            borderBottom: '1px solid var(--panel-border)',
-            background: 'var(--input-bg)',
+            padding: '12px 16px', 
+            borderBottom: '1px solid var(--subtle-border)',
+            background: 'var(--subtle-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '12px'
+            gap: '10px'
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <span 
                 style={{ 
-                  fontSize: '0.74rem', 
-                  fontWeight: 800, 
-                  padding: '2px 8px', 
-                  borderRadius: '6px',
+                  fontSize: '0.7rem', 
+                  fontWeight: 700, 
+                  padding: '2px 7px', 
+                  borderRadius: '5px',
                   background: stageConfig.bg,
                   color: stageConfig.color,
                   border: `1px solid ${stageConfig.border}`
@@ -1824,70 +1732,83 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
               >
                 {lead.status}
               </span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>•</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>•</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {lead.contactPerson || lead.prospectName || 'Lead Prospect'}
               </span>
             </div>
 
-            <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)', fontWeight: 800 }}>
+            <h2 style={{ margin: 0, fontSize: '1.08rem', color: 'var(--text-primary)', fontWeight: 700, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {lead.gymName}
             </h2>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
             <button 
               type="button"
-              className="btn btn-primary"
-              style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+              className="btn btn-secondary"
+              style={{ 
+                padding: '5px 10px', 
+                fontSize: '0.76rem', 
+                fontWeight: 600, 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '5px',
+                height: '32px',
+                color: '#818cf8',
+                borderColor: 'rgba(99, 102, 241, 0.25)',
+                background: 'rgba(99, 102, 241, 0.08)'
+              }}
               onClick={onQuote}
+              title="Create quotation for this lead"
             >
-              <FileText size={14} /> New Quote
+              <FileText size={13} /> <span>Quote</span>
             </button>
             <button 
               type="button"
               className="btn btn-secondary" 
-              style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} 
+              style={{ padding: '6px', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
               onClick={onClose}
+              title="Close"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
-        {/* CURRENT STATUS BANNER: With 1-Click Mark Done */}
+        {/* CURRENT STATUS BANNER: Compact, clean single row / flex wrap */}
         <div 
           style={{ 
-            padding: '12px 24px', 
+            padding: '8px 16px', 
             background: 'var(--subtle-bg)', 
             borderBottom: '1px solid var(--subtle-border)',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '12px',
-            fontSize: '0.82rem'
+            gap: '8px',
+            fontSize: '0.76rem'
           }}
         >
-          <div className="flex items-center gap-4 flex-wrap">
-            <div>
-              <span style={{ color: 'var(--text-muted)', marginRight: '6px' }}>Last Action Date:</span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Last Action:</span>
               <strong style={{ color: 'var(--text-primary)' }}>
                 {formatDate(lead.lastActionDate || lead.date)}
               </strong>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span style={{ color: 'var(--text-muted)' }}>Marked Action:</span>
+            <div className="flex items-center gap-1.5">
+              <span style={{ color: 'var(--text-muted)' }}>Next:</span>
               <span 
                 style={{ 
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
+                  padding: '2px 6px',
+                  borderRadius: '5px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
                   background: actionStatus.bg,
                   color: actionStatus.color,
                   border: `1px solid ${actionStatus.border}`
@@ -1901,21 +1822,21 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                   type="button"
                   onClick={onMarkDone}
                   style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: 'var(--accent-primary)',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
+                    padding: '2px 6px',
+                    borderRadius: '5px',
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    color: '#818cf8',
+                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '3px'
                   }}
-                  title="Mark current scheduled action completed"
+                  title="Mark scheduled action completed"
                 >
-                  <CheckCheck size={12} /> Mark Action Done
+                  <CheckCheck size={11} /> Done
                 </button>
               )}
             </div>
@@ -1923,52 +1844,51 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
 
           {/* Quick Stage Changer */}
           <div className="flex items-center gap-2">
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Change Stage:</span>
-            <div style={{ width: '140px' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.74rem' }}>Stage:</span>
+            <div style={{ width: '120px' }}>
               <CustomSelect 
                 value={lead.status}
                 onChange={(val) => onUpdateStatus(val)}
                 options={PIPELINE_STATUSES.map(s => ({ value: s, label: s }))}
                 size="sm"
-                triggerStyle={{ height: '30px', fontSize: '0.78rem', fontWeight: 700 }}
+                triggerStyle={{ height: '28px', fontSize: '0.74rem', fontWeight: 600 }}
               />
             </div>
           </div>
         </div>
 
         {/* MODAL BODY (SCROLLABLE TIMELINE + ADD FORM) */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
           {/* SECTION 1: LOG DAILY COMMENT / FOLLOW-UP FORM */}
           <form 
             onSubmit={handleCommentSubmit}
             style={{
-              padding: '20px',
-              borderRadius: '14px',
-              background: 'var(--input-bg)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'var(--subtle-bg)',
+              border: '1px solid var(--subtle-border)'
             }}
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
               <div className="flex items-center gap-2">
-                <MessageSquare size={16} style={{ color: 'var(--accent-primary)' }} />
-                <h3 className="h3" style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  Log Daily Comment & Mark Next Action
+                <MessageSquare size={14} style={{ color: 'var(--accent-primary)' }} />
+                <h3 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Log Daily Follow-up
                 </h3>
               </div>
-              <span style={{ fontSize: '0.74rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                ✓ Last Action Date = Commented Date
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                Sets last action date automatically
               </span>
             </div>
 
             {/* Interaction Type & Comment Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-2.5">
               
               {/* Type */}
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Interaction Channel</label>
-                <div className="grid grid-cols-3 gap-1.5">
+                <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '3px' }}>Channel</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
                   {INTERACTION_TYPES.map(t => {
                     const Icon = t.icon;
                     const isSelected = interactionType === t.id;
@@ -1980,30 +1900,30 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 8px',
-                          borderRadius: '8px',
+                          gap: '3px',
+                          padding: '5px 4px',
+                          borderRadius: '5px',
                           border: `1px solid ${isSelected ? t.color : 'var(--subtle-border)'}`,
-                          background: isSelected ? `color-mix(in srgb, ${t.color} 15%, transparent)` : 'var(--subtle-bg)',
+                          background: isSelected ? `color-mix(in srgb, ${t.color} 12%, transparent)` : 'var(--input-bg)',
                           color: isSelected ? t.color : 'var(--text-secondary)',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
                           justifyContent: 'center',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <Icon size={12} /> {t.label.split(' ')[0]}
+                        <Icon size={11} /> {t.label.split(' ')[0]}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Comment Date (Using Themed DatePicker) */}
+              {/* Comment Date */}
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                  Commented Date <span style={{ color: 'var(--text-muted)' }}>(Sets Last Action Date)</span>
+                <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '3px' }}>
+                  Comment Date
                 </label>
                 <DatePicker
                   value={commentDate}
@@ -2016,47 +1936,49 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
             </div>
 
             {/* Daily Discussion Note Textarea */}
-            <div className="form-group mb-4">
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+            <div className="form-group mb-2.5">
+              <label className="form-label" style={{ fontSize: '0.72rem', marginBottom: '3px' }}>
                 Follow-up Discussion Notes / Feedback <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <textarea
                 required
                 className="form-input"
-                rows={3}
-                placeholder="What was discussed today? e.g. Spoke with owner regarding bobby pin volume pricing; asked for 10% rebate for 50 boxes order. Sent brochure..."
-                style={{ resize: 'vertical', fontSize: '0.85rem', minHeight: '75px' }}
+                rows={2}
+                placeholder="What was discussed today? e.g. Spoke with owner regarding pricing; sent quote..."
+                style={{ resize: 'vertical', fontSize: '0.8rem', minHeight: '56px', padding: '6px 8px' }}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
               />
             </div>
 
-            {/* Next Action Scheduling (Using Themed DatePicker with Marked Dates) */}
+            {/* Next Action Scheduling */}
             <div 
               style={{ 
-                padding: '14px', 
-                background: 'var(--subtle-bg)', 
-                borderRadius: '10px', 
+                padding: '8px 10px', 
+                background: 'var(--input-bg)', 
+                borderRadius: '8px', 
                 border: '1px solid var(--subtle-border)',
-                marginBottom: '16px'
+                marginBottom: '10px'
               }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <label className="form-label" style={{ margin: 0, fontSize: '0.78rem', color: '#f59e0b', fontWeight: 700 }}>
-                  📅 Mark Next Action Date & Scheduled Task
-                </label>
+              {/* Header & Quick Presets cleanly separated to NEVER break words vertically! */}
+              <div style={{ marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Calendar size={12} style={{ color: '#818cf8' }} />
+                  <span>Next Scheduled Action &amp; Goal</span>
+                </div>
                 
-                {/* Date Presets */}
-                <div className="flex items-center gap-1.5">
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Quick:</span>
-                  <button type="button" onClick={() => applyPresetDate(1)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--input-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>Tomorrow</button>
-                  <button type="button" onClick={() => applyPresetDate(3)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--input-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>In 3d</button>
-                  <button type="button" onClick={() => applyPresetDate(7)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--input-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>In 1w</button>
-                  <button type="button" onClick={() => applyPresetDate(null)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--input-bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Clear</button>
+                {/* Clean Presets Row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Quick:</span>
+                  <button type="button" onClick={() => applyPresetDate(1)} style={{ padding: '2px 6px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>Tomorrow</button>
+                  <button type="button" onClick={() => applyPresetDate(3)} style={{ padding: '2px 6px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>In 3d</button>
+                  <button type="button" onClick={() => applyPresetDate(7)} style={{ padding: '2px 6px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}>In 1w</button>
+                  <button type="button" onClick={() => applyPresetDate(null)} style={{ padding: '2px 6px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Clear</button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div>
                   <DatePicker
                     value={nextActionDate}
@@ -2070,8 +1992,8 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Next action task (e.g. Call back on quotation, sample visit)..."
-                    style={{ height: '34px', fontSize: '0.84rem' }}
+                    placeholder="Goal / Task (e.g. Call back, visit)..."
+                    style={{ height: '32px', fontSize: '0.78rem', padding: '0 8px' }}
                     value={nextActionNote}
                     onChange={(e) => setNextActionNote(e.target.value)}
                   />
@@ -2085,24 +2007,33 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                 type="submit" 
                 disabled={submitting || !commentText.trim()}
                 className="btn btn-primary"
-                style={{ padding: '8px 20px', fontSize: '0.84rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ 
+                  padding: '6px 14px', 
+                  fontSize: '0.78rem', 
+                  fontWeight: 600, 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '5px',
+                  width: 'auto',
+                  borderRadius: '6px'
+                }}
               >
-                <Check size={16} /> Save Daily Comment & Mark Next Action
+                <Check size={13} /> Save Comment &amp; Action
               </button>
             </div>
           </form>
 
           {/* SECTION 2: CHRONOLOGICAL DAY-BY-DAY ACTIVITY TIMELINE */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <History size={16} style={{ color: 'var(--text-muted)' }} />
-                <h3 className="h3" style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  Day-by-Day Activity History ({comments.length})
+          <div style={{ marginTop: '4px' }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <History size={14} style={{ color: 'var(--text-muted)' }} />
+                <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Activity History ({comments.length})
                 </h3>
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Newest interaction at top
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Newest first
               </span>
             </div>
 
@@ -2110,19 +2041,19 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
               <div 
                 style={{ 
                   position: 'relative', 
-                  paddingLeft: '24px', 
+                  paddingLeft: '18px', 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: '16px' 
+                  gap: '10px' 
                 }}
               >
                 {/* Timeline vertical rule */}
                 <div 
                   style={{ 
                     position: 'absolute', 
-                    left: '7px', 
-                    top: '12px', 
-                    bottom: '12px', 
+                    left: '5px', 
+                    top: '8px', 
+                    bottom: '8px', 
                     width: '2px', 
                     background: 'var(--subtle-border)' 
                   }} 
@@ -2137,54 +2068,52 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                       key={c.id || index}
                       style={{ 
                         position: 'relative', 
-                        padding: '14px 16px', 
-                        borderRadius: '12px',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--subtle-border)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                        padding: '10px 12px', 
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--subtle-border)'
                       }}
                     >
                       {/* Timeline dot */}
                       <div 
                         style={{ 
                           position: 'absolute', 
-                          left: '-24px', 
-                          top: '18px', 
-                          width: '14px', 
-                          height: '14px', 
+                          left: '-17px', 
+                          top: '14px', 
+                          width: '10px', 
+                          height: '10px', 
                           borderRadius: '50%', 
                           background: typeObj.color,
-                          border: '3px solid var(--panel-bg, #0d121a)',
-                          boxShadow: `0 0 8px ${typeObj.color}`
+                          border: '2px solid var(--panel-bg, #0f172a)'
                         }} 
                       />
 
                       {/* Comment Top: Author, Type, Date */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-1.5 mb-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
                           <span 
                             style={{ 
                               display: 'inline-flex', 
                               alignItems: 'center', 
-                              gap: '4px',
-                              padding: '2px 7px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              background: `color-mix(in srgb, ${typeObj.color} 15%, transparent)`,
+                              gap: '3px',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              background: `color-mix(in srgb, ${typeObj.color} 12%, transparent)`,
                               color: typeObj.color,
-                              border: `1px solid color-mix(in srgb, ${typeObj.color} 30%, transparent)`
+                              border: `1px solid color-mix(in srgb, ${typeObj.color} 25%, transparent)`
                             }}
                           >
-                            <Icon size={11} /> {typeObj.label}
+                            <Icon size={10} /> {typeObj.label}
                           </span>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {c.author || 'Sales Representative'}
+                          <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            {c.author || 'Sales Rep'}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             {formatDateTime(c.date)}
                           </span>
                           {onDeleteComment && (
@@ -2198,14 +2127,14 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
                               title="Delete comment"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={12} />
                             </button>
                           )}
                         </div>
                       </div>
 
                       {/* Comment Content */}
-                      <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
                         {c.text}
                       </p>
 
@@ -2213,21 +2142,21 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
                       {c.nextActionDate && (
                         <div 
                           style={{ 
-                            marginTop: '10px', 
-                            padding: '6px 10px', 
-                            borderRadius: '6px', 
-                            background: 'rgba(245, 158, 11, 0.08)', 
-                            border: '1px solid rgba(245, 158, 11, 0.25)',
+                            marginTop: '8px', 
+                            padding: '4px 8px', 
+                            borderRadius: '5px', 
+                            background: 'rgba(99, 102, 241, 0.08)', 
+                            border: '1px solid rgba(99, 102, 241, 0.2)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.75rem',
-                            color: '#f59e0b'
+                            gap: '5px',
+                            fontSize: '0.72rem',
+                            color: '#818cf8'
                           }}
                         >
-                          <Calendar size={12} />
+                          <Calendar size={11} />
                           <span>
-                            Marked Next Action: <strong>{formatDate(c.nextActionDate)}</strong>
+                            Next Action: <strong>{formatDate(c.nextActionDate)}</strong>
                             {c.nextActionNote && ` — "${c.nextActionNote}"`}
                           </span>
                         </div>
@@ -2240,16 +2169,16 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
               <div 
                 style={{ 
                   textAlign: 'center', 
-                  padding: '40px 20px', 
+                  padding: '24px 14px', 
                   border: '1px dashed var(--subtle-border)', 
-                  borderRadius: '12px',
+                  borderRadius: '8px',
                   color: 'var(--text-muted)' 
                 }}
               >
-                <Clock size={36} style={{ opacity: 0.3, margin: '0 auto 8px auto' }} />
-                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)' }}>No Follow-up Comments Yet</div>
-                <p style={{ fontSize: '0.8rem', marginTop: '2px' }}>
-                  Log your first discussion or call notes above to start building the prospect timeline.
+                <Clock size={24} style={{ opacity: 0.35, margin: '0 auto 6px auto' }} />
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>No Activity Yet</div>
+                <p style={{ fontSize: '0.72rem', marginTop: '2px', color: 'var(--text-muted)' }}>
+                  Log notes above to build this prospect's timeline.
                 </p>
               </div>
             )}
@@ -2261,18 +2190,22 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
         <div 
           style={{ 
             flexShrink: 0, 
-            padding: '14px 24px', 
+            padding: '8px 16px', 
+            paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
             borderTop: '1px solid var(--subtle-border)', 
-            background: 'var(--input-bg)',
+            background: 'var(--panel-bg)',
             display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px'
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}
         >
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            Pipeline status updates automatically
+          </span>
           <button 
             type="button" 
             className="btn btn-secondary" 
-            style={{ padding: '8px 18px', fontSize: '0.85rem' }} 
+            style={{ padding: '5px 14px', fontSize: '0.78rem', height: 'auto', borderRadius: '6px' }} 
             onClick={onClose}
           >
             Close
