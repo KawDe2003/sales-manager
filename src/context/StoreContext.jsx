@@ -707,48 +707,9 @@ export default function StoreContextProvider({ children }) {
     autoInvoiceEnabled: false,
     autoInvoiceDays: 3,
     birthdayWishEnabled: true,
-    smsHeader: '',
-    smsFooter: '',
-    smsEncoding: 'GSM',
-    deliveryReports: true,
-    pdfColor: '#4f46e5',
-    pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
-    pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.',
-    sessionTimeout: 5,
-    balance: 0,
+    autoTaskReminderEnabled: true,
     reminderHoursBefore: 24,
-    invoicePrefix: 'INV-',
-    nextInvoiceNumber: 2002,
-    // ... other fields continue as before
-  };
-    apiKey: '2179165276941c4e5eb994053957585',
-    email: 'info@seynex.lk',
-    senderID: 'SEYNEX',
-    companyName: 'Seynex Enterprises',
-    dashboardName: 'Seynex Enterprises',
-    receiptLogo: '',
-    companyLogo: '',
-    companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
-    companyPhone: '+94 11 234 5678',
-    adminPhone: '+94 11 234 5678',
-    companyEmail: 'info@seynex.lk',
-    bankDetails: {
-      accountName: 'SEYNEX ENTERPRISES PVT LTD',
-      bank: 'Commercial Bank of Ceylon',
-      branch: 'Colombo 03 Branch',
-      accountNumber: '8004 9123 4567'
-    },
-    quoteTemplate: 'Hi {name},\nHere is your quotation #{quoteNumber} from Seynex Enterprises.\nTotal Amount: LKR {amount}\nView Quote: {link}',
-    thankYouTemplate: 'Hi {name},\nThank you for choosing Seynex Enterprises! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
-    renewalTemplate: 'Hi {name},\nNotice: Scheduled license & SLA service renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
-    invoiceReminderTemplate: 'Hi {name},\nReminder from Seynex Enterprises: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
-    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Seynex Enterprises!',
-    cashReceivedTemplate: 'Hi {name},\nPayment Received! Seynex Enterprises received LKR {amount} for {documentType} #{number}. Thank you!',
-    autoRenewalEnabled: true,
-    autoRenewalDays: '15,7,3,1,0',
-    autoInvoiceEnabled: false,
-    autoInvoiceDays: 3,
-    birthdayWishEnabled: true,
+    reminderClockTime: '09:00',
     smsHeader: '',
     smsFooter: '',
     smsEncoding: 'GSM',
@@ -794,6 +755,9 @@ export default function StoreContextProvider({ children }) {
     autoInvoiceEnabled: false,
     autoInvoiceDays: 3,
     birthdayWishEnabled: true,
+    autoTaskReminderEnabled: true,
+    reminderHoursBefore: 24,
+    reminderClockTime: '09:00',
     smsHeader: '',
     smsFooter: '',
     smsEncoding: 'GSM',
@@ -3435,43 +3399,76 @@ export default function StoreContextProvider({ children }) {
   // --- Tasks CRUD ---
   const syncTaskToSupabase = async (task) => {
     if (!user) return;
+    const client = getSupabaseClient(activeBusinessId);
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .upsert({
-          id: task.id,
-          user_id: user.id,
-          title: task.title,
-          description: task.description,
-          due_date: task.dueDate,
-          status: task.status,
-          priority: task.priority,
-          related_to: task.relatedTo,
-          related_id: task.relatedId
-        });
-      if (error) console.error('[Supabase Sync] Task Error:', error);
+      const payload = {
+        id: toUuid(task.id),
+        user_id: user.id,
+        business_id: activeBusinessId,
+        title: task.title,
+        description: task.description || '',
+        due_date: task.dueDate || null,
+        status: task.status || 'Pending',
+        priority: task.priority || 'Normal',
+        related_to: task.relatedTo || '',
+        related_id: task.relatedId || '',
+        reminder_date: task.reminderDate || null,
+        reminder_time: task.reminderTime || null
+      };
+
+      let res = await client.from('tasks').upsert(payload);
+      // Fallback if reminder columns don't exist on remote schema
+      if (res.error && (res.error.code === '42703' || res.error.message?.includes('reminder'))) {
+        delete payload.reminder_date;
+        delete payload.reminder_time;
+        res = await client.from('tasks').upsert(payload);
+      }
+      // Fallback if business_id column does not exist
+      if (res.error && (res.error.code === '42703' || res.error.message?.includes('business_id'))) {
+        delete payload.business_id;
+        res = await client.from('tasks').upsert(payload);
+      }
+      if (res.error) console.warn('[Supabase Sync] Task Warning:', res.error.message);
     } catch (err) {
-      console.error('[Supabase Sync] Task Exception:', err);
+      console.warn('[Supabase Sync] Task Exception:', err.message);
     }
   };
 
-  const addTask = (task) => {
-    const newTask = { ...task, id: task.id || uuidv4() };
+  const addTask = async (task) => {
+    const defaultTime = smsConfig.reminderClockTime || '09:00';
+    const recipientPhone = task.recipientPhone || task.phone || smsConfig.adminPhone || smsConfig.companyPhone || '';
+    const newTask = {
+      ...task,
+      id: task.id || uuidv4(),
+      recipientPhone,
+      reminderDate: task.reminderDate || task.dueDate || new Date().toISOString().split('T')[0],
+      reminderTime: task.reminderTime || defaultTime,
+      sendSmsReminder: task.sendSmsReminder !== false,
+      createdAt: task.createdAt || new Date().toISOString()
+    };
+
     setTasks(prev => [newTask, ...prev]);
     syncTaskToSupabase(newTask);
     addLog('Task', `Created task: ${newTask.title}`);
     showNotification(`Task "${newTask.title}" created!`, 'success');
-    // Send SMS reminder to admin or company phone
-    const smsMsg = `Task "${newTask.title}" has been created${newTask.dueDate ? ` and is due on ${newTask.dueDate}` : ''}.`;
-    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '';
-    if (recipientPhone) {
-      sendNotification('sms', recipientPhone, smsMsg);
+
+    // Send SMS reminder notification via actual SMS gateway (sendDirectSMS) if enabled
+    if (newTask.sendSmsReminder) {
+      if (recipientPhone) {
+        const dueInfo = newTask.dueDate ? ` (Due: ${newTask.dueDate})` : '';
+        const reminderInfo = newTask.reminderDate ? ` Reminder: ${newTask.reminderDate} at ${newTask.reminderTime}.` : '';
+        const smsMsg = `Task Alert [${smsConfig.companyName || 'Seynex'}]: "${newTask.title}"${dueInfo}.${reminderInfo}`;
+        await sendDirectSMS(recipientPhone, smsMsg);
+      } else {
+        showNotification('Task created, but no phone number found to send SMS. Set Admin Phone in Settings or on the task.', 'warning');
+      }
     }
   };
 
   const updateTask = (id, data) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
-    const updated = { ...tasks.find(t => t.id === id), ...data, id };
+    const current = tasks.find(t => t.id === id) || {};
+    const updated = { ...current, ...data, id };
     syncTaskToSupabase(updated);
     addLog('Task', `Updated task: ${updated.title}`);
     showNotification(`Task updated!`, 'success');
@@ -4416,42 +4413,92 @@ export default function StoreContextProvider({ children }) {
     setCloudSyncStatus('syncing');
     showNotification('Wiping local and cloud records...', 'info');
 
+    const defaultConfig = activeBusinessId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
+
     try {
       // 1. Delete records from Supabase in foreign-key safe order
       const tablesInOrder = [
+        'payment_allocations',
         'payments',
-        'activity_logs',
-        'tasks',
         'invoices',
         'quotations',
-        'customers',
-        'inventory',
+        'production_orders',
+        'boms',
+        'purchase_orders',
+        'suppliers',
         'expenses',
         'fixed_assets',
+        'inventory',
+        'customers',
+        'tasks',
+        'activity_logs',
         'leads'
       ];
 
-      for (const tbl of tablesInOrder) {
+      const activeClient = getSupabaseClient(activeBusinessId);
+      const clientsToWipe = [activeClient];
+      if (supabase && supabase !== activeClient) {
+        clientsToWipe.push(supabase);
+      }
+
+      for (const client of clientsToWipe) {
+        for (const tbl of tablesInOrder) {
+          try {
+            // First attempt to delete records scoped to the active business
+            const scopedRes = await client.from(tbl).delete().eq('business_id', activeBusinessId);
+            if (scopedRes.error && (scopedRes.error.code === '42703' || scopedRes.error.message?.includes('business_id'))) {
+              // Fallback to wiping without business_id column constraint
+              const res1 = await client.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              if (res1.error) {
+                await client.from(tbl).delete().not('id', 'is', null);
+              }
+            }
+          } catch (tblErr) {
+            console.warn(`[Supabase Reset Notice on ${tbl}]`, tblErr.message);
+          }
+        }
+
+        // Also reset user_profiles configuration in Supabase to clean defaults
         try {
-          await supabase.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        } catch (tblErr) {
-          console.warn(`[Supabase Reset Notice on ${tbl}]`, tblErr.message);
+          await client.from('user_profiles').update({
+            config: defaultConfig,
+            updated_at: new Date().toISOString()
+          }).not('user_id', 'is', null);
+        } catch (profErr) {
+          console.warn('[Supabase Reset user_profiles notice]', profErr?.message);
         }
       }
 
-      // 2. Clear Local Storage
-      const keys = [
+      // 2. Clear Local Storage (both legacy gym_ and modern biz_data_ partitions)
+      try {
+        const allStorageKeys = Object.keys(localStorage);
+        allStorageKeys.forEach(k => {
+          if (k.startsWith('gym_') || k.startsWith('biz_data_') || k.startsWith('app_task_')) {
+            try { localStorage.removeItem(k); } catch (e) {}
+          }
+        });
+      } catch (e) {}
+
+      const explicitKeys = [
         'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
         'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
         'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
         'gym_payment_allocations', 'gym_depreciation_schedule', 'gym_last_sync_time',
         'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
         'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
-        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters'
+        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
+        'gym_boms', 'gym_production_orders', 'gym_sms_config'
       ];
-      keys.forEach(k => {
+      explicitKeys.forEach(k => {
         try { localStorage.removeItem(k); } catch (e) {}
       });
+
+      // Re-seed clean default SMS / business configuration in localStorage
+      try {
+        localStorage.setItem('gym_sms_config', JSON.stringify(defaultConfig));
+        localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(defaultConfig));
+        localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(defaultConfig));
+      } catch (e) {}
 
       // 3. Clear React state
       setCustomers([]);
@@ -4470,6 +4517,8 @@ export default function StoreContextProvider({ children }) {
       setDepreciationSchedule([]);
       setSuppliers([]);
       setPurchaseOrders([]);
+      setBoms([]);
+      setProductionOrders([]);
       setEmployees([]);
       setPayruns([]);
       setAttendanceLogs([]);
@@ -4479,11 +4528,15 @@ export default function StoreContextProvider({ children }) {
       setPerformanceReviews([]);
       setExpenseClaims([]);
       setHrLetters([]);
+      setSystemNotifications([]);
+
+      // Reset SMS and business configurations to defaults
+      setSmsConfig(defaultConfig);
 
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
       setLastSyncTime(new Date().toISOString());
-      showNotification('All data has been reset to a clean state!', 'success');
+      showNotification('All data and settings have been completely reset to a clean state!', 'success');
       return true;
     } catch (err) {
       console.error('[Reset Error]', err);
@@ -6700,6 +6753,36 @@ export default function StoreContextProvider({ children }) {
       });
     }
 
+    // 4. Check Tasks Reminders (Due Today or on Reminder Date)
+    let updatedTasks = [...tasks];
+    let tasksChanged = false;
+    if (smsConfig?.autoTaskReminderEnabled !== false) {
+      tasks.forEach((t, index) => {
+        if (t.status !== 'Completed' && t.sendSmsReminder !== false && !t.reminderSent) {
+          const reminderDateStr = t.reminderDate || t.dueDate;
+          if (reminderDateStr) {
+            const remDate = new Date(reminderDateStr);
+            remDate.setHours(0, 0, 0, 0);
+            const timeDiff = remDate.getTime() - today.getTime();
+            const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            // If reminder date is reached (today or up to 3 days overdue)
+            if (daysDiff <= 0 && daysDiff >= -3 && t.lastReminderNoticeDate !== todayStr) {
+              const targetPhone = t.recipientPhone || smsConfig.adminPhone || smsConfig.companyPhone;
+              if (targetPhone) {
+                const dueText = t.dueDate ? ` (Due: ${t.dueDate})` : '';
+                const msg = `Task Reminder [${smsConfig.companyName || 'Seynex'}]: "${t.title}"${dueText}. Priority: ${t.priority || 'Normal'}. Kindly review and update status.`;
+                sendDirectSMS(targetPhone, msg);
+                showNotification(`Task reminder SMS dispatched to ${targetPhone} for "${t.title}"`, 'info');
+                updatedTasks[index] = { ...t, reminderSent: true, lastReminderNoticeDate: todayStr };
+                tasksChanged = true;
+              }
+            }
+          }
+        }
+      });
+    }
+
     if (customersChanged) {
       setCustomers(updatedCustomers);
       try { localStorage.setItem('gym_customers', JSON.stringify(updatedCustomers)); } catch(e) {}
@@ -6708,7 +6791,14 @@ export default function StoreContextProvider({ children }) {
       setInvoices(updatedInvoices);
       try { localStorage.setItem('gym_invoices', JSON.stringify(updatedInvoices)); } catch(e) {}
     }
-  }, [customers.length, invoices.length, smsConfig?.autoRenewalEnabled]);
+    if (tasksChanged) {
+      setTasks(updatedTasks);
+      try {
+        localStorage.setItem('gym_tasks', JSON.stringify(updatedTasks));
+        localStorage.setItem(`biz_data_${activeBusinessId}_tasks`, JSON.stringify(updatedTasks));
+      } catch (e) {}
+    }
+  }, [customers.length, invoices.length, tasks.length, smsConfig?.autoRenewalEnabled, smsConfig?.autoTaskReminderEnabled, activeBusinessId]);
 
   // SMS Service Core
   const updateSmsConfig = (newConfig) => {
@@ -6758,14 +6848,30 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
-  const sendDirectSMS = async (phone, rawMessage) => {
+  async function sendDirectSMS(phone, rawMessage) {
     try {
-      const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+      if (!phone) {
+        showNotification('Cannot dispatch SMS: No phone number provided.', 'error');
+        return { success: false, error: 'No phone number provided' };
+      }
+
+      // Sanitize phone number (strip whitespace, symbols)
+      let cleanPhone = String(phone).trim().replace(/[^0-9]/g, '');
+      // Format Sri Lankan numbers: e.g. 0771234567 -> 94771234567
+      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+        cleanPhone = '94' + cleanPhone.substring(1);
+      } else if (cleanPhone.length === 9) {
+        cleanPhone = '94' + cleanPhone;
+      }
+
+      const senderId = smsConfig?.senderID || "SEYNEX";
       const payload = {
-        senderID: smsConfig.senderID || "SEYNEX",
-        to: cleanPhone || phone,
+        senderID: senderId,
+        to: cleanPhone,
         msg: rawMessage
       };
+
+      console.log(`[QuickSend API] Dispatching to ${cleanPhone} (${phone})...`);
 
       const res = await fetch('/api/quicksend?FUN=SEND_SINGLE', {
         method: 'POST',
@@ -6784,16 +6890,30 @@ export default function StoreContextProvider({ children }) {
         data = rawText;
       }
 
-      console.log('SMS Send Result:', data);
-      showNotification(`Verification SMS sent to ${phone}!`);
-      addLog('SMS', `Sent to ${phone}: ${rawMessage.substring(0, 50)}...`);
+      console.log('[QuickSend API Result]:', data);
+
+      if (!res.ok) {
+        const errorMsg = typeof data === 'object' ? (data.message || data.error || JSON.stringify(data)) : String(data);
+        showNotification(`SMS Gateway HTTP Error (${res.status}): ${errorMsg}`, 'error');
+        return { success: false, error: errorMsg };
+      }
+
+      // Check if response contains failure indications from SMS gateway
+      if (data && typeof data === 'object' && (data.status === 'FAILED' || data.error || data.success === false)) {
+        const errorMsg = data.message || data.error || 'SMS gateway rejected dispatch';
+        showNotification(`SMS Gateway Failed: ${errorMsg}`, 'error');
+        return { success: false, error: errorMsg, data };
+      }
+
+      showNotification(`SMS sent successfully to ${phone}!`, 'success');
+      addLog?.('SMS', `Sent to ${phone}: ${rawMessage.substring(0, 50)}...`);
       return { success: true, data };
     } catch (err) {
-      console.error('Failed to send SMS API', err);
-      showNotification('Error connecting to QuickSend API.', 'error');
+      console.error('[QuickSend API Exception]', err);
+      showNotification(`Error connecting to QuickSend API: ${err.message || err}`, 'error');
       return { success: false, error: err };
     }
-  };
+  }
 
   const sendBulkSMSArray = async (phonesArray, rawMessage) => {
     try {

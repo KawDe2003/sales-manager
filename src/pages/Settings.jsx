@@ -1646,19 +1646,30 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                     onChange={e => updateSmsConfig({...smsConfig, adminPhone: e.target.value})} />
                 </div>
               </div>
-                              <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Reminder Hours Before Due
-                    <Info size={12} className="text-secondary" title="Send reminder X hours before task due date" />
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                    <input type="number" className="form-input" style={{ paddingLeft: '40px' }}
-                      placeholder="e.g. 24"
-                      value={smsConfig.reminderHoursBefore !== undefined ? smsConfig.reminderHoursBefore : ''}
-                      onChange={e => updateSmsConfig({ ...smsConfig, reminderHoursBefore: parseInt(e.target.value, 10) })} />
-                  </div>
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Reminder Hours Before Due
+                  <Info size={12} className="text-secondary" title="Send reminder X hours before task due date" />
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                  <input type="number" className="form-input" style={{ paddingLeft: '40px' }}
+                    placeholder="e.g. 24"
+                    value={smsConfig.reminderHoursBefore !== undefined ? smsConfig.reminderHoursBefore : ''}
+                    onChange={e => updateSmsConfig({ ...smsConfig, reminderHoursBefore: parseInt(e.target.value, 10) })} />
                 </div>
-                <div className="form-group">
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Default Reminder Clock Time
+                  <Info size={12} className="text-secondary" title="Default dispatch clock time for scheduled reminders (e.g. 09:00 AM)" />
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                  <input type="time" className="form-input" style={{ paddingLeft: '40px' }}
+                    value={smsConfig.reminderClockTime || '09:00'}
+                    onChange={e => updateSmsConfig({ ...smsConfig, reminderClockTime: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
                 <label className="form-label">Registered Office Address</label>
                 <div style={{ position: 'relative' }}>
                   <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
@@ -2506,6 +2517,44 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   onChange={e => updateSmsConfig({...smsConfig, birthdayWishEnabled: e.target.checked})} 
                 />
               </div>
+
+              <div style={{ height: '1px', background: 'var(--panel-border)' }}></div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Task & Follow-up SMS Reminders</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Automatically dispatch SMS reminders for pending tasks</div>
+                </div>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)' }}
+                  checked={smsConfig.autoTaskReminderEnabled !== false} 
+                  onChange={e => updateSmsConfig({...smsConfig, autoTaskReminderEnabled: e.target.checked})} 
+                />
+              </div>
+
+              {smsConfig.autoTaskReminderEnabled !== false && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Default Dispatch Clock Time</label>
+                    <input 
+                      type="time" 
+                      className="form-input" 
+                      value={smsConfig.reminderClockTime || '09:00'} 
+                      onChange={e => updateSmsConfig({...smsConfig, reminderClockTime: e.target.value})} 
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Reminder Advance (Hours)</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={smsConfig.reminderHoursBefore !== undefined ? smsConfig.reminderHoursBefore : 24} 
+                      onChange={e => updateSmsConfig({...smsConfig, reminderHoursBefore: parseInt(e.target.value, 10) || 24})} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

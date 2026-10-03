@@ -1,22 +1,28 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
-import { Plus, Search, CheckCircle, Clock, Trash2, CalendarDays, Edit3, X } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, Trash2, CalendarDays, Edit3, X, Bell, Phone, Send } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 import DatePicker from '../components/DatePicker';
 
 const Tasks = () => {
-  const { tasks = [], addTask, updateTask, deleteTask } = useContext(StoreContext);
+  const { tasks = [], addTask, updateTask, deleteTask, smsConfig = {}, sendDirectSMS, showNotification } = useContext(StoreContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [sendingSmsId, setSendingSmsId] = useState(null);
   
+  const defaultReminderTime = smsConfig.reminderClockTime || '09:00';
   const initialForm = {
     title: '',
     description: '',
     dueDate: new Date().toISOString().split('T')[0],
+    reminderDate: new Date().toISOString().split('T')[0],
+    reminderTime: defaultReminderTime,
+    sendSmsReminder: true,
+    recipientPhone: smsConfig.adminPhone || smsConfig.companyPhone || '',
     status: 'Pending',
     priority: 'Normal',
     relatedTo: '',
@@ -48,6 +54,23 @@ const Tasks = () => {
     setShowModal(false);
     setForm(initialForm);
     setEditingTask(null);
+  };
+
+  const handleManualSendSMS = async (task) => {
+    const targetPhone = task.recipientPhone || smsConfig.adminPhone || smsConfig.companyPhone;
+    if (!targetPhone) {
+      showNotification('No phone number set for this task or in Settings (Admin Phone).', 'error');
+      return;
+    }
+    setSendingSmsId(task.id);
+    try {
+      const dueInfo = task.dueDate ? ` (Due: ${task.dueDate})` : '';
+      const reminderInfo = task.reminderDate ? ` Reminder: ${task.reminderDate} at ${task.reminderTime || defaultReminderTime}.` : '';
+      const smsMsg = `Task Reminder [${smsConfig.companyName || 'Seynex'}]: "${task.title}"${dueInfo}.${reminderInfo} Status: ${task.status}.`;
+      await sendDirectSMS(targetPhone, smsMsg);
+    } finally {
+      setSendingSmsId(null);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -142,26 +165,75 @@ const Tasks = () => {
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)' }}>{task.title}</h3>
               <p className="text-secondary mb-4" style={{ fontSize: '0.85rem', lineHeight: 1.5, minHeight: '40px' }}>{task.description || 'No description provided.'}</p>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                <CalendarDays size={14} className="text-muted" />
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CalendarDays size={14} className="text-muted" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date set'}
+                  </span>
+                </div>
+                {(task.reminderDate || task.sendSmsReminder !== false) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                    <Bell size={12} />
+                    <span>
+                      SMS Reminder: {task.reminderDate ? new Date(task.reminderDate).toLocaleDateString() : (task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Same as due')} at {task.reminderTime || defaultReminderTime}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--panel-border)', paddingTop: '16px', marginTop: 'auto' }}>
-                <button 
-                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  onClick={() => {
-                    const newStatus = task.status === 'Pending' ? 'In Progress' : task.status === 'In Progress' ? 'Completed' : 'Pending';
-                    updateTask(task.id, { status: newStatus });
-                  }}
-                >
-                  <Clock size={14} /> Advance Status
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--panel-border)', paddingTop: '16px', marginTop: 'auto', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button 
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => {
+                      const newStatus = task.status === 'Pending' ? 'In Progress' : task.status === 'In Progress' ? 'Completed' : 'Pending';
+                      updateTask(task.id, { status: newStatus });
+                    }}
+                  >
+                    <Clock size={14} /> Advance Status
+                  </button>
+                  <button 
+                    type="button"
+                    style={{ 
+                      background: 'rgba(99, 102, 241, 0.1)', 
+                      border: '1px solid rgba(99, 102, 241, 0.25)', 
+                      color: 'var(--accent-primary)', 
+                      fontSize: '0.76rem', 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      padding: '4px 10px', 
+                      borderRadius: '8px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '5px' 
+                    }}
+                    onClick={() => handleManualSendSMS(task)}
+                    title="Send SMS reminder notification now"
+                    disabled={sendingSmsId === task.id}
+                  >
+                    <Send size={12} /> {sendingSmsId === task.id ? 'Sending...' : 'Send SMS'}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button onClick={() => { setForm(task); setEditingTask(task); setShowModal(true); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <button 
+                    onClick={() => { 
+                      setForm({
+                        ...task,
+                        recipientPhone: task.recipientPhone || smsConfig.adminPhone || smsConfig.companyPhone || '',
+                        reminderDate: task.reminderDate || task.dueDate || new Date().toISOString().split('T')[0],
+                        reminderTime: task.reminderTime || defaultReminderTime,
+                        sendSmsReminder: task.sendSmsReminder !== false
+                      }); 
+                      setEditingTask(task); 
+                      setShowModal(true); 
+                    }} 
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                    title="Edit task"
+                  >
                     <Edit3 size={16} />
                   </button>
-                  <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
+                  <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Delete task">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -218,18 +290,25 @@ const Tasks = () => {
               </div>
               <div className="form-group mb-4">
                 <label className="form-label">Description</label>
-                <textarea className="form-input" style={{ minHeight: '90px' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Task details..."></textarea>
+                <textarea className="form-input" style={{ minHeight: '80px' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Task details..."></textarea>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="form-group">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Due Date</label>
                   <DatePicker 
                     value={form.dueDate} 
-                    onChange={val => setForm({...form, dueDate: val})} 
+                    onChange={val => {
+                      setForm({
+                        ...form, 
+                        dueDate: val,
+                        // Synchronize reminderDate if it was matching old dueDate or blank
+                        reminderDate: (!form.reminderDate || form.reminderDate === form.dueDate) ? val : form.reminderDate
+                      });
+                    }} 
                     placeholder="Select due date..." 
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Priority</label>
                   <CustomSelect 
                     value={form.priority} 
@@ -239,6 +318,76 @@ const Tasks = () => {
                   />
                 </div>
               </div>
+
+              {/* SMS Reminder Configuration Panel */}
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.05)',
+                border: '1px solid rgba(99, 102, 241, 0.2)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginBottom: '20px'
+              }}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Bell size={16} color="var(--accent-primary)" />
+                    <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      SMS Reminder Notification
+                    </span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+                    checked={form.sendSmsReminder !== false}
+                    onChange={e => setForm({ ...form, sendSmsReminder: e.target.checked })}
+                  />
+                </div>
+
+                {form.sendSmsReminder !== false && (
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.78rem' }}>SMS Reminder Date</label>
+                        <DatePicker 
+                          value={form.reminderDate} 
+                          onChange={val => setForm({ ...form, reminderDate: val })} 
+                          placeholder="Select reminder date..." 
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.78rem' }}>Reminder Clock Time</label>
+                        <div style={{ position: 'relative' }}>
+                          <Clock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                          <input 
+                            type="time" 
+                            className="form-input" 
+                            style={{ paddingLeft: '36px', height: '40px' }}
+                            value={form.reminderTime || defaultReminderTime}
+                            onChange={e => setForm({ ...form, reminderTime: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="form-group" style={{ marginTop: '10px', marginBottom: '4px' }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>Recipient Phone Number</label>
+                      <div style={{ position: 'relative' }}>
+                        <Phone size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          style={{ paddingLeft: '36px', height: '40px' }}
+                          placeholder="e.g. 0771234567 or +94 77 123 4567"
+                          value={form.recipientPhone !== undefined ? form.recipientPhone : (smsConfig.adminPhone || smsConfig.companyPhone || '')}
+                          onChange={e => setForm({ ...form, recipientPhone: e.target.value })}
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Alerts and reminders will dispatch to this mobile number. Defaults to Admin Phone ({smsConfig.adminPhone || smsConfig.companyPhone || 'Not set in Settings'}).
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editingTask ? 'Save Changes' : 'Create Task'}</button>
