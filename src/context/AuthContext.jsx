@@ -221,6 +221,18 @@ export const AuthProvider = ({ children }) => {
           resolvedBizId = localStorage.getItem('active_business_id') || 'biz_main';
         }
 
+        // STRICT BUSINESS ACCESS ENFORCEMENT:
+        // A user created for Seynex can ONLY log in through and access Seynex.
+        // A user created for Royal Hair Pins can ONLY log in through and access Royal Hair Pins.
+        if (targetBusinessId && resolvedBizId && targetBusinessId !== resolvedBizId) {
+          const assignedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+          const attemptedBizName = targetBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+          return {
+            data: null,
+            error: new Error(`Access Denied: This account is dedicated to ${assignedBizName} and cannot access ${attemptedBizName}. Please switch to the ${assignedBizName} login portal.`)
+          };
+        }
+
         const resolvedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
 
         const resolvedId = isUuid(matchedMember.id) 
@@ -260,6 +272,16 @@ export const AuthProvider = ({ children }) => {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
           const resolvedBizId = cleanEmail.includes('royalhairpins') ? 'biz_hairpins' : (targetBusinessId || 'biz_main');
+          
+          if (targetBusinessId && targetBusinessId !== resolvedBizId) {
+            const assignedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+            const attemptedBizName = targetBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+            return {
+              data: null,
+              error: new Error(`Access Denied: This account is dedicated to ${assignedBizName} and cannot access ${attemptedBizName}.`)
+            };
+          }
+
           const authUser = {
             ...res.data.user,
             businessId: resolvedBizId,
@@ -278,6 +300,12 @@ export const AuthProvider = ({ children }) => {
 
     // 3. Fallback check for royalhairpins admin
     if (cleanEmail === 'admin@royalhairpins.lk') {
+      if (targetBusinessId && targetBusinessId !== 'biz_hairpins') {
+        return {
+          data: null,
+          error: new Error('Access Denied: This account belongs to Royal Hair Pin Industries and cannot access Seynex Enterprises.')
+        };
+      }
       const authUser = {
         id: 'hairpins-admin-01',
         email: 'admin@royalhairpins.lk',
@@ -294,6 +322,12 @@ export const AuthProvider = ({ children }) => {
 
     // 4. Fallback check for seynex / company admin
     if (cleanEmail === 'admin@company.com' || cleanEmail === 'admin@seynex.lk') {
+      if (targetBusinessId && targetBusinessId !== 'biz_main') {
+        return {
+          data: null,
+          error: new Error('Access Denied: This account belongs to Seynex Enterprises and cannot access Royal Hair Pin Industries.')
+        };
+      }
       const authUser = {
         id: '76bb4580-2006-464f-aab8-64029dbe9540',
         email: cleanEmail,

@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import CustomSelect from '../components/CustomSelect';
 import CustomColorPicker from '../components/CustomColorPicker';
 import { 
@@ -75,6 +76,9 @@ const Settings = () => {
     businesses = [], activeBusinessId, activeBusiness, switchBusiness,
     getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient
   } = useContext(StoreContext) || {};
+  const { user } = useAuth();
+  const isUserRestricted = Boolean(user?.businessId && user.businessId !== 'all');
+
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
@@ -84,6 +88,7 @@ const Settings = () => {
   
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [workspaceFilter, setWorkspaceFilter] = useState('All'); // 'All' | 'biz_main' | 'biz_hairpins'
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeSettingsTab, setActiveSettingsTab] = useState(tabParam || 'users');
@@ -438,8 +443,31 @@ const Settings = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Status:</span>
+              <div className="flex items-center gap-2 flex-wrap" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Workspace:</span>
+                {[
+                  { id: 'All', label: 'All Entities' },
+                  { id: 'biz_main', label: 'Seynex' },
+                  { id: 'biz_hairpins', label: 'Hair Pins' }
+                ].map(ws => (
+                  <button 
+                    key={ws.id}
+                    type="button" 
+                    onClick={() => setWorkspaceFilter(ws.id)}
+                    style={{
+                      padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
+                      background: workspaceFilter === ws.id 
+                        ? (ws.id === 'biz_hairpins' ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' : 'var(--accent-primary)') 
+                        : 'transparent',
+                      color: workspaceFilter === ws.id ? 'white' : 'var(--text-secondary)',
+                      border: workspaceFilter === ws.id ? '1px solid transparent' : '1px solid var(--subtle-border)'
+                    }}
+                  >
+                    {ws.label}
+                  </button>
+                ))}
+
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginLeft: '8px' }}>Status:</span>
                 {['All', 'Active', 'Suspended', 'Pending'].map(st => (
                   <button 
                     key={st}
@@ -463,6 +491,7 @@ const Settings = () => {
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>Team Member Details</th>
+                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Assigned Workspace</th>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>Department</th>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>System Role</th>
                     <th style={{ padding: '12px 0', opacity: 0.7 }}>Account Status</th>
@@ -475,7 +504,8 @@ const Settings = () => {
                       const q = searchMemberQuery.toLowerCase();
                       const matchesSearch = (member.name || '').toLowerCase().includes(q) || (member.email || '').toLowerCase().includes(q) || (member.department || '').toLowerCase().includes(q);
                       const matchesStatus = statusFilter === 'All' || member.status === statusFilter;
-                      return matchesSearch && matchesStatus;
+                      const matchesWorkspace = workspaceFilter === 'All' || (member.businessId || 'biz_main') === workspaceFilter;
+                      return matchesSearch && matchesStatus && matchesWorkspace;
                     })
                     .map(member => (
                     <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
@@ -501,6 +531,35 @@ const Settings = () => {
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</div>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        {member.businessId === 'biz_hairpins' ? (
+                          <span className="badge" style={{ 
+                            fontSize: '0.72rem', 
+                            background: 'rgba(13, 148, 136, 0.15)', 
+                            color: '#2dd4bf', 
+                            border: '1px solid rgba(13, 148, 136, 0.3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px'
+                          }}>
+                            <Sparkles size={11} /> Royal Hair Pins
+                          </span>
+                        ) : (
+                          <span className="badge" style={{ 
+                            fontSize: '0.72rem', 
+                            background: 'rgba(79, 70, 229, 0.15)', 
+                            color: '#a5b4fc', 
+                            border: '1px solid rgba(79, 70, 229, 0.3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px'
+                          }}>
+                            <Building2 size={11} /> Seynex Enterprises
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="badge badge-secondary" style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.05)' }}>
@@ -1348,16 +1407,23 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                     <Building2 size={26} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="h3" style={{ margin: 0, color: 'var(--text-primary)' }}>
                         Multi-Business Entity Partitioning
                       </h3>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(13, 148, 136, 0.18)', color: '#2dd4bf', border: '1px solid rgba(13, 148, 136, 0.3)' }}>
                         Separated Profiles Active
                       </span>
+                      {isUserRestricted && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Lock size={11} /> Workspace Locked to {activeBusiness?.name}
+                        </span>
+                      )}
                     </div>
                     <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
-                      Hair Pins operations are partitioned as an independent business. Each business profile maintains its own isolated product catalog, leads pipeline, quotations, invoices, and company branding.
+                      {isUserRestricted 
+                        ? `Your current login is dedicated to ${activeBusiness?.name}. Switching between business workspaces is restricted for single-entity accounts.` 
+                        : 'Hair Pins operations are partitioned as an independent business. Each business profile maintains its own isolated product catalog, leads pipeline, quotations, invoices, and company branding.'}
                     </p>
                   </div>
                 </div>
@@ -1366,12 +1432,14 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   {businesses.map((biz) => {
                     const isActive = biz.id === activeBusinessId;
                     const isHairPins = biz.id === 'biz_hairpins';
+                    const isLocked = isUserRestricted && biz.id !== user?.businessId;
 
                     return (
                       <button
                         key={biz.id}
                         type="button"
-                        onClick={() => switchBusiness && switchBusiness(biz.id)}
+                        disabled={isLocked}
+                        onClick={() => !isLocked && switchBusiness && switchBusiness(biz.id)}
                         className="btn"
                         style={{
                           height: '38px',
@@ -1385,16 +1453,22 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                           background: isActive
                             ? (isHairPins ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' : 'var(--accent-gradient)')
                             : 'var(--bg-secondary)',
-                          color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                          color: isActive ? '#ffffff' : (isLocked ? 'var(--text-muted)' : 'var(--text-secondary)'),
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          opacity: isLocked ? 0.45 : 1,
                           boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
                         }}
                       >
                         {isHairPins ? <Sparkles size={14} /> : <Building2 size={14} />}
                         <span>{biz.name}</span>
-                        {isActive && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>✓ Active</span>}
+                        {isActive ? (
+                          <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>✓ Active</span>
+                        ) : isLocked ? (
+                          <span style={{ fontSize: '0.68rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '2px' }}><Lock size={10} /> Locked</span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -2695,6 +2769,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
           onClose={() => setShowAddUserModal(false)} 
           onSave={(user) => addTeamMember && addTeamMember(user)} 
           customRoles={customRoles}
+          activeBusinessId={activeBusinessId}
+          businesses={businesses}
         />
       )}
 
@@ -2704,6 +2780,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
           onClose={() => setEditingUser(null)} 
           onSave={(data) => updateTeamMember && updateTeamMember(editingUser.id, data)} 
           customRoles={customRoles}
+          businesses={businesses}
         />
       )}
 
@@ -2732,10 +2809,11 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
   );
 };
 
-const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
+const AddUserModal = ({ onClose, onSave, customRoles = [], activeBusinessId = 'biz_main', businesses = [] }) => {
   const [userForm, setUserForm] = useState(() => ({ 
     name: '', email: '', phone: '', department: 'Sales Division', role: 'Sales Representative', 
-    status: 'Active', password: generateRandomPassword(), mustChangePassword: false, expiryDate: '' 
+    status: 'Active', password: generateRandomPassword(), mustChangePassword: false, expiryDate: '',
+    businessId: activeBusinessId || 'biz_main'
   }));
   const [showPassword, setShowPassword] = useState(false);
   const [copiedCredentials, setCopiedCredentials] = useState(false);
@@ -2762,7 +2840,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
   };
 
   const copyCredentials = () => {
-    const text = `Sales Manager Login:\nEmail: ${userForm.email || '(enter email)'}\nPassword: ${userForm.password}\nRole: ${userForm.role}`;
+    const text = `Sales Manager Login:\nEmail: ${userForm.email || '(enter email)'}\nPassword: ${userForm.password}\nRole: ${userForm.role}\nWorkspace: ${userForm.businessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises'}`;
     navigator.clipboard.writeText(text);
     setCopiedCredentials(true);
     setTimeout(() => setCopiedCredentials(false), 2200);
@@ -2796,7 +2874,27 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
         }} className="modal-body" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto', padding: '24px' }}>
           
           <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
-            1. Personal & Contact Profile
+            1. Workspace Partition & Assigned Entity
+          </div>
+
+          <div className="form-group mb-5">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Assigned Business Workspace *</label>
+            <CustomSelect 
+              value={userForm.businessId} 
+              onChange={val => setUserForm({...userForm, businessId: val})}
+              options={[
+                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' },
+                { value: 'biz_hairpins', label: 'Royal Hair Pin Industries (biz_hairpins)' }
+              ]}
+              style={{ height: '42px', width: '100%' }}
+            />
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.3 }}>
+              🔒 <strong>Strict Workspace Isolation</strong>: This user can ONLY log into and access data for their assigned business portal.
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            2. Personal & Contact Profile
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -2944,7 +3042,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [] }) => {
   );
 };
 
-const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
+const EditUserModal = ({ user, onClose, onSave, customRoles = [], businesses = [] }) => {
   const [form, setForm] = useState({
     name: user.name || '',
     email: user.email || '',
@@ -2952,7 +3050,8 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
     department: user.department || 'General',
     role: user.role || 'Sales Representative',
     status: user.status || 'Active',
-    expiryDate: user.expiryDate || ''
+    expiryDate: user.expiryDate || '',
+    businessId: user.businessId || 'biz_main'
   });
 
   return (
@@ -2981,6 +3080,22 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [] }) => {
           onSave(form);
           onClose();
         }} className="modal-body" style={{ padding: '24px' }}>
+          
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Assigned Business Workspace *</label>
+            <CustomSelect 
+              value={form.businessId} 
+              onChange={val => setForm({...form, businessId: val})}
+              options={[
+                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' },
+                { value: 'biz_hairpins', label: 'Royal Hair Pin Industries (biz_hairpins)' }
+              ]}
+              style={{ height: '42px', width: '100%' }}
+            />
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              🔒 <strong>Workspace Isolation</strong>: Changing workspace will reassign this user's portal access.
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="form-group">

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { StoreContext } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   Building2, Sparkles, ChevronDown, Check, Plus, 
-  Settings, Briefcase, X, Store, ArrowRightLeft
+  Settings, Briefcase, X, Store, ArrowRightLeft, Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CustomColorPicker from './CustomColorPicker';
@@ -18,6 +19,9 @@ export default function BusinessSwitcher() {
     invoices = [],
     leads = []
   } = useContext(StoreContext) || {};
+
+  const { user } = useAuth();
+  const isRestricted = Boolean(user?.businessId && user.businessId !== 'all');
 
   const [isOpen, setIsOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -51,6 +55,9 @@ export default function BusinessSwitcher() {
   const isHairPins = currentBiz.id === 'biz_hairpins';
 
   const handleSelectBusiness = (bizId) => {
+    if (isRestricted && bizId !== user.businessId) {
+      return;
+    }
     if (bizId !== activeBusinessId) {
       switchBusiness && switchBusiness(bizId);
     }
@@ -107,7 +114,7 @@ export default function BusinessSwitcher() {
           e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
           e.currentTarget.style.borderColor = 'var(--subtle-border)';
         }}
-        title={`Active Business: ${currentBiz.name} (Click to switch)`}
+        title={isRestricted ? `Dedicated Account: Locked to ${currentBiz.name}` : `Active Business: ${currentBiz.name} (Click to switch)`}
       >
         {/* Icon */}
         <div style={{
@@ -141,6 +148,11 @@ export default function BusinessSwitcher() {
             }}>
               {isHairPins ? 'Hair Pins' : 'Enterprise'}
             </span>
+            {isRestricted && (
+              <span title="Account restricted to this workspace only" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <Lock size={11} color="#fca5a5" />
+              </span>
+            )}
           </div>
         </div>
 
@@ -168,24 +180,45 @@ export default function BusinessSwitcher() {
           {/* Header */}
           <div style={{ padding: '6px 10px 8px 10px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-              Select Active Business
+              {isRestricted ? 'Assigned Workspace' : 'Select Active Business'}
             </span>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               {businesses.length} Businesses
             </span>
           </div>
 
+          {/* Restricted Notice Banner */}
+          {isRestricted && (
+            <div style={{
+              margin: '6px 2px 2px 2px',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <Lock size={14} color="#f87171" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.72rem', color: '#fca5a5', lineHeight: 1.3 }}>
+                Dedicated account: Locked to <strong>{currentBiz.name}</strong>.
+              </div>
+            </div>
+          )}
+
           {/* Business Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0' }}>
             {businesses.map((biz) => {
               const isSelected = biz.id === activeBusinessId;
               const isBizHairPins = biz.id === 'biz_hairpins';
+              const isLockedForUser = isRestricted && biz.id !== user.businessId;
 
               return (
                 <button
                   key={biz.id}
                   type="button"
-                  onClick={() => handleSelectBusiness(biz.id)}
+                  disabled={isLockedForUser}
+                  onClick={() => !isLockedForUser && handleSelectBusiness(biz.id)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -196,15 +229,16 @@ export default function BusinessSwitcher() {
                     background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
                     border: isSelected ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid transparent',
                     color: 'var(--text-primary)',
-                    cursor: 'pointer',
+                    cursor: isLockedForUser ? 'not-allowed' : 'pointer',
+                    opacity: isLockedForUser ? 0.45 : 1,
                     textAlign: 'left',
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    if (!isSelected && !isLockedForUser) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
                   }}
                   onMouseLeave={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'transparent';
+                    if (!isSelected && !isLockedForUser) e.currentTarget.style.background = 'transparent';
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -244,6 +278,10 @@ export default function BusinessSwitcher() {
                     }}>
                       <Check size={12} strokeWidth={3} />
                     </div>
+                  ) : isLockedForUser ? (
+                    <span style={{ fontSize: '0.68rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Lock size={10} /> Locked
+                    </span>
                   ) : (
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.03)' }}>
                       Switch
@@ -272,32 +310,38 @@ export default function BusinessSwitcher() {
 
           {/* Footer Actions */}
           <div style={{ borderTop: '1px solid var(--subtle-border)', paddingTop: '6px', display: 'flex', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                setShowAddModal(true);
-              }}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                borderRadius: '6px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid var(--subtle-border)',
-                color: 'var(--text-primary)',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
-            >
-              <Plus size={13} /> Add Business
-            </button>
+            {!isRestricted ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowAddModal(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid var(--subtle-border)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '5px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+              >
+                <Plus size={13} /> Add Business
+              </button>
+            ) : (
+              <div style={{ width: '100%', textAlign: 'center', padding: '4px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                🔒 Single-entity account restriction active
+              </div>
+            )}
             <button
               type="button"
               onClick={() => {

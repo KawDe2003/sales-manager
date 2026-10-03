@@ -122,21 +122,9 @@ const Login = () => {
     }
   };
 
-  // Smart domain detection as the user enters their email
+  // Keep email in state without hijacking the active portal tab
   const handleEmailChange = (val) => {
     setEmail(val);
-    const lower = val.toLowerCase().trim();
-    if (lower.includes('@royalhairpins') && selectedBizId !== 'biz_hairpins') {
-      setSelectedBizId('biz_hairpins');
-      handleSelectBusiness('biz_hairpins');
-      setSwitchNotice('Detected Royal Hair Pins account — switched portal to Royal Hair Pins workspace');
-      setTimeout(() => setSwitchNotice(null), 4000);
-    } else if ((lower.includes('@seynex') || lower.includes('@company.com')) && selectedBizId !== 'biz_main') {
-      setSelectedBizId('biz_main');
-      handleSelectBusiness('biz_main');
-      setSwitchNotice('Detected Seynex account — switched portal to Seynex Enterprises workspace');
-      setTimeout(() => setSwitchNotice(null), 4000);
-    }
   };
 
   const handleQuickFill = (e, roleEmail, rolePass) => {
@@ -173,20 +161,8 @@ const Login = () => {
         throw new Error('Please enter your password');
       }
 
-      // Determine final target business from credentials or active selection
-      let targetBizId = selectedBizId;
-      if (cleanEmail.includes('royalhairpins')) {
-        targetBizId = 'biz_hairpins';
-      } else if (cleanEmail.includes('seynex') || cleanEmail.includes('company.com')) {
-        targetBizId = 'biz_main';
-      }
-
-      // Activate business workspace immediately
-      if (switchBusiness) {
-        try { switchBusiness(targetBizId); } catch (e) {}
-      }
-      localStorage.setItem('active_business_id', targetBizId);
-      window.dispatchEvent(new CustomEvent('active_business_changed', { detail: targetBizId }));
+      // Target portal is strictly the portal currently open
+      const targetBizId = selectedBizId;
 
       if (isSignUp) {
         if (!name.trim()) throw new Error('Please enter your full name');

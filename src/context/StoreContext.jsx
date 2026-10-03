@@ -780,6 +780,13 @@ export default function StoreContextProvider({ children }) {
 
   const [activeBusinessId, setActiveBusinessId] = useState(() => {
     try {
+      const authUserStr = localStorage.getItem('gym_auth_user');
+      if (authUserStr) {
+        const authUser = JSON.parse(authUserStr);
+        if (authUser?.businessId && authUser.businessId !== 'all') {
+          return authUser.businessId;
+        }
+      }
       const saved = localStorage.getItem('active_business_id');
       if (saved) return saved;
     } catch (e) {}
@@ -2130,6 +2137,14 @@ export default function StoreContextProvider({ children }) {
 
   const switchBusiness = (targetBusinessId) => {
     if (!targetBusinessId || targetBusinessId === activeBusinessId) return;
+
+    // Strict Business Access Control: restricted users can only access their assigned business
+    if (user?.businessId && user.businessId !== 'all' && user.businessId !== targetBusinessId) {
+      const assignedBizName = user.businessName || (businesses.find(b => b.id === user.businessId)?.name) || 'your assigned business';
+      showNotification(`Access Restricted: Your account is dedicated to ${assignedBizName} only.`, 'error');
+      return;
+    }
+
     const targetBiz = businesses.find(b => b.id === targetBusinessId);
     if (!targetBiz) return;
 
@@ -2192,17 +2207,29 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Switched to "${targetBiz.name}"!`, 'success');
   };
 
+  // Keep workspace locked to user's assigned business
+  useEffect(() => {
+    if (user?.businessId && user.businessId !== 'all') {
+      if (activeBusinessId !== user.businessId) {
+        switchBusiness(user.businessId);
+      }
+    }
+  }, [user?.businessId, activeBusinessId]);
+
   // Listen for external business switches (e.g. from Login screen)
   useEffect(() => {
     const handleBizChanged = (e) => {
       const targetId = e?.detail || localStorage.getItem('active_business_id');
+      if (user?.businessId && user.businessId !== 'all' && user.businessId !== targetId) {
+        return;
+      }
       if (targetId && targetId !== activeBusinessId) {
         switchBusiness(targetId);
       }
     };
     window.addEventListener('active_business_changed', handleBizChanged);
     return () => window.removeEventListener('active_business_changed', handleBizChanged);
-  }, [activeBusinessId, switchBusiness]);
+  }, [activeBusinessId, switchBusiness, user?.businessId]);
 
   const addBusiness = ({ name, category, tagline, color, icon }) => {
     const newId = `biz_${Date.now()}`;
@@ -2427,6 +2454,7 @@ export default function StoreContextProvider({ children }) {
   const addTeamMember = (data) => {
     const cleanEmail = (data.email || '').trim().toLowerCase();
     const cleanPassword = (data.password || 'password123').trim();
+    const assignedBusinessId = data.businessId || activeBusinessId || 'biz_main';
     const newMember = {
       id: Date.now().toString(),
       name: (data.name || '').trim() || cleanEmail.split('@')[0],
@@ -2438,6 +2466,7 @@ export default function StoreContextProvider({ children }) {
       mustChangePassword: !!data.mustChangePassword,
       expiryDate: data.expiryDate || '',
       password: cleanPassword,
+      businessId: assignedBusinessId,
       addedAt: new Date().toISOString()
     };
 
