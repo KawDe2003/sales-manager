@@ -40,6 +40,111 @@ export const PLAN_CONFIGS = {
   }
 };
 
+export const DEFAULT_APP_TEAM_MEMBERS = [
+  // Seynex Enterprises (biz_main)
+  {
+    id: '76bb4580-2006-464f-aab8-64029dbe9540',
+    name: 'Seynex Administrator',
+    email: 'admin@seynex.lk',
+    role: 'Admin',
+    status: 'Active',
+    password: 'seynex2026',
+    businessId: 'biz_main',
+    department: 'Executive',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'e2a87062-8e1e-4509-91a5-e362fa91901a',
+    name: 'Seynex Sales Executive',
+    email: 'sales@seynex.lk',
+    role: 'Sales Representative',
+    status: 'Active',
+    password: 'seynex2026',
+    businessId: 'biz_main',
+    department: 'Enterprise Sales',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'b4317154-8c88-4660-84cf-cb864b22b7a9',
+    name: 'Seynex Senior Accountant',
+    email: 'accounts@seynex.lk',
+    role: 'Accountant',
+    status: 'Active',
+    password: 'seynex2026',
+    businessId: 'biz_main',
+    department: 'Finance & Compliance',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  // Royal Hair Pin Industries (biz_hairpins)
+  {
+    id: 'hairpins-admin-01',
+    name: 'Royal Hair Pins Admin',
+    email: 'admin@royalhairpins.lk',
+    role: 'Admin',
+    status: 'Active',
+    password: 'hairpins2026',
+    businessId: 'biz_hairpins',
+    department: 'Plant Management',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'hairpins-sales-01',
+    name: 'Wholesale Sales Manager',
+    email: 'sales@royalhairpins.lk',
+    role: 'Sales Representative',
+    status: 'Active',
+    password: 'hairpins2026',
+    businessId: 'biz_hairpins',
+    department: 'Wholesale & Distribution',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'hairpins-acc-01',
+    name: 'Factory Accounts Lead',
+    email: 'accounts@royalhairpins.lk',
+    role: 'Accountant',
+    status: 'Active',
+    password: 'hairpins2026',
+    businessId: 'biz_hairpins',
+    department: 'Factory Accounts',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  // Universal / Legacy fallbacks
+  {
+    id: 'legacy-admin-01',
+    name: 'System Administrator',
+    email: 'admin@company.com',
+    role: 'Admin',
+    status: 'Active',
+    password: 'adminpassword123',
+    businessId: 'biz_main',
+    department: 'Executive',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'legacy-sales-01',
+    name: 'Sales Executive',
+    email: 'sales@company.com',
+    role: 'Sales Representative',
+    status: 'Active',
+    password: 'salespassword123',
+    businessId: 'biz_main',
+    department: 'Sales',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'legacy-acc-01',
+    name: 'Senior Accountant',
+    email: 'accounts@company.com',
+    role: 'Accountant',
+    status: 'Active',
+    password: 'accountspassword123',
+    businessId: 'biz_main',
+    department: 'Finance',
+    addedAt: '2025-01-01T00:00:00.000Z'
+  }
+];
+
 // Bulletproof Sequential Numbering Helpers (guarantees zero duplicate invoice/quote numbers)
 export const getNextSequentialInvoiceNumber = (invoices = [], config = {}) => {
   const prefix = config.invoicePrefix || 'INV-';
@@ -2087,6 +2192,18 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Switched to "${targetBiz.name}"!`, 'success');
   };
 
+  // Listen for external business switches (e.g. from Login screen)
+  useEffect(() => {
+    const handleBizChanged = (e) => {
+      const targetId = e?.detail || localStorage.getItem('active_business_id');
+      if (targetId && targetId !== activeBusinessId) {
+        switchBusiness(targetId);
+      }
+    };
+    window.addEventListener('active_business_changed', handleBizChanged);
+    return () => window.removeEventListener('active_business_changed', handleBizChanged);
+  }, [activeBusinessId, switchBusiness]);
+
   const addBusiness = ({ name, category, tagline, color, icon }) => {
     const newId = `biz_${Date.now()}`;
     const newBiz = {
@@ -2227,13 +2344,26 @@ export default function StoreContextProvider({ children }) {
   const [teamMembers, setTeamMembers] = useState(() => {
     const saved = localStorage.getItem('gym_team_members');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const merged = [...parsed];
+          let updated = false;
+          DEFAULT_APP_TEAM_MEMBERS.forEach(def => {
+            const exists = merged.some(m => m.email?.trim().toLowerCase() === def.email.toLowerCase());
+            if (!exists) {
+              merged.push(def);
+              updated = true;
+            }
+          });
+          if (updated) {
+            localStorage.setItem('gym_team_members', JSON.stringify(merged));
+          }
+          return merged;
+        }
+      } catch (e) {}
     }
-    return [
-      { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'System Administrator', email: user?.email || 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123', addedAt: new Date().toISOString() },
-      { id: 'e2a87062-8e1e-4509-91a5-e362fa91901a', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123', addedAt: new Date().toISOString() },
-      { id: 'b4317154-8c88-4660-84cf-cb864b22b7a9', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123', addedAt: new Date().toISOString() }
-    ];
+    return DEFAULT_APP_TEAM_MEMBERS;
   });
 
   useEffect(() => {

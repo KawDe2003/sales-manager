@@ -295,7 +295,7 @@ const AppContent = () => {
 
   const isPublicShareView = location.pathname.startsWith('/share');
   const isCustomerPortal = location.pathname.startsWith('/portal') || location.pathname === '/pay' || location.pathname.startsWith('/pay/');
-  const isLoginPage = location.pathname === '/login';
+  const isLoginPage = location.pathname.startsWith('/login');
 
   // Inactivity Timer
   useEffect(() => {
@@ -372,6 +372,7 @@ const AppContent = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/login/:businessSlug" element={<Login />} />
       </Routes>
     );
   }

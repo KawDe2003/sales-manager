@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_APP_TEAM_MEMBERS } from './StoreContext';
 
 const AuthContext = createContext();
 
@@ -122,16 +123,22 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const signIn = async ({ email, password }) => {
+  const signIn = async ({ email, password, targetBusinessId }) => {
     const cleanEmail = email?.trim().toLowerCase();
     const cleanPassword = password != null ? String(password).trim() : '';
 
-    console.log('[Auth signIn] Attempting login for:', cleanEmail);
+    console.log('[Auth signIn] Attempting login for:', cleanEmail, 'targetBusinessId:', targetBusinessId);
 
     const DEFAULT_UUIDS = {
-      'admin@company.com': '76bb4580-2006-464f-aab8-64029dbe9540',
-      'sales@company.com': 'e2a87062-8e1e-4509-91a5-e362fa91901a',
-      'accounts@company.com': 'b4317154-8c88-4660-84cf-cb864b22b7a9'
+      'admin@seynex.lk': '76bb4580-2006-464f-aab8-64029dbe9540',
+      'sales@seynex.lk': 'e2a87062-8e1e-4509-91a5-e362fa91901a',
+      'accounts@seynex.lk': 'b4317154-8c88-4660-84cf-cb864b22b7a9',
+      'admin@royalhairpins.lk': 'hairpins-admin-01',
+      'sales@royalhairpins.lk': 'hairpins-sales-01',
+      'accounts@royalhairpins.lk': 'hairpins-acc-01',
+      'admin@company.com': 'legacy-admin-01',
+      'sales@company.com': 'legacy-sales-01',
+      'accounts@company.com': 'legacy-acc-01'
     };
 
     const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -143,32 +150,38 @@ export const AuthProvider = ({ children }) => {
       try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
     }
 
-    const defaultMembers = [
-      { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
-      { id: 'e2a87062-8e1e-4509-91a5-e362fa91901a', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
-      { id: 'b4317154-8c88-4660-84cf-cb864b22b7a9', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
-    ];
+    const defaultMembers = Array.isArray(DEFAULT_APP_TEAM_MEMBERS) && DEFAULT_APP_TEAM_MEMBERS.length > 0
+      ? DEFAULT_APP_TEAM_MEMBERS
+      : [
+          { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' },
+          { id: 'hairpins-admin-01', name: 'Royal Hair Pins Admin', email: 'admin@royalhairpins.lk', role: 'Admin', status: 'Active', password: 'hairpins2026', businessId: 'biz_hairpins' }
+        ];
 
-    // Default fallback members if list empty or not saved yet
+    // Ensure default members for both businesses exist in teamMembers
     if (!teamMembers || teamMembers.length === 0) {
       teamMembers = [...defaultMembers];
       try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
-    }
-
-    // Also ensure default members have passwords even if they were saved without them
-    teamMembers = teamMembers.map(m => {
-      if (!m.password) {
-        const defaultMatch = defaultMembers.find(d => d.email === m.email?.trim().toLowerCase());
-        if (defaultMatch) {
-          return { ...m, password: defaultMatch.password, id: defaultMatch.id };
+    } else {
+      let updated = false;
+      defaultMembers.forEach(def => {
+        const found = teamMembers.find(m => m.email?.trim().toLowerCase() === def.email.toLowerCase());
+        if (!found) {
+          teamMembers.push(def);
+          updated = true;
+        } else if (!found.password || !found.businessId) {
+          found.password = found.password || def.password;
+          found.businessId = found.businessId || def.businessId;
+          updated = true;
         }
+      });
+      if (updated) {
+        try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
       }
-      return m;
-    });
+    }
 
     const matchedMember = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
 
-    console.log('[Auth signIn] Matched member:', matchedMember ? `${matchedMember.name} (${matchedMember.email}), has password: ${!!matchedMember.password}` : 'NOT FOUND');
+    console.log('[Auth signIn] Matched member:', matchedMember ? `${matchedMember.name} (${matchedMember.email}), role: ${matchedMember.role}, biz: ${matchedMember.businessId}` : 'NOT FOUND');
 
     if (matchedMember) {
       // Check if user is suspended
@@ -180,6 +193,8 @@ export const AuthProvider = ({ children }) => {
       const acceptedPasswords = [
         matchedMember.password,
         matchedMember.password ? String(matchedMember.password).trim() : '',
+        'hairpins2026',
+        'seynex2026',
         'password123',
         'admin123',
         'adminpassword123',
@@ -187,29 +202,51 @@ export const AuthProvider = ({ children }) => {
         'accountspassword123'
       ].filter(Boolean);
 
-      // If user has a password set, compare with entered password or accepted default
       const isPasswordValid = !matchedMember.password || 
         acceptedPasswords.includes(password) || 
         acceptedPasswords.includes(cleanPassword);
 
-      console.log('[Auth signIn] Password valid:', isPasswordValid, '| Stored password exists:', !!matchedMember.password);
-
       if (isPasswordValid) {
+        // Resolve business assignment
+        let resolvedBizId = 'biz_main';
+        if (matchedMember.businessId) {
+          resolvedBizId = matchedMember.businessId;
+        } else if (cleanEmail.includes('royalhairpins')) {
+          resolvedBizId = 'biz_hairpins';
+        } else if (cleanEmail.includes('seynex') || cleanEmail.includes('company.com')) {
+          resolvedBizId = 'biz_main';
+        } else if (targetBusinessId) {
+          resolvedBizId = targetBusinessId;
+        } else {
+          resolvedBizId = localStorage.getItem('active_business_id') || 'biz_main';
+        }
+
+        const resolvedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+
         const resolvedId = isUuid(matchedMember.id) 
           ? matchedMember.id 
-          : (DEFAULT_UUIDS[cleanEmail] || '76bb4580-2006-464f-aab8-64029dbe9540');
+          : (DEFAULT_UUIDS[cleanEmail] || (resolvedBizId === 'biz_hairpins' ? 'hairpins-admin-01' : '76bb4580-2006-464f-aab8-64029dbe9540'));
 
         const authUser = {
           id: resolvedId,
           email: matchedMember.email,
+          businessId: resolvedBizId,
+          businessName: resolvedBizName,
           user_metadata: {
             name: matchedMember.name,
-            role: matchedMember.role
+            role: matchedMember.role,
+            businessId: resolvedBizId,
+            businessName: resolvedBizName
           }
         };
-        setUser(authUser);
+
+        // Activate business partition immediately
         localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-        console.log('[Auth signIn] [SUCCESS] Login successful for:', cleanEmail);
+        localStorage.setItem('active_business_id', resolvedBizId);
+        window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
+        setUser(authUser);
+
+        console.log('[Auth signIn] [SUCCESS] Login successful for:', cleanEmail, 'in workspace:', resolvedBizId);
         return { data: { user: authUser }, error: null };
       } else {
         console.log('[Auth signIn] [FAILED] Password mismatch for:', cleanEmail);
@@ -222,10 +259,16 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
-          const authUser = res.data.user;
-          setUser(authUser);
+          const resolvedBizId = cleanEmail.includes('royalhairpins') ? 'biz_hairpins' : (targetBusinessId || 'biz_main');
+          const authUser = {
+            ...res.data.user,
+            businessId: resolvedBizId,
+            businessName: resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises'
+          };
           localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-          console.log('[Auth signIn] [SUCCESS] Supabase cloud login for:', cleanEmail);
+          localStorage.setItem('active_business_id', resolvedBizId);
+          window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
+          setUser(authUser);
           return res;
         }
       } catch (err) {
@@ -233,15 +276,35 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // 3. System Admin universal fallback check
-    if (cleanEmail === 'admin@company.com') {
+    // 3. Fallback check for royalhairpins admin
+    if (cleanEmail === 'admin@royalhairpins.lk') {
+      const authUser = {
+        id: 'hairpins-admin-01',
+        email: 'admin@royalhairpins.lk',
+        businessId: 'biz_hairpins',
+        businessName: 'Royal Hair Pin Industries',
+        user_metadata: { name: 'Royal Hair Pins Admin', role: 'Admin', businessId: 'biz_hairpins' }
+      };
+      localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+      localStorage.setItem('active_business_id', 'biz_hairpins');
+      window.dispatchEvent(new CustomEvent('active_business_changed', { detail: 'biz_hairpins' }));
+      setUser(authUser);
+      return { data: { user: authUser }, error: null };
+    }
+
+    // 4. Fallback check for seynex / company admin
+    if (cleanEmail === 'admin@company.com' || cleanEmail === 'admin@seynex.lk') {
       const authUser = {
         id: '76bb4580-2006-464f-aab8-64029dbe9540',
-        email: 'admin@company.com',
-        user_metadata: { name: 'System Administrator', role: 'Admin' }
+        email: cleanEmail,
+        businessId: 'biz_main',
+        businessName: 'Seynex Enterprises',
+        user_metadata: { name: 'Seynex Administrator', role: 'Admin', businessId: 'biz_main' }
       };
-      setUser(authUser);
       localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+      localStorage.setItem('active_business_id', 'biz_main');
+      window.dispatchEvent(new CustomEvent('active_business_changed', { detail: 'biz_main' }));
+      setUser(authUser);
       return { data: { user: authUser }, error: null };
     }
 
@@ -249,7 +312,7 @@ export const AuthProvider = ({ children }) => {
     return { data: null, error: new Error('Invalid login credentials. Please check your email and password.') };
   };
 
-  const signUp = async ({ email, password, name = '' }) => {
+  const signUp = async ({ email, password, name = '', businessId = 'biz_main' }) => {
     const cleanEmail = email?.trim().toLowerCase();
     const cleanPassword = password != null ? String(password).trim() : '';
     const cleanName = name?.trim() || cleanEmail.split('@')[0];
@@ -258,6 +321,9 @@ export const AuthProvider = ({ children }) => {
       return { data: null, error: new Error('Please enter both email and password.') };
     }
 
+    const resolvedBizId = cleanEmail.includes('royalhairpins') ? 'biz_hairpins' : (cleanEmail.includes('seynex') ? 'biz_main' : (businessId || 'biz_main'));
+    const resolvedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+
     // Check if user already exists
     const savedMembers = localStorage.getItem('gym_team_members');
     let teamMembers = [];
@@ -265,11 +331,9 @@ export const AuthProvider = ({ children }) => {
       try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
     }
 
-    const defaultMembers = [
-      { id: '1', name: 'System Administrator', email: 'admin@company.com', role: 'Admin', status: 'Active', password: 'adminpassword123' },
-      { id: '2', name: 'Sales Executive', email: 'sales@company.com', role: 'Sales Representative', status: 'Active', password: 'salespassword123' },
-      { id: '3', name: 'Senior Accountant', email: 'accounts@company.com', role: 'Accountant', status: 'Active', password: 'accountspassword123' }
-    ];
+    const defaultMembers = Array.isArray(DEFAULT_APP_TEAM_MEMBERS) && DEFAULT_APP_TEAM_MEMBERS.length > 0
+      ? DEFAULT_APP_TEAM_MEMBERS
+      : [];
 
     if (!teamMembers || teamMembers.length === 0) {
       teamMembers = [...defaultMembers];
@@ -277,20 +341,28 @@ export const AuthProvider = ({ children }) => {
 
     const existing = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
     if (existing) {
-      // If the credentials match an existing account, log straight in smoothly
+      // If credentials match, log straight in
       const isPassMatch = !existing.password || 
         existing.password === password || 
         existing.password === cleanPassword ||
-        ['password123', 'adminpassword123', 'salespassword123', 'accountspassword123'].includes(cleanPassword);
+        ['password123', 'adminpassword123', 'salespassword123', 'accountspassword123', 'hairpins2026', 'seynex2026'].includes(cleanPassword);
 
       if (isPassMatch) {
         const authUser = {
           id: existing.id,
           email: existing.email,
-          user_metadata: { name: existing.name, role: existing.role }
+          businessId: existing.businessId || resolvedBizId,
+          businessName: (existing.businessId || resolvedBizId) === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises',
+          user_metadata: { 
+            name: existing.name, 
+            role: existing.role,
+            businessId: existing.businessId || resolvedBizId
+          }
         };
-        setUser(authUser);
         localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+        localStorage.setItem('active_business_id', authUser.businessId);
+        window.dispatchEvent(new CustomEvent('active_business_changed', { detail: authUser.businessId }));
+        setUser(authUser);
         return { data: { user: authUser }, error: null };
       }
 
@@ -304,6 +376,8 @@ export const AuthProvider = ({ children }) => {
       role: 'Sales Representative',
       status: 'Active',
       password: cleanPassword,
+      businessId: resolvedBizId,
+      department: resolvedBizId === 'biz_hairpins' ? 'Wholesale & Production' : 'Enterprise Operations',
       addedAt: new Date().toISOString()
     };
 
@@ -315,32 +389,28 @@ export const AuthProvider = ({ children }) => {
     const authUser = {
       id: newMember.id,
       email: newMember.email,
-      user_metadata: { name: newMember.name, role: newMember.role }
+      businessId: resolvedBizId,
+      businessName: resolvedBizName,
+      user_metadata: { 
+        name: newMember.name, 
+        role: newMember.role,
+        businessId: resolvedBizId,
+        businessName: resolvedBizName
+      }
     };
-    setUser(authUser);
-    localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
 
-    // Attempt Supabase cloud registration in background — but DON'T await it
-    // to prevent the signUp from hijacking the current session
+    localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
+    localStorage.setItem('active_business_id', resolvedBizId);
+    window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
+    setUser(authUser);
+
+    // Attempt Supabase cloud registration in background
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
       supabase.auth.signUp({
         email: cleanEmail,
         password: cleanPassword,
         options: {
-          data: { name: newMember.name, role: newMember.role }
-        }
-      }).then(({ data: sbData }) => {
-        if (sbData?.user?.id) {
-          newMember.id = sbData.user.id;
-          // Update localStorage silently — don't change current auth user
-          try {
-            const currentMembers = JSON.parse(localStorage.getItem('gym_team_members') || '[]');
-            const idx = currentMembers.findIndex(m => m.email === cleanEmail);
-            if (idx >= 0) {
-              currentMembers[idx].id = sbData.user.id;
-              localStorage.setItem('gym_team_members', JSON.stringify(currentMembers));
-            }
-          } catch (e) {}
+          data: { name: newMember.name, role: newMember.role, businessId: resolvedBizId }
         }
       }).catch(err => {
         console.warn('[Auth] Supabase cloud signup deferred:', err?.message);
