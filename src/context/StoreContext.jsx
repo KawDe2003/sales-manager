@@ -716,6 +716,48 @@ export default function StoreContextProvider({ children }) {
     pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.',
     sessionTimeout: 5,
     balance: 0,
+    reminderHoursBefore: 24,
+    invoicePrefix: 'INV-',
+    nextInvoiceNumber: 2002,
+    // ... other fields continue as before
+  };
+    apiKey: '2179165276941c4e5eb994053957585',
+    email: 'info@seynex.lk',
+    senderID: 'SEYNEX',
+    companyName: 'Seynex Enterprises',
+    dashboardName: 'Seynex Enterprises',
+    receiptLogo: '',
+    companyLogo: '',
+    companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
+    companyPhone: '+94 11 234 5678',
+    adminPhone: '+94 11 234 5678',
+    companyEmail: 'info@seynex.lk',
+    bankDetails: {
+      accountName: 'SEYNEX ENTERPRISES PVT LTD',
+      bank: 'Commercial Bank of Ceylon',
+      branch: 'Colombo 03 Branch',
+      accountNumber: '8004 9123 4567'
+    },
+    quoteTemplate: 'Hi {name},\nHere is your quotation #{quoteNumber} from Seynex Enterprises.\nTotal Amount: LKR {amount}\nView Quote: {link}',
+    thankYouTemplate: 'Hi {name},\nThank you for choosing Seynex Enterprises! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
+    renewalTemplate: 'Hi {name},\nNotice: Scheduled license & SLA service renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
+    invoiceReminderTemplate: 'Hi {name},\nReminder from Seynex Enterprises: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
+    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Seynex Enterprises!',
+    cashReceivedTemplate: 'Hi {name},\nPayment Received! Seynex Enterprises received LKR {amount} for {documentType} #{number}. Thank you!',
+    autoRenewalEnabled: true,
+    autoRenewalDays: '15,7,3,1,0',
+    autoInvoiceEnabled: false,
+    autoInvoiceDays: 3,
+    birthdayWishEnabled: true,
+    smsHeader: '',
+    smsFooter: '',
+    smsEncoding: 'GSM',
+    deliveryReports: true,
+    pdfColor: '#4f46e5',
+    pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
+    pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.',
+    sessionTimeout: 5,
+    balance: 0,
     invoicePrefix: 'INV-',
     nextInvoiceNumber: 2002,
     quotePrefix: 'QT-',
@@ -3419,6 +3461,12 @@ export default function StoreContextProvider({ children }) {
     syncTaskToSupabase(newTask);
     addLog('Task', `Created task: ${newTask.title}`);
     showNotification(`Task "${newTask.title}" created!`, 'success');
+    // Send SMS reminder to admin or company phone
+    const smsMsg = `Task "${newTask.title}" has been created${newTask.dueDate ? ` and is due on ${newTask.dueDate}` : ''}.`;
+    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '';
+    if (recipientPhone) {
+      sendNotification('sms', recipientPhone, smsMsg);
+    }
   };
 
   const updateTask = (id, data) => {

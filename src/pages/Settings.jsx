@@ -1646,7 +1646,19 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                     onChange={e => updateSmsConfig({...smsConfig, adminPhone: e.target.value})} />
                 </div>
               </div>
-              <div className="form-group">
+                              <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Reminder Hours Before Due
+                    <Info size={12} className="text-secondary" title="Send reminder X hours before task due date" />
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                    <input type="number" className="form-input" style={{ paddingLeft: '40px' }}
+                      placeholder="e.g. 24"
+                      value={smsConfig.reminderHoursBefore !== undefined ? smsConfig.reminderHoursBefore : ''}
+                      onChange={e => updateSmsConfig({ ...smsConfig, reminderHoursBefore: parseInt(e.target.value, 10) })} />
+                  </div>
+                </div>
+                <div className="form-group">
                 <label className="form-label">Registered Office Address</label>
                 <div style={{ position: 'relative' }}>
                   <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
