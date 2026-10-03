@@ -1,0 +1,140 @@
+{
+  "auditDate": "2026-10-03T09:30:00Z",
+  "targetUrl": "https://salesmgr.seynextech.com",
+  "localDevUrl": "http://localhost:5173",
+  "stack": {
+    "framework": "React 19.2.4 (SPA)",
+    "bundler": "Vite 6.0.1",
+    "backend": "Supabase + Vercel Serverless Functions",
+    "database": "PostgreSQL 15 (Supabase)",
+    "hosting": "Vercel (Edge region: sin1 - Singapore)",
+    "authMethod": "Supabase Auth (JWT) + Local Context Mirroring",
+    "stateManagement": "React Context (StoreContext, AuthContext) + localStorage"
+  },
+  "metrics": {
+    "login": {
+      "ttfbSeconds": 0.295,
+      "totalDownloadSeconds": 0.295,
+      "htmlSizeBytes": 1298,
+      "fcpEstimatedSeconds": 2.4,
+      "lcpEstimatedSeconds": 3.6,
+      "cls": 0.04,
+      "inpMilliseconds": 120,
+      "initialJsGzipKB": 754.63,
+      "targetJsGzipKB": 170.0,
+      "overBudgetPercent": 343.9,
+      "lighthouseMobileScoreEstimate": 48,
+      "lighthouseDesktopScoreEstimate": 74
+    },
+    "dashboard": {
+      "widgetsCount": 16,
+      "chartsCount": 4,
+      "domNodes": 1460,
+      "ttiSeconds": 3.8,
+      "rechartsBundled": true,
+      "unsplitChunks": true,
+      "memoryUsageMB": 142
+    },
+    "leads": {
+      "totalRecords": 8,
+      "paginationType": "client-side-only",
+      "serverSideFiltering": false,
+      "searchDebounced": false,
+      "viewModes": ["kanban", "calendar", "list"]
+    }
+  },
+  "bundleAnalysis": {
+    "totalOutputFiles": 5,
+    "totalJsUncompressedBytes": 3248115,
+    "totalJsGzipBytes": 874840,
+    "totalCssBytes": 46600,
+    "totalCssGzipBytes": 9880,
+    "chunks": [
+      {
+        "file": "dist/assets/index-CJ5-Zirw.js",
+        "sizeBytes": 2863369,
+        "gzipBytes": 754630,
+        "isMonolithicEntry": true,
+        "overLimitWarning": true
+      },
+      {
+        "file": "dist/assets/html2canvas.esm-QH1iLAAe.js",
+        "sizeBytes": 202379,
+        "gzipBytes": 48040,
+        "isDynamic": true
+      },
+      {
+        "file": "dist/assets/index.es-Cy1fUGyI.js",
+        "sizeBytes": 159598,
+        "gzipBytes": 53510,
+        "isDynamic": true
+      },
+      {
+        "file": "dist/assets/purify.es-BgtpMKW3.js",
+        "sizeBytes": 22769,
+        "gzipBytes": 8790,
+        "isDynamic": true
+      },
+      {
+        "file": "dist/assets/index-BWGV9fle.css",
+        "sizeBytes": 46600,
+        "gzipBytes": 9880,
+        "isDynamic": false
+      }
+    ],
+    "top10Dependencies": [
+      { "name": "jspdf", "rawPackageSizeKB": 29484, "bundledEstimateKB": 380, "purpose": "PDF generation (invoices/quotes)" },
+      { "name": "lucide-react", "rawPackageSizeKB": 29130, "bundledEstimateKB": 250, "purpose": "Icon set imported barrel-style" },
+      { "name": "xlsx", "rawPackageSizeKB": 7323, "bundledEstimateKB": 420, "purpose": "Excel spreadsheet export" },
+      { "name": "react-dom", "rawPackageSizeKB": 7148, "bundledEstimateKB": 135, "purpose": "Core React DOM renderer" },
+      { "name": "recharts", "rawPackageSizeKB": 6598, "bundledEstimateKB": 320, "purpose": "Data visualization on dashboard & reports" },
+      { "name": "@supabase/supabase-js", "rawPackageSizeKB": 6445, "bundledEstimateKB": 110, "purpose": "PostgreSQL database & auth client" },
+      { "name": "html2canvas", "rawPackageSizeKB": 3300, "bundledEstimateKB": 202, "purpose": "DOM image snapshotting" },
+      { "name": "dompurify", "rawPackageSizeKB": 819, "bundledEstimateKB": 23, "purpose": "HTML sanitization" },
+      { "name": "jspdf-autotable", "rawPackageSizeKB": 230, "bundledEstimateKB": 45, "purpose": "Table formatting in PDF documents" },
+      { "name": "uuid", "rawPackageSizeKB": 60, "bundledEstimateKB": 12, "purpose": "Client-side unique ID generation" }
+    ]
+  },
+  "httpHeadersAudit": {
+    "html": {
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "hsts": "max-age=31536000; includeSubDomains; preload",
+      "xContentTypeOptions": "nosniff",
+      "xFrameOptions": "DENY",
+      "xXssProtection": "1; mode=block",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "csp": null,
+      "permissionsPolicy": null
+    },
+    "staticHashedJs": {
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "isImmutable": false,
+      "evaluation": "FAIL - Hashed static JS assets have max-age=0 instead of max-age=31536000, immutable"
+    }
+  },
+  "databaseAudit": {
+    "totalTables": 14,
+    "missingSecondaryIndexes": [
+      "leads(status)",
+      "leads(owner_id)",
+      "leads(created_at)",
+      "leads(phone)",
+      "invoices(status)",
+      "invoices(customer_id)",
+      "invoices(date)",
+      "invoices(created_at)",
+      "quotations(status)",
+      "quotations(customer_id)",
+      "quotations(date)",
+      "customers(status)",
+      "customers(phone)",
+      "customers(created_at)",
+      "payments(customer_id)",
+      "payments(payment_date)"
+    ],
+    "schemaWarnings": [
+      "Could not find 'cost_price' column of 'inventory' in schema cache",
+      "Could not find 'installment_plan' column of 'invoices' in schema cache"
+    ]
+  }
+}

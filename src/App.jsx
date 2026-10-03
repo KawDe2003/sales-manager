@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, use
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
   Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
-  X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn,
+  X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn, LogOut,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
   Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Factory, Zap
@@ -602,14 +602,16 @@ const AppContent = () => {
             )}
           </div>
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle - Accessible on Mobile & Desktop */}
           <button
-            className="btn btn-secondary hidden-mobile"
+            id="header-theme-toggle-btn"
+            className="btn btn-secondary"
             style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={16} className="text-secondary" /> : <Moon size={16} className="text-secondary" />}
+            {theme === 'dark' ? <Sun size={16} style={{ color: '#f59e0b' }} /> : <Moon size={16} style={{ color: '#818cf8' }} />}
           </button>
 
           {/* In-App Notifications Feed (Section 9 Requirement) */}
@@ -767,7 +769,7 @@ const AppContent = () => {
                 closeSidebar();
               }}
             >
-              <LogIn size={15} style={{ transform: 'rotate(180deg)' }} />
+              <LogOut size={15} />
               <span className="hidden-mobile">Logout</span>
             </button>
           )}
@@ -876,8 +878,8 @@ const AppContent = () => {
           flexDirection: 'column',
           padding: isSidebarCollapsed ? '20px 8px' : '20px 0'
         }}>
-          {/* Mobile Drawer Header with Close Button */}
-          <div className="mobile-drawer-header hidden-desktop">
+          {/* Mobile Drawer Header with Close Button & Theme Switcher */}
+          <div className="mobile-drawer-header hidden-desktop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--subtle-border)' }}>
             <div className="flex items-center gap-2">
               <div style={{
                 width: '32px', height: '32px', borderRadius: '8px',
@@ -889,23 +891,50 @@ const AppContent = () => {
               </div>
               <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>{brandName}</span>
             </div>
-            <button 
-              onClick={closeSidebar}
-              style={{
-                background: 'var(--subtle-bg)',
-                border: '1px solid var(--panel-border)',
-                borderRadius: '8px',
-                color: 'var(--text-primary)',
-                padding: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              aria-label="Close navigation menu"
-            >
-              <X size={18} />
-            </button>
+            
+            <div className="flex items-center gap-2">
+              {/* Mobile Drawer Theme Toggle */}
+              <button
+                type="button"
+                id="mobile-drawer-theme-toggle-btn"
+                onClick={toggleTheme}
+                style={{
+                  background: 'var(--subtle-bg)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700
+                }}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#818cf8' }} />}
+                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+
+              <button 
+                onClick={closeSidebar}
+                style={{
+                  background: 'var(--subtle-bg)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                aria-label="Close navigation menu"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* User Profile Badge */}
@@ -918,27 +947,56 @@ const AppContent = () => {
               border: '1px solid var(--subtle-border)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
               gap: '10px'
             }}>
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.14)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, color: 'var(--accent-primary)', fontSize: '0.82rem', flexShrink: 0
-              }}>
-                {(user?.user_metadata?.name || user?.email || 'U').charAt(0).toUpperCase()}
-              </div>
-              {!isSidebarCollapsed && (
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                    {user?.user_metadata?.name || user?.email?.split('@')[0]}
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {userRoleTitle}
-                  </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.14)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 800, color: 'var(--accent-primary)', fontSize: '0.82rem', flexShrink: 0
+                }}>
+                  {(user?.user_metadata?.name || user?.email || 'U').charAt(0).toUpperCase()}
                 </div>
+                {!isSidebarCollapsed && (
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {user?.user_metadata?.name || user?.email?.split('@')[0]}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {userRoleTitle}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Logout from User Badge (expanded) */}
+              {!isSidebarCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    signOut();
+                    closeSidebar();
+                  }}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '8px',
+                    color: '#ef4444',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Log Out of Session"
+                >
+                  <LogOut size={14} />
+                </button>
               )}
             </div>
           )}
@@ -1019,13 +1077,102 @@ const AppContent = () => {
             <NavItem to="/features" icon={<Sparkles size={18} />} label="Features Directory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
 
-          {/* Footer */}
-          <div style={{ marginTop: 'auto', padding: '20px 24px', textAlign: 'center', borderTop: '1px solid var(--panel-border)' }}>
-             {!isSidebarCollapsed && (
-               <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>
-                 v3.2.0 Enterprise
-               </div>
-             )}
+          {/* Sidebar Footer with Theme Switcher & Logout */}
+          <div style={{ 
+            marginTop: 'auto', 
+            padding: isSidebarCollapsed ? '16px 8px' : '16px 14px', 
+            borderTop: '1px solid var(--panel-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            {/* Theme Toggle Button in Sidebar */}
+            <button
+              type="button"
+              id="sidebar-theme-toggle-btn"
+              onClick={toggleTheme}
+              style={{
+                width: '100%',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+                padding: isSidebarCollapsed ? '0' : '0 12px',
+                borderRadius: '10px',
+                background: 'var(--subtle-bg)',
+                border: '1px solid var(--subtle-border)',
+                color: 'var(--text-primary)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
+              }}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {theme === 'dark' ? <Sun size={16} style={{ color: '#f59e0b' }} /> : <Moon size={16} style={{ color: '#818cf8' }} />}
+                {!isSidebarCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <span style={{ 
+                  fontSize: '0.68rem', 
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-muted)' 
+                }}>
+                  {theme === 'dark' ? 'Dark' : 'Light'}
+                </span>
+              )}
+            </button>
+
+            {/* Logout Button in Sidebar */}
+            {user && (
+              <button
+                type="button"
+                id="sidebar-logout-btn"
+                onClick={() => {
+                  signOut();
+                  closeSidebar();
+                }}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+                  gap: '8px',
+                  padding: isSidebarCollapsed ? '0' : '0 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.22)',
+                  color: '#ef4444',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.22)';
+                }}
+                title="Log Out of Session"
+              >
+                <LogOut size={16} />
+                {!isSidebarCollapsed && <span>Log Out</span>}
+              </button>
+            )}
+
+            {!isSidebarCollapsed && (
+              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5, textAlign: 'center', marginTop: '2px' }}>
+                v3.2.0 Enterprise
+              </div>
+            )}
           </div>
         </aside>
 
