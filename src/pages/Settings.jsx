@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
+import CustomColorPicker from '../components/CustomColorPicker';
 import { 
   Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, 
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
@@ -1413,19 +1414,15 @@ END $$;`;
             </div>
 
             <div className="form-group">
-              <label className="form-label">Document Theme Color</label>
-              <div className="flex items-center gap-4">
-                <input type="color" 
-                  style={{ width: '60px', height: '42px', padding: '0', border: '1px solid var(--panel-border)', borderRadius: '8px', cursor: 'pointer' }}
-                  value={smsConfig.pdfColor || '#3b82f6'} 
-                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
-                />
-                <input type="text" className="form-input" 
-                  style={{ flex: 1 }}
-                  value={smsConfig.pdfColor || '#3b82f6'} 
-                  onChange={e => updateSmsConfig({...smsConfig, pdfColor: e.target.value})} 
-                />
-              </div>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700 }}>Document & Brand Accent Color</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Rendered on PDF quotes, invoices & customer receipts</span>
+              </label>
+              <CustomColorPicker 
+                value={smsConfig.pdfColor || (smsConfig.companyName?.includes('Hair') ? '#0d9488' : '#4f46e5')} 
+                onChange={val => updateSmsConfig({...smsConfig, pdfColor: val})}
+                label="Branding Accent"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

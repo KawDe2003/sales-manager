@@ -5,6 +5,7 @@ import {
   Settings, Briefcase, X, Store, ArrowRightLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import CustomColorPicker from './CustomColorPicker';
 
 export default function BusinessSwitcher() {
   const { 
@@ -380,6 +381,17 @@ export default function BusinessSwitcher() {
                   value={newBizCategory}
                   onChange={(e) => setNewBizCategory(e.target.value)}
                   style={{ width: '100%', height: '36px', fontSize: '0.84rem' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '6px', display: 'block' }}>
+                  Entity Branding Accent Color
+                </label>
+                <CustomColorPicker
+                  value={newBizColor}
+                  onChange={setNewBizColor}
+                  label="Entity Theme Color"
                 />
               </div>
 
