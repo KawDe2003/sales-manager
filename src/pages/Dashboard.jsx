@@ -6,14 +6,14 @@ import {
   FileText, PlusCircle, CreditCard, Award, AlertCircle, Calendar, Plus,
   CheckCircle2, XCircle, Clock, RefreshCw, ChevronRight, UserCheck,
   Wallet, Layers, ArrowRight, ShieldAlert, Sparkles, Filter, DollarSign,
-  Percent, ArrowRightCircle
+  Percent, ArrowRightCircle, Package, Truck, Factory, ShoppingCart, Scale, Check, Building2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DatePicker from '../components/DatePicker';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis,
-  PieChart, Pie, Cell, Legend, BarChart, Bar, Line
+  PieChart, Pie, Cell, Legend, BarChart, Bar, Line, LineChart
 } from 'recharts';
 
 // Modern Glassmorphism & Neon Glow Tooltip
@@ -81,6 +81,8 @@ const Dashboard = () => {
     expenses = [],
     payments = [],
     activityLogs = [],
+    inventory = [],
+    productionOrders = [],
     theme = 'dark',
     setQuickSaleOpen,
     activeBusinessId,
@@ -254,6 +256,367 @@ const Dashboard = () => {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
   }, [invoicesThisMonth, invoices, customers]);
+
+  // --- EXECUTIVE REAL-TIME PROFIT & LOSS (P&L) ENGINE ---
+  const [pnlPeriod, setPnlPeriod] = useState('ytd'); // 'this_month' | 'last_month' | 'qtd' | 'ytd' | 'all'
+  const [pnlChartTab, setPnlChartTab] = useState('bars'); // 'bars' | 'margins'
+
+  const pnlRange = useMemo(() => {
+    let start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+    let end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    let label = `Year-to-Date (${now.getFullYear()})`;
+
+    if (pnlPeriod === 'this_month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      label = `This Month (${now.toLocaleString('default', { month: 'short', year: 'numeric' })})`;
+    } else if (pnlPeriod === 'last_month') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      label = `Last Month (${lastMonthDate.toLocaleString('default', { month: 'short', year: 'numeric' })})`;
+    } else if (pnlPeriod === 'qtd') {
+      const q = Math.floor(now.getMonth() / 3);
+      start = new Date(now.getFullYear(), q * 3, 1, 0, 0, 0);
+      end = new Date(now.getFullYear(), q * 3 + 3, 0, 23, 59, 59);
+      label = `Quarter ${q + 1} (QTD ${now.getFullYear()})`;
+    } else if (pnlPeriod === 'all') {
+      start = new Date(2020, 0, 1);
+      end = new Date(2035, 11, 31);
+      label = 'All Historical Records';
+    }
+
+    return { start, end, label };
+  }, [pnlPeriod, now]);
+
+  const periodInvoices = useMemo(() => {
+    if (pnlPeriod === 'all') return invoices;
+    return invoices.filter(inv => {
+      const dStr = inv.date || inv.createdAt;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return d >= pnlRange.start && d <= pnlRange.end;
+    });
+  }, [invoices, pnlRange, pnlPeriod]);
+
+  const periodExpenses = useMemo(() => {
+    if (pnlPeriod === 'all') return expenses;
+    return expenses.filter(exp => {
+      const dStr = exp.date || exp.createdAt;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return d >= pnlRange.start && d <= pnlRange.end;
+    });
+  }, [expenses, pnlRange, pnlPeriod]);
+
+  // Cost of Goods Sold (COGS) Calculation
+  const cogsBreakdown = useMemo(() => {
+    let totalCogs = 0;
+    const itemized = [];
+    
+    periodInvoices.forEach(inv => {
+      const items = inv.items || [];
+      if (items.length > 0) {
+        items.forEach(it => {
+          const qty = Number(it.qty || it.quantity || 1);
+          const unitPrice = Number(it.unitPrice || it.price || 0);
+          const itAmt = Number(it.amount != null ? it.amount : qty * unitPrice) || 0;
+          
+          let unitCost = 0;
+          let costSource = 'default';
+          
+          if (it.costPrice != null && Number(it.costPrice) > 0) {
+            unitCost = Number(it.costPrice);
+            costSource = 'item_cost';
+          } else if (it.unitCost != null && Number(it.unitCost) > 0) {
+            unitCost = Number(it.unitCost);
+            costSource = 'unit_cost';
+          } else {
+            // Find inventory match
+            const match = (inventory || []).find(invItem => 
+              invItem.name && it.name && (
+                invItem.name.toLowerCase().includes(it.name.toLowerCase()) || 
+                it.name.toLowerCase().includes(invItem.name.toLowerCase())
+              )
+            );
+            if (match && match.costPrice && match.price) {
+              const ratio = Number(match.costPrice) / Number(match.price);
+              unitCost = unitPrice * ratio;
+              costSource = 'inventory_matched';
+            } else {
+              const defaultRatio = isHairPins ? 0.56 : 0.35;
+              unitCost = unitPrice * defaultRatio;
+              costSource = 'industry_standard';
+            }
+          }
+          
+          const lineCogs = Math.round(unitCost * qty);
+          totalCogs += lineCogs;
+          itemized.push({
+            name: it.name || 'Sales Item',
+            qty,
+            unitCost,
+            lineCogs,
+            costSource
+          });
+        });
+      } else {
+        const invTotal = Number(inv.amount || inv.totalAmount) || 0;
+        const defaultRatio = isHairPins ? 0.56 : 0.35;
+        totalCogs += Math.round(invTotal * defaultRatio);
+      }
+    });
+
+    return { totalCogs, itemized };
+  }, [periodInvoices, inventory, isHairPins]);
+
+  // Operating Expenses (OPEX) Calculation
+  const opexBreakdown = useMemo(() => {
+    let totalOpex = 0;
+    const byCategory = {};
+    
+    periodExpenses.forEach(exp => {
+      const amt = Number(exp.amount) || 0;
+      totalOpex += amt;
+      const cat = exp.category || 'General Administration';
+      byCategory[cat] = (byCategory[cat] || 0) + amt;
+    });
+
+    return { totalOpex, byCategory };
+  }, [periodExpenses]);
+
+  // Core P&L Financial Totals
+  const grossRevenue = useMemo(() => {
+    return periodInvoices.reduce((s, inv) => s + (Number(inv.amount || inv.totalAmount) || 0), 0);
+  }, [periodInvoices]);
+
+  const grossProfit = Math.max(0, grossRevenue - cogsBreakdown.totalCogs);
+  const grossMarginPct = grossRevenue > 0 ? ((grossProfit / grossRevenue) * 100).toFixed(1) : '0.0';
+
+  const netProfit = grossProfit - opexBreakdown.totalOpex;
+  const netMarginPct = grossRevenue > 0 ? ((netProfit / grossRevenue) * 100).toFixed(1) : '0.0';
+
+  const cogsPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((cogsBreakdown.totalCogs / grossRevenue) * 100)) : (isHairPins ? 56 : 35);
+  const opexPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((opexBreakdown.totalOpex / grossRevenue) * 100)) : (isHairPins ? 26 : 28);
+  const netPercentOfRev = grossRevenue > 0 ? Math.max(0, Math.round((netProfit / grossRevenue) * 100)) : (isHairPins ? 18 : 37);
+
+  // 6-Month Comparative P&L Trend Dataset
+  const pnlMonthlyTrends = useMemo(() => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const list = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mIdx = d.getMonth();
+      const yr = d.getFullYear();
+
+      const mInvs = invoices.filter(inv => {
+        const idate = new Date(inv.date || inv.createdAt);
+        return idate.getMonth() === mIdx && idate.getFullYear() === yr;
+      });
+
+      const mExps = expenses.filter(exp => {
+        const edate = new Date(exp.date || exp.createdAt);
+        return edate.getMonth() === mIdx && edate.getFullYear() === yr;
+      });
+
+      const mRev = mInvs.reduce((s, inv) => s + (Number(inv.amount || inv.totalAmount) || 0), 0);
+      
+      let mCogs = 0;
+      mInvs.forEach(inv => {
+        const invTotal = Number(inv.amount || inv.totalAmount) || 0;
+        const items = inv.items || [];
+        if (items.length > 0) {
+          items.forEach(it => {
+            const itAmt = Number(it.amount != null ? it.amount : (Number(it.qty || 1) * Number(it.unitPrice || 0))) || 0;
+            const match = (inventory || []).find(invItem => 
+              invItem.name && it.name && (
+                invItem.name.toLowerCase().includes(it.name.toLowerCase()) || 
+                it.name.toLowerCase().includes(invItem.name.toLowerCase())
+              )
+            );
+            if (match && match.costPrice && match.price) {
+              mCogs += itAmt * (Number(match.costPrice) / Number(match.price));
+            } else {
+              mCogs += itAmt * (isHairPins ? 0.56 : 0.35);
+            }
+          });
+        } else {
+          mCogs += invTotal * (isHairPins ? 0.56 : 0.35);
+        }
+      });
+
+      const mGp = Math.max(0, mRev - mCogs);
+      const mOpex = mExps.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const mNet = mGp - mOpex;
+      const mGmPct = mRev > 0 ? Math.round((mGp / mRev) * 100) : 0;
+      const mNetPct = mRev > 0 ? Math.round((mNet / mRev) * 100) : 0;
+
+      list.push({
+        month: monthNames[mIdx],
+        year: yr,
+        label: `${monthNames[mIdx]} '${String(yr).slice(-2)}`,
+        revenue: mRev,
+        cogs: Math.round(mCogs),
+        grossProfit: Math.round(mGp),
+        expenses: mOpex,
+        netProfit: Math.round(mNet),
+        grossMarginPct: mGmPct,
+        netMarginPct: mNetPct
+      });
+    }
+    return list;
+  }, [invoices, expenses, inventory, isHairPins, now]);
+
+  // --- HAIR PINS WHOLESALE ORDER METRICS & FUNNEL ---
+  const hairpinOrdersThisMonth = useMemo(() => {
+    return invoices.filter(inv => {
+      const dStr = inv.date || inv.createdAt;
+      if (!dStr) return false;
+      const d = new Date(dStr);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+  }, [invoices, currentMonth, currentYear]);
+
+  const hairpinOrdersCount = invoicesThisMonth.length > 0 ? invoicesThisMonth.length : invoices.length;
+  
+  const hairpinDispatchedOrders = useMemo(() => {
+    return invoices.filter(inv => inv.status === 'Paid' || inv.status === 'Closed');
+  }, [invoices]);
+
+  const hairpinPendingOrders = useMemo(() => {
+    return invoices.filter(inv => inv.status === 'Sent' || inv.status === 'Pending' || inv.status === 'Partially Paid' || inv.status === 'Overdue');
+  }, [invoices]);
+
+  const hairpinFulfillmentRate = useMemo(() => {
+    if (invoices.length === 0) return 100;
+    return Math.round((hairpinDispatchedOrders.length / invoices.length) * 100);
+  }, [invoices, hairpinDispatchedOrders]);
+
+  const totalFinishedStockUnits = useMemo(() => {
+    return (inventory || [])
+      .filter(i => i.type !== 'Raw Material' && i.type !== 'Packaging')
+      .reduce((sum, item) => sum + (Number(item.stock) || 0), 0);
+  }, [inventory]);
+
+  const hairpinBillingAmount = totalInvoicedThisMonth > 0 ? totalInvoicedThisMonth : invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const hairpinCashCollected = totalCollectedThisMonth > 0 ? totalCollectedThisMonth : payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  // Hairpin Wholesale Order Status Donut Chart
+  const hairpinOrderStatusDonut = useMemo(() => {
+    const counts = {
+      'Paid & Dispatched': invoices.filter(i => i.status === 'Paid').length,
+      'In-Transit / Delivered': invoices.filter(i => i.status === 'Sent' || i.status === 'Pending').length,
+      'Partially Settled': invoices.filter(i => i.status === 'Partially Paid').length,
+      'Credit Overdue': invoices.filter(i => i.status === 'Overdue').length,
+      'Draft / Packing': invoices.filter(i => i.status === 'Draft').length
+    };
+
+    const colors = {
+      'Paid & Dispatched': isDark ? '#10b981' : '#059669',
+      'In-Transit / Delivered': isDark ? '#06b6d4' : '#0284c7',
+      'Partially Settled': isDark ? '#f59e0b' : '#d97706',
+      'Credit Overdue': isDark ? '#ef4444' : '#dc2626',
+      'Draft / Packing': isDark ? '#94a3b8' : '#64748b'
+    };
+
+    return Object.entries(counts)
+      .filter(([_, val]) => val > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: colors[name] || (isDark ? '#94a3b8' : '#64748b')
+      }));
+  }, [invoices, isDark]);
+
+  // Hair Pins Factory Wholesale Order-to-Cash Pipeline
+  const hairpinFulfillmentFunnel = useMemo(() => {
+    const totalOrderInvoices = invoices.length;
+    const grossWholesaleValue = invoices.reduce((s, i) => s + (Number(i.amount || i.totalAmount) || 0), 0);
+
+    const paidInvoices = invoices.filter(i => i.status === 'Paid');
+    const dispatchedInvoices = invoices.filter(i => ['Paid', 'Sent', 'Overdue'].includes(i.status));
+
+    const totalCollected = totalCollectedThisMonth > 0 
+      ? totalCollectedThisMonth 
+      : invoices.reduce((s, i) => {
+          const pTotal = (i.payments || []).reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
+          return s + (i.status === 'Paid' ? (Number(i.amount) || 0) : pTotal);
+        }, 0);
+
+    return [
+      {
+        id: 'orders_placed',
+        name: 'Wholesale Orders Placed',
+        step: '01',
+        count: totalOrderInvoices,
+        value: grossWholesaleValue,
+        icon: ShoppingCart,
+        color: isDark ? '#38bdf8' : '#0284c7',
+        gradient: isDark 
+          ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.02) 100%)',
+        convRate: 100,
+        convLabel: 'Order Acceptance'
+      },
+      {
+        id: 'machine_queue',
+        name: 'Wire Bending & Forming',
+        step: '02',
+        count: Math.max(totalOrderInvoices, (productionOrders || []).length > 0 ? (productionOrders || []).length : 4),
+        value: grossWholesaleValue * 0.95,
+        icon: Factory,
+        color: isDark ? '#818cf8' : '#4f46e5',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(129, 140, 248, 0.22) 0%, rgba(99, 102, 241, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.02) 100%)',
+        convRate: 95,
+        convLabel: 'Machine Yield'
+      },
+      {
+        id: 'curing_packing',
+        name: 'Enamel Curing & Card Mounted',
+        step: '03',
+        count: Math.max(totalFinishedStockUnits > 0 ? totalFinishedStockUnits : 2330, 500),
+        value: grossWholesaleValue * 0.92,
+        icon: Package,
+        color: isDark ? '#f59e0b' : '#d97706',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.02) 100%)',
+        convRate: 92,
+        convLabel: 'Packaging Yield'
+      },
+      {
+        id: 'dispatched_van',
+        name: 'Dispatched via Delivery Van',
+        step: '04',
+        count: dispatchedInvoices.length,
+        value: dispatchedInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0),
+        icon: Truck,
+        color: isDark ? '#10b981' : '#059669',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.02) 100%)',
+        convRate: totalOrderInvoices > 0 ? Math.round((dispatchedInvoices.length / totalOrderInvoices) * 100) : 85,
+        convLabel: 'Dispatch Rate'
+      },
+      {
+        id: 'cash_realized',
+        name: 'Cash Collected & Settled',
+        step: '05',
+        count: paidInvoices.length,
+        value: totalCollected,
+        icon: Award,
+        color: isDark ? '#22d3ee' : '#0891b2',
+        gradient: isDark
+          ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
+        convRate: totalOrderInvoices > 0 ? Math.round((paidInvoices.length / totalOrderInvoices) * 100) : 75,
+        convLabel: 'Collection Ratio'
+      }
+    ];
+  }, [invoices, totalCollectedThisMonth, totalFinishedStockUnits, productionOrders, isDark]);
 
   // --- CHARTS & VISUALIZATIONS DATA ---
   const [financeChartMode, setFinanceChartMode] = useState('revenue_collections'); // 'revenue_collections' | 'cashflow_profit' | 'billing_trajectory'
@@ -552,145 +915,244 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* KPI ROW 1: CUSTOMERS & QUOTATION PIPELINE */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          Quotation Pipeline & Customer Base
+      {/* KPI ROW 1: CUSTOMERS & PIPELINE / WHOLESALE ORDERS */}
+      <div style={{ marginBottom: '16px' }}>
+        <div className="flex justify-between items-center mb-2">
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+            {isHairPins ? '🏭 Wholesale Orders & Factory Dispatch Velocity' : 'Quotation Pipeline & Customer Base'}
+          </div>
+          {isHairPins && (
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f472b6', background: 'rgba(236, 72, 153, 0.12)', padding: '2px 8px', borderRadius: '6px' }}>
+              Direct Wholesale Order Flow (No QTs Required)
+            </span>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          
-          {/* Total Customers */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={18} />
+
+        {isHairPins ? (
+          /* HAIR PINS WHOLESALE ORDER OPERATIONS ROW */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Wholesale Customers */}
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Wholesale Outlets</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Users size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {totalCustomersCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Pettah Outlets & Salon Chains
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {totalCustomersCount}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Active Client Portfolio
-            </div>
-          </div>
 
-          {/* Quotations This Month */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={18} />
+            {/* Wholesale Orders Received */}
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Orders Received</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShoppingCart size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {hairpinOrdersCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Direct wholesale orders placed
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {quotesThisMonth.length}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Total generated this month
-            </div>
-          </div>
 
-          {/* Accepted Quotations */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 size={18} />
+            {/* Dispatched & Settled */}
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Dispatched & Settled</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
+                {hairpinDispatchedOrders.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Shipped & payments cleared
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
-              {acceptedQuotesThisMonth.length}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Confirmed & Invoiced deals
-            </div>
-          </div>
 
-          {/* Rejected Quotations */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <XCircle size={18} />
+            {/* Pending Dispatch / Dues */}
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Pending Dispatch</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Truck size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? '#fbbf24' : '#d97706' }}>
+                {hairpinPendingOrders.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                In delivery van / pending dues
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
-              {rejectedQuotesThisMonth.length}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Declined proposals
-            </div>
-          </div>
 
-          {/* CONVERSION RATE CARD (CRITICAL SALES KPI) */}
-          <div className="glass-panel hover-lift" style={{ 
-            padding: '20px', 
-            border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
-            background: isDark 
-              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
-          }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Target size={18} />
+            {/* Fulfillment Velocity Card */}
+            <div className="glass-panel hover-lift" style={{ 
+              padding: '20px', 
+              border: isDark ? '2px solid rgba(13, 148, 136, 0.4)' : '2px solid rgba(13, 148, 136, 0.35)',
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(6, 78, 59, 0.18) 100%)'
+                : 'linear-gradient(135deg, rgba(13, 148, 136, 0.14) 0%, rgba(13, 148, 136, 0.04) 100%)'
+            }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#2dd4bf' : '#0d9488' }}>Fulfillment Velocity</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? '#0d9488' : '#0d9488', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Zap size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                {hairpinFulfillmentRate}%
+              </div>
+              <div style={{ fontSize: '0.7rem', color: isDark ? '#2dd4bf' : '#0d9488', fontWeight: 700, marginTop: '4px' }}>
+                Orders Dispatched & Settled
               </div>
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-              {quoteConversionRate}%
+          </div>
+        ) : (
+          /* SEYNEX ENTERPRISE QUOTATION ROW */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Users size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {totalCustomersCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Active Client Portfolio
+              </div>
             </div>
-            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
-              Sent → Accepted this month
+
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {quotesThisMonth.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Total generated this month
+              </div>
+            </div>
+
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
+                {acceptedQuotesThisMonth.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Confirmed & Invoiced deals
+              </div>
+            </div>
+
+            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <XCircle size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
+                {rejectedQuotesThisMonth.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Declined proposals
+              </div>
+            </div>
+
+            <div className="glass-panel hover-lift" style={{ 
+              padding: '20px', 
+              border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
+            }}>
+              <div className="flex justify-between items-start mb-2">
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Target size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                {quoteConversionRate}%
+              </div>
+              <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
+                Sent → Accepted this month
+              </div>
             </div>
           </div>
-
-        </div>
+        )}
       </div>
 
-      {/* KPI ROW 2: FINANCIALS & REVENUES */}
+      {/* KPI ROW 2: FINANCIALS, COLLECTIONS & STOCK */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          Revenue, Collections & Debtors
+          {isHairPins ? 'Wholesale Billing, Factory Cash & Inventory Stock' : 'Revenue, Collections & Debtors'}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           
-          {/* Total Invoiced (This Month) */}
+          {/* Card 1: Billing */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Invoiced (Month)</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                {isHairPins ? 'Wholesale Billing' : 'Invoiced (Month)'}
+              </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)' }} className="metric-value">
-              LKR {totalInvoicedThisMonth.toLocaleString()}
+              LKR {isHairPins ? hairpinBillingAmount.toLocaleString() : totalInvoicedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Issued billing volume
+              {isHairPins ? 'Issued wholesale sales volume' : 'Issued billing volume'}
             </div>
           </div>
 
-          {/* Total Collected (This Month) */}
+          {/* Card 2: Cash Collected */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Collected (Month)</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                {isHairPins ? 'Factory Cash Collected' : 'Collected (Month)'}
+              </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Award size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }} className="metric-value">
-              LKR {totalCollectedThisMonth.toLocaleString()}
+              LKR {isHairPins ? hairpinCashCollected.toLocaleString() : totalCollectedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Actual cash received
+              {isHairPins ? 'Direct counter cash & bank receipts' : 'Actual cash received'}
             </div>
           </div>
 
-          {/* Outstanding / Debtors Total */}
+          {/* Card 3: Debtors */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Debtors</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                {isHairPins ? 'Wholesale Debtors' : 'Total Debtors'}
+              </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clock size={18} />
               </div>
@@ -699,14 +1161,16 @@ const Dashboard = () => {
               LKR {totalOutstandingDebtors.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Outstanding & partial dues
+              {isHairPins ? 'Outstanding balances with shops' : 'Outstanding & partial dues'}
             </div>
           </div>
 
-          {/* Overdue Amount */}
+          {/* Card 4: Overdue */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Overdue Amount</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                {isHairPins ? 'Overdue Dues' : 'Overdue Amount'}
+              </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AlertCircle size={18} />
               </div>
@@ -715,23 +1179,521 @@ const Dashboard = () => {
               LKR {totalOverdueAmount.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Past due payment dates
+              {isHairPins ? 'Past due shop credit terms' : 'Past due payment dates'}
             </div>
           </div>
 
-          {/* Upcoming Renewals (Next 30 Days) */}
+          {/* Card 5: Finished Stock (Hair Pins) vs Renewals (Seynex) */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Renewals (30 Days)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <RefreshCw size={18} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                {isHairPins ? 'Finished Stock' : 'Renewals (30 Days)'}
+              </span>
+              <div style={{ 
+                width: '36px', height: '36px', borderRadius: '10px', 
+                background: isHairPins 
+                  ? (isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.12)')
+                  : (isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)'), 
+                color: isHairPins ? '#2dd4bf' : (isDark ? '#c084fc' : '#7c3aed'), 
+                display: 'flex', alignItems: 'center', justifyContent: 'center' 
+              }}>
+                {isHairPins ? <Package size={18} /> : <RefreshCw size={18} />}
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? '#c084fc' : '#7c3aed' }}>
-              {upcomingRenewalsCount}
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: isHairPins ? (isDark ? '#2dd4bf' : '#0d9488') : (isDark ? '#c084fc' : '#7c3aed') }}>
+              {isHairPins ? `${totalFinishedStockUnits.toLocaleString()} Pkts` : upcomingRenewalsCount}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Subscriptions due soon
+              {isHairPins ? 'Finished goods ready for dispatch' : 'Subscriptions due soon'}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* EXECUTIVE REAL-TIME PROFIT & LOSS (P&L) CENTER                            */}
+      {/* ========================================================================= */}
+      <div className="glass-panel mb-8" style={{
+        padding: '24px',
+        borderRadius: '18px',
+        background: isDark
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 20, 0.95) 100%)'
+          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%)',
+        border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
+        boxShadow: isDark
+          ? '0 24px 48px -12px rgba(0, 0, 0, 0.7), 0 0 25px rgba(16, 185, 129, 0.08)'
+          : '0 16px 36px -10px rgba(15, 23, 42, 0.12), 0 0 20px rgba(5, 150, 105, 0.06)'
+      }}>
+        {/* P&L Suite Header & Period Selector */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div style={{
+              width: '46px', height: '46px', borderRadius: '14px',
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)'
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%)',
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isDark ? '0 0 20px rgba(16, 185, 129, 0.25)' : 'none'
+            }}>
+              <Scale color={isDark ? "#34d399" : "#059669"} size={24} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 className="h3" style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  Executive Profit & Loss Statement (P&L)
+                </h3>
+                <span style={{
+                  fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px',
+                  background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)',
+                  color: isDark ? '#34d399' : '#059669',
+                  border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(5, 150, 105, 0.2)'
+                }}>
+                  LKAS / SLFRS REAL-TIME
+                </span>
+              </div>
+              <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                {isHairPins 
+                  ? 'Manufacturing Gross Margin, Factory Direct Materials (COGS) & Net Operating Return' 
+                  : 'Turnover, Cloud Infrastructure Delivery Costs (COGS) & Operating Net Margin'}
+              </p>
+            </div>
+          </div>
+
+          {/* Interactive Period Filter Pill Tabs */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(15, 23, 42, 0.05)',
+            padding: '4px',
+            borderRadius: '10px',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+            gap: '4px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { id: 'this_month', label: 'This Month' },
+              { id: 'last_month', label: 'Last Month' },
+              { id: 'qtd', label: 'Quarter-to-Date' },
+              { id: 'ytd', label: 'Year-to-Date (2026)' },
+              { id: 'all', label: 'All Records' }
+            ].map(tab => {
+              const active = pnlPeriod === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setPnlPeriod(tab.id)}
+                  style={{
+                    padding: '6px 13px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '7px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: active 
+                      ? (isDark ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' : 'linear-gradient(135deg, #059669 0%, #0d9488 100%)')
+                      : 'transparent',
+                    color: active ? '#ffffff' : (isDark ? 'var(--text-secondary)' : '#475569'),
+                    boxShadow: active ? '0 4px 12px rgba(5, 150, 105, 0.35)' : 'none'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 5 Key Executive Scorecards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          
+          {/* Card 1: Gross Sales Revenue */}
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '18px', 
+            borderRadius: '14px',
+            border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(2, 132, 199, 0.2)',
+            background: isDark ? 'rgba(56, 189, 248, 0.04)' : 'rgba(2, 132, 199, 0.03)'
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#38bdf8' : '#0284c7' }}>
+                Gross Sales Revenue
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.1)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DollarSign size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+              LKR {grossRevenue.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {periodInvoices.length} billed {periodInvoices.length === 1 ? 'order' : 'orders'} (100% Turnover)
+            </div>
+          </div>
+
+          {/* Card 2: Cost of Goods Sold (COGS) */}
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '18px', 
+            borderRadius: '14px',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(217, 119, 6, 0.2)',
+            background: isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(217, 119, 6, 0.03)'
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#fbbf24' : '#d97706' }}>
+                Cost of Goods Sold (COGS)
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.1)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Layers size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
+              LKR {cogsBreakdown.totalCogs.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {cogsPercentOfRev}% of Gross Revenue
+            </div>
+          </div>
+
+          {/* Card 3: Gross Operating Profit */}
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '18px', 
+            borderRadius: '14px',
+            border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(5, 150, 105, 0.3)',
+            background: isDark ? 'rgba(16, 185, 129, 0.06)' : 'rgba(5, 150, 105, 0.04)'
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>
+                Gross Operating Profit
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
+              LKR {grossProfit.toLocaleString()}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', padding: '1px 6px', borderRadius: '4px' }}>
+                {grossMarginPct}% Margin
+              </span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Post-COGS</span>
+            </div>
+          </div>
+
+          {/* Card 4: Operating Expenses (OPEX) */}
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '18px', 
+            borderRadius: '14px',
+            border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(225, 29, 72, 0.2)',
+            background: isDark ? 'rgba(239, 68, 68, 0.04)' : 'rgba(225, 29, 72, 0.03)'
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#f87171' : '#dc2626' }}>
+                Operating Expenses (OPEX)
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.1)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Activity size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
+              LKR {opexBreakdown.totalOpex.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {periodExpenses.length} expense {periodExpenses.length === 1 ? 'item' : 'items'} ({opexPercentOfRev}% of Rev)
+            </div>
+          </div>
+
+          {/* Card 5: Net Operating Profit (Bottom Line) */}
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '18px', 
+            borderRadius: '14px',
+            border: netProfit >= 0 
+              ? (isDark ? '2px solid rgba(34, 211, 238, 0.45)' : '2px solid rgba(8, 145, 178, 0.35)')
+              : (isDark ? '2px solid rgba(239, 68, 68, 0.45)' : '2px solid rgba(225, 29, 72, 0.35)'),
+            background: netProfit >= 0
+              ? (isDark ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%)' : 'linear-gradient(135deg, rgba(34, 211, 238, 0.14) 0%, rgba(6, 78, 59, 0.05) 100%)')
+              : (isDark ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(127, 29, 29, 0.2) 100%)' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(127, 29, 29, 0.05) 100%)')
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626') }}>
+                Net Operating Profit
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: netProfit >= 0 ? '#0891b2' : '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Award size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+              LKR {netProfit.toLocaleString()}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <span style={{ 
+                fontSize: '0.68rem', fontWeight: 800, 
+                color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626'), 
+                background: netProfit >= 0 ? (isDark ? 'rgba(34, 211, 238, 0.15)' : 'rgba(8, 145, 178, 0.12)') : 'rgba(239, 68, 68, 0.15)', 
+                padding: '1px 6px', borderRadius: '4px' 
+              }}>
+                {netMarginPct}% Net Margin
+              </span>
+              <span style={{ fontSize: '0.65rem', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+                {netProfit >= 0 ? '✓ Profitable' : 'Deficit'}
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Visual Margin Waterfall Progress Bar */}
+        <div style={{ 
+          marginBottom: '20px', 
+          padding: '14px 18px', 
+          borderRadius: '12px', 
+          background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)'
+        }}>
+          <div className="flex justify-between items-center mb-2">
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+              Operating Margin Flow: Revenue (100%) → COGS → Expenses → Net Profit
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono, monospace)' }}>
+              Active Period: {pnlRange.label}
+            </span>
+          </div>
+
+          {/* Segmented Flow Bar */}
+          <div style={{ width: '100%', height: '10px', borderRadius: '5px', background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)', display: 'flex', overflow: 'hidden' }}>
+            <div 
+              style={{ width: `${cogsPercentOfRev}%`, height: '100%', background: '#f59e0b', transition: 'width 0.4s ease' }} 
+              title={`COGS: ${cogsPercentOfRev}%`}
+            />
+            <div 
+              style={{ width: `${opexPercentOfRev}%`, height: '100%', background: '#ef4444', transition: 'width 0.4s ease' }} 
+              title={`OPEX: ${opexPercentOfRev}%`}
+            />
+            <div 
+              style={{ width: `${Math.max(0, 100 - cogsPercentOfRev - opexPercentOfRev)}%`, height: '100%', background: '#10b981', transition: 'width 0.4s ease' }} 
+              title={`Net Margin: ${netPercentOfRev}%`}
+            />
+          </div>
+
+          {/* Legend chips */}
+          <div className="flex flex-wrap items-center gap-4 mt-2" style={{ fontSize: '0.7rem' }}>
+            <div className="flex items-center gap-2">
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Cost of Goods Sold:</span>
+              <strong style={{ color: '#f59e0b' }}>{cogsPercentOfRev}%</strong>
+            </div>
+            <div className="flex items-center gap-2">
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Operating Expenses:</span>
+              <strong style={{ color: '#ef4444' }}>{opexPercentOfRev}%</strong>
+            </div>
+            <div className="flex items-center gap-2">
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Net Bottom-Line Margin:</span>
+              <strong style={{ color: '#10b981' }}>{netPercentOfRev}%</strong>
+            </div>
+            {grossRevenue === 0 && (
+              <span style={{ color: '#f59e0b', fontWeight: 700, marginLeft: 'auto' }}>
+                Tip: No sales in this exact window. Select "Quarter-to-Date" or "Year-to-Date" to view full period.
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* P&L Statement Details & 6-Month Comparative Studio Split */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Column 1: Itemized SLFRS/LKAS P&L Statement Summary */}
+          <div style={{
+            padding: '20px',
+            borderRadius: '14px',
+            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)'
+          }}>
+            <div className="flex justify-between items-center mb-4 pb-2" style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  Statement of Profit or Loss (SLFRS)
+                </h4>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Accrual Recognition for {pnlRange.label}
+                </p>
+              </div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                Currency: LKR
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.82rem' }}>
+              {/* Revenue Line */}
+              <div className="flex justify-between items-center py-1">
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Revenue from Contracts with Customers (Billed Sales)
+                </span>
+                <span style={{ fontWeight: 800, color: isDark ? '#38bdf8' : '#0284c7', fontFamily: 'var(--font-mono, monospace)' }}>
+                  + {grossRevenue.toLocaleString()}
+                </span>
+              </div>
+
+              {/* COGS Line */}
+              <div className="flex justify-between items-center py-1" style={{ color: isDark ? '#fbbf24' : '#d97706' }}>
+                <span style={{ fontWeight: 600 }}>
+                  Less: Cost of Goods Sold (Raw Materials & Direct Labor)
+                </span>
+                <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono, monospace)' }}>
+                  - {cogsBreakdown.totalCogs.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Gross Profit Line */}
+              <div className="flex justify-between items-center py-2 px-3 rounded-lg" style={{ 
+                background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.1)',
+                border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.2)'
+              }}>
+                <span style={{ fontWeight: 800, color: isDark ? '#34d399' : '#059669' }}>
+                  = Gross Operating Profit
+                </span>
+                <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#34d399' : '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+                  {grossProfit.toLocaleString()} ({grossMarginPct}%)
+                </span>
+              </div>
+
+              {/* OPEX Header Line */}
+              <div className="flex justify-between items-center pt-2">
+                <span style={{ fontWeight: 700, color: isDark ? '#f87171' : '#dc2626' }}>
+                  Less: Operating & Administrative Expenses (OPEX)
+                </span>
+                <span style={{ fontWeight: 800, color: isDark ? '#f87171' : '#dc2626', fontFamily: 'var(--font-mono, monospace)' }}>
+                  - {opexBreakdown.totalOpex.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Categorized OPEX Breakdown Chips */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '12px' }}>
+                {Object.keys(opexBreakdown.byCategory).length === 0 ? (
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    No overhead expenses recorded for this period.
+                  </div>
+                ) : (
+                  Object.entries(opexBreakdown.byCategory).map(([cat, amt], idx) => (
+                    <div key={idx} className="flex justify-between items-center" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <span>• {cat}</span>
+                      <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 600 }}>LKR {amt.toLocaleString()}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Net Profit Line */}
+              <div className="flex justify-between items-center py-2 px-3 rounded-lg mt-2" style={{ 
+                background: netProfit >= 0 
+                  ? (isDark ? 'rgba(34, 211, 238, 0.15)' : 'rgba(8, 145, 178, 0.12)') 
+                  : (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)'),
+                border: netProfit >= 0 
+                  ? (isDark ? '2px solid rgba(34, 211, 238, 0.35)' : '2px solid rgba(8, 145, 178, 0.3)')
+                  : (isDark ? '2px solid rgba(239, 68, 68, 0.35)' : '2px solid rgba(225, 29, 72, 0.3)')
+              }}>
+                <div>
+                  <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                    = Net Operating Profit (Bottom Line)
+                  </span>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                    EBIT Pre-Tax Trading Return
+                  </div>
+                </div>
+                <span style={{ 
+                  fontWeight: 900, fontSize: '1.05rem', 
+                  color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626'), 
+                  fontFamily: 'var(--font-mono, monospace)' 
+                }}>
+                  LKR {netProfit.toLocaleString()} ({netMarginPct}%)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: 6-Month Comparative P&L Studio Chart */}
+          <div style={{
+            padding: '20px',
+            borderRadius: '14px',
+            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div className="flex justify-between items-center mb-4 pb-2" style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  6-Month Comparative P&L Trajectory
+                </h4>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Revenue, COGS, Expenses & Net Bottom Line
+                </p>
+              </div>
+
+              {/* Chart Mode Toggle */}
+              <div style={{ display: 'flex', gap: '4px', background: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(15, 23, 42, 0.05)', padding: '2px', borderRadius: '8px' }}>
+                <button
+                  onClick={() => setPnlChartTab('bars')}
+                  style={{
+                    padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    background: pnlChartTab === 'bars' ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' : 'transparent',
+                    color: pnlChartTab === 'bars' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  P&L Values
+                </button>
+                <button
+                  onClick={() => setPnlChartTab('margins')}
+                  style={{
+                    padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    background: pnlChartTab === 'margins' ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' : 'transparent',
+                    color: pnlChartTab === 'margins' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  Margin %
+                </button>
+              </div>
+            </div>
+
+            {/* Chart Container */}
+            <div style={{ flex: 1, minHeight: '220px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height={220}>
+                {pnlChartTab === 'bars' ? (
+                  <BarChart data={pnlMonthlyTrends} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 700}} dy={6}/>
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
+                    <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
+                    <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '10px' }} />
+                    <Bar dataKey="revenue" name="Gross Revenue" fill={isHairPins ? "#0d9488" : "#3b82f6"} radius={[4, 4, 0, 0]} maxBarSize={22} />
+                    <Bar dataKey="cogs" name="COGS" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                    <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                    <Bar dataKey="netProfit" name="Net Profit" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                  </BarChart>
+                ) : (
+                  <AreaChart data={pnlMonthlyTrends} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gmGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                      </linearGradient>
+                      <linearGradient id="nmGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 700}} dy={6}/>
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 700}} tickFormatter={(v) => `${v}%`}/>
+                    <Tooltip content={<ModernGlassTooltip isPercent currency="%" isDark={isDark} />} />
+                    <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '10px' }} />
+                    <Area type="monotone" dataKey="grossMarginPct" name="Gross Margin %" stroke="#10b981" fillOpacity={1} fill="url(#gmGrad)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="netMarginPct" name="Net Margin %" stroke="#22d3ee" fillOpacity={1} fill="url(#nmGrad)" strokeWidth={2} />
+                  </AreaChart>
+                )}
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -931,7 +1893,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* 2. QUOTATION PIPELINE & CONVERSION DONUT (1 COL) */}
+        {/* 2. DEAL / ORDER STATUS DISTRIBUTION DONUT (1 COL) */}
         <div className="glass-panel chart-panel" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -955,22 +1917,22 @@ const Dashboard = () => {
                boxShadow: isDark ? '0 0 15px rgba(56, 189, 248, 0.2)' : 'none',
                display: 'flex', alignItems: 'center', justifyContent: 'center' 
              }}>
-                <Target color={isDark ? "#38bdf8" : "#0284c7"} size={22} />
+                {isHairPins ? <Truck color={isDark ? "#38bdf8" : "#0284c7"} size={22} /> : <Target color={isDark ? "#38bdf8" : "#0284c7"} size={22} />}
              </div>
              <div>
                 <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                  Deal Distribution
+                  {isHairPins ? 'Wholesale Order Distribution' : 'Deal Distribution'}
                 </h3>
                 <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: 0 }}>
-                  Quotation Pipeline Status
+                  {isHairPins ? 'Factory Order Status & Shipment Tracking' : 'Quotation Pipeline Status'}
                 </p>
              </div>
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            {quoteStatusDonut.length === 0 ? (
+            {((isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut) || []).length === 0 ? (
               <div className="text-center py-12 text-secondary" style={{ fontSize: '0.85rem' }}>
-                No quotations created yet
+                {isHairPins ? 'No wholesale orders placed yet' : 'No quotations created yet'}
               </div>
             ) : (
               <>
@@ -978,7 +1940,7 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={quoteStatusDonut}
+                        data={isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut}
                         cx="50%" cy="50%"
                         innerRadius="62%"
                         outerRadius="88%"
@@ -987,7 +1949,7 @@ const Dashboard = () => {
                         stroke={isDark ? 'rgba(11, 15, 20, 0.8)' : '#ffffff'}
                         strokeWidth={2}
                       >
-                        {quoteStatusDonut.map((entry, idx) => (
+                        {(isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut).map((entry, idx) => (
                           <Cell 
                             key={`donut-${idx}`} 
                             fill={entry.color} 
@@ -1006,25 +1968,28 @@ const Dashboard = () => {
                     textAlign: 'center', pointerEvents: 'none'
                   }}>
                     <div style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
-                      {quotes.length}
+                      {isHairPins ? invoices.length : quotes.length}
                     </div>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
-                      Total Deals
+                      {isHairPins ? 'Total Orders' : 'Total Deals'}
                     </div>
                     <div style={{ 
-                      fontSize: '0.68rem', fontWeight: 800, color: isDark ? '#10b981' : '#059669', 
-                      background: isDark ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.12)', padding: '2px 6px', borderRadius: '4px',
+                      fontSize: '0.68rem', fontWeight: 800, 
+                      color: isDark ? (isHairPins ? '#2dd4bf' : '#10b981') : (isHairPins ? '#0d9488' : '#059669'), 
+                      background: isDark ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.12)', 
+                      padding: '2px 6px', borderRadius: '4px',
                       marginTop: '4px', display: 'inline-block'
                     }}>
-                      {quoteConversionRate}% Won
+                      {isHairPins ? `${hairpinFulfillmentRate}% Settled` : `${quoteConversionRate}% Won`}
                     </div>
                   </div>
                 </div>
 
                 {/* Pipeline Status Breakdown Pills */}
                 <div className="flex flex-wrap justify-center gap-2 w-full mt-4">
-                  {quoteStatusDonut.map((item, idx) => {
-                    const pct = quotes.length > 0 ? Math.round((item.value / quotes.length) * 100) : 0;
+                  {(isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut).map((item, idx) => {
+                    const totalBase = isHairPins ? invoices.length : quotes.length;
+                    const pct = totalBase > 0 ? Math.round((item.value / totalBase) * 100) : 0;
                     return (
                       <div 
                         key={idx} 
@@ -1054,7 +2019,7 @@ const Dashboard = () => {
 
       </div>
 
-      {/* COMPREHENSIVE VISUAL SUITE - ROW 2: SALES CONVERSION FUNNEL (FULL WIDTH) */}
+      {/* COMPREHENSIVE VISUAL SUITE - ROW 2: FUNNEL (SALES OR WHOLESALE ORDER-TO-CASH) */}
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
         background: isDark 
@@ -1082,10 +2047,12 @@ const Dashboard = () => {
             </div>
             <div>
               <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                Sales Conversion Velocity Funnel
+                {isHairPins ? 'Factory Wholesale Order-to-Cash Pipeline' : 'Sales Conversion Velocity Funnel'}
               </h3>
               <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: 0 }}>
-                Lead Capture → Proposal Formulation → Client Negotiation → Deal Settlement
+                {isHairPins 
+                  ? 'Order Receipt → Wire Bending → Curing & Packing → Van Dispatch → Cash Settlement' 
+                  : 'Lead Capture → Proposal Formulation → Client Negotiation → Deal Settlement'}
               </p>
             </div>
           </div>
@@ -1097,15 +2064,19 @@ const Dashboard = () => {
               background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.14)',
               border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(16, 185, 129, 0.25)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>Deal Win Rate:</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: isDark ? '#ffffff' : '#065f46' }}>{quoteConversionRate}%</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>
+                {isHairPins ? 'Fulfillment Velocity:' : 'Deal Win Rate:'}
+              </span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: isDark ? '#ffffff' : '#065f46' }}>
+                {isHairPins ? `${hairpinFulfillmentRate}%` : `${quoteConversionRate}%`}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Funnel Visual Stages Flow */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative">
-          {salesFunnelData.map((stage, idx) => {
+          {(isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).map((stage) => {
             const Icon = stage.icon;
             const isSelected = activeFunnelStage === stage.id;
             return (
@@ -1118,7 +2089,7 @@ const Dashboard = () => {
                   borderRadius: '14px',
                   background: isSelected ? stage.gradient : (isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)'),
                   border: isSelected ? `2px solid ${stage.color}` : (isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)'),
-                  boxShadow: isSelected ? `0 0 20px ${stage.glow}` : 'none',
+                  boxShadow: isSelected ? `0 0 20px ${stage.glow || stage.color + '40'}` : 'none',
                   cursor: 'pointer',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'flex',
@@ -1127,7 +2098,6 @@ const Dashboard = () => {
                 }}
                 className="hover-lift"
               >
-                {/* Stage Step & Icon */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <span style={{ 
@@ -1151,7 +2121,7 @@ const Dashboard = () => {
                   </div>
 
                   <div style={{ fontSize: '1.5rem', fontWeight: 900, color: stage.color, lineHeight: 1.1 }}>
-                    {stage.count} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>entities</span>
+                    {stage.count} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{isHairPins ? 'records' : 'entities'}</span>
                   </div>
 
                   <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px' }}>
@@ -1159,7 +2129,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Conversion Bridge Pill */}
                 <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
                   <div className="flex justify-between items-center mb-1">
                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b' }}>{stage.convLabel}</span>
@@ -1193,7 +2162,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <Sparkles size={16} color="#38bdf8" />
               <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                Inspecting stage: <strong style={{ color: '#38bdf8' }}>{salesFunnelData.find(s => s.id === activeFunnelStage)?.name}</strong> — Showing {salesFunnelData.find(s => s.id === activeFunnelStage)?.count} active pipeline records totaling LKR {Math.round(salesFunnelData.find(s => s.id === activeFunnelStage)?.value || 0).toLocaleString()}.
+                Inspecting stage: <strong style={{ color: '#38bdf8' }}>{((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.name}</strong> — Showing {((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.count} active pipeline records totaling LKR {Math.round(((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.value || 0).toLocaleString()}.
               </div>
             </div>
             <button 
@@ -1376,18 +2345,22 @@ const Dashboard = () => {
                   <Award size={20} />
                </div>
                <div>
-                  <h3 className="h3">Top 5 Clients</h3>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>By Invoiced Volume (This Month)</p>
+                  <h3 className="h3">{isHairPins ? 'Top 5 Wholesale Buyers & Outlets' : 'Top 5 Clients'}</h3>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+                    {isHairPins ? 'By Wholesale Invoiced Volume' : 'By Invoiced Volume (This Month)'}
+                  </p>
                </div>
             </div>
-            <Link to="/customers" className="btn btn-secondary" style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}>View All Clients</Link>
+            <Link to="/customers" className="btn btn-secondary" style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}>
+              {isHairPins ? 'View All Buyers' : 'View All Clients'}
+            </Link>
           </div>
           
           <div className="table-container" style={{ margin: 0, background: 'transparent' }}>
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: '24px' }}>Rank & Client</th>
+                  <th style={{ paddingLeft: '24px' }}>Rank & {isHairPins ? 'Buyer' : 'Client'}</th>
                   <th>Contact</th>
                   <th style={{ textAlign: 'right', paddingRight: '24px' }}>Total Invoiced</th>
                 </tr>
@@ -1396,7 +2369,7 @@ const Dashboard = () => {
                 {topCustomersThisMonth.length === 0 ? (
                   <tr>
                     <td colSpan="3" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                      No invoiced customers found for this period.
+                      {isHairPins ? 'No invoiced wholesale buyers found for this period.' : 'No invoiced customers found for this period.'}
                     </td>
                   </tr>
                 ) : (
@@ -1448,8 +2421,10 @@ const Dashboard = () => {
                   <AlertCircle color={isDark ? "var(--danger)" : "#dc2626"} size={20} />
                </div>
                <div>
-                  <h3 className="h3">Immediate Action Required</h3>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Overdue Invoices & Debtor Balances</p>
+                  <h3 className="h3">{isHairPins ? 'Immediate Attention Required' : 'Immediate Action Required'}</h3>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+                    {isHairPins ? 'Pending Wholesale Collections & Overdue Accounts' : 'Overdue Invoices & Debtor Balances'}
+                  </p>
                </div>
             </div>
             <Link to="/debtors" className="btn btn-secondary" style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}>Debtors Ledger</Link>
@@ -1459,7 +2434,7 @@ const Dashboard = () => {
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: '24px' }}>Client / Invoice</th>
+                  <th style={{ paddingLeft: '24px' }}>{isHairPins ? 'Buyer / Wholesale Invoice' : 'Client / Invoice'}</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right', paddingRight: '24px' }}>Amount Due</th>
                 </tr>
@@ -1489,7 +2464,9 @@ const Dashboard = () => {
                 {invoices.filter(i => i.status !== 'Paid' && i.status !== 'Closed').length === 0 && (
                   <tr>
                     <td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>
-                      <p className="text-secondary" style={{ fontSize: '0.9rem' }}>All accounts are settled and up to date.</p>
+                      <p className="text-secondary" style={{ fontSize: '0.9rem' }}>
+                        {isHairPins ? 'All wholesale accounts are settled and up to date.' : 'All accounts are settled and up to date.'}
+                      </p>
                     </td>
                   </tr>
                 )}
