@@ -11,15 +11,20 @@ import { exportToCSV } from '../utils/export';
 import { generateCustomerStatementPDF } from '../utils/pdfGenerator';
 import CustomSelect from '../components/CustomSelect';
 
-const CUSTOMER_TAGS = ['All', 'Corporate', 'Individual', 'VIP', 'Student', 'Walk-in'];
-const LEAD_SOURCES = ['Walk-in', 'Referral', 'Social Media', 'Website', 'Phone Call', 'Other'];
+const HAIRPIN_CUSTOMER_TAGS = ['All', 'Wholesale Distributor', 'Retail Fancy Shop', 'Beauty Salon Chain', 'Cosmetic Store', 'Direct Buyer'];
+const SEYNEX_CUSTOMER_TAGS = ['All', 'Enterprise Client', 'Corporate Client', 'Commercial Client', 'SME', 'Government / NGO'];
+const LEAD_SOURCES = ['Walk-in', 'Direct Visit', 'Referral', 'Social Media', 'Website', 'Phone Call', 'Wholesale Van Delivery'];
 
 const Customers = () => {
   const { 
     customers = [], addCustomer, deleteCustomer, updateCustomer, 
     quotes = [], invoices = [], payments = [],
-    sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit 
+    sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit,
+    activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
+
+  const isHairPins = activeBusinessId === 'biz_hairpins';
+  const customerTags = isHairPins ? HAIRPIN_CUSTOMER_TAGS : SEYNEX_CUSTOMER_TAGS;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -56,8 +61,28 @@ const Customers = () => {
     };
   }, [showModal, activeNotesCustomer, timelineCustomer]);
 
-  const filteredCustomers = useMemo(() => {
+  // Strict Business Isolation: Purge any cross-contamination
+  const visibleCustomers = useMemo(() => {
     return customers.filter(c => {
+      if (!c) return false;
+      if (isHairPins) {
+        if (c.businessId && c.businessId !== 'biz_hairpins') return false;
+        if (String(c.id).startsWith('mc-')) return false;
+        const n = (c.gymName || c.name || '').toLowerCase();
+        if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
+        return true;
+      } else {
+        if (c.businessId && c.businessId !== 'biz_main') return false;
+        if (String(c.id).startsWith('c-10')) return false;
+        const n = (c.gymName || c.name || '').toLowerCase();
+        if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
+        return true;
+      }
+    });
+  }, [customers, isHairPins]);
+
+  const filteredCustomers = useMemo(() => {
+    return visibleCustomers.filter(c => {
       if (!c) return false;
       const searchStr = (searchTerm || '').toLowerCase();
       const nameMatch = (c.gymName || '').toLowerCase().includes(searchStr) ||
@@ -73,12 +98,12 @@ const Customers = () => {
 
       return nameMatch && statusMatch && tagMatch;
     });
-  }, [customers, searchTerm, statusFilter, tagFilter]);
+  }, [visibleCustomers, searchTerm, statusFilter, tagFilter]);
 
   const handleExport = () => {
     const exportData = filteredCustomers.map(c => ({
       'Customer ID': c.code || c.id,
-      'Company / Gym Name': c.gymName,
+      [isHairPins ? 'Shop / Salon / Business Name' : 'Company / Enterprise Name']: c.gymName,
       'Contact Person': c.name,
       'Mobile Phone': c.phone,
       'Email': c.email,
@@ -90,7 +115,7 @@ const Customers = () => {
       'Renewal Frequency': c.renewalFrequency || 'None',
       'Next Renewal Date': c.renewalDate || ''
     }));
-    exportToCSV('Customers_Directory_Export', exportData);
+    exportToCSV(isHairPins ? 'Royal_Hair_Pins_Buyers_Export' : 'Seynex_Enterprise_Clients_Export', exportData);
   };
 
   return (
@@ -98,9 +123,11 @@ const Customers = () => {
       <div className="page-hero">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">Customer Management</h1>
+            <h1 className="h1 mb-2">{isHairPins ? 'Wholesale Buyers & Salons' : 'Enterprise Clients & Accounts'}</h1>
             <p className="text-secondary" style={{ fontSize: '1rem' }}>
-              Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.
+              {isHairPins 
+                ? 'Manage wholesale distributors, cosmetic stores, salons, and retail outlet profiles.'
+                : 'Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.'}
             </p>
           </div>
           <div className="btn-group flex gap-3">
@@ -117,7 +144,7 @@ const Customers = () => {
               style={{ padding: '12px 24px' }} 
               onClick={handleOpenAddModal}
             >
-              <Plus size={18} /> New Customer
+              <Plus size={18} /> {isHairPins ? 'New Wholesale Buyer' : 'New Client'}
             </button>
           </div>
         </div>
@@ -141,8 +168,8 @@ const Customers = () => {
           <CustomSelect 
             value={tagFilter}
             onChange={(val) => setTagFilter(val)}
-            options={CUSTOMER_TAGS.map(t => ({ value: t, label: t === 'All' ? 'All Tags' : `Tag: ${t}` }))}
-            style={{ height: '42px', minWidth: '140px' }}
+            options={customerTags.map(t => ({ value: t, label: t === 'All' ? 'All Categories' : `Tag: ${t}` }))}
+            style={{ height: '42px', minWidth: '150px' }}
           />
           <CustomSelect 
             value={statusFilter}
@@ -317,11 +344,14 @@ const Customers = () => {
         <CustomerModal 
           onClose={() => { setShowModal(false); setEditingCustomer(null); }}
           onSave={(data) => {
-            if (editingCustomer) updateCustomer(editingCustomer.id, data);
-            else addCustomer(data);
+            const payload = { ...data, businessId: activeBusinessId };
+            if (editingCustomer) updateCustomer(editingCustomer.id, payload);
+            else addCustomer(payload);
           }}
           initialData={editingCustomer}
-          nextCustomerCode={`CUST-${(customers.length + 1001).toString()}`}
+          nextCustomerCode={isHairPins ? `HP-BUYER-${(visibleCustomers.length + 101).toString()}` : `SNX-CUST-${(visibleCustomers.length + 1001).toString()}`}
+          isHairPins={isHairPins}
+          customerTags={customerTags}
         />
       )}
 
@@ -353,9 +383,10 @@ const Customers = () => {
 };
 
 // ADD / EDIT CUSTOMER MODAL COMPONENT
-const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
+const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairPins = false, customerTags = [] }) => {
+  const defaultTag = isHairPins ? 'Wholesale Distributor' : 'Enterprise Client';
   const [formData, setFormData] = useState({
-    code: initialData?.code || nextCustomerCode || 'CUST-1001',
+    code: initialData?.code || nextCustomerCode || (isHairPins ? 'HP-BUYER-101' : 'SNX-CUST-1001'),
     gymName: initialData?.gymName || '',
     name: initialData?.name || '',
     phone: initialData?.phone || '',
@@ -363,10 +394,10 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
     address: initialData?.address || '',
     taxNumber: initialData?.taxNumber || '',
     status: initialData?.status || 'Active',
-    tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tag ? [initialData.tag] : ['Walk-in']),
-    leadSource: initialData?.leadSource || 'Walk-in',
-    renewalFrequency: initialData?.renewalFrequency || 'Annual',
-    annualFee: initialData?.annualFee || 350000,
+    tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tag ? [initialData.tag] : [defaultTag]),
+    leadSource: initialData?.leadSource || (isHairPins ? 'Direct Visit' : 'Referral'),
+    renewalFrequency: initialData?.renewalFrequency || (isHairPins ? 'One Time' : 'Annual'),
+    annualFee: initialData?.annualFee || (isHairPins ? 150000 : 450000),
     renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
   });
 
@@ -434,8 +465,16 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
         <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>{initialData ? 'Edit Customer Record' : 'Create New Customer'}</h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Complete corporate information, lead origin, and renewal configuration.</p>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>
+                {initialData 
+                  ? (isHairPins ? 'Edit Wholesale Buyer Record' : 'Edit Enterprise Client') 
+                  : (isHairPins ? 'Register Wholesale Buyer / Salon' : 'Create New Enterprise Client')}
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {isHairPins 
+                  ? 'Complete shop, distributor or salon contact details and delivery terms.' 
+                  : 'Complete corporate information, lead origin, and renewal configuration.'}
+              </p>
             </div>
             <button type="button" className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
           </div>
@@ -449,7 +488,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="form-group">
-                <label className="form-label">Customer ID / Code</label>
+                <label className="form-label">{isHairPins ? 'Buyer ID / Account Code' : 'Client ID / Code'}</label>
                 <input required type="text" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
               </div>
 
@@ -463,13 +502,27 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
               </div>
 
               <div className="form-group md:col-span-2">
-                <label className="form-label">Customer / Company Name *</label>
-                <input required type="text" className="form-input" placeholder="e.g. High Octane Fitness Negombo" value={formData.gymName} onChange={e => setFormData({...formData, gymName: e.target.value})} />
+                <label className="form-label">{isHairPins ? 'Shop / Salon / Business Name *' : 'Customer / Company Name *'}</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="form-input" 
+                  placeholder={isHairPins ? "e.g. Lanka Fancy Center (Pettah) or Queens Bridal Salon" : "e.g. Apex Global Technologies (Pvt) Ltd"} 
+                  value={formData.gymName} 
+                  onChange={e => setFormData({...formData, gymName: e.target.value})} 
+                />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Contact Person Name</label>
-                <input required type="text" className="form-input" placeholder="e.g. Kasun Fernando" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <label className="form-label">{isHairPins ? 'Proprietor / Contact Person' : 'Contact Person Name'}</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="form-input" 
+                  placeholder={isHairPins ? "e.g. M. Farook (Proprietor)" : "e.g. Rohan Jayasinghe"} 
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})} 
+                />
               </div>
 
               <div className="form-group">
@@ -517,9 +570,9 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode }) => {
 
               {/* Tags Selection */}
               <div className="form-group md:col-span-2">
-                <label className="form-label">Customer Tags / Labels</label>
+                <label className="form-label">{isHairPins ? 'Buyer Category / Trade Tag' : 'Customer Tags / Labels'}</label>
                 <div className="flex gap-2 flex-wrap">
-                  {CUSTOMER_TAGS.filter(t => t !== 'All').map(tag => {
+                  {(customerTags.length > 0 ? customerTags : (isHairPins ? HAIRPIN_CUSTOMER_TAGS : SEYNEX_CUSTOMER_TAGS)).filter(t => t !== 'All').map(tag => {
                     const isSelected = (formData.tags || []).includes(tag);
                     return (
                       <button

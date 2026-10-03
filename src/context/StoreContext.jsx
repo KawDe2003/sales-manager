@@ -778,7 +778,7 @@ export default function StoreContextProvider({ children }) {
     return DEFAULT_BUSINESSES;
   });
 
-  const [activeBusinessId, setActiveBusinessId] = useState(() => {
+  const getInitialActiveBusinessId = () => {
     try {
       const authUserStr = localStorage.getItem('gym_auth_user');
       if (authUserStr) {
@@ -791,59 +791,122 @@ export default function StoreContextProvider({ children }) {
       if (saved) return saved;
     } catch (e) {}
     return 'biz_main';
-  });
+  };
+
+  const [activeBusinessId, setActiveBusinessId] = useState(getInitialActiveBusinessId);
 
   const [customers, setCustomers] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.filter(c => {
+            if (activeId === 'biz_hairpins') {
+              if (c.businessId && c.businessId !== 'biz_hairpins') return false;
+              if (String(c.id).startsWith('mc-')) return false;
+              const n = (c.gymName || c.name || '').toLowerCase();
+              if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
+              return true;
+            } else {
+              if (c.businessId && c.businessId !== 'biz_main') return false;
+              if (String(c.id).startsWith('c-10')) return false;
+              const n = (c.gymName || c.name || '').toLowerCase();
+              if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
+              return true;
+            }
+          });
+          if (sanitized.length > 0) return sanitized;
+        }
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleCustomers : sampleMainCustomers;
   });
 
   const [inventory, setInventory] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.filter(i => {
+            if (activeId === 'biz_hairpins') {
+              if (String(i.id).startsWith('minv-')) return false;
+              const n = (i.name || '').toLowerCase();
+              if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
+              return true;
+            } else {
+              if (String(i.id).startsWith('inv-10')) return false;
+              const n = (i.name || '').toLowerCase();
+              if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
+              return true;
+            }
+          });
+          if (sanitized.length > 0) return sanitized;
+        }
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleInventory : sampleMainInventory;
   });
 
   const [invoices, setInvoices] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed)) {
-          return parsed.map(inv => {
-            const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
-            const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
-            return {
-              ...inv,
-              amount: validAmt,
-              totalAmount: validAmt
-            };
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.filter(inv => {
+            if (activeId === 'biz_hairpins') {
+              if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
+              if (String(inv.id).startsWith('minv-')) return false;
+              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
+              if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
+              return true;
+            } else {
+              if (inv.businessId && inv.businessId !== 'biz_main') return false;
+              if (String(inv.id).startsWith('inv-20')) return false;
+              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
+              if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
+              return true;
+            }
           });
+          if (sanitized.length > 0) {
+            return sanitized.map(inv => {
+              const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
+              const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
+              return {
+                ...inv,
+                amount: validAmt,
+                totalAmount: validAmt
+              };
+            });
+          }
         }
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleInvoices : sampleMainInvoices;
   });
 
   const [quotes, setQuotes] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          return parsed.map(q => {
+          const sanitized = parsed.filter(q => {
+            if (activeId === 'biz_hairpins') {
+              if (String(q.id).startsWith('mq-')) return false;
+              return true;
+            } else {
+              if (String(q.id).startsWith('q-10')) return false;
+              return true;
+            }
+          });
+          return sanitized.map(q => {
             if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
               return { ...q, status: 'Sent', sentAt: q.sentAt || '2026-07-25T10:00:00Z', convertedInvoiceNumber: undefined, convertedInvoiceId: undefined };
             }
@@ -852,17 +915,29 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleQuotes : sampleMainQuotes;
   });
 
   const [leads, setLeads] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.filter(l => {
+            if (activeId === 'biz_hairpins') {
+              if (String(l.id).startsWith('mlead-')) return false;
+              return true;
+            } else {
+              if (String(l.id).startsWith('lead-')) return false;
+              return true;
+            }
+          });
+          if (sanitized.length > 0) return sanitized;
+        }
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleLeads : sampleMainLeads;
   });
 
@@ -875,32 +950,38 @@ export default function StoreContextProvider({ children }) {
   });
 
   const [expenses, setExpenses] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_expenses`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleExpenses : sampleMainExpenses;
   });
 
   const [payments, setPayments] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_payments`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleHairPinsPayments : sampleMainPayments;
   });
 
   const [fixedAssets, setFixedAssets] = useState(() => {
+    const activeId = getInitialActiveBusinessId();
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_fixedAssets`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleFixedAssets : sampleMainFixedAssets;
   });
 
@@ -2041,12 +2122,62 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
 
+      let loadedHairpinCustomers = sampleCustomers;
+      if (savedCust) {
+        try {
+          const parsed = JSON.parse(savedCust);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(c => {
+              if (c.businessId && c.businessId !== 'biz_hairpins') return false;
+              if (String(c.id).startsWith('mc-')) return false;
+              const n = (c.gymName || c.name || '').toLowerCase();
+              if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedHairpinCustomers = sanitized;
+          }
+        } catch (e) {}
+      }
+
+      let loadedHairpinInventory = sampleInventory;
+      if (savedInv) {
+        try {
+          const parsed = JSON.parse(savedInv);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(i => {
+              if (String(i.id).startsWith('minv-')) return false;
+              const n = (i.name || '').toLowerCase();
+              if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedHairpinInventory = sanitized;
+          }
+        } catch (e) {}
+      }
+
+      let loadedHairpinInvoices = sampleInvoices;
+      if (savedInvoices) {
+        try {
+          const parsed = JSON.parse(savedInvoices);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(inv => {
+              if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
+              if (String(inv.id).startsWith('minv-')) return false;
+              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
+              if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedHairpinInvoices = sanitized;
+          }
+        } catch (e) {}
+      }
+
       return {
-        customers: savedCust ? JSON.parse(savedCust) : sampleCustomers,
-        inventory: savedInv ? JSON.parse(savedInv) : sampleInventory,
+        customers: loadedHairpinCustomers,
+        inventory: loadedHairpinInventory,
         leads: savedLeads ? JSON.parse(savedLeads) : sampleLeads,
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleQuotes,
-        invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleInvoices,
+        invoices: loadedHairpinInvoices,
         expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleExpenses,
         payments: savedPayments ? JSON.parse(savedPayments) : sampleHairPinsPayments,
         fixedAssets: savedFA ? JSON.parse(savedFA) : sampleFixedAssets,
@@ -2077,12 +2208,62 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_main_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig');
 
+      let loadedMainCustomers = sampleMainCustomers;
+      if (savedCust) {
+        try {
+          const parsed = JSON.parse(savedCust);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(c => {
+              if (c.businessId && c.businessId !== 'biz_main') return false;
+              if (String(c.id).startsWith('c-10')) return false;
+              const n = (c.gymName || c.name || '').toLowerCase();
+              if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedMainCustomers = sanitized;
+          }
+        } catch (e) {}
+      }
+
+      let loadedMainInventory = sampleMainInventory;
+      if (savedInv) {
+        try {
+          const parsed = JSON.parse(savedInv);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(i => {
+              if (String(i.id).startsWith('inv-10')) return false;
+              const n = (i.name || '').toLowerCase();
+              if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedMainInventory = sanitized;
+          }
+        } catch (e) {}
+      }
+
+      let loadedMainInvoices = sampleMainInvoices;
+      if (savedInvoices) {
+        try {
+          const parsed = JSON.parse(savedInvoices);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed.filter(inv => {
+              if (inv.businessId && inv.businessId !== 'biz_main') return false;
+              if (String(inv.id).startsWith('inv-20')) return false;
+              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
+              if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
+              return true;
+            });
+            if (sanitized.length > 0) loadedMainInvoices = sanitized;
+          }
+        } catch (e) {}
+      }
+
       return {
-        customers: savedCust ? JSON.parse(savedCust) : sampleMainCustomers,
-        inventory: savedInv ? JSON.parse(savedInv) : sampleMainInventory,
+        customers: loadedMainCustomers,
+        inventory: loadedMainInventory,
         leads: savedLeads ? JSON.parse(savedLeads) : sampleMainLeads,
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleMainQuotes,
-        invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleMainInvoices,
+        invoices: loadedMainInvoices,
         expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleMainExpenses,
         payments: savedPayments ? JSON.parse(savedPayments) : sampleMainPayments,
         fixedAssets: savedFA ? JSON.parse(savedFA) : sampleMainFixedAssets,
@@ -2835,6 +3016,7 @@ export default function StoreContextProvider({ children }) {
         .upsert({
           id: toUuid(customer.id),
           user_id: effId,
+          business_id: customer.businessId || activeBusinessId,
           gym_name: customer.gymName || 'Client Gym',
           name: customer.name || '',
           email: customer.email || '',
@@ -3406,43 +3588,81 @@ export default function StoreContextProvider({ children }) {
 
       // 3. Customers
       if (Array.isArray(cData)) {
-        const loadedCustomers = cData.map(c => ({
-          id: c.id,
-          gymName: c.gym_name,
-          name: c.name,
-          email: c.email,
-          phone: c.phone,
-          dob: c.dob,
-          purchaseDate: c.purchase_date,
-          renewalDate: c.renewal_date, 
-          annualFee: Number(c.annual_fee) || 0,
-          status: c.status,
-          notes: c.notes || []
-        }));
-        setCustomers(loadedCustomers);
-        try {
-          localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers));
-          localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(loadedCustomers));
-        } catch(e) {}
+        const isHp = activeBusinessId === 'biz_hairpins';
+        const filteredCData = cData.filter(c => {
+          if (c.business_id) return c.business_id === activeBusinessId;
+          const cid = String(c.id || '');
+          const gn = String(c.gym_name || c.name || '').toLowerCase();
+          if (isHp) {
+            if (cid.startsWith('mc-')) return false;
+            if (gn.includes('apex global') || gn.includes('metro commercial') || gn.includes('horizon financial')) return false;
+            return true;
+          } else {
+            if (cid.startsWith('c-10')) return false;
+            if (gn.includes('fancy center') || gn.includes('bridal') || gn.includes('cosmetics') || gn.includes('salon chamari') || gn.includes('fashion corner')) return false;
+            return true;
+          }
+        });
+
+        if (filteredCData.length > 0) {
+          const loadedCustomers = filteredCData.map(c => ({
+            id: c.id,
+            businessId: c.business_id || activeBusinessId,
+            gymName: c.gym_name || c.gymName,
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            dob: c.dob,
+            purchaseDate: c.purchase_date || c.purchaseDate,
+            renewalDate: c.renewal_date || c.renewalDate, 
+            annualFee: Number(c.annual_fee || c.annualFee) || 0,
+            status: c.status,
+            notes: c.notes || []
+          }));
+          setCustomers(loadedCustomers);
+          try {
+            localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers));
+            localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(loadedCustomers));
+          } catch(e) {}
+        }
       }
 
       // 4. Inventory
       if (Array.isArray(invData)) {
-        const loadedInventory = invData.map(i => ({
-          id: i.id,
-          name: i.name,
-          type: i.item_type, 
-          price: Number(i.price) || 0, 
-          costPrice: Number(i.cost_price ?? Math.round((Number(i.price) || 0) * 0.7)),
-          reorderLevel: Number(i.reorder_level ?? 5),
-          stock: Number(i.stock) || 0, 
-          desc: i.description
-        }));
-        setInventory(loadedInventory);
-        try {
-          localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory));
-          localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(loadedInventory));
-        } catch(e) {}
+        const isHp = activeBusinessId === 'biz_hairpins';
+        const filteredInvData = invData.filter(i => {
+          if (i.business_id) return i.business_id === activeBusinessId;
+          const iid = String(i.id || '');
+          const n = String(i.name || '').toLowerCase();
+          if (isHp) {
+            if (iid.startsWith('minv-')) return false;
+            if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
+            return true;
+          } else {
+            if (iid.startsWith('inv-10')) return false;
+            if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
+            return true;
+          }
+        });
+
+        if (filteredInvData.length > 0) {
+          const loadedInventory = filteredInvData.map(i => ({
+            id: i.id,
+            businessId: i.business_id || activeBusinessId,
+            name: i.name,
+            type: i.item_type || i.type, 
+            price: Number(i.price) || 0, 
+            costPrice: Number(i.cost_price ?? i.costPrice ?? Math.round((Number(i.price) || 0) * 0.7)),
+            reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 5),
+            stock: Number(i.stock) || 0, 
+            desc: i.description || i.desc
+          }));
+          setInventory(loadedInventory);
+          try {
+            localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory));
+            localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(loadedInventory));
+          } catch(e) {}
+        }
       }
 
       // 5. Quotations
@@ -3508,7 +3728,23 @@ export default function StoreContextProvider({ children }) {
           localInvoices = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_invoices`) || localStorage.getItem('gym_invoices') || '[]');
         } catch (e) {}
 
-        const loadedInvoices = iData.map(inv => {
+        const isHp = activeBusinessId === 'biz_hairpins';
+        const filteredIData = iData.filter(inv => {
+          if (inv.business_id) return inv.business_id === activeBusinessId;
+          const iid = String(inv.id || '');
+          const p = String(inv.prospect_name || '').toLowerCase();
+          if (isHp) {
+            if (iid.startsWith('minv-')) return false;
+            if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
+            return true;
+          } else {
+            if (iid.startsWith('inv-20')) return false;
+            if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
+            return true;
+          }
+        });
+
+        const loadedInvoices = filteredIData.map(inv => {
           const localMatch = localInvoices.find(li => li.id === inv.id || li.invoiceNumber === inv.invoice_number);
           
           // Strict quotation reference matching
@@ -3522,6 +3758,7 @@ export default function StoreContextProvider({ children }) {
 
           let parsed = {
             id: inv.id,
+            businessId: inv.business_id || activeBusinessId,
             shareKey: inv.share_key,
             invoiceNumber: inv.invoice_number,
             date: inv.date,
@@ -4257,12 +4494,13 @@ export default function StoreContextProvider({ children }) {
     const newCustomer = { 
       ...customer, 
       id: uuidv4(),
+      businessId: customer.businessId || activeBusinessId,
       notes: [] 
     };
-    setCustomers([...customers, newCustomer]);
+    setCustomers(prev => [...prev, newCustomer]);
     syncCustomerToSupabase(newCustomer);
-    addLog('System', `Added new Active Gym: ${customer.gymName}`);
-    showNotification(`Client "${customer.gymName || customer.name}" added successfully!`, 'success');
+    addLog('System', `Added new ${activeBusinessId === 'biz_hairpins' ? 'Wholesale Buyer' : 'Client'}: ${customer.gymName || customer.name}`);
+    showNotification(`${activeBusinessId === 'biz_hairpins' ? 'Wholesale buyer' : 'Client'} "${customer.gymName || customer.name}" added successfully!`, 'success');
   };
 
   const deleteCustomer = async (id) => {
@@ -4283,7 +4521,7 @@ export default function StoreContextProvider({ children }) {
   const updateCustomer = (id, updatedData) => {
     setCustomers(prev => prev.map(c => {
       if (c.id === id) {
-        const updated = { ...c, ...updatedData };
+        const updated = { ...c, ...updatedData, businessId: c.businessId || activeBusinessId };
         syncCustomerToSupabase(updated);
         showNotification(`Client "${updated.gymName || 'Client'}" updated!`, 'success');
         return updated;
@@ -4328,10 +4566,10 @@ export default function StoreContextProvider({ children }) {
   };
 
   const addInventoryItem = (item) => {
-    const newItem = { ...item, id: uuidv4() };
-    setInventory([...inventory, newItem]);
+    const newItem = { ...item, id: uuidv4(), businessId: item.businessId || activeBusinessId };
+    setInventory(prev => [...prev, newItem]);
     syncInventoryToSupabase(newItem);
-    showNotification(`Inventory item "${item.name}" added!`, 'success');
+    showNotification(`Item "${item.name}" added!`, 'success');
   };
 
   const deleteInventoryItem = async (id) => {
@@ -4352,7 +4590,7 @@ export default function StoreContextProvider({ children }) {
   const updateInventoryItem = (id, data) => {
     setInventory(prev => prev.map(i => {
       if (i.id === id) {
-        const updated = { ...i, ...data };
+        const updated = { ...i, ...data, businessId: i.businessId || activeBusinessId };
         syncInventoryToSupabase(updated);
         showNotification(`Inventory item "${updated.name}" updated!`, 'success');
         return updated;
@@ -4361,14 +4599,15 @@ export default function StoreContextProvider({ children }) {
     }));
   };
   
-  // Helper to deduct stock quantities from inventory upon sales
+  // Helper to deduct stock quantities from inventory upon sales (both Hardware & Hair Pin manufactured goods)
   const deductStockForInvoice = (items = []) => {
     if (!Array.isArray(items) || items.length === 0) return;
     setInventory(prevInventory => {
       return prevInventory.map(invItem => {
         const lineMatch = items.find(it => !it.isDiscount && ((it.id && it.id === invItem.id) || (it.name && it.name.toLowerCase() === invItem.name.toLowerCase())));
-        if (lineMatch && invItem.type === 'Hardware') {
-          const lineQty = Number(lineMatch.quantity || 1);
+        const isTangibleGood = invItem.type !== 'Service' && invItem.type !== 'Consulting' && invItem.type !== 'Cloud Service';
+        if (lineMatch && isTangibleGood) {
+          const lineQty = Number(lineMatch.quantity || lineMatch.qty || 1);
           const newStock = Math.max(0, (Number(invItem.stock) || 0) - lineQty);
           const updated = { ...invItem, stock: newStock };
           syncInventoryToSupabase(updated);
@@ -4386,8 +4625,9 @@ export default function StoreContextProvider({ children }) {
     setInventory(prevInventory => {
       return prevInventory.map(invItem => {
         const lineMatch = items.find(it => !it.isDiscount && ((it.id && it.id === invItem.id) || (it.name && it.name.toLowerCase() === invItem.name.toLowerCase())));
-        if (lineMatch && invItem.type === 'Hardware') {
-          const lineQty = Number(lineMatch.quantity || 1);
+        const isTangibleGood = invItem.type !== 'Service' && invItem.type !== 'Consulting' && invItem.type !== 'Cloud Service';
+        if (lineMatch && isTangibleGood) {
+          const lineQty = Number(lineMatch.quantity || lineMatch.qty || 1);
           const newStock = (Number(invItem.stock) || 0) + lineQty;
           const updated = { ...invItem, stock: newStock };
           syncInventoryToSupabase(updated);
@@ -4408,6 +4648,7 @@ export default function StoreContextProvider({ children }) {
     const newInvoice = { 
       ...invoice, 
       id: invoice.id || uuidv4(), 
+      businessId: invoice.businessId || activeBusinessId,
       shareKey: invoice.shareKey || generateShareKey(), 
       invoiceNumber: finalInvoiceNumber,
       status: invoice.status || 'Sent',
@@ -4600,6 +4841,7 @@ export default function StoreContextProvider({ children }) {
     const newQuote = { 
       ...quote, 
       id: quote.id || uuidv4(), 
+      businessId: quote.businessId || activeBusinessId,
       shareKey: quote.shareKey || generateShareKey(), 
       quoteNumber: finalQuoteNumber,
       status: quote.status || 'Pending' 
