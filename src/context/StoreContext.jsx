@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '../lib/supabase';
+import { supabase, getSupabaseClient, getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { sendNotification } from '../utils/notificationService';
@@ -3284,16 +3284,23 @@ export default function StoreContextProvider({ children }) {
     isHydratingCloudRef.current = true;
     
     try {
-      console.log('[Supabase Sync] Fetching all business records from cloud...');
+      const activeClient = getSupabaseClient(activeBusinessId);
+      console.log(`[Supabase Multi-DB Sync] Fetching records for workspace "${activeBusinessId}" from database...`);
 
-      const safeFetch = async (table, query) => {
+      const safeFetch = async (table, queryWithFilter, fallbackQuery) => {
         try {
-          const { data, error } = await query;
+          const { data, error } = await queryWithFilter;
+          if (!error && Array.isArray(data)) {
+            return data;
+          }
+          if (error && (error.code === '42703' || error.message?.includes('business_id'))) {
+            const fallbackRes = await fallbackQuery;
+            return fallbackRes.data || null;
+          }
           if (error) {
             console.warn(`[Supabase Sync] Warning fetching ${table}:`, error.message);
-            return null;
           }
-          return data;
+          return null;
         } catch (e) {
           console.warn(`[Supabase Sync] Exception fetching ${table}:`, e.message);
           return null;
@@ -3301,20 +3308,24 @@ export default function StoreContextProvider({ children }) {
       };
       
       const fetchResults = await Promise.all([
-        safeFetch('customers', supabase.from('customers').select('*')),
-        safeFetch('inventory', supabase.from('inventory').select('*')),
-        safeFetch('quotations', supabase.from('quotations').select('*')),
-        safeFetch('invoices', supabase.from('invoices').select('*')),
-        safeFetch('leads', supabase.from('leads').select('*')),
-        safeFetch('expenses', supabase.from('expenses').select('*')),
-        safeFetch('payments', supabase.from('payments').select('*')),
-        safeFetch('tasks', supabase.from('tasks').select('*')),
-        safeFetch('fixed_assets', supabase.from('fixed_assets').select('*')),
-        safeFetch('activity_logs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
-        safeFetch('user_profiles', supabase.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5))
+        safeFetch('customers', activeClient.from('customers').select('*').eq('business_id', activeBusinessId), activeClient.from('customers').select('*')),
+        safeFetch('inventory', activeClient.from('inventory').select('*').eq('business_id', activeBusinessId), activeClient.from('inventory').select('*')),
+        safeFetch('quotations', activeClient.from('quotations').select('*').eq('business_id', activeBusinessId), activeClient.from('quotations').select('*')),
+        safeFetch('invoices', activeClient.from('invoices').select('*').eq('business_id', activeBusinessId), activeClient.from('invoices').select('*')),
+        safeFetch('leads', activeClient.from('leads').select('*').eq('business_id', activeBusinessId), activeClient.from('leads').select('*')),
+        safeFetch('expenses', activeClient.from('expenses').select('*').eq('business_id', activeBusinessId), activeClient.from('expenses').select('*')),
+        safeFetch('payments', activeClient.from('payments').select('*').eq('business_id', activeBusinessId), activeClient.from('payments').select('*')),
+        safeFetch('tasks', activeClient.from('tasks').select('*').eq('business_id', activeBusinessId), activeClient.from('tasks').select('*')),
+        safeFetch('fixed_assets', activeClient.from('fixed_assets').select('*').eq('business_id', activeBusinessId), activeClient.from('fixed_assets').select('*')),
+        safeFetch('activity_logs', activeClient.from('activity_logs').select('*').eq('business_id', activeBusinessId).order('created_at', { ascending: false }).limit(200), activeClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+        safeFetch('user_profiles', activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5), activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5)),
+        safeFetch('boms', activeClient.from('boms').select('*').eq('business_id', activeBusinessId), activeClient.from('boms').select('*')),
+        safeFetch('production_orders', activeClient.from('production_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('production_orders').select('*')),
+        safeFetch('suppliers', activeClient.from('suppliers').select('*').eq('business_id', activeBusinessId), activeClient.from('suppliers').select('*')),
+        safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*'))
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, bomData, moData, supData, poData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
@@ -3335,7 +3346,11 @@ export default function StoreContextProvider({ children }) {
           status: a.status || 'Active'
         }));
         setFixedAssets(loadedAssets);
-        try { localStorage.setItem('gym_fixed_assets', JSON.stringify(loadedAssets)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_fixed_assets', JSON.stringify(loadedAssets));
+          localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(loadedAssets));
+          localStorage.setItem(`biz_data_${activeBusinessId}_fixed_assets`, JSON.stringify(loadedAssets));
+        } catch(e) {}
       }
 
       // 2. Company Config & Branding Profile
@@ -3351,7 +3366,11 @@ export default function StoreContextProvider({ children }) {
       if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {
         setSmsConfig(prev => {
           const merged = { ...prev, ...remoteConfig };
-          try { localStorage.setItem('gym_sms_config', JSON.stringify(merged)); } catch (e) {}
+          try {
+            localStorage.setItem('gym_sms_config', JSON.stringify(merged));
+            localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(merged));
+            localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(merged));
+          } catch (e) {}
           return merged;
         });
       }
@@ -3372,7 +3391,10 @@ export default function StoreContextProvider({ children }) {
           notes: c.notes || []
         }));
         setCustomers(loadedCustomers);
-        try { localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers));
+          localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(loadedCustomers));
+        } catch(e) {}
       }
 
       // 4. Inventory
@@ -3388,14 +3410,17 @@ export default function StoreContextProvider({ children }) {
           desc: i.description
         }));
         setInventory(loadedInventory);
-        try { localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory));
+          localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(loadedInventory));
+        } catch(e) {}
       }
 
       // 5. Quotations
       if (Array.isArray(qData)) {
         let localQuotes = [];
         try {
-          localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+          localQuotes = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_quotes`) || localStorage.getItem('gym_quotes') || '[]');
         } catch (e) {}
 
         const loadedQuotes = qData.map(q => {
@@ -3437,7 +3462,10 @@ export default function StoreContextProvider({ children }) {
         const mergedQuotes = [...loadedQuotes, ...unSyncedLocalQuotes];
 
         setQuotes(mergedQuotes);
-        try { localStorage.setItem('gym_quotes', JSON.stringify(mergedQuotes)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_quotes', JSON.stringify(mergedQuotes));
+          localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(mergedQuotes));
+        } catch(e) {}
       }
 
       // 6. Invoices
@@ -3448,7 +3476,7 @@ export default function StoreContextProvider({ children }) {
         // Retrieve existing local cache to prevent data loss of local-only attributes
         let localInvoices = [];
         try {
-          localInvoices = JSON.parse(localStorage.getItem('gym_invoices') || '[]');
+          localInvoices = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_invoices`) || localStorage.getItem('gym_invoices') || '[]');
         } catch (e) {}
 
         const loadedInvoices = iData.map(inv => {
@@ -3501,14 +3529,17 @@ export default function StoreContextProvider({ children }) {
         const mergedInvoices = [...loadedInvoices, ...unSyncedLocalInvoices];
 
         setInvoices(mergedInvoices);
-        try { localStorage.setItem('gym_invoices', JSON.stringify(mergedInvoices)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_invoices', JSON.stringify(mergedInvoices));
+          localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(mergedInvoices));
+        } catch(e) {}
       }
 
       // 7. Leads
       if (Array.isArray(lData)) {
         let localLeads = [];
         try {
-          localLeads = JSON.parse(localStorage.getItem('gym_leads') || '[]');
+          localLeads = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_leads`) || localStorage.getItem('gym_leads') || '[]');
         } catch (e) {}
 
         const loadedLeads = lData.map(l => {
@@ -3555,7 +3586,10 @@ export default function StoreContextProvider({ children }) {
         const mergedLeads = [...loadedLeads, ...unSyncedLocalLeads];
 
         setLeads(mergedLeads);
-        try { localStorage.setItem('gym_leads', JSON.stringify(mergedLeads)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_leads', JSON.stringify(mergedLeads));
+          localStorage.setItem(`biz_data_${activeBusinessId}_leads`, JSON.stringify(mergedLeads));
+        } catch(e) {}
       }
 
       // 8. Expenses
@@ -3568,7 +3602,10 @@ export default function StoreContextProvider({ children }) {
           description: e.description
         }));
         setExpenses(loadedExpenses);
-        try { localStorage.setItem('gym_expenses', JSON.stringify(loadedExpenses)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_expenses', JSON.stringify(loadedExpenses));
+          localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(loadedExpenses));
+        } catch(e) {}
       }
 
       // 9. Payments
@@ -3582,7 +3619,10 @@ export default function StoreContextProvider({ children }) {
           timestamp: p.payment_timestamp
         }));
         setPayments(loadedPayments);
-        try { localStorage.setItem('gym_payments', JSON.stringify(loadedPayments)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_payments', JSON.stringify(loadedPayments));
+          localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(loadedPayments));
+        } catch(e) {}
       }
 
       // 10. Tasks
@@ -3598,7 +3638,10 @@ export default function StoreContextProvider({ children }) {
           relatedId: t.related_id
         }));
         setTasks(loadedTasks);
-        try { localStorage.setItem('gym_tasks', JSON.stringify(loadedTasks)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_tasks', JSON.stringify(loadedTasks));
+          localStorage.setItem(`biz_data_${activeBusinessId}_tasks`, JSON.stringify(loadedTasks));
+        } catch(e) {}
       }
 
       // 11. Activity Logs
@@ -3611,7 +3654,80 @@ export default function StoreContextProvider({ children }) {
           timestamp: l.log_timestamp
         }));
         setActivityLogs(loadedLogs);
-        try { localStorage.setItem('gym_activity_logs', JSON.stringify(loadedLogs)); } catch(e) {}
+        try {
+          localStorage.setItem('gym_activity_logs', JSON.stringify(loadedLogs));
+          localStorage.setItem(`biz_data_${activeBusinessId}_activity_logs`, JSON.stringify(loadedLogs));
+        } catch(e) {}
+      }
+
+      // 12. Bill of Materials (BOMs)
+      if (Array.isArray(bomData) && bomData.length > 0) {
+        const loadedBoms = bomData.map(b => ({
+          id: b.id,
+          name: b.name,
+          outputUnit: b.output_unit || 'Unit',
+          batchYield: Number(b.output_qty) || 1,
+          laborCost: Number(b.estimated_labor_cost) || 0,
+          overheadCost: Number(b.estimated_overhead_cost) || 0,
+          components: b.components || [],
+          notes: b.notes || ''
+        }));
+        setBoms(loadedBoms);
+        try { localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(loadedBoms)); } catch(e) {}
+      }
+
+      // 13. Production Orders
+      if (Array.isArray(moData) && moData.length > 0) {
+        const loadedMOs = moData.map(m => ({
+          id: m.id,
+          orderNumber: m.mo_number,
+          bomId: m.bom_id,
+          productName: m.bom_name,
+          quantity: Number(m.target_qty) || 100,
+          status: m.status || 'Scheduled',
+          startDate: m.start_date,
+          dueDate: m.due_date,
+          totalCost: Number(m.total_cost) || 0,
+          notes: m.notes || ''
+        }));
+        setProductionOrders(loadedMOs);
+        try { localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(loadedMOs)); } catch(e) {}
+      }
+
+      // 14. Suppliers
+      if (Array.isArray(supData) && supData.length > 0) {
+        const loadedSuppliers = supData.map(s => ({
+          id: s.id,
+          name: s.name,
+          contactPerson: s.contact_person,
+          email: s.email,
+          phone: s.phone,
+          address: s.address,
+          category: s.category || 'Supplies',
+          paymentTerms: s.payment_terms || 'Net 30',
+          status: s.status || 'Active'
+        }));
+        setSuppliers(loadedSuppliers);
+        try { localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(loadedSuppliers)); } catch(e) {}
+      }
+
+      // 15. Purchase Orders
+      if (Array.isArray(poData) && poData.length > 0) {
+        const loadedPOs = poData.map(p => ({
+          id: p.id,
+          poNumber: p.po_number,
+          supplierId: p.supplier_id,
+          supplierName: p.supplier_name,
+          date: p.date,
+          expectedDelivery: p.expected_delivery_date,
+          status: p.status || 'Draft',
+          items: p.items || [],
+          totalAmount: Number(p.total_amount) || 0,
+          paymentTerms: p.payment_terms || 'Net 30',
+          notes: p.notes || ''
+        }));
+        setPurchaseOrders(loadedPOs);
+        try { localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(loadedPOs)); } catch(e) {}
       }
 
       const syncTimeStr = new Date().toISOString();
@@ -3637,8 +3753,9 @@ export default function StoreContextProvider({ children }) {
   // PUSH ALL LOCAL DATA TO SUPABASE CLOUD (MANUAL OR AUTO INITIAL SYNC)
   const syncAllToCloud = async (isSilent = false) => {
     setCloudSyncStatus('syncing');
-    if (!isSilent) showNotification('Saving all data to Supabase cloud...', 'info');
+    if (!isSilent) showNotification(`Saving ${activeBusiness?.name || 'Workspace'} records to cloud database...`, 'info');
     const effId = getEffectiveUserId();
+    const activeClient = getSupabaseClient(activeBusinessId);
 
     try {
       let savedCount = 0;
@@ -3647,18 +3764,26 @@ export default function StoreContextProvider({ children }) {
 
       const safeUpsert = async (table, payload, onConflict = 'id') => {
         try {
-          let res = await supabase.from(table).upsert(payload, { onConflict });
+          const payloadWithBiz = { ...payload, business_id: activeBusinessId };
+          let res = await activeClient.from(table).upsert(payloadWithBiz, { onConflict });
+
           // If foreign key constraint failed on user_id, retry with fallback
           if (res.error && res.error.code === '23503' && payload.user_id) {
             if (table === 'user_profiles') {
-              const fallback = { ...payload, user_id: '76bb4580-2006-464f-aab8-64029dbe9540' };
-              res = await supabase.from(table).upsert(fallback, { onConflict });
+              const fallback = { ...payloadWithBiz, user_id: '76bb4580-2006-464f-aab8-64029dbe9540' };
+              res = await activeClient.from(table).upsert(fallback, { onConflict });
             } else {
-              const fallback = { ...payload };
+              const fallback = { ...payloadWithBiz };
               delete fallback.user_id;
-              res = await supabase.from(table).upsert(fallback, { onConflict });
+              res = await activeClient.from(table).upsert(fallback, { onConflict });
             }
           }
+
+          // If business_id column not present on remote schema yet, retry without business_id
+          if (res.error && (res.error.code === '42703' || res.error.message?.includes('business_id'))) {
+            res = await activeClient.from(table).upsert(payload, { onConflict });
+          }
+
           if (res.error) {
             if (res.error.code === '42501' || res.error.message?.includes('row-level security')) {
               rlsBlocked = true;
@@ -3834,12 +3959,94 @@ export default function StoreContextProvider({ children }) {
         updated_at: new Date().toISOString()
       }, 'user_id');
 
+      // 12. Suppliers
+      for (const s of (suppliers || [])) {
+        await safeUpsert('suppliers', {
+          id: toUuid(s.id),
+          name: s.name || '',
+          contact_person: s.contactPerson || '',
+          email: s.email || '',
+          phone: s.phone || '',
+          address: s.address || '',
+          category: s.category || 'Supplies',
+          payment_terms: s.paymentTerms || 'Net 30',
+          status: s.status || 'Active'
+        });
+      }
+
+      // 13. Purchase Orders
+      for (const po of (purchaseOrders || [])) {
+        await safeUpsert('purchase_orders', {
+          id: toUuid(po.id),
+          po_number: po.poNumber || 'PO-1001',
+          supplier_id: isUuid(po.supplierId) ? po.supplierId : null,
+          supplier_name: po.supplierName || '',
+          date: po.date || new Date().toISOString().split('T')[0],
+          expected_delivery_date: po.expectedDelivery || null,
+          status: po.status || 'Draft',
+          items: po.items || [],
+          total_amount: Number(po.totalAmount) || 0,
+          payment_terms: po.paymentTerms || 'Net 30',
+          notes: po.notes || ''
+        });
+      }
+
+      // 14. BOMs
+      for (const b of (boms || [])) {
+        await safeUpsert('boms', {
+          id: toUuid(b.id),
+          user_id: effId,
+          name: b.name || 'BOM Specification',
+          output_unit: b.outputUnit || 'Unit',
+          output_qty: Number(b.batchYield) || 1,
+          estimated_labor_cost: Number(b.laborCost) || 0,
+          estimated_overhead_cost: Number(b.overheadCost) || 0,
+          components: b.components || [],
+          notes: b.notes || ''
+        });
+      }
+
+      // 15. Production Orders
+      for (const mo of (productionOrders || [])) {
+        await safeUpsert('production_orders', {
+          id: toUuid(mo.id),
+          user_id: effId,
+          mo_number: mo.orderNumber || 'MO-1001',
+          bom_id: isUuid(mo.bomId) ? mo.bomId : null,
+          bom_name: mo.productName || '',
+          target_qty: Number(mo.quantity) || 100,
+          status: mo.status || 'Scheduled',
+          start_date: mo.startDate || null,
+          due_date: mo.dueDate || null,
+          total_cost: Number(mo.totalCost) || 0,
+          notes: mo.notes || ''
+        });
+      }
+
       // Also ensure all existing profiles have the latest config
       try {
         await supabase.from('user_profiles').update({
           config: smsConfig,
           updated_at: new Date().toISOString()
         }).neq('user_id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {}
+
+      // Mirror to active business partition
+      try {
+        localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(customers));
+        localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(inventory));
+        localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(quotes));
+        localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(invoices));
+        localStorage.setItem(`biz_data_${activeBusinessId}_leads`, JSON.stringify(leads));
+        localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(expenses));
+        localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(payments));
+        localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(fixedAssets));
+        localStorage.setItem(`biz_data_${activeBusinessId}_tasks`, JSON.stringify(tasks));
+        localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(suppliers));
+        localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(purchaseOrders));
+        localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
+        localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
+        localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
       } catch (e) {}
 
       if (rlsBlocked) {
@@ -6435,6 +6642,8 @@ export default function StoreContextProvider({ children }) {
       currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
       cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud,
+      // Multi-Database Architecture & Connections
+      getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient,
       // Multi-Business Entity Partitioning & Switcher
       businesses, activeBusinessId, activeBusiness, switchBusiness, addBusiness, updateBusiness, deleteBusiness, DEFAULT_BUSINESSES,
       resetEverythingWithConfirmation, executeResetEverything,

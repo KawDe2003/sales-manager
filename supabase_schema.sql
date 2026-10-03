@@ -325,3 +325,30 @@ ALTER TABLE production_orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Manage own boms" ON boms FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Manage own production_orders" ON production_orders FOR ALL USING (auth.uid() = user_id);
 
+-- =========================================================================
+-- MULTI-BUSINESS DUAL-DATABASE PARTITIONING (SEYNEX vs ROYAL HAIR PINS)
+-- =========================================================================
+ALTER TABLE IF EXISTS customers ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS inventory ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS leads ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS expenses ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS payments ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS user_profiles ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS boms ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_hairpins';
+ALTER TABLE IF EXISTS production_orders ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_hairpins';
+
+CREATE INDEX IF NOT EXISTS idx_customers_biz_id ON customers (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_biz_id ON invoices (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotations_biz_id ON quotations (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_biz_id ON inventory (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_leads_biz_id ON leads (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_expenses_biz_id ON expenses (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_biz_id ON payments (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_boms_biz_id ON boms (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_production_orders_biz_id ON production_orders (business_id, created_at DESC);
+

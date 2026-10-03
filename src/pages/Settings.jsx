@@ -72,7 +72,8 @@ const Settings = () => {
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges,
     customers = [], quotes = [], invoices = [], inventory = [], leads = [],
-    businesses = [], activeBusinessId, activeBusiness, switchBusiness
+    businesses = [], activeBusinessId, activeBusiness, switchBusiness,
+    getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient
   } = useContext(StoreContext) || {};
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -86,6 +87,118 @@ const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeSettingsTab, setActiveSettingsTab] = useState(tabParam || 'users');
+
+  // Multi-Database Per-Business Credentials & Connection Testing State
+  const seynexInitialCfg = getBusinessDbConfig ? getBusinessDbConfig('biz_main') : { url: '', anonKey: '' };
+  const hairpinsInitialCfg = getBusinessDbConfig ? getBusinessDbConfig('biz_hairpins') : { url: '', anonKey: '' };
+
+  const [seynexDbUrl, setSeynexDbUrl] = useState(() => seynexInitialCfg.url || '');
+  const [seynexDbKey, setSeynexDbKey] = useState(() => seynexInitialCfg.anonKey || '');
+  const [showSeynexKey, setShowSeynexKey] = useState(false);
+  const [seynexTesting, setSeynexTesting] = useState(false);
+  const [seynexTestResult, setSeynexTestResult] = useState(null);
+
+  const [hairpinsDbUrl, setHairpinsDbUrl] = useState(() => hairpinsInitialCfg.url || '');
+  const [hairpinsDbKey, setHairpinsDbKey] = useState(() => hairpinsInitialCfg.anonKey || '');
+  const [showHairpinsKey, setShowHairpinsKey] = useState(false);
+  const [hairpinsTesting, setHairpinsTesting] = useState(false);
+  const [hairpinsTestResult, setHairpinsTestResult] = useState(null);
+
+  const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
+
+  // Sync state if database configuration updates
+  useEffect(() => {
+    const handleDbUpdated = () => {
+      if (getBusinessDbConfig) {
+        const sCfg = getBusinessDbConfig('biz_main');
+        const hCfg = getBusinessDbConfig('biz_hairpins');
+        setSeynexDbUrl(sCfg.url || '');
+        setSeynexDbKey(sCfg.anonKey || '');
+        setHairpinsDbUrl(hCfg.url || '');
+        setHairpinsDbKey(hCfg.anonKey || '');
+      }
+    };
+    window.addEventListener('business_db_config_updated', handleDbUpdated);
+    return () => window.removeEventListener('business_db_config_updated', handleDbUpdated);
+  }, [getBusinessDbConfig]);
+
+  const handleTestSeynexConnection = async () => {
+    if (!testDatabaseConnection) return;
+    setSeynexTesting(true);
+    setSeynexTestResult(null);
+    try {
+      const res = await testDatabaseConnection('biz_main');
+      setSeynexTestResult(res);
+      if (res.success) {
+        showNotification(`Seynex Database connected (${res.latencyMs}ms latency)!`, 'success');
+      } else {
+        showNotification(`Seynex DB Test: ${res.error || 'Connection failed'}`, 'error');
+      }
+    } catch (e) {
+      setSeynexTestResult({ success: false, error: e.message, latencyMs: 0 });
+      showNotification(`Seynex DB Error: ${e.message}`, 'error');
+    } finally {
+      setSeynexTesting(false);
+    }
+  };
+
+  const handleTestHairpinsConnection = async () => {
+    if (!testDatabaseConnection) return;
+    setHairpinsTesting(true);
+    setHairpinsTestResult(null);
+    try {
+      const res = await testDatabaseConnection('biz_hairpins');
+      setHairpinsTestResult(res);
+      if (res.success) {
+        showNotification(`Royal Hair Pins Database connected (${res.latencyMs}ms latency)!`, 'success');
+      } else {
+        showNotification(`Royal Hair Pins DB Test: ${res.error || 'Connection failed'}`, 'error');
+      }
+    } catch (e) {
+      setHairpinsTestResult({ success: false, error: e.message, latencyMs: 0 });
+      showNotification(`Royal Hair Pins DB Error: ${e.message}`, 'error');
+    } finally {
+      setHairpinsTesting(false);
+    }
+  };
+
+  const handleSaveSeynexDb = () => {
+    if (!saveBusinessDbConfig) return;
+    saveBusinessDbConfig('biz_main', { url: seynexDbUrl, anonKey: seynexDbKey });
+    showNotification('Seynex Enterprises database connection saved successfully.');
+    handleTestSeynexConnection();
+  };
+
+  const handleSaveHairpinsDb = () => {
+    if (!saveBusinessDbConfig) return;
+    saveBusinessDbConfig('biz_hairpins', { url: hairpinsDbUrl, anonKey: hairpinsDbKey });
+    showNotification('Royal Hair Pin Industries database connection saved successfully.');
+    handleTestHairpinsConnection();
+  };
+
+  const handleResetSeynexDb = () => {
+    if (!saveBusinessDbConfig) return;
+    saveBusinessDbConfig('biz_main', null);
+    if (getBusinessDbConfig) {
+      const cfg = getBusinessDbConfig('biz_main');
+      setSeynexDbUrl(cfg.url || '');
+      setSeynexDbKey(cfg.anonKey || '');
+    }
+    setSeynexTestResult(null);
+    showNotification('Seynex Enterprises database reset to environment defaults.');
+  };
+
+  const handleResetHairpinsDb = () => {
+    if (!saveBusinessDbConfig) return;
+    saveBusinessDbConfig('biz_hairpins', null);
+    if (getBusinessDbConfig) {
+      const cfg = getBusinessDbConfig('biz_hairpins');
+      setHairpinsDbUrl(cfg.url || '');
+      setHairpinsDbKey(cfg.anonKey || '');
+    }
+    setHairpinsTestResult(null);
+    showNotification('Royal Hair Pin Industries database reset to environment defaults.');
+  };
 
   useEffect(() => {
     if (tabParam && ['users', 'modules', 'cloud', 'company', 'sms', 'bank'].includes(tabParam)) {
@@ -144,7 +257,7 @@ const Settings = () => {
         {[
           { id: 'users', label: 'User Management', icon: <Users size={16} /> },
           { id: 'modules', label: 'Module Feature Controls', icon: <Sliders size={16} /> },
-          { id: 'cloud', label: 'Cloud Sync (Supabase)', icon: <Cloud size={16} /> },
+          { id: 'cloud', label: 'Multi-Database & Cloud Sync', icon: <Database size={16} /> },
           { id: 'company', label: 'Corporate Identity', icon: <Building2 size={16} /> },
           { id: 'sms', label: 'SMS & Messaging API', icon: <MessageSquare size={16} /> },
           { id: 'bank', label: 'Bank & Payments', icon: <CreditCard size={16} /> }
@@ -607,12 +720,17 @@ const Settings = () => {
                       {cloudSyncStatus === 'syncing' ? 'Syncing...' : cloudSyncStatus === 'error' ? 'Sync Attention Needed' : 'Connected & Active'}
                     </span>
                   </div>
-                  <p className="text-secondary" style={{ margin: '6px 0 0 0', fontSize: '0.88rem' }}>
-                    Project URL: <code style={{ color: 'var(--accent-primary)', background: 'var(--subtle-bg)', padding: '2px 8px', borderRadius: '6px' }}>https://cavehtshlvorbzlgqmxs.supabase.co</code>
+                  <p className="text-secondary" style={{ margin: '6px 0 0 0', fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span>Active Entity: <strong style={{ color: 'var(--text-primary)' }}>{activeBusiness?.name || 'Workspace'}</strong> (<code style={{ color: 'var(--accent-secondary)' }}>{activeBusinessId}</code>)</span>
+                    <span>·</span>
+                    <span>Routing to: <code style={{ color: 'var(--accent-primary)', background: 'var(--subtle-bg)', padding: '2px 8px', borderRadius: '6px' }}>{getBusinessDbConfig?.(activeBusinessId)?.url || 'https://cavehtshlvorbzlgqmxs.supabase.co'}</code></span>
                     {lastSyncTime && (
-                      <span style={{ marginLeft: '12px', color: 'var(--text-muted)' }}>
-                        · Last Synced: <strong>{new Date(lastSyncTime).toLocaleTimeString()} ({new Date(lastSyncTime).toLocaleDateString()})</strong>
-                      </span>
+                      <>
+                        <span>·</span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          Last Synced: <strong>{new Date(lastSyncTime).toLocaleTimeString()} ({new Date(lastSyncTime).toLocaleDateString()})</strong>
+                        </span>
+                      </>
                     )}
                   </p>
                 </div>
@@ -677,132 +795,536 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Database Setup & RLS Instructions */}
+          {/* MULTI-DATABASE ARCHITECTURE & CLOUD CONNECTIONS */}
           <div className="glass-panel" style={{ padding: '28px 32px' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '10px', color: 'var(--accent-primary)' }}>
-                <Database size={20} />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4" style={{ borderBottom: '1px solid var(--panel-border)' }}>
+              <div className="flex items-center gap-3">
+                <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '12px', color: 'var(--accent-primary)' }}>
+                  <Database size={22} />
+                </div>
+                <div>
+                  <h3 className="h3" style={{ margin: 0 }}>Multi-Database Architecture & Dedicated Connections</h3>
+                  <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem' }}>
+                    Configure independent cloud database projects for <strong>Seynex Enterprises</strong> and <strong>Royal Hair Pins</strong>, or operate in a unified multi-tenant schema with partition isolation.
+                  </p>
+                </div>
               </div>
-              <h3 className="h3" style={{ margin: 0 }}>Supabase Permission Settings (Row Level Security)</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '20px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                  Hybrid Multi-DB Active
+                </span>
+              </div>
             </div>
-            <p className="text-secondary" style={{ fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '16px' }}>
-              To ensure all changes you make in this application automatically sync to your Supabase cloud without getting blocked by authentication tokens or session expirations, run this SQL script in your <strong>Supabase Dashboard → SQL Editor</strong>:
-            </p>
 
-            <div style={{ position: 'relative' }}>
+            {/* SIDE-BY-SIDE DATABASE CREDENTIAL CARDS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              
+              {/* SEYNEX ENTERPRISES DATABASE CARD */}
+              <div style={{
+                borderRadius: '16px',
+                border: activeBusinessId === 'biz_main' ? '2px solid rgba(99, 102, 241, 0.5)' : '1px solid var(--panel-border)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                position: 'relative'
+              }}>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '10px',
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(59, 130, 246, 0.2))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)'
+                    }}>
+                      <Building2 size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Seynex Enterprises DB</h4>
+                        <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-muted)' }}>biz_main</span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Enterprise SaaS, ERP & Cloud Services</div>
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
+                    background: seynexDbUrl ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                    color: seynexDbUrl ? 'var(--success)' : 'var(--text-muted)',
+                    border: seynexDbUrl ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid var(--panel-border)'
+                  }}>
+                    {getBusinessDbConfig?.('biz_main')?.isDedicated ? 'Dedicated Database' : 'Shared Cloud Project'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      Supabase Project URL
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="https://xyz.supabase.co"
+                      value={seynexDbUrl}
+                      onChange={(e) => setSeynexDbUrl(e.target.value)}
+                      style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      Supabase Anon Public API Key
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showSeynexKey ? "text" : "password"}
+                        className="input"
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                        value={seynexDbKey}
+                        onChange={(e) => setSeynexDbKey(e.target.value)}
+                        style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace', paddingRight: '40px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSeynexKey(!showSeynexKey)}
+                        style={{
+                          position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                          background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer'
+                        }}
+                      >
+                        {showSeynexKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Connection Ping & Status Box */}
+                <div style={{
+                  padding: '10px 14px', borderRadius: '10px',
+                  background: seynexTestResult?.success 
+                    ? 'rgba(16, 185, 129, 0.08)' 
+                    : seynexTestResult 
+                      ? 'rgba(239, 68, 68, 0.08)' 
+                      : 'rgba(255, 255, 255, 0.02)',
+                  border: seynexTestResult?.success 
+                    ? '1px solid rgba(16, 185, 129, 0.25)' 
+                    : seynexTestResult 
+                      ? '1px solid rgba(239, 68, 68, 0.25)' 
+                      : '1px solid var(--panel-border)',
+                  fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {seynexTesting ? (
+                      <RefreshCw size={14} className="animate-spin text-accent" />
+                    ) : seynexTestResult?.success ? (
+                      <CheckCircle2 size={14} color="var(--success)" />
+                    ) : seynexTestResult ? (
+                      <AlertTriangle size={14} color="var(--danger)" />
+                    ) : (
+                      <Database size={14} color="var(--text-muted)" />
+                    )}
+                    <span style={{ color: seynexTestResult?.success ? 'var(--success)' : seynexTestResult ? 'var(--danger)' : 'var(--text-muted)' }}>
+                      {seynexTesting ? 'Testing connection & measuring latency...' : seynexTestResult?.success ? 'Database connection verified' : seynexTestResult?.error || 'Ready to verify database connection'}
+                    </span>
+                  </div>
+                  {seynexTestResult?.latencyMs ? (
+                    <span style={{ fontWeight: 800, color: 'var(--success)', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
+                      ⚡ {seynexTestResult.latencyMs}ms
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Card Actions */}
+                <div className="flex items-center gap-2 mt-auto pt-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleTestSeynexConnection}
+                    disabled={seynexTesting || !seynexDbUrl}
+                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
+                  >
+                    <RefreshCw size={14} className={seynexTesting ? 'animate-spin' : ''} />
+                    Test Connection
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSaveSeynexDb}
+                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
+                  >
+                    <Save size={14} />
+                    Save Credentials
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleResetSeynexDb}
+                    title="Reset to environment defaults"
+                    style={{ height: '36px', padding: '0 10px', fontSize: '0.8rem' }}
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* ROYAL HAIR PIN INDUSTRIES DATABASE CARD */}
+              <div style={{
+                borderRadius: '16px',
+                border: activeBusinessId === 'biz_hairpins' ? '2px solid rgba(13, 148, 136, 0.5)' : '1px solid var(--panel-border)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                position: 'relative'
+              }}>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '10px',
+                      background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(16, 185, 129, 0.2))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#2dd4bf', border: '1px solid rgba(13, 148, 136, 0.3)'
+                    }}>
+                      <Sparkles size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Royal Hair Pins DB</h4>
+                        <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-muted)' }}>biz_hairpins</span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Manufacturing, Production Orders & Wholesale</div>
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
+                    background: hairpinsDbUrl ? 'rgba(13, 148, 136, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                    color: hairpinsDbUrl ? '#2dd4bf' : 'var(--text-muted)',
+                    border: hairpinsDbUrl ? '1px solid rgba(13, 148, 136, 0.25)' : '1px solid var(--panel-border)'
+                  }}>
+                    {getBusinessDbConfig?.('biz_hairpins')?.isDedicated ? 'Dedicated Database' : 'Shared Cloud Project'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      Supabase Project URL
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="https://xyz.supabase.co"
+                      value={hairpinsDbUrl}
+                      onChange={(e) => setHairpinsDbUrl(e.target.value)}
+                      style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      Supabase Anon Public API Key
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showHairpinsKey ? "text" : "password"}
+                        className="input"
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                        value={hairpinsDbKey}
+                        onChange={(e) => setHairpinsDbKey(e.target.value)}
+                        style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace', paddingRight: '40px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowHairpinsKey(!showHairpinsKey)}
+                        style={{
+                          position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                          background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer'
+                        }}
+                      >
+                        {showHairpinsKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Connection Ping & Status Box */}
+                <div style={{
+                  padding: '10px 14px', borderRadius: '10px',
+                  background: hairpinsTestResult?.success 
+                    ? 'rgba(16, 185, 129, 0.08)' 
+                    : hairpinsTestResult 
+                      ? 'rgba(239, 68, 68, 0.08)' 
+                      : 'rgba(255, 255, 255, 0.02)',
+                  border: hairpinsTestResult?.success 
+                    ? '1px solid rgba(16, 185, 129, 0.25)' 
+                    : hairpinsTestResult 
+                      ? '1px solid rgba(239, 68, 68, 0.25)' 
+                      : '1px solid var(--panel-border)',
+                  fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {hairpinsTesting ? (
+                      <RefreshCw size={14} className="animate-spin text-accent" />
+                    ) : hairpinsTestResult?.success ? (
+                      <CheckCircle2 size={14} color="var(--success)" />
+                    ) : hairpinsTestResult ? (
+                      <AlertTriangle size={14} color="var(--danger)" />
+                    ) : (
+                      <Database size={14} color="var(--text-muted)" />
+                    )}
+                    <span style={{ color: hairpinsTestResult?.success ? 'var(--success)' : hairpinsTestResult ? 'var(--danger)' : 'var(--text-muted)' }}>
+                      {hairpinsTesting ? 'Testing connection & measuring latency...' : hairpinsTestResult?.success ? 'Database connection verified' : hairpinsTestResult?.error || 'Ready to verify database connection'}
+                    </span>
+                  </div>
+                  {hairpinsTestResult?.latencyMs ? (
+                    <span style={{ fontWeight: 800, color: 'var(--success)', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
+                      ⚡ {hairpinsTestResult.latencyMs}ms
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Card Actions */}
+                <div className="flex items-center gap-2 mt-auto pt-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleTestHairpinsConnection}
+                    disabled={hairpinsTesting || !hairpinsDbUrl}
+                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
+                  >
+                    <RefreshCw size={14} className={hairpinsTesting ? 'animate-spin' : ''} />
+                    Test Connection
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSaveHairpinsDb}
+                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px', background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)', border: 'none' }}
+                  >
+                    <Save size={14} />
+                    Save Credentials
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleResetHairpinsDb}
+                    title="Reset to environment defaults"
+                    style={{ height: '36px', padding: '0 10px', fontSize: '0.8rem' }}
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* HYBRID ARCHITECTURE THREE PILLARS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={16} color="var(--accent-primary)" /> Dual Independent Projects
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  Provide distinct Supabase URLs to achieve 100% physical data separation in two completely different cloud accounts.
+                </div>
+              </div>
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={16} color="var(--warning)" /> Dynamic Query Routing
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  The app auto-detects the active session and transparently routes all CRUD operations to that business's database client.
+                </div>
+              </div>
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Lock size={16} color="var(--success)" /> Partitioned Fallback
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  If operating on a single database, all tables partition cleanly by <code style={{ color: 'var(--accent-emerald)' }}>business_id</code> with composite indexes.
+                </div>
+              </div>
+            </div>
+
+            {/* FULL MULTI-BUSINESS MIGRATION SQL */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <FileText size={16} color="var(--accent-primary)" />
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    Enterprise Database Schema & Partitioning Migration SQL
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    const sql = `-- =========================================================================
+-- MULTI-BUSINESS DUAL-DATABASE ARCHITECTURE & PARTITIONING MIGRATION
+-- Enables Strict Data Isolation between:
+-- 1. Seynex Enterprises ('biz_main')
+-- 2. Royal Hair Pin Industries ('biz_hairpins')
+-- =========================================================================
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1. ADD BUSINESS_ID TO CORE ENTITIES (DEFAULT: 'biz_main')
+ALTER TABLE IF EXISTS customers ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS inventory ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS leads ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS expenses ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS payments ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS user_profiles ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+
+-- 2. CREATE MANUFACTURING & PROCUREMENT TABLES
+CREATE TABLE IF NOT EXISTS boms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
+    user_id UUID,
+    name TEXT NOT NULL,
+    output_product_id TEXT,
+    output_qty NUMERIC DEFAULT 1,
+    output_unit TEXT DEFAULT 'Card (10 Pins)',
+    estimated_labor_cost NUMERIC DEFAULT 0,
+    estimated_overhead_cost NUMERIC DEFAULT 0,
+    components JSONB DEFAULT '[]'::jsonb,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS production_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
+    user_id UUID,
+    mo_number TEXT NOT NULL,
+    bom_id UUID,
+    bom_name TEXT,
+    target_qty NUMERIC DEFAULT 100,
+    produced_qty NUMERIC DEFAULT 0,
+    status TEXT DEFAULT 'Scheduled',
+    start_date DATE,
+    due_date DATE,
+    completion_date DATE,
+    unit_cost NUMERIC DEFAULT 0,
+    total_cost NUMERIC DEFAULT 0,
+    assigned_worker TEXT,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS suppliers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_id VARCHAR(50) DEFAULT 'biz_main',
+    name TEXT NOT NULL,
+    contact_person TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    category TEXT DEFAULT 'Raw Materials',
+    payment_terms TEXT DEFAULT 'Net 30',
+    notes TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_id VARCHAR(50) DEFAULT 'biz_main',
+    po_number TEXT NOT NULL,
+    supplier_id UUID,
+    supplier_name TEXT,
+    date DATE NOT NULL,
+    expected_delivery_date DATE,
+    status TEXT DEFAULT 'Draft',
+    items JSONB DEFAULT '[]'::jsonb,
+    total_amount NUMERIC DEFAULT 0,
+    payment_terms TEXT DEFAULT 'Net 30',
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. HIGH PERFORMANCE COMPOSITE INDEXES
+CREATE INDEX IF NOT EXISTS idx_customers_biz_id ON customers (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_biz_id ON invoices (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotations_biz_id ON quotations (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_biz_id ON inventory (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_leads_biz_id ON leads (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_expenses_biz_id ON expenses (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_biz_id ON payments (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_biz_id ON fixed_assets (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_biz_id ON tasks (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_biz_id ON activity_logs (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_boms_biz_id ON boms (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_production_orders_biz_id ON production_orders (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_biz_id ON purchase_orders (business_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_suppliers_biz_id ON suppliers (business_id, created_at DESC);
+
+-- 4. PERMISSIVE ROW LEVEL SECURITY POLICIES
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables 
+        WHERE schemaname = 'public' 
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles', 'boms', 'production_orders', 'suppliers', 'purchase_orders')
+    LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
+        EXECUTE format('DROP POLICY IF EXISTS "Public access on %I" ON %I;', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Public access on %I" ON %I FOR ALL USING (true) WITH CHECK (true);', tbl, tbl);
+    END LOOP;
+END $$;`;
+                    navigator.clipboard.writeText(sql);
+                    setCopiedMigrationSql(true);
+                    showNotification('Multi-Database Migration SQL copied to clipboard! Paste it into Supabase SQL Editor.');
+                    setTimeout(() => setCopiedMigrationSql(false), 3000);
+                  }}
+                  style={{ height: '32px', fontSize: '0.78rem', gap: '6px' }}
+                >
+                  {copiedMigrationSql ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
+                  {copiedMigrationSql ? 'Copied to Clipboard!' : 'Copy Migration SQL'}
+                </button>
+              </div>
+
               <pre style={{
-                background: 'rgba(0, 0, 0, 0.4)',
+                background: 'rgba(0, 0, 0, 0.45)',
                 border: '1px solid var(--panel-border)',
                 borderRadius: '12px',
-                padding: '18px 20px',
-                fontSize: '0.82rem',
+                padding: '16px 20px',
+                fontSize: '0.8rem',
                 fontFamily: 'monospace',
                 color: '#38bdf8',
                 overflowX: 'auto',
-                lineHeight: 1.5
+                lineHeight: 1.5,
+                maxHeight: '260px'
               }}>
-{`-- 1. Create any missing auxiliary tables
-CREATE TABLE IF NOT EXISTS fixed_assets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,
-    asset_code TEXT,
-    name TEXT NOT NULL,
-    category TEXT DEFAULT 'Gym Equipment',
-    purchase_date DATE,
-    purchase_cost NUMERIC DEFAULT 0,
-    useful_life_years NUMERIC DEFAULT 5,
-    salvage_value NUMERIC DEFAULT 0,
-    depreciation_method TEXT DEFAULT 'Straight Line (SLM)',
-    depreciation_rate NUMERIC DEFAULT 0,
-    location TEXT,
-    status TEXT DEFAULT 'Active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,
-    title TEXT NOT NULL,
-    description TEXT,
-    due_date DATE,
-    status TEXT DEFAULT 'Pending',
-    priority TEXT DEFAULT 'Medium',
-    related_to TEXT,
-    related_id TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 2. Safely disable RLS on all existing tables
-DO $$
-DECLARE
-    tbl text;
-BEGIN
-    FOR tbl IN 
-        SELECT tablename FROM pg_tables 
-        WHERE schemaname = 'public' 
-          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles')
-    LOOP
-        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', tbl);
-    END LOOP;
-END $$;`}
+{`-- Run this once in your Supabase SQL Editor:
+ALTER TABLE IF EXISTS customers ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS inventory ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS leads ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS expenses ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS payments ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
+CREATE TABLE IF NOT EXISTS boms (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_hairpins', name TEXT NOT NULL, ...);
+CREATE TABLE IF NOT EXISTS production_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_hairpins', ...);
+CREATE TABLE IF NOT EXISTS suppliers (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
+CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
+-- Click 'Copy Migration SQL' above to copy full schema with RLS policies & composite indexes`}
               </pre>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{
-                  position: 'absolute', top: '12px', right: '12px',
-                  fontSize: '0.75rem', padding: '6px 14px', gap: '6px',
-                  background: 'rgba(255, 255, 255, 0.08)'
-                }}
-                onClick={() => {
-                  const sql = `CREATE TABLE IF NOT EXISTS fixed_assets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,
-    asset_code TEXT,
-    name TEXT NOT NULL,
-    category TEXT DEFAULT 'Gym Equipment',
-    purchase_date DATE,
-    purchase_cost NUMERIC DEFAULT 0,
-    useful_life_years NUMERIC DEFAULT 5,
-    salvage_value NUMERIC DEFAULT 0,
-    depreciation_method TEXT DEFAULT 'Straight Line (SLM)',
-    depreciation_rate NUMERIC DEFAULT 0,
-    location TEXT,
-    status TEXT DEFAULT 'Active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,
-    title TEXT NOT NULL,
-    description TEXT,
-    due_date DATE,
-    status TEXT DEFAULT 'Pending',
-    priority TEXT DEFAULT 'Medium',
-    related_to TEXT,
-    related_id TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-DO $$
-DECLARE
-    tbl text;
-BEGIN
-    FOR tbl IN 
-        SELECT tablename FROM pg_tables 
-        WHERE schemaname = 'public' 
-          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles')
-    LOOP
-        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', tbl);
-    END LOOP;
-END $$;`;
-                  navigator.clipboard.writeText(sql);
-                  showNotification('SQL copied to clipboard! Paste it into Supabase SQL Editor.');
-                }}
-              >
-                <Copy size={13} /> Copy SQL
-              </button>
             </div>
           </div>
 
