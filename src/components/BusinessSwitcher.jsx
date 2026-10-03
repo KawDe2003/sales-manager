@@ -40,11 +40,11 @@ export default function BusinessSwitcher() {
   }, [isOpen]);
 
   const currentBiz = activeBusiness || businesses.find(b => b.id === activeBusinessId) || businesses[0] || {
-    id: 'biz_hairpins',
-    name: 'Royal Hair Pin Industries',
-    category: 'Hair Pins & Accessories',
-    color: '#0d9488',
-    icon: 'Sparkles'
+    id: 'biz_main',
+    name: 'Seynex Enterprises',
+    category: 'Enterprise Solutions & Tech',
+    color: '#4f46e5',
+    icon: 'Building2'
   };
 
   const isHairPins = currentBiz.id === 'biz_hairpins';
@@ -138,7 +138,7 @@ export default function BusinessSwitcher() {
               color: isHairPins ? '#2dd4bf' : '#a5b4fc',
               border: `1px solid ${isHairPins ? 'rgba(13, 148, 136, 0.3)' : 'rgba(79, 70, 229, 0.3)'}`
             }}>
-              {isHairPins ? 'Hair Pins' : 'Main'}
+              {isHairPins ? 'Hair Pins' : 'Enterprise'}
             </span>
           </div>
         </div>

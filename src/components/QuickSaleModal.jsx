@@ -24,6 +24,17 @@ const HAIR_PIN_PRESETS = [
   { id: 'hp-12', name: 'Black Matte Snap Hair Clips (Large)', unit: 'Card', price: 350, category: 'Snap Clips', desc: 'Matte coated 6-piece card' }
 ];
 
+const MAIN_ENTERPRISE_PRESETS = [
+  { id: 'ep-1', name: 'Enterprise Cloud ERP License (Annual)', unit: 'License', price: 185000, category: 'Software', desc: 'Full-featured enterprise cloud operations license' },
+  { id: 'ep-2', name: 'Annual Priority SLA & Support Contract', unit: 'Contract', price: 95000, category: 'Service', desc: '24/7 dedicated support and maintenance package' },
+  { id: 'ep-3', name: 'Commercial Network Security Gateway', unit: 'Device', price: 145000, category: 'Hardware', desc: 'Managed hardware firewall and VPN gateway' },
+  { id: 'ep-4', name: 'Professional Systems Consulting (Day Rate)', unit: 'Day', price: 45000, category: 'Consulting', desc: 'On-site senior enterprise technical advisory' },
+  { id: 'ep-5', name: 'Cloud Automated Backup Storage 1TB', unit: 'Year', price: 36000, category: 'Cloud Service', desc: 'Encrypted off-site disaster recovery storage' },
+  { id: 'ep-6', name: 'Custom ERP Module Development & Integration', unit: 'Module', price: 120000, category: 'Software', desc: 'Bespoke reporting or workflow integration package' },
+  { id: 'ep-7', name: 'Annual Server Infrastructure Maintenance', unit: 'Annual', price: 75000, category: 'Service', desc: 'On-premise server patching and health monitoring' },
+  { id: 'ep-8', name: 'Turnkey Cloud ERP Deployment Kit', unit: 'Bundle', price: 325000, category: 'Turnkey', desc: 'Complete server, license, and installation package' }
+];
+
 const QuickSaleModal = ({ isOpen, onClose }) => {
   const { 
     customers = [], 
@@ -37,8 +48,12 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
     smsConfig = {},
     theme = 'dark',
     showNotification,
-    syncAllToCloud
+    syncAllToCloud,
+    activeBusinessId,
+    activeBusiness
   } = useContext(StoreContext) || {};
+
+  const isHairPins = activeBusinessId === 'biz_hairpins';
 
   const isDark = theme !== 'light';
 
@@ -91,38 +106,27 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  // Hair pin products: Hair Pin presets + any inventory items that are hair pin related
+  // Business-aware available products: Business presets + business inventory
   const availableProducts = useMemo(() => {
-    // Start with hair pin presets as top items
-    const list = [...HAIR_PIN_PRESETS];
-
-    // Filter existing inventory to only include hair pin / salon / accessory items
-    // (exclude unrelated hardware like Face ID machines, gym equipment, etc.)
-    const isUnwantedHardware = (name, cat, type) => {
-      const text = `${name || ''} ${cat || ''} ${type || ''}`.toLowerCase();
-      const hardwareWords = ['zkteco', 'face id', 'turnstile', 'biometric', 'access control', 'treadmill', 'dumbbell', 'barbell', 'gym'];
-      return hardwareWords.some(w => text.includes(w));
-    };
+    const basePresets = isHairPins ? HAIR_PIN_PRESETS : MAIN_ENTERPRISE_PRESETS;
+    const list = [...basePresets];
 
     inventory.forEach((item) => {
-      if (isUnwantedHardware(item.name, item.category, item.type)) {
-        return; // Skip hardware
-      }
       const alreadyInPresets = list.some(p => p.name.toLowerCase() === (item.name || '').toLowerCase());
       if (!alreadyInPresets) {
         list.push({
           id: item.id,
           name: item.name,
           price: Number(item.price) || 0,
-          unit: item.unit || item.outputUnit || 'Pkt',
-          category: item.category || item.type || 'Hair Pins',
-          desc: item.description || ''
+          unit: item.unit || item.outputUnit || (isHairPins ? 'Pkt' : 'Unit'),
+          category: item.category || item.type || (isHairPins ? 'Hair Pins' : 'General'),
+          desc: item.desc || item.description || ''
         });
       }
     });
 
     return list;
-  }, [inventory]);
+  }, [inventory, isHairPins]);
 
   const categories = useMemo(() => {
     const cats = new Set(['All']);
@@ -532,14 +536,14 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                  ⚡ Quick Hair Pin Billing
+                  {isHairPins ? '⚡ Quick Hair Pin Billing' : '⚡ Quick Sales Billing'}
                 </h2>
                 <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.25)', color: isDark ? '#fbbf24' : '#b45309', fontWeight: 800 }}>
-                  EASY
+                  {isHairPins ? 'WHOLESALE' : 'ENTERPRISE'}
                 </span>
               </div>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>
-                {smsConfig.companyName || 'Royal Hair Pin Industries'}
+                {smsConfig.companyName || (isHairPins ? 'Royal Hair Pin Industries' : activeBusiness?.name || 'Seynex Enterprises')}
               </p>
             </div>
           </div>
@@ -582,7 +586,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 color: mobileTab === 'items' ? '#ffffff' : 'var(--text-secondary)'
               }}
             >
-              <Package size={15} /> 1. Pick Hair Pins
+              <Package size={15} /> {isHairPins ? '1. Pick Hair Pins' : '1. Pick Products'}
             </button>
             <button
               onClick={() => setMobileTab('checkout')}
@@ -660,10 +664,10 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             >
               <div style={{ textAlign: 'center', borderBottom: '1px dashed var(--panel-border)', paddingBottom: '12px', marginBottom: '12px' }}>
                 <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                  {smsConfig.companyName || 'Royal Hair Pin Industries'}
+                  {smsConfig.companyName || (isHairPins ? 'Royal Hair Pin Industries' : activeBusiness?.name || 'Seynex Enterprises')}
                 </h4>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {smsConfig.companyAddress || 'Kelaniya, Sri Lanka'} | {smsConfig.companyPhone || '072 840 8880'}
+                  {smsConfig.companyAddress || (isHairPins ? 'Kelaniya, Sri Lanka' : 'Colombo 03, Sri Lanka')} | {smsConfig.companyPhone || (isHairPins ? '072 840 8880' : '+94 11 234 5678')}
                 </div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '4px' }}>
                   {completedInvoice.isQuote ? `QUOTATION #${completedInvoice.quoteNumber || completedInvoice.invoiceNumber}` : `INVOICE #${completedInvoice.invoiceNumber}`}
@@ -786,7 +790,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                     <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
-                      placeholder="Search Bobby pins, U-pins, snap clips..."
+                      placeholder={isHairPins ? "Search Bobby pins, U-pins, snap clips..." : "Search licenses, support, hardware, consulting..."}
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       className="form-input"
@@ -1086,7 +1090,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 {/* 1. Customer Selection - Clean & Simple */}
                 <div style={{ marginBottom: '14px', flexShrink: 0 }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    Customer / Wholesale Buyer
+                    {isHairPins ? 'Customer / Wholesale Buyer' : 'Customer / Corporate Client'}
                   </div>
 
                   <select
@@ -1104,9 +1108,9 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       color: 'var(--text-primary)'
                     }}
                   >
-                    <option value="walk-in">🏪 Counter / Walk-in Customer (Cash)</option>
+                    <option value="walk-in">🏪 {isHairPins ? 'Counter / Walk-in Customer (Cash)' : 'Walk-in / Direct Cash Client'}</option>
                     {customers.length > 0 && (
-                      <optgroup label="Saved Wholesale Shops & Buyers">
+                      <optgroup label={isHairPins ? "Saved Wholesale Shops & Buyers" : "Saved Corporate Clients & Accounts"}>
                         {customers.map(c => (
                           <option key={c.id} value={c.id}>
                             🏢 {c.name || c.gymName} {c.phone ? `(${c.phone})` : ''}
@@ -1114,7 +1118,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         ))}
                       </optgroup>
                     )}
-                    <option value="new">➕ Add New Shop / Wholesale Buyer...</option>
+                    <option value="new">➕ Add New {isHairPins ? 'Shop / Wholesale Buyer...' : 'Client / Account...'}</option>
                   </select>
 
                   {/* Inline New Customer Fields */}

@@ -12,8 +12,10 @@ const Invoices = () => {
     invoices = [], customers = [], payments = [], 
     addInvoice, updateInvoice, updateInvoiceStatus, deleteInvoice, confirmAction,
     inventory = [], triggerSMS, showNotification, generateRecurringInvoices,
-    sendDirectSMS, smsConfig = {}
+    sendDirectSMS, smsConfig = {}, activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
+  const isHairPins = activeBusinessId === 'biz_hairpins';
+  const defaultCompanyName = activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -56,7 +58,7 @@ const Invoices = () => {
                      customers.find(c => c.gymName === invoice.prospectName) || {};
     const clientName = customer.gymName || customer.name || invoice.prospectName || 'Valued Customer';
     const phone = formatPhoneForWhatsApp(customer.phone || invoice.prospectPhone);
-    const company = smsConfig?.companyName || 'Hair Pins & Accessories Co.';
+    const company = smsConfig?.companyName || defaultCompanyName;
     const shareUrl = getInvoiceShareUrl(invoice);
     const amountVal = Number(invoice.amount != null ? invoice.amount : invoice.totalAmount) || 0;
     const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -93,7 +95,7 @@ Thank you for your business!`;
     const customer = customers.find(c => c.id === invoice.customerId) || 
                      customers.find(c => c.gymName === invoice.prospectName) || {};
     const phone = customer.phone || invoice.prospectPhone || '';
-    const company = smsConfig?.companyName || 'Hair Pins & Accessories Co.';
+    const company = smsConfig?.companyName || defaultCompanyName;
     const shareUrl = getInvoiceShareUrl(invoice);
     const amountVal = Number(invoice.amount != null ? invoice.amount : invoice.totalAmount) || 0;
     const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);

@@ -728,7 +728,7 @@ const SmsPortal = () => {
                   [...smsLogs].reverse().map((log, i) => (
                     <tr key={log.id || i}>
                       <td style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                        {new Date(log.timestamp || Date.now()).toLocaleString()}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Just now'}
                       </td>
                       <td>
                         <span className="badge badge-primary" style={{ fontSize: '0.68rem' }}>SMS DISPATCH</span>

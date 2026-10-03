@@ -152,8 +152,6 @@ export const generateBalanceSheet = ({ accounts = [], journalEntries = [], journ
 
 // 3. STATEMENT OF CASH FLOWS (LKAS 7 - INDIRECT METHOD)
 export const generateCashFlowStatement = ({ accounts = [], journalEntries = [], journalLines = [], startDate, endDate, pnlStatement, balanceSheet }) => {
-  const currentLines = filterLinesByPeriod(journalLines, journalEntries, startDate, endDate);
-  
   // Calculate opening balance sheet as of day before startDate
   const dayBeforeStart = startDate ? new Date(new Date(startDate).getTime() - 86400000).toISOString().split('T')[0] : null;
   const openingBS = generateBalanceSheet({ accounts, journalEntries, journalLines, endDate: dayBeforeStart, pnlProfitForPeriod: 0 });

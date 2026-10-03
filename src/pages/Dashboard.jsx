@@ -82,9 +82,12 @@ const Dashboard = () => {
     payments = [],
     activityLogs = [],
     theme = 'dark',
-    setQuickSaleOpen
+    setQuickSaleOpen,
+    activeBusinessId,
+    activeBusiness
   } = useContext(StoreContext) || {};
   const isDark = theme !== 'light';
+  const isHairPins = activeBusinessId === 'biz_hairpins';
 
   // --- GLOBAL DATE FILTER STATE ---
   const [dateFilter, setDateFilter] = useState('30d'); // 'today', '7d', '30d', 'custom'
@@ -487,15 +490,30 @@ const Dashboard = () => {
       <div className="page-hero" style={{ position: 'relative', zIndex: 50, paddingBottom: '24px' }}>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
           <div>
-            <h1 className="h1 mb-1" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
-              Sales Management Dashboard
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 className="h1 mb-1" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
+                Sales Management Dashboard
+              </h1>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: '20px',
+                background: isHairPins ? 'rgba(236, 72, 153, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                color: isHairPins ? '#f472b6' : '#60a5fa',
+                border: isHairPins ? '1px solid rgba(236, 72, 153, 0.35)' : '1px solid rgba(59, 130, 246, 0.35)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                {activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises')}
+              </span>
+            </div>
             <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ 
                 width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', 
                 boxShadow: '0 0 10px var(--success)'
               }}></span>
-              Real-Time Production Financials & CRM Insights
+              {isHairPins ? 'Hair Pins Manufacturing & Wholesale CRM Insights' : 'Real-Time Enterprise Financials & CRM Insights'}
             </p>
           </div>
 
@@ -508,19 +526,21 @@ const Dashboard = () => {
                 padding: '8px 18px',
                 fontSize: '0.85rem',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+                background: isHairPins 
+                  ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' 
+                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '7px',
-                boxShadow: '0 4px 12px rgba(13, 148, 136, 0.35)',
+                boxShadow: isHairPins ? '0 4px 12px rgba(13, 148, 136, 0.35)' : '0 4px 12px rgba(59, 130, 246, 0.35)',
                 cursor: 'pointer'
               }}
-              title="Quick Hair Pin Wholesale / Retail Sale"
+              title={isHairPins ? "Quick Hair Pin Wholesale / Retail Sale" : "⚡ Quick Sales Billing / Instant Invoice"}
             >
-              <Sparkles size={16} /> ⚡ Quick Bill (Hair Pins)
+              <Sparkles size={16} /> {isHairPins ? '⚡ Quick Bill (Hair Pins)' : '⚡ Quick Sale'}
             </button>
             <Link to="/invoices" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
               <CreditCard size={16} /> Invoices

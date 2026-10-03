@@ -882,7 +882,7 @@ const SharedDocument = () => {
                       <ShoppingBag size={20} /> OFFICIAL PURCHASE ORDER ISSUED
                     </div>
                     <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>
-                      This order has been officially placed by {smsConfig.companyName || 'Hair Pins & Accessories Manufacturing Co.'}. Please confirm order acceptance and schedule shipment.
+                      This order has been officially placed by {smsConfig?.companyName || 'Seynex Enterprises'}. Please confirm order acceptance and schedule shipment.
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>

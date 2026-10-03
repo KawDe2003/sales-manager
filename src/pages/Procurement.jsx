@@ -13,8 +13,13 @@ const Procurement = () => {
   const { 
     suppliers = [], addSupplier, updateSupplier, deleteSupplier,
     purchaseOrders = [], addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
-    inventory = [], confirmAction, showNotification, smsConfig = {}, sendDirectSMS
+    inventory = [], confirmAction, showNotification, smsConfig = {}, sendDirectSMS,
+    activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
+
+  const isHairPins = activeBusinessId === 'biz_hairpins';
+  const defaultCompanyName = activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
+  const defaultCategory = isHairPins ? 'Hair Pin Raw Materials & Supplies' : 'Enterprise & IT Supplies';
 
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'suppliers' | 'reorder'
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +52,7 @@ const Procurement = () => {
     contactPerson: '',
     phone: '',
     email: '',
-    category: 'Hair Pin Raw Materials & Supplies',
+    category: defaultCategory,
     address: '',
     isVatRegistered: false,
     vatNumber: '',
@@ -111,7 +116,7 @@ const Procurement = () => {
       ? `• *Subtotal:* LKR ${subtotal.toLocaleString()}\n• *VAT (${vatRate}%):* LKR ${vatAmount.toLocaleString()}${po.supplierVatNumber ? ` (VAT Reg: ${po.supplierVatNumber})` : ''}\n• *Grand Total:* LKR ${total.toLocaleString()}`
       : `• *Total Order Value (Non-VAT):* LKR ${total.toLocaleString()}`;
 
-    const senderCompanyName = smsConfig?.companyName || 'Hair Pins & Accessories Manufacturing Co.';
+    const senderCompanyName = smsConfig?.companyName || defaultCompanyName;
 
     const message = `*OFFICIAL PURCHASE ORDER #${po.poNumber}*
 From: *${senderCompanyName}*
@@ -154,7 +159,7 @@ Please confirm receipt of this order and acknowledge your dispatch schedule. Tha
 
   // SMS Generation & Dispatch Helpers
   const getPoSmsMessage = (po) => {
-    const senderCompanyName = smsConfig?.companyName || 'Hair Pins & Accessories Co.';
+    const senderCompanyName = smsConfig?.companyName || defaultCompanyName;
     const shareUrl = getPoShareUrl(po);
     const total = Number(po.totalAmount || 0).toLocaleString();
     const vatNote = po.applyVat ? ` (incl. ${po.vatRate || 18}% VAT)` : '';

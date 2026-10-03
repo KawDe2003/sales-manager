@@ -224,7 +224,8 @@ const AppContent = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
 
-  const brandName = smsConfig.dashboardName || smsConfig.companyName || 'GymSales Pro';
+  const isHairPins = activeBusinessId === 'biz_hairpins';
+  const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
 
   const isFeatureEnabled = (key) => featureToggles[key] !== false;
 
@@ -504,7 +505,7 @@ const AppContent = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Quick Hair Pin Billing */}
+          {/* Quick Hair Pin / Enterprise Billing */}
           <button
             id="quick-sale-bill-header-btn"
             onClick={() => setQuickSaleOpen(true)}
@@ -514,19 +515,21 @@ const AppContent = () => {
               padding: '0 14px',
               fontSize: '0.82rem',
               fontWeight: 800,
-              background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+              background: isHairPins 
+                ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' 
+                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 10px rgba(13, 148, 136, 0.35)',
+              boxShadow: isHairPins ? '0 2px 10px rgba(13, 148, 136, 0.35)' : '0 2px 10px rgba(59, 130, 246, 0.35)',
               cursor: 'pointer'
             }}
-            title="Fast Hair Pin Billing / Wholesale Counter Sale"
+            title={isHairPins ? "Fast Hair Pin Billing / Wholesale Counter Sale" : "Fast Instant Invoice / Quick Sale"}
           >
-            <Sparkles size={15} /> <span>⚡ Quick Bill</span>
+            <Sparkles size={15} /> <span>{isHairPins ? '⚡ Quick Bill' : '⚡ Quick Sale'}</span>
           </button>
 
           {/* Quick Actions */}

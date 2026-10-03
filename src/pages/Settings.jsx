@@ -892,13 +892,13 @@ END $$;`;
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Current Active Entity</div>
                   <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {activeBusiness?.name || 'Royal Hair Pin Industries'}
+                    {activeBusiness?.name || (activeBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises')}
                   </div>
                 </div>
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Business Category</div>
                   <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {activeBusiness?.category || 'Manufacturing & Wholesale'}
+                    {activeBusiness?.category || (activeBusinessId === 'biz_hairpins' ? 'Hair Pins Wholesale & Manufacturing' : 'Enterprise Solutions & Tech')}
                   </div>
                 </div>
                 <div>

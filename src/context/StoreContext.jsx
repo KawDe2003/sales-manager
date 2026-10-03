@@ -413,6 +413,258 @@ export default function StoreContextProvider({ children }) {
     }
   ];
 
+  const sampleHairPinsPayments = [
+    { id: 'pay-hp-1', documentId: 'inv-201', invoiceNumber: 'INV-1001', amount: 450000, date: '2026-06-01', method: 'Cash', customerName: 'Lanka Fancy Center' },
+    { id: 'pay-hp-2', documentId: 'inv-202', invoiceNumber: 'INV-1002', amount: 145000, date: '2026-06-10', method: 'Bank Transfer', customerName: 'Queens Bridal & Beauty Salon' }
+  ];
+
+  const sampleMainPayments = [
+    { id: 'pay-main-1', documentId: 'minv-201', invoiceNumber: 'INV-2001', amount: 650000, date: '2026-09-28', method: 'Bank Transfer', customerName: 'Apex Global Technologies' }
+  ];
+
+  const sampleMainExpenses = [
+    { id: 'mexp-1', category: 'Operational', amount: 85000, date: '2026-07-05', description: 'AWS Cloud Server Hosting & Disaster Recovery Tier 3' },
+    { id: 'mexp-2', category: 'Operational', amount: 28000, date: '2026-07-10', description: 'Colombo 03 Office Dedicated Leased Line High-Speed Fiber' },
+    { id: 'mexp-3', category: 'Staff', amount: 240000, date: '2026-07-28', description: 'Enterprise Solutions Engineering & Cloud DevOps Salaries' },
+    { id: 'mexp-4', category: 'Administrative', amount: 45000, date: '2026-08-01', description: 'Corporate Legal Advisory & Annual Regulatory Compliance' }
+  ];
+
+  const sampleMainFixedAssets = [
+    { id: 'mfa-1', assetCode: 'FA-2001', name: 'Dell PowerEdge Enterprise Rack Server R750', category: 'IT Infrastructure', purchaseDate: '2025-01-15', purchaseCost: 1450000, usefulLifeYears: 5, salvageValue: 150000, depreciationMethod: 'Straight Line (SLM)', location: 'Colombo 03 Server Room', status: 'Active' },
+    { id: 'mfa-2', assetCode: 'FA-2002', name: 'Cisco Core Managed Switch & Next-Gen Firewall Gateway', category: 'Network Hardware', purchaseDate: '2025-03-20', purchaseCost: 680000, usefulLifeYears: 6, salvageValue: 50000, depreciationMethod: 'Straight Line (SLM)', location: 'Data Rack A', status: 'Active' },
+    { id: 'mfa-3', assetCode: 'FA-2003', name: 'Executive Systems Engineering Dual-Monitor Workstations', category: 'Office IT Equipment', purchaseDate: '2025-05-10', purchaseCost: 520000, usefulLifeYears: 4, salvageValue: 40000, depreciationMethod: 'Straight Line (SLM)', location: 'Engineering Lab', status: 'Active' }
+  ];
+
+  const sampleMainSuppliers = [
+    { 
+      id: 'msup-1', 
+      name: 'Cisco & Dell Authorized Tech Distributor', 
+      contactPerson: 'Harsha Wickramasinghe', 
+      phone: '0112890123', 
+      email: 'enterprise@techdistributors.lk', 
+      category: 'Enterprise Hardware & Servers', 
+      address: 'Level 14, World Trade Center, Colombo 01', 
+      status: 'Active',
+      isVatRegistered: true,
+      vatNumber: 'VAT-401928374-7000',
+      vatRate: 18
+    },
+    { 
+      id: 'msup-2', 
+      name: 'Amazon Web Services / Cloud Partner SL', 
+      contactPerson: 'Suren Perera', 
+      phone: '0114567890', 
+      email: 'billing@cloudpartners.lk', 
+      category: 'Cloud Hosting & Infrastructure', 
+      address: 'No. 120, Dharmapala Mawatha, Colombo 07', 
+      status: 'Active',
+      isVatRegistered: true,
+      vatNumber: 'VAT-902817263-7000',
+      vatRate: 18
+    }
+  ];
+
+  const sampleMainPurchaseOrders = [
+    {
+      id: 'mpo-1',
+      poNumber: 'PO-2001',
+      supplierId: 'msup-1',
+      supplierName: 'Cisco & Dell Authorized Tech Distributor',
+      supplierPhone: '0112890123',
+      supplierEmail: 'enterprise@techdistributors.lk',
+      supplierAddress: 'Level 14, World Trade Center, Colombo 01',
+      date: new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0],
+      expectedDelivery: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+      status: 'Ordered',
+      subtotal: 290000,
+      applyVat: true,
+      vatRate: 18,
+      vatAmount: 52200,
+      totalAmount: 342200,
+      isVatRegistered: true,
+      supplierVatNumber: 'VAT-401928374-7000',
+      shareKey: 'po_share_2001',
+      items: [
+        { name: 'Commercial Network Security Gateway', quantity: 2, unitCost: 98000, totalCost: 196000 },
+        { name: 'Cloud Automated Backup Storage 1TB', quantity: 5, unitCost: 14000, totalCost: 70000 },
+        { name: 'Priority Replacement Hardware Module', quantity: 1, unitCost: 24000, totalCost: 24000 }
+      ]
+    }
+  ];
+
+  const sampleMainJournalEntries = [
+    { id: 'mje-1', date: '2026-01-01', reference: 'GEN-2001', description: 'Stated Capital Inflow - Seynex Enterprises', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
+    { id: 'mje-2', date: '2026-09-20', reference: 'GEN-2002', description: 'Apex Global Technologies INV-2001 Billed (Software & SLA)', createdBy: 'System', timestamp: new Date('2026-09-20').toISOString() },
+    { id: 'mje-3', date: '2026-09-28', reference: 'GEN-2003', description: 'Apex Global Technologies INV-2001 Full Settlement Received', createdBy: 'System', timestamp: new Date('2026-09-28').toISOString() },
+    { id: 'mje-4', date: '2026-10-01', reference: 'GEN-2004', description: 'AWS Cloud Infrastructure Monthly Hosting Expense', createdBy: 'System', timestamp: new Date('2026-10-01').toISOString() }
+  ];
+
+  const sampleMainJournalLines = [
+    { id: 'mjl-1', journalEntryId: 'mje-1', accountId: '1020', debit: 8000000, credit: 0 },
+    { id: 'mjl-2', journalEntryId: 'mje-1', accountId: '3010', debit: 0, credit: 8000000 },
+    { id: 'mjl-3', journalEntryId: 'mje-2', accountId: '1100', debit: 650000, credit: 0 },
+    { id: 'mjl-4', journalEntryId: 'mje-2', accountId: '4010', debit: 0, credit: 650000 },
+    { id: 'mjl-5', journalEntryId: 'mje-3', accountId: '1020', debit: 650000, credit: 0 },
+    { id: 'mjl-6', journalEntryId: 'mje-3', accountId: '1100', debit: 0, credit: 650000 },
+    { id: 'mjl-7', journalEntryId: 'mje-4', accountId: '5050', debit: 85000, credit: 0 },
+    { id: 'mjl-8', journalEntryId: 'mje-4', accountId: '1020', debit: 0, credit: 85000 }
+  ];
+
+  const sampleMainBOMs = [
+    {
+      id: 'mbom-1',
+      code: 'BOM-2001',
+      productSku: 'SYS-CLD-ERP',
+      name: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
+      productName: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
+      productCategory: 'Turnkey Solutions',
+      outputUnit: 'Packages',
+      batchYield: 1,
+      components: [
+        { name: 'Commercial Network Security Gateway', materialName: 'Commercial Network Security Gateway', materialSku: 'HW-SEC-01', quantity: 1, unit: 'unit', unitCost: 98000, totalCost: 98000 },
+        { name: 'Enterprise Cloud ERP License (Annual)', materialName: 'Enterprise Cloud ERP License (Annual)', materialSku: 'SW-LIC-01', quantity: 1, unit: 'license', unitCost: 65000, totalCost: 65000 },
+        { name: 'Cloud Automated Backup Storage 1TB', materialName: 'Cloud Automated Backup Storage 1TB', materialSku: 'CLD-BKP-01', quantity: 1, unit: 'service', unitCost: 14000, totalCost: 14000 }
+      ],
+      laborHours: 8,
+      laborRatePerHour: 2500,
+      laborCost: 20000,
+      overheadCost: 15000,
+      machineOverhead: 15000,
+      materialCostPerUnit: 177000,
+      totalCost: 212000,
+      totalCostPerUnit: 212000,
+      suggestedPrice: 325000,
+      suggestedRetailPrice: 325000,
+      marginPercent: 35,
+      routing: ['Hardware Provisioning & Hardening', 'ERP Instance Cloud Staging', 'VPN & SSL Security Setup', 'Client User Onboarding & Handover'],
+      notes: 'Ready-to-deploy enterprise on-premise + cloud hybrid bundle.'
+    }
+  ];
+
+  const sampleMainProductionOrders = [
+    {
+      id: 'mmo-1',
+      orderNumber: 'SYS-2026-001',
+      bomId: 'mbom-1',
+      productName: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
+      productSku: 'SYS-CLD-ERP',
+      quantity: 1,
+      quantityToProduce: 1,
+      status: 'Completed',
+      priority: 'High',
+      startDate: '2026-09-18',
+      dueDate: '2026-09-20',
+      assignedTo: 'Cloud DevOps Team',
+      supervisor: 'Senior Solutions Architect',
+      workstation: 'Staging Lab 1',
+      materialCost: 177000,
+      laborCost: 20000,
+      overheadCost: 15000,
+      totalCost: 212000,
+      totalBatchCost: 212000,
+      costPerUnit: 212000,
+      unitCost: 212000,
+      batchNumber: 'DEPLOY-2026-01',
+      components: sampleMainBOMs[0].components,
+      qcPassedQty: 1,
+      qcRejectedQty: 0,
+      qcInspector: 'Principal Architect',
+      notes: 'Successfully deployed and certified for Apex Global Technologies.'
+    }
+  ];
+
+  const DEFAULT_MAIN_SMS_CONFIG = {
+    apiKey: '2179165276941c4e5eb994053957585',
+    email: 'info@seynex.lk',
+    senderID: 'SEYNEX',
+    companyName: 'Seynex Enterprises',
+    dashboardName: 'Seynex Enterprises',
+    receiptLogo: '',
+    companyLogo: '',
+    companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
+    companyPhone: '+94 11 234 5678',
+    adminPhone: '+94 11 234 5678',
+    companyEmail: 'info@seynex.lk',
+    bankDetails: {
+      accountName: 'SEYNEX ENTERPRISES PVT LTD',
+      bank: 'Commercial Bank of Ceylon',
+      branch: 'Colombo 03 Branch',
+      accountNumber: '8004 9123 4567'
+    },
+    quoteTemplate: 'Hi {name},\nHere is your quotation #{quoteNumber} from Seynex Enterprises.\nTotal Amount: LKR {amount}\nView Quote: {link}',
+    thankYouTemplate: 'Hi {name},\nThank you for choosing Seynex Enterprises! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
+    renewalTemplate: 'Hi {name},\nNotice: Scheduled license & SLA service renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
+    invoiceReminderTemplate: 'Hi {name},\nReminder from Seynex Enterprises: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
+    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Seynex Enterprises!',
+    cashReceivedTemplate: 'Hi {name},\nPayment Received! Seynex Enterprises received LKR {amount} for {documentType} #{number}. Thank you!',
+    autoRenewalEnabled: true,
+    autoRenewalDays: '15,7,3,1,0',
+    autoInvoiceEnabled: false,
+    autoInvoiceDays: 3,
+    birthdayWishEnabled: true,
+    smsHeader: '',
+    smsFooter: '',
+    smsEncoding: 'GSM',
+    deliveryReports: true,
+    pdfColor: '#4f46e5',
+    pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
+    pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.',
+    sessionTimeout: 5,
+    balance: 0,
+    invoicePrefix: 'INV-',
+    nextInvoiceNumber: 2002,
+    quotePrefix: 'QT-',
+    nextQuoteNumber: 2002,
+    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Seynex Enterprises: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
+  };
+
+  const DEFAULT_HAIRPINS_SMS_CONFIG = {
+    apiKey: '2179165276941c4e5eb994053957585',
+    email: 'royalhairpins@gmail.com',
+    senderID: 'SEYNEX',
+    companyName: 'Royal Hair Pin Industries',
+    dashboardName: 'Royal Hair Pins & Accessories',
+    receiptLogo: '',
+    companyLogo: '',
+    companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
+    companyPhone: '+94 77 123 4567',
+    adminPhone: '+94 77 123 4567',
+    companyEmail: 'royalhairpins@gmail.com',
+    bankDetails: {
+      accountName: 'ROYAL HAIR PIN INDUSTRIES',
+      bank: 'Sampath Bank',
+      branch: 'Kelaniya Branch',
+      accountNumber: '1018 5281 9432'
+    },
+    quoteTemplate: 'Hi {name},\nHere is your hair pin quotation from Royal Hair Pins.\nTotal Amount: LKR {amount}\nView Quote: {link}',
+    thankYouTemplate: 'Hi {name},\nThank you for choosing Royal Hair Pins! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
+    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
+    invoiceReminderTemplate: 'Hi {name},\nReminder from Royal Hair Pins: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
+    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Royal Hair Pins!',
+    cashReceivedTemplate: 'Hi {name},\nCash Received! Royal Hair Pins received LKR {amount} for {documentType} #{number}. Thank you!',
+    autoRenewalEnabled: true,
+    autoRenewalDays: '15,7,3,1,0',
+    autoInvoiceEnabled: false,
+    autoInvoiceDays: 3,
+    birthdayWishEnabled: true,
+    smsHeader: '',
+    smsFooter: '',
+    smsEncoding: 'GSM',
+    deliveryReports: true,
+    pdfColor: '#0d9488',
+    pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
+    pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.',
+    sessionTimeout: 5,
+    balance: 0,
+    invoicePrefix: 'INV-',
+    nextInvoiceNumber: 1005,
+    quotePrefix: 'QT-',
+    nextQuoteNumber: 1003,
+    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
+  };
+
+  const DEFAULT_SMS_CONFIG = DEFAULT_MAIN_SMS_CONFIG;
+
   const [businesses, setBusinesses] = useState(() => {
     try {
       const saved = localStorage.getItem('app_businesses');
@@ -426,40 +678,35 @@ export default function StoreContextProvider({ children }) {
       const saved = localStorage.getItem('active_business_id');
       if (saved) return saved;
     } catch (e) {}
-    return 'biz_hairpins';
+    return 'biz_main';
   });
 
   const [customers, setCustomers] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`);
       if (bizSaved) return JSON.parse(bizSaved);
-      const saved = localStorage.getItem('gym_customers');
-      if (saved) return JSON.parse(saved);
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
-    return activeId === 'biz_main' ? sampleMainCustomers : sampleCustomers;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleCustomers : sampleMainCustomers;
   });
 
   const [inventory, setInventory] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`);
       if (bizSaved) return JSON.parse(bizSaved);
-      const saved = localStorage.getItem('gym_inventory');
-      if (saved) return JSON.parse(saved);
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
-    return activeId === 'biz_main' ? sampleMainInventory : sampleInventory;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleInventory : sampleMainInventory;
   });
 
   const [invoices, setInvoices] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`);
-      const raw = bizSaved || localStorage.getItem('gym_invoices');
-      if (raw) {
-        const parsed = JSON.parse(raw);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           return parsed.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
@@ -473,17 +720,16 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
-    return activeId === 'biz_main' ? sampleMainInvoices : sampleInvoices;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleInvoices : sampleMainInvoices;
   });
 
   const [quotes, setQuotes] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`);
-      const raw = bizSaved || localStorage.getItem('gym_quotes');
-      if (raw) {
-        const parsed = JSON.parse(raw);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           return parsed.map(q => {
             if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
@@ -494,20 +740,18 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
-    return activeId === 'biz_main' ? sampleMainQuotes : sampleQuotes;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleQuotes : sampleMainQuotes;
   });
 
   const [leads, setLeads] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`);
       if (bizSaved) return JSON.parse(bizSaved);
-      const saved = localStorage.getItem('gym_leads');
-      if (saved) return JSON.parse(saved);
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_hairpins';
-    return activeId === 'biz_main' ? sampleMainLeads : sampleLeads;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleLeads : sampleMainLeads;
   });
 
   const [activityLogs, setActivityLogs] = useState(() => {
@@ -520,26 +764,32 @@ export default function StoreContextProvider({ children }) {
 
   const [expenses, setExpenses] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_expenses');
-      if (saved) return JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_expenses`);
+      if (bizSaved) return JSON.parse(bizSaved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleExpenses : sampleMainExpenses;
   });
 
   const [payments, setPayments] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_payments');
-      if (saved) return JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_payments`);
+      if (bizSaved) return JSON.parse(bizSaved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleHairPinsPayments : sampleMainPayments;
   });
 
   const [fixedAssets, setFixedAssets] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_fixed_assets');
-      if (saved) return JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_fixedAssets`);
+      if (bizSaved) return JSON.parse(bizSaved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleFixedAssets : sampleMainFixedAssets;
   });
 
   const [tasks, setTasks] = useState([]);
@@ -638,24 +888,28 @@ export default function StoreContextProvider({ children }) {
 
   const [suppliers, setSuppliers] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_suppliers');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_suppliers`);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return sampleSuppliers;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleSuppliers : sampleMainSuppliers;
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_purchase_orders');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_purchaseOrders`);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return samplePurchaseOrders;
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? samplePurchaseOrders : sampleMainPurchaseOrders;
   });
 
   // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
@@ -891,18 +1145,22 @@ export default function StoreContextProvider({ children }) {
 
   const [boms, setBoms] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_boms');
-      if (saved) return JSON.parse(saved).map(normalizeBOM);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_boms`);
+      if (bizSaved) return JSON.parse(bizSaved).map(normalizeBOM);
     } catch (e) {}
-    return sampleBOMs.map(normalizeBOM);
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return (activeId === 'biz_hairpins' ? sampleBOMs : sampleMainBOMs).map(normalizeBOM);
   });
 
   const [productionOrders, setProductionOrders] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_production_orders');
-      if (saved) return JSON.parse(saved).map(normalizeProductionOrder);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_productionOrders`);
+      if (bizSaved) return JSON.parse(bizSaved).map(normalizeProductionOrder);
     } catch (e) {}
-    return sampleProductionOrders.map(normalizeProductionOrder);
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return (activeId === 'biz_hairpins' ? sampleProductionOrders : sampleMainProductionOrders).map(normalizeProductionOrder);
   });
 
   // --- HR & PAYROLL ERP STATE ---
@@ -1396,18 +1654,22 @@ export default function StoreContextProvider({ children }) {
 
   const [journalEntries, setJournalEntries] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_journal_entries');
-      if (saved) return JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_journalEntries`);
+      if (bizSaved) return JSON.parse(bizSaved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleJournalEntries : sampleMainJournalEntries;
   });
 
   const [journalLines, setJournalLines] = useState(() => {
     try {
-      const saved = localStorage.getItem('gym_journal_lines');
-      if (saved) return JSON.parse(saved);
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_journalLines`);
+      if (bizSaved) return JSON.parse(bizSaved);
     } catch (e) {}
-    return [];
+    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+    return activeId === 'biz_hairpins' ? sampleJournalLines : sampleMainJournalLines;
   });
 
   const [paymentAllocations, setPaymentAllocations] = useState(() => {
@@ -1529,69 +1791,21 @@ export default function StoreContextProvider({ children }) {
     return { totalPaid, remaining, derivedStatus, allocations };
   };
 
-  // SMS Configuration (Base Defaults with localStorage mirror)
-  const DEFAULT_SMS_CONFIG = {
-    apiKey: '2179165276941c4e5eb994053957585',
-    email: 'seynextech@gmail.com',
-    senderID: 'SEYNEX',
-    companyName: 'Royal Hair Pin Industries',
-    dashboardName: 'Royal Hair Pins & Accessories',
-    receiptLogo: '',
-    companyLogo: '',
-    companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
-    companyPhone: '072 840 8880',
-    adminPhone: '072 840 8880',
-    companyEmail: 'royalhairpins@gmail.com',
-    bankDetails: {
-      accountName: 'ROYAL HAIR PIN INDUSTRIES',
-      bank: 'Sampath Bank',
-      branch: 'Kelaniya Branch',
-      accountNumber: '1018 5281 9432'
-    },
-    quoteTemplate: 'Hi {name},\nHere is your hair pin quotation from Royal Hair Pins.\nTotal Amount: LKR {amount}\nView Quote: {link}',
-    thankYouTemplate: 'Hi {name},\nThank you for choosing Royal Hair Pins! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
-    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply & service renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
-    invoiceReminderTemplate: 'Hi {name},\nReminder from Royal Hair Pins: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
-    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Royal Hair Pins!',
-    cashReceivedTemplate: 'Hi {name},\nCash Received! Royal Hair Pins received LKR {amount} for {documentType} #{number}. Thank you!',
-    autoRenewalEnabled: true,
-    autoRenewalDays: '15,7,3,1,0',
-    autoInvoiceEnabled: false,
-    autoInvoiceDays: 3,
-    birthdayWishEnabled: true,
-    smsHeader: '',
-    smsFooter: '',
-    smsEncoding: 'GSM',
-    deliveryReports: true,
-    pdfColor: '#0d9488',
-    pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
-    pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.',
-    sessionTimeout: 5,
-    balance: 0,
-    invoicePrefix: 'INV-',
-    nextInvoiceNumber: 1001,
-    quotePrefix: 'QT-',
-    nextQuoteNumber: 1001,
-    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
-  };
+  // SMS Configuration State (business-aware)
 
   const [smsConfig, setSmsConfig] = useState(() => {
-    const saved = localStorage.getItem('gym_sms_config');
-    if (saved) {
-      try { 
-        const parsed = JSON.parse(saved); 
+    try {
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_smsConfig`);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
         if (parsed && typeof parsed === 'object') {
-          if (parsed.pdfNotes && parsed.pdfNotes.includes('GymSales')) {
-            parsed.pdfNotes = 'This document is computer-generated by Seynex Technology Sales Management Suite.';
-          }
-          if (parsed.dashboardName === 'GymSales Pro' || parsed.dashboardName === 'GymSales') {
-            parsed.dashboardName = 'Seynex Technology';
-          }
-          return { ...DEFAULT_SMS_CONFIG, ...parsed };
+          return { ...(activeId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG), ...parsed };
         }
-      } catch (e) {}
-    }
-    return DEFAULT_SMS_CONFIG;
+      }
+      return activeId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
+    } catch (e) {}
+    return DEFAULT_MAIN_SMS_CONFIG;
   });
 
   useEffect(() => {
@@ -1699,19 +1913,20 @@ export default function StoreContextProvider({ children }) {
   // Load business dataset by ID
   const loadBusinessData = (businessId) => {
     if (businessId === 'biz_hairpins') {
-      const savedCust = localStorage.getItem('biz_data_biz_hairpins_customers') || localStorage.getItem('gym_customers');
-      const savedInv = localStorage.getItem('biz_data_biz_hairpins_inventory') || localStorage.getItem('gym_inventory');
-      const savedLeads = localStorage.getItem('biz_data_biz_hairpins_leads') || localStorage.getItem('gym_leads');
-      const savedQuotes = localStorage.getItem('biz_data_biz_hairpins_quotes') || localStorage.getItem('gym_quotes');
-      const savedInvoices = localStorage.getItem('biz_data_biz_hairpins_invoices') || localStorage.getItem('gym_invoices');
-      const savedExpenses = localStorage.getItem('biz_data_biz_hairpins_expenses') || localStorage.getItem('gym_expenses');
-      const savedFA = localStorage.getItem('biz_data_biz_hairpins_fixedAssets') || localStorage.getItem('gym_fixed_assets');
-      const savedJE = localStorage.getItem('biz_data_biz_hairpins_journalEntries') || localStorage.getItem('gym_journal_entries');
-      const savedJL = localStorage.getItem('biz_data_biz_hairpins_journalLines') || localStorage.getItem('gym_journal_lines');
-      const savedSuppliers = localStorage.getItem('biz_data_biz_hairpins_suppliers') || localStorage.getItem('gym_suppliers');
-      const savedPO = localStorage.getItem('biz_data_biz_hairpins_purchaseOrders') || localStorage.getItem('gym_purchase_orders');
-      const savedBOM = localStorage.getItem('biz_data_biz_hairpins_boms') || localStorage.getItem('gym_boms');
-      const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders') || localStorage.getItem('gym_production_orders');
+      const savedCust = localStorage.getItem('biz_data_biz_hairpins_customers');
+      const savedInv = localStorage.getItem('biz_data_biz_hairpins_inventory');
+      const savedLeads = localStorage.getItem('biz_data_biz_hairpins_leads');
+      const savedQuotes = localStorage.getItem('biz_data_biz_hairpins_quotes');
+      const savedInvoices = localStorage.getItem('biz_data_biz_hairpins_invoices');
+      const savedExpenses = localStorage.getItem('biz_data_biz_hairpins_expenses');
+      const savedPayments = localStorage.getItem('biz_data_biz_hairpins_payments');
+      const savedFA = localStorage.getItem('biz_data_biz_hairpins_fixedAssets');
+      const savedJE = localStorage.getItem('biz_data_biz_hairpins_journalEntries');
+      const savedJL = localStorage.getItem('biz_data_biz_hairpins_journalLines');
+      const savedSuppliers = localStorage.getItem('biz_data_biz_hairpins_suppliers');
+      const savedPO = localStorage.getItem('biz_data_biz_hairpins_purchaseOrders');
+      const savedBOM = localStorage.getItem('biz_data_biz_hairpins_boms');
+      const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
 
       return {
@@ -1721,6 +1936,7 @@ export default function StoreContextProvider({ children }) {
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleQuotes,
         invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleInvoices,
         expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleExpenses,
+        payments: savedPayments ? JSON.parse(savedPayments) : sampleHairPinsPayments,
         fixedAssets: savedFA ? JSON.parse(savedFA) : sampleFixedAssets,
         journalEntries: savedJE ? JSON.parse(savedJE) : sampleJournalEntries,
         journalLines: savedJL ? JSON.parse(savedJL) : sampleJournalLines,
@@ -1728,16 +1944,7 @@ export default function StoreContextProvider({ children }) {
         purchaseOrders: savedPO ? JSON.parse(savedPO) : samplePurchaseOrders,
         boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : sampleBOMs.map(normalizeBOM),
         productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : sampleProductionOrders.map(normalizeProductionOrder),
-        smsConfig: savedConfig ? JSON.parse(savedConfig) : {
-          ...DEFAULT_SMS_CONFIG,
-          companyName: 'Royal Hair Pin Industries',
-          dashboardName: 'Royal Hair Pins & Accessories',
-          companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
-          companyEmail: 'royalhairpins@gmail.com',
-          companyPhone: '+94 77 123 4567',
-          pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
-          pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.'
-        }
+        smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_HAIRPINS_SMS_CONFIG
       };
     }
 
@@ -1748,6 +1955,7 @@ export default function StoreContextProvider({ children }) {
       const savedQuotes = localStorage.getItem('biz_data_biz_main_quotes');
       const savedInvoices = localStorage.getItem('biz_data_biz_main_invoices');
       const savedExpenses = localStorage.getItem('biz_data_biz_main_expenses');
+      const savedPayments = localStorage.getItem('biz_data_biz_main_payments');
       const savedFA = localStorage.getItem('biz_data_biz_main_fixedAssets');
       const savedJE = localStorage.getItem('biz_data_biz_main_journalEntries');
       const savedJL = localStorage.getItem('biz_data_biz_main_journalLines');
@@ -1763,24 +1971,16 @@ export default function StoreContextProvider({ children }) {
         leads: savedLeads ? JSON.parse(savedLeads) : sampleMainLeads,
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleMainQuotes,
         invoices: savedInvoices ? JSON.parse(savedInvoices) : sampleMainInvoices,
-        expenses: savedExpenses ? JSON.parse(savedExpenses) : [],
-        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
-        journalEntries: savedJE ? JSON.parse(savedJE) : [],
-        journalLines: savedJL ? JSON.parse(savedJL) : [],
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
-        smsConfig: savedConfig ? JSON.parse(savedConfig) : {
-          ...DEFAULT_SMS_CONFIG,
-          companyName: 'Seynex Enterprises',
-          dashboardName: 'Seynex Enterprises',
-          companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
-          companyEmail: 'info@seynex.lk',
-          companyPhone: '+94 11 234 5678',
-          pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
-          pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.'
-        }
+        expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleMainExpenses,
+        payments: savedPayments ? JSON.parse(savedPayments) : sampleMainPayments,
+        fixedAssets: savedFA ? JSON.parse(savedFA) : sampleMainFixedAssets,
+        journalEntries: savedJE ? JSON.parse(savedJE) : sampleMainJournalEntries,
+        journalLines: savedJL ? JSON.parse(savedJL) : sampleMainJournalLines,
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : sampleMainSuppliers,
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : sampleMainPurchaseOrders,
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : sampleMainBOMs.map(normalizeBOM),
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : sampleMainProductionOrders.map(normalizeProductionOrder),
+        smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_MAIN_SMS_CONFIG
       };
     }
 
@@ -1791,6 +1991,7 @@ export default function StoreContextProvider({ children }) {
     const savedQuotes = localStorage.getItem(`biz_data_${businessId}_quotes`);
     const savedInvoices = localStorage.getItem(`biz_data_${businessId}_invoices`);
     const savedExpenses = localStorage.getItem(`biz_data_${businessId}_expenses`);
+    const savedPayments = localStorage.getItem(`biz_data_${businessId}_payments`);
     const savedConfig = localStorage.getItem(`biz_data_${businessId}_smsConfig`);
 
     const bizObj = businesses.find(b => b.id === businessId) || { name: 'Custom Business' };
@@ -1802,6 +2003,7 @@ export default function StoreContextProvider({ children }) {
       quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
       invoices: savedInvoices ? JSON.parse(savedInvoices) : [],
       expenses: savedExpenses ? JSON.parse(savedExpenses) : [],
+      payments: savedPayments ? JSON.parse(savedPayments) : [],
       fixedAssets: [],
       journalEntries: [],
       journalLines: [],
@@ -1810,7 +2012,7 @@ export default function StoreContextProvider({ children }) {
       boms: [],
       productionOrders: [],
       smsConfig: savedConfig ? JSON.parse(savedConfig) : {
-        ...DEFAULT_SMS_CONFIG,
+        ...DEFAULT_MAIN_SMS_CONFIG,
         companyName: bizObj.name,
         dashboardName: bizObj.name,
         pdfFooterText: `Thank you for your business. ${bizObj.name}.`,
@@ -1834,6 +2036,7 @@ export default function StoreContextProvider({ children }) {
       localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(quotes));
       localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(invoices));
       localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(expenses));
+      localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(payments));
       localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(fixedAssets));
       localStorage.setItem(`biz_data_${activeBusinessId}_journalEntries`, JSON.stringify(journalEntries));
       localStorage.setItem(`biz_data_${activeBusinessId}_journalLines`, JSON.stringify(journalLines));
@@ -1856,6 +2059,7 @@ export default function StoreContextProvider({ children }) {
     setQuotes(loadedData.quotes);
     setInvoices(loadedData.invoices);
     setExpenses(loadedData.expenses);
+    setPayments(loadedData.payments);
     setFixedAssets(loadedData.fixedAssets);
     setJournalEntries(loadedData.journalEntries);
     setJournalLines(loadedData.journalLines);
@@ -1876,10 +2080,11 @@ export default function StoreContextProvider({ children }) {
       localStorage.setItem('gym_leads', JSON.stringify(loadedData.leads));
       localStorage.setItem('gym_quotes', JSON.stringify(loadedData.quotes));
       localStorage.setItem('gym_invoices', JSON.stringify(loadedData.invoices));
+      localStorage.setItem('gym_payments', JSON.stringify(loadedData.payments));
       localStorage.setItem('gym_sms_config', JSON.stringify(loadedData.smsConfig));
     } catch (e) {}
 
-    showNotification(`Switched active business to "${targetBiz.name}"!`, 'success');
+    showNotification(`Switched to "${targetBiz.name}"!`, 'success');
   };
 
   const addBusiness = ({ name, category, tagline, color, icon }) => {
@@ -2225,41 +2430,46 @@ export default function StoreContextProvider({ children }) {
   }, [theme]);
 
   const seedDummyData = () => {
-    setCustomers(sampleCustomers);
-    setInventory(sampleInventory);
-    setLeads(sampleLeads);
-    setQuotes(sampleQuotes);
-    setInvoices(sampleInvoices);
-    setExpenses(sampleExpenses);
-    setFixedAssets(sampleFixedAssets);
-    setJournalEntries(sampleJournalEntries);
-    setJournalLines(sampleJournalLines);
-    setSuppliers(sampleSuppliers);
-    setPurchaseOrders(samplePurchaseOrders);
-    setEmployees(sampleEmployees);
-    if (typeof normalizeBOM === 'function') {
-      setBoms(sampleBOMs.map(normalizeBOM));
-    }
-    if (typeof normalizeProductionOrder === 'function') {
-      setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
+    if (activeBusinessId === 'biz_hairpins') {
+      loadHairPinIndustryDefaults();
+      return;
     }
 
-    localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
-    localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
-    localStorage.setItem('gym_leads', JSON.stringify(sampleLeads));
-    localStorage.setItem('gym_quotes', JSON.stringify(sampleQuotes));
-    localStorage.setItem('gym_invoices', JSON.stringify(sampleInvoices));
-    localStorage.setItem('gym_expenses', JSON.stringify(sampleExpenses));
-    localStorage.setItem('gym_fixed_assets', JSON.stringify(sampleFixedAssets));
-    localStorage.setItem('gym_journal_entries', JSON.stringify(sampleJournalEntries));
-    localStorage.setItem('gym_journal_lines', JSON.stringify(sampleJournalLines));
-    localStorage.setItem('gym_suppliers', JSON.stringify(sampleSuppliers));
-    localStorage.setItem('gym_purchase_orders', JSON.stringify(samplePurchaseOrders));
-    localStorage.setItem('gym_employees', JSON.stringify(sampleEmployees));
-    localStorage.setItem('gym_boms', JSON.stringify(sampleBOMs));
-    localStorage.setItem('gym_production_orders', JSON.stringify(sampleProductionOrders));
+    setCustomers(sampleMainCustomers);
+    setInventory(sampleMainInventory);
+    setLeads(sampleMainLeads);
+    setQuotes(sampleMainQuotes);
+    setInvoices(sampleMainInvoices);
+    setExpenses(sampleMainExpenses);
+    setPayments(sampleMainPayments);
+    setFixedAssets(sampleMainFixedAssets);
+    setJournalEntries(sampleMainJournalEntries);
+    setJournalLines(sampleMainJournalLines);
+    setSuppliers(sampleMainSuppliers);
+    setPurchaseOrders(sampleMainPurchaseOrders);
+    setBoms(sampleMainBOMs.map(normalizeBOM));
+    setProductionOrders(sampleMainProductionOrders.map(normalizeProductionOrder));
+    setSmsConfig(DEFAULT_MAIN_SMS_CONFIG);
 
-    showNotification('Loaded enterprise demo dataset successfully!');
+    try {
+      localStorage.setItem('biz_data_biz_main_customers', JSON.stringify(sampleMainCustomers));
+      localStorage.setItem('biz_data_biz_main_inventory', JSON.stringify(sampleMainInventory));
+      localStorage.setItem('biz_data_biz_main_leads', JSON.stringify(sampleMainLeads));
+      localStorage.setItem('biz_data_biz_main_quotes', JSON.stringify(sampleMainQuotes));
+      localStorage.setItem('biz_data_biz_main_invoices', JSON.stringify(sampleMainInvoices));
+      localStorage.setItem('biz_data_biz_main_expenses', JSON.stringify(sampleMainExpenses));
+      localStorage.setItem('biz_data_biz_main_payments', JSON.stringify(sampleMainPayments));
+      localStorage.setItem('biz_data_biz_main_fixedAssets', JSON.stringify(sampleMainFixedAssets));
+      localStorage.setItem('biz_data_biz_main_journalEntries', JSON.stringify(sampleMainJournalEntries));
+      localStorage.setItem('biz_data_biz_main_journalLines', JSON.stringify(sampleMainJournalLines));
+      localStorage.setItem('biz_data_biz_main_suppliers', JSON.stringify(sampleMainSuppliers));
+      localStorage.setItem('biz_data_biz_main_purchaseOrders', JSON.stringify(sampleMainPurchaseOrders));
+      localStorage.setItem('biz_data_biz_main_boms', JSON.stringify(sampleMainBOMs));
+      localStorage.setItem('biz_data_biz_main_productionOrders', JSON.stringify(sampleMainProductionOrders));
+      localStorage.setItem('biz_data_biz_main_smsConfig', JSON.stringify(DEFAULT_MAIN_SMS_CONFIG));
+    } catch (e) {}
+
+    showNotification('Loaded Seynex Enterprises demo dataset successfully!', 'success');
   };
 
   const loadHairPinIndustryDefaults = () => {
@@ -2269,44 +2479,33 @@ export default function StoreContextProvider({ children }) {
     setQuotes(sampleQuotes);
     setInvoices(sampleInvoices);
     setExpenses(sampleExpenses);
+    setPayments(sampleHairPinsPayments);
     setFixedAssets(sampleFixedAssets);
     setJournalEntries(sampleJournalEntries);
     setJournalLines(sampleJournalLines);
     setSuppliers(sampleSuppliers);
     setPurchaseOrders(samplePurchaseOrders);
-    setEmployees(sampleEmployees);
-    if (typeof normalizeBOM === 'function') {
-      setBoms(sampleBOMs.map(normalizeBOM));
-    }
-    if (typeof normalizeProductionOrder === 'function') {
-      setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
-    }
+    setBoms(sampleBOMs.map(normalizeBOM));
+    setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
+    setSmsConfig(DEFAULT_HAIRPINS_SMS_CONFIG);
 
-    const updatedConfig = {
-      ...smsConfig,
-      companyName: 'Royal Hair Pin Industries',
-      dashboardName: 'Royal Hair Pins & Accessories',
-      companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
-      pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
-      pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.'
-    };
-    setSmsConfig(updatedConfig);
-
-    localStorage.setItem('gym_customers', JSON.stringify(sampleCustomers));
-    localStorage.setItem('gym_inventory', JSON.stringify(sampleInventory));
-    localStorage.setItem('gym_leads', JSON.stringify(sampleLeads));
-    localStorage.setItem('gym_quotes', JSON.stringify(sampleQuotes));
-    localStorage.setItem('gym_invoices', JSON.stringify(sampleInvoices));
-    localStorage.setItem('gym_expenses', JSON.stringify(sampleExpenses));
-    localStorage.setItem('gym_fixed_assets', JSON.stringify(sampleFixedAssets));
-    localStorage.setItem('gym_journal_entries', JSON.stringify(sampleJournalEntries));
-    localStorage.setItem('gym_journal_lines', JSON.stringify(sampleJournalLines));
-    localStorage.setItem('gym_suppliers', JSON.stringify(sampleSuppliers));
-    localStorage.setItem('gym_purchase_orders', JSON.stringify(samplePurchaseOrders));
-    localStorage.setItem('gym_employees', JSON.stringify(sampleEmployees));
-    localStorage.setItem('gym_boms', JSON.stringify(sampleBOMs));
-    localStorage.setItem('gym_production_orders', JSON.stringify(sampleProductionOrders));
-    localStorage.setItem('gym_sms_config', JSON.stringify(updatedConfig));
+    try {
+      localStorage.setItem('biz_data_biz_hairpins_customers', JSON.stringify(sampleCustomers));
+      localStorage.setItem('biz_data_biz_hairpins_inventory', JSON.stringify(sampleInventory));
+      localStorage.setItem('biz_data_biz_hairpins_leads', JSON.stringify(sampleLeads));
+      localStorage.setItem('biz_data_biz_hairpins_quotes', JSON.stringify(sampleQuotes));
+      localStorage.setItem('biz_data_biz_hairpins_invoices', JSON.stringify(sampleInvoices));
+      localStorage.setItem('biz_data_biz_hairpins_expenses', JSON.stringify(sampleExpenses));
+      localStorage.setItem('biz_data_biz_hairpins_payments', JSON.stringify(sampleHairPinsPayments));
+      localStorage.setItem('biz_data_biz_hairpins_fixedAssets', JSON.stringify(sampleFixedAssets));
+      localStorage.setItem('biz_data_biz_hairpins_journalEntries', JSON.stringify(sampleJournalEntries));
+      localStorage.setItem('biz_data_biz_hairpins_journalLines', JSON.stringify(sampleJournalLines));
+      localStorage.setItem('biz_data_biz_hairpins_suppliers', JSON.stringify(sampleSuppliers));
+      localStorage.setItem('biz_data_biz_hairpins_purchaseOrders', JSON.stringify(samplePurchaseOrders));
+      localStorage.setItem('biz_data_biz_hairpins_boms', JSON.stringify(sampleBOMs));
+      localStorage.setItem('biz_data_biz_hairpins_productionOrders', JSON.stringify(sampleProductionOrders));
+      localStorage.setItem('biz_data_biz_hairpins_smsConfig', JSON.stringify(DEFAULT_HAIRPINS_SMS_CONFIG));
+    } catch (e) {}
 
     setHasUnsavedChanges(true);
     showNotification('🏭 Loaded Hair Pin Manufacturing & Wholesale Catalog successfully!', 'success');
