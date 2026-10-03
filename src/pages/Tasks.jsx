@@ -196,9 +196,9 @@ const Tasks = () => {
               width: '100%', 
               maxWidth: '560px', 
               borderRadius: '16px',
-              background: '#111827',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--panel-border)',
+              boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)',
               overflow: 'visible',
               padding: '24px'
             }}

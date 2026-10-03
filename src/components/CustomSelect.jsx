@@ -36,8 +36,10 @@ const CustomSelect = ({
   });
 
   const selectedOption = formattedOptions.find(o => String(o.value) === String(value));
-  const displayLabel = selectedOption ? selectedOption.label : placeholder;
-  const hasValue = !!(selectedOption && selectedOption.value !== '' && selectedOption.value !== undefined && selectedOption.value !== null);
+  const displayLabel = selectedOption 
+    ? selectedOption.label 
+    : (value !== undefined && value !== null && value !== '' ? String(value) : placeholder);
+  const hasValue = !!(selectedOption && selectedOption.value !== '' && selectedOption.value !== undefined && selectedOption.value !== null) || (value !== undefined && value !== null && value !== '');
 
   /* ── Compute portal position with auto-flip ────────────────────────────── */
   const computePosition = useCallback(() => {

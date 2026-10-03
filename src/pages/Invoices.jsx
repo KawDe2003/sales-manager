@@ -914,9 +914,9 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           flexDirection: 'column', 
           overflow: 'hidden', 
           borderRadius: '16px',
-          background: '#111827',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+          background: 'var(--panel-bg)',
+          border: '1px solid var(--panel-border)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1233,11 +1233,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           
           {/* Sticky Modal Footer Actions */}
           <div 
-            className="flex justify-end gap-3 p-4 border-t border-panel"
+            className="flex justify-end gap-3 p-4 border-t modal-footer-solid"
             style={{
               flexShrink: 0,
-              background: 'rgba(17, 24, 39, 0.98)',
-              backdropFilter: 'blur(8px)',
+              background: 'var(--panel-bg)',
+              borderColor: 'var(--panel-border)',
               paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
             }}
           >

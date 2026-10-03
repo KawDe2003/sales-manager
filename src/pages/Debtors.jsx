@@ -419,8 +419,8 @@ const Debtors = () => {
             className="glass-panel app-modal-dialog" 
             style={{ 
               width: '100%', maxWidth: '480px', maxHeight: 'min(92vh, calc(100dvh - 24px))', overflowY: 'auto',
-              padding: '24px', background: '#111827', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '16px', boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.85)'
+              padding: '24px', background: 'var(--panel-bg)', border: '1px solid var(--panel-border)',
+              borderRadius: '16px', boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)'
             }}
             onClick={(e) => e.stopPropagation()}
           >

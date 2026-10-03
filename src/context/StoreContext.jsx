@@ -949,13 +949,35 @@ export default function StoreContextProvider({ children }) {
     return [];
   });
 
+  const sanitizeExpensesByBiz = (list, bizId) => {
+    if (!Array.isArray(list)) return [];
+    return list.filter(e => {
+      if (bizId === 'biz_hairpins') {
+        if (e.businessId && e.businessId !== 'biz_hairpins') return false;
+        if (String(e.id).startsWith('mexp-')) return false;
+        const desc = (e.description || '').toLowerCase();
+        if (desc.includes('aws cloud') || desc.includes('colombo 03 office') || desc.includes('devops')) return false;
+        return true;
+      } else {
+        if (e.businessId && e.businessId !== 'biz_main') return false;
+        if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
+        const desc = (e.description || '').toLowerCase();
+        if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
+        return true;
+      }
+    });
+  };
+
   const [expenses, setExpenses] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_expenses`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = sanitizeExpensesByBiz(parsed, activeId);
+          if (sanitized.length > 0) return sanitized;
+        }
       }
     } catch (e) {}
     return activeId === 'biz_hairpins' ? sampleExpenses : sampleMainExpenses;
@@ -2178,7 +2200,7 @@ export default function StoreContextProvider({ children }) {
         leads: savedLeads ? JSON.parse(savedLeads) : sampleLeads,
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleQuotes,
         invoices: loadedHairpinInvoices,
-        expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleExpenses,
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : sampleExpenses,
         payments: savedPayments ? JSON.parse(savedPayments) : sampleHairPinsPayments,
         fixedAssets: savedFA ? JSON.parse(savedFA) : sampleFixedAssets,
         journalEntries: savedJE ? JSON.parse(savedJE) : sampleJournalEntries,
@@ -2264,7 +2286,7 @@ export default function StoreContextProvider({ children }) {
         leads: savedLeads ? JSON.parse(savedLeads) : sampleMainLeads,
         quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleMainQuotes,
         invoices: loadedMainInvoices,
-        expenses: savedExpenses ? JSON.parse(savedExpenses) : sampleMainExpenses,
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : sampleMainExpenses,
         payments: savedPayments ? JSON.parse(savedPayments) : sampleMainPayments,
         fixedAssets: savedFA ? JSON.parse(savedFA) : sampleMainFixedAssets,
         journalEntries: savedJE ? JSON.parse(savedJE) : sampleMainJournalEntries,
@@ -3312,7 +3334,11 @@ export default function StoreContextProvider({ children }) {
 
   // --- Expenses CRUD ---
   const addExpense = (expense) => {
-    const newExpense = { ...expense, id: expense.id || uuidv4() };
+    const newExpense = { 
+      ...expense, 
+      id: expense.id || uuidv4(),
+      businessId: expense.businessId || activeBusinessId 
+    };
     setExpenses(prev => [newExpense, ...prev]);
     syncExpenseToSupabase(newExpense);
 

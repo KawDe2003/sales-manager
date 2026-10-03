@@ -922,7 +922,7 @@ tbody tr:hover td {
 .app-sidebar.collapsed { width: 78px; }
 
 .nav-item:hover { background: var(--subtle-bg) !important; }
-.nav-item.active:hover { background: rgba(99, 102, 241, 0.14) !important; }
+.nav-item.active:hover { background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important; }
 
 /* ===== LAYOUT: MAIN ===== */
 .main-container {

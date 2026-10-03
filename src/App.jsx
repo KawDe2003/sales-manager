@@ -1292,18 +1292,19 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'flex-start',
         gap: collapsed ? '0' : '12px',
-        padding: collapsed ? '10px 0' : '11px 16px',
-        borderRadius: '12px',
+        padding: collapsed ? '10px 0' : '10px 14px',
+        borderRadius: '10px',
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
         background: isActive 
-          ? 'rgba(16, 185, 129, 0.12)' 
+          ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' 
           : 'transparent',
-        border: isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent',
+        border: isActive 
+          ? '1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent)' 
+          : '1px solid transparent',
         fontWeight: isActive ? '700' : '500',
         transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
         fontSize: '0.86rem',
-        borderLeft: (isActive && !collapsed) ? '3px solid var(--accent-primary)' : (isActive ? '1px solid rgba(16, 185, 129, 0.22)' : '1px solid transparent'),
-        boxShadow: isActive ? '0 2px 10px rgba(16, 185, 129, 0.1), inset 0 1px 0 rgba(255,255,255,0.04)' : 'none',
+        boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'none',
         position: 'relative',
         textDecoration: 'none',
         overflow: 'hidden'
@@ -1313,12 +1314,25 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
     >
       {({ isActive }) => (
         <>
+          {/* Active Accent Pill Bar Indicator */}
+          {isActive && !collapsed && (
+            <span style={{
+              position: 'absolute',
+              left: 0,
+              top: '18%',
+              bottom: '18%',
+              width: '3.5px',
+              borderRadius: '0 4px 4px 0',
+              background: 'var(--accent-primary)',
+              boxShadow: '0 0 8px var(--accent-primary)'
+            }} />
+          )}
           <span style={{ 
             color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)', 
             display: 'flex', 
             flexShrink: 0,
             transition: 'color 0.22s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            transform: isActive ? 'scale(1.15) rotate(-2deg)' : 'scale(1) rotate(0deg)'
+            transform: isActive ? 'scale(1.12) rotate(-2deg)' : 'scale(1) rotate(0deg)'
           }}>
             {icon}
           </span>
