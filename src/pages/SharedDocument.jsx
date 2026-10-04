@@ -54,16 +54,36 @@ const SharedDocument = () => {
             setCustomerName(foundDoc.supplierName || sup?.name || 'Authorized Supplier');
           }
         } else if (type === 'quote') {
-          const rawQuote = quotes.find(item => item.id === id || item.shareKey === id || item.quoteNumber === id || item.quote_number === id);
+          const searchKey = String(id || '').trim();
+          const rawQuote = quotes.find(item => 
+            item.id === searchKey || 
+            item.shareKey === searchKey || 
+            item.quoteNumber === searchKey || 
+            item.quote_number === searchKey ||
+            String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
+          );
           if (rawQuote) {
             foundDoc = { ...rawQuote };
           }
           if (!foundDoc) {
+            try {
+              const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+              const matched = localQuotes.find(item => 
+                item.id === searchKey || 
+                item.shareKey === searchKey || 
+                item.quoteNumber === searchKey || 
+                item.quote_number === searchKey ||
+                String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
+              );
+              if (matched) foundDoc = { ...matched };
+            } catch (e) {}
+          }
+          if (!foundDoc) {
             const query = supabase.from('quotations').select('*');
-            if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
-            else query.or(`share_key.eq.${id},quote_number.eq.${id}`);
+            if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
+            else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
 
-            const { data, error } = await query.single();
+            const { data, error } = await query.maybeSingle();
             if (data && !error) {
               foundDoc = { 
                 ...data, 
@@ -222,13 +242,33 @@ const SharedDocument = () => {
             }
           }
         } else if (type === 'invoice') {
-          foundDoc = invoices.find(item => item.id === id || item.shareKey === id);
+          const searchKey = String(id || '').trim();
+          foundDoc = invoices.find(item => 
+            item.id === searchKey || 
+            item.shareKey === searchKey || 
+            item.invoiceNumber === searchKey || 
+            item.invoice_number === searchKey ||
+            String(item.invoiceNumber || '').toLowerCase() === searchKey.toLowerCase()
+          );
+          if (!foundDoc) {
+            try {
+              const localInvoices = JSON.parse(localStorage.getItem('gym_invoices') || '[]');
+              const matched = localInvoices.find(item => 
+                item.id === searchKey || 
+                item.shareKey === searchKey || 
+                item.invoiceNumber === searchKey || 
+                item.invoice_number === searchKey ||
+                String(item.invoiceNumber || '').toLowerCase() === searchKey.toLowerCase()
+              );
+              if (matched) foundDoc = { ...matched };
+            } catch (e) {}
+          }
           if (!foundDoc) {
             const query = supabase.from('invoices').select('*');
-            if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
-            else query.eq('share_key', id);
+            if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
+            else query.or(`share_key.eq.${searchKey},invoice_number.eq.${searchKey},invoice_number.ilike.${searchKey}`);
 
-            const { data, error } = await query.single();
+            const { data, error } = await query.maybeSingle();
             if (data && !error) {
               foundDoc = { 
                 ...data, 

@@ -7113,10 +7113,10 @@ export default function StoreContextProvider({ children }) {
         const isPayment = type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment';
         const route = isQuote ? 'quote' : isPayment ? 'receipt' : 'invoice';
         const token = isQuote 
-          ? (documentData.quoteNumber || documentData.quote_number || documentData.shareKey || documentData.id)
+          ? (documentData.id || documentData.shareKey || documentData.quoteNumber || documentData.quote_number)
           : isPayment
-          ? (documentData.receiptNumber || documentData.shareKey || documentData.id)
-          : (documentData.invoiceNumber || documentData.invoice_number || documentData.shareKey || documentData.id);
+          ? (documentData.receiptNumber || documentData.id || documentData.shareKey)
+          : (documentData.id || documentData.shareKey || documentData.invoiceNumber || documentData.invoice_number);
         return `${window.location.origin}/share/${route}/${token}`;
       })
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : (documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : new Date().toLocaleDateString()))
