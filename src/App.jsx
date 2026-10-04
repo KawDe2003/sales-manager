@@ -510,7 +510,7 @@ const AppContent = () => {
           <button
             id="quick-sale-bill-header-btn"
             onClick={() => setQuickSaleOpen(true)}
-            className="btn"
+            className="btn hidden-mobile"
             style={{
               height: '36px',
               padding: '0 14px',

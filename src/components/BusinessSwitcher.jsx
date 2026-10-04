@@ -134,10 +134,10 @@ export default function BusinessSwitcher() {
         {/* Business Name */}
         <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
           <div className="flex items-center gap-1.5">
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {currentBiz.name}
             </span>
-            <span style={{
+            <span className="hidden-mobile" style={{
               fontSize: '0.62rem',
               fontWeight: 700,
               padding: '1px 5px',
@@ -167,7 +167,8 @@ export default function BusinessSwitcher() {
             position: 'absolute',
             top: 'calc(100% + 6px)',
             left: 0,
-            minWidth: '290px',
+            width: 'min(290px, calc(100vw - 20px))',
+            maxWidth: 'calc(100vw - 20px)',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--panel-border)',
             borderRadius: '12px',

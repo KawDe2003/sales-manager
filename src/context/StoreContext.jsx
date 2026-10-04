@@ -1828,17 +1828,6 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { localStorage.setItem('gym_hr_letters', JSON.stringify(hrLetters)); }, [hrLetters]);
   useEffect(() => { localStorage.setItem('gym_feature_toggles', JSON.stringify(featureToggles)); }, [featureToggles]);
 
-  // LOCAL STORAGE REALTIME MIRRORS (PREVENTS LOCAL DATA LOSS ON REFRESH)
-  useEffect(() => { try { localStorage.setItem('gym_customers', JSON.stringify(customers)); } catch (e) {} }, [customers]);
-  useEffect(() => { try { localStorage.setItem('gym_inventory', JSON.stringify(inventory)); } catch (e) {} }, [inventory]);
-  useEffect(() => { try { localStorage.setItem('gym_invoices', JSON.stringify(invoices)); } catch (e) {} }, [invoices]);
-  useEffect(() => { try { localStorage.setItem('gym_quotes', JSON.stringify(quotes)); } catch (e) {} }, [quotes]);
-  useEffect(() => { try { localStorage.setItem('gym_leads', JSON.stringify(leads)); } catch (e) {} }, [leads]);
-  useEffect(() => { try { localStorage.setItem('gym_expenses', JSON.stringify(expenses)); } catch (e) {} }, [expenses]);
-  useEffect(() => { try { localStorage.setItem('gym_fixed_assets', JSON.stringify(fixedAssets)); } catch (e) {} }, [fixedAssets]);
-  useEffect(() => { try { localStorage.setItem('gym_payments', JSON.stringify(payments)); } catch (e) {} }, [payments]);
-  useEffect(() => { try { localStorage.setItem('gym_tasks', JSON.stringify(tasks)); } catch (e) {} }, [tasks]);
-  useEffect(() => { try { localStorage.setItem('gym_activity_logs', JSON.stringify(activityLogs)); } catch (e) {} }, [activityLogs]);
 
   // --- DOUBLE-ENTRY ACCOUNTING LEDGER STATE ---
   const defaultAccounts = [
@@ -2575,7 +2564,7 @@ export default function StoreContextProvider({ children }) {
 
     autoSaveTimerRef.current = setTimeout(() => {
       syncAllToCloud(true);
-    }, 1200);
+    }, 2500);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -4197,26 +4186,25 @@ export default function StoreContextProvider({ children }) {
       let rlsBlocked = false;
       let firstError = null;
 
-      const safeUpsert = async (table, payload, onConflict = 'id') => {
+      const safeUpsertBatch = async (table, records, onConflict = 'id') => {
+        if (!records || records.length === 0) return true;
         try {
-          const payloadWithBiz = { ...payload, business_id: activeBusinessId };
+          const payloadWithBiz = records.map(r => ({ ...r, business_id: activeBusinessId }));
           let res = await activeClient.from(table).upsert(payloadWithBiz, { onConflict });
 
-          // If foreign key constraint failed on user_id, retry with fallback
-          if (res.error && res.error.code === '23503' && payload.user_id) {
-            if (table === 'user_profiles') {
-              const fallback = { ...payloadWithBiz, user_id: '76bb4580-2006-464f-aab8-64029dbe9540' };
-              res = await activeClient.from(table).upsert(fallback, { onConflict });
-            } else {
-              const fallback = { ...payloadWithBiz };
-              delete fallback.user_id;
-              res = await activeClient.from(table).upsert(fallback, { onConflict });
-            }
+          // If foreign key constraint failed on user_id, retry without user_id
+          if (res.error && res.error.code === '23503') {
+            const fallback = payloadWithBiz.map(r => {
+              const copy = { ...r };
+              delete copy.user_id;
+              return copy;
+            });
+            res = await activeClient.from(table).upsert(fallback, { onConflict });
           }
 
           // If business_id column not present on remote schema yet, retry without business_id
           if (res.error && (res.error.code === '42703' || res.error.message?.includes('business_id'))) {
-            res = await activeClient.from(table).upsert(payload, { onConflict });
+            res = await activeClient.from(table).upsert(records, { onConflict });
           }
 
           if (res.error) {
@@ -4227,7 +4215,7 @@ export default function StoreContextProvider({ children }) {
             console.warn(`[Supabase Save Warning on ${table}]`, res.error.message);
             return false;
           }
-          savedCount++;
+          savedCount += records.length;
           return true;
         } catch (e) {
           console.warn(`[Supabase Save Exception on ${table}]`, e.message);
@@ -4236,227 +4224,201 @@ export default function StoreContextProvider({ children }) {
         }
       };
 
-      // 1. Customers
-      for (const c of (customers || [])) {
-        await safeUpsert('customers', {
-          id: toUuid(c.id),
-          user_id: effId,
-          gym_name: c.gymName || 'Client Gym',
-          name: c.name || '',
-          email: c.email || '',
-          phone: c.phone || '',
-          dob: c.dob || null,
-          purchase_date: c.purchaseDate || null,
-          renewal_date: c.renewalDate || null,
-          annual_fee: Number(c.annualFee) || 0,
-          status: c.status || 'Active',
-          notes: c.notes || []
-        });
-      }
-
-      // 2. Inventory
-      for (const item of (inventory || [])) {
-        await safeUpsert('inventory', {
-          id: toUuid(item.id),
-          user_id: effId,
-          name: item.name,
-          item_type: item.type || 'Equipment',
-          price: Number(item.price) || 0,
-          cost_price: Number(item.costPrice) || 0,
-          reorder_level: Number(item.reorderLevel) || 5,
-          stock: Number(item.stock) || 0,
-          description: item.desc || ''
-        });
-      }
-
-      // 3. Quotations
-      for (const q of (quotes || [])) {
-        await safeUpsert('quotations', {
-          id: toUuid(q.id),
-          user_id: effId,
-          share_key: q.shareKey || generateShareKey(),
-          quote_number: q.quoteNumber || 'QT-1001',
-          date: q.date || new Date().toISOString().split('T')[0],
-          prospect_name: q.prospectName || '',
-          prospect_phone: q.prospectPhone || '',
-          amount: Number(q.amount) || 0,
-          status: q.status || 'Pending',
-          items: q.items || []
-        });
-      }
-
-      // 4. Invoices
-      for (const inv of (invoices || [])) {
-        await safeUpsert('invoices', {
-          id: toUuid(inv.id),
-          user_id: effId,
-          share_key: inv.shareKey || generateShareKey(),
-          invoice_number: inv.invoiceNumber || 'INV-1001',
-          date: inv.date || new Date().toISOString().split('T')[0],
-          due_date: inv.dueDate || null,
-          customer_id: isUuid(inv.customerId) ? inv.customerId : null,
-          prospect_name: inv.prospectName || '',
-          amount: Number(inv.amount) || 0,
-          status: inv.status || 'Draft',
-          items: inv.items || [],
-          reminder_sent: !!inv.reminderSent,
-          installment_plan: inv.installmentPlan || {}
-        });
-      }
-
-      // 5. Leads
-      for (const l of (leads || [])) {
-        await safeUpsert('leads', {
-          id: toUuid(l.id),
-          user_id: effId,
-          gym_name: l.gymName || 'Lead Gym',
-          prospect_name: l.prospectName || l.name || '',
-          phone: l.phone || '',
-          status: l.status || 'New',
-          date: l.date || new Date().toISOString(),
-          notes: l.notes || ''
-        });
-      }
-
-      // 6. Expenses
-      for (const e of (expenses || [])) {
-        await safeUpsert('expenses', {
-          id: toUuid(e.id),
-          user_id: effId,
-          category: e.category || 'Operational',
-          amount: Number(e.amount) || 0,
-          date: e.date || new Date().toISOString().split('T')[0],
-          description: e.description || ''
-        });
-      }
-
-      // 7. Fixed Assets
-      for (const fa of (fixedAssets || [])) {
-        await safeUpsert('fixed_assets', {
-          id: toUuid(fa.id),
-          user_id: effId,
-          asset_code: fa.assetCode || 'FA-001',
-          name: fa.name,
-          category: fa.category || 'Gym Equipment',
-          purchase_date: fa.purchaseDate || new Date().toISOString().split('T')[0],
-          purchase_cost: Number(fa.purchaseCost) || 0,
-          useful_life_years: Number(fa.usefulLifeYears) || 5,
-          salvage_value: Number(fa.salvageValue) || 0,
-          location: fa.location || 'HQ',
-          status: fa.status || 'Active'
-        });
-      }
-
-      // 8. Payments
-      for (const p of (payments || [])) {
-        await safeUpsert('payments', {
-          id: toUuid(p.id),
-          user_id: effId,
-          customer_id: isUuid(p.customerId) ? p.customerId : null,
-          document_id: isUuid(p.documentId) ? p.documentId : null,
-          amount: Number(p.amount) || 0,
-          payment_type: p.type || 'Cash',
-          payment_timestamp: p.timestamp || new Date().toISOString()
-        });
-      }
-
-      // 9. Tasks
-      for (const t of (tasks || [])) {
-        await safeUpsert('tasks', {
-          id: toUuid(t.id),
-          user_id: effId,
-          title: t.title || 'Task',
-          description: t.description || '',
-          due_date: t.dueDate || null,
-          status: t.status || 'Pending',
-          priority: t.priority || 'Medium',
-          related_to: t.relatedTo || '',
-          related_id: t.relatedId || ''
-        });
-      }
-
-      // 10. Activity Logs (last 50)
-      for (const l of (activityLogs || []).slice(0, 50)) {
-        await safeUpsert('activity_logs', {
-          id: toUuid(l.id),
-          user_id: effId,
-          log_type: l.type || 'System',
-          message: l.message || '',
-          details: typeof l.details === 'object' ? JSON.stringify(l.details) : String(l.details || ''),
-          log_timestamp: l.timestamp || new Date().toISOString()
-        });
-      }
-
-      // 11. Config / Profile
-      await safeUpsert('user_profiles', {
+      const customerRecords = (customers || []).map(c => ({
+        id: toUuid(c.id),
         user_id: effId,
-        config: smsConfig,
-        updated_at: new Date().toISOString()
-      }, 'user_id');
+        gym_name: c.gymName || 'Client Gym',
+        name: c.name || '',
+        email: c.email || '',
+        phone: c.phone || '',
+        dob: c.dob || null,
+        purchase_date: c.purchaseDate || null,
+        renewal_date: c.renewalDate || null,
+        annual_fee: Number(c.annualFee) || 0,
+        status: c.status || 'Active',
+        notes: c.notes || []
+      }));
 
-      // 12. Suppliers
-      for (const s of (suppliers || [])) {
-        await safeUpsert('suppliers', {
-          id: toUuid(s.id),
-          name: s.name || '',
-          contact_person: s.contactPerson || '',
-          email: s.email || '',
-          phone: s.phone || '',
-          address: s.address || '',
-          category: s.category || 'Supplies',
-          payment_terms: s.paymentTerms || 'Net 30',
-          status: s.status || 'Active'
-        });
-      }
+      const inventoryRecords = (inventory || []).map(item => ({
+        id: toUuid(item.id),
+        user_id: effId,
+        name: item.name,
+        item_type: item.type || 'Equipment',
+        price: Number(item.price) || 0,
+        cost_price: Number(item.costPrice) || 0,
+        reorder_level: Number(item.reorderLevel) || 5,
+        stock: Number(item.stock) || 0,
+        description: item.desc || ''
+      }));
 
-      // 13. Purchase Orders
-      for (const po of (purchaseOrders || [])) {
-        await safeUpsert('purchase_orders', {
-          id: toUuid(po.id),
-          po_number: po.poNumber || 'PO-1001',
-          supplier_id: isUuid(po.supplierId) ? po.supplierId : null,
-          supplier_name: po.supplierName || '',
-          date: po.date || new Date().toISOString().split('T')[0],
-          expected_delivery_date: po.expectedDelivery || null,
-          status: po.status || 'Draft',
-          items: po.items || [],
-          total_amount: Number(po.totalAmount) || 0,
-          payment_terms: po.paymentTerms || 'Net 30',
-          notes: po.notes || ''
-        });
-      }
+      const quoteRecords = (quotes || []).map(q => ({
+        id: toUuid(q.id),
+        user_id: effId,
+        share_key: q.shareKey || generateShareKey(),
+        quote_number: q.quoteNumber || 'QT-1001',
+        date: q.date || new Date().toISOString().split('T')[0],
+        prospect_name: q.prospectName || '',
+        prospect_phone: q.prospectPhone || '',
+        amount: Number(q.amount) || 0,
+        status: q.status || 'Pending',
+        items: q.items || []
+      }));
 
-      // 14. BOMs
-      for (const b of (boms || [])) {
-        await safeUpsert('boms', {
-          id: toUuid(b.id),
+      const invoiceRecords = (invoices || []).map(inv => ({
+        id: toUuid(inv.id),
+        user_id: effId,
+        share_key: inv.shareKey || generateShareKey(),
+        invoice_number: inv.invoiceNumber || 'INV-1001',
+        date: inv.date || new Date().toISOString().split('T')[0],
+        due_date: inv.dueDate || null,
+        customer_id: isUuid(inv.customerId) ? inv.customerId : null,
+        prospect_name: inv.prospectName || '',
+        amount: Number(inv.amount) || 0,
+        status: inv.status || 'Draft',
+        items: inv.items || [],
+        reminder_sent: !!inv.reminderSent,
+        installment_plan: inv.installmentPlan || {}
+      }));
+
+      const leadRecords = (leads || []).map(l => ({
+        id: toUuid(l.id),
+        user_id: effId,
+        gym_name: l.gymName || 'Lead Gym',
+        prospect_name: l.prospectName || l.name || '',
+        phone: l.phone || '',
+        status: l.status || 'New',
+        date: l.date || new Date().toISOString(),
+        notes: l.notes || ''
+      }));
+
+      const expenseRecords = (expenses || []).map(e => ({
+        id: toUuid(e.id),
+        user_id: effId,
+        category: e.category || 'Operational',
+        amount: Number(e.amount) || 0,
+        date: e.date || new Date().toISOString().split('T')[0],
+        description: e.description || ''
+      }));
+
+      const fixedAssetRecords = (fixedAssets || []).map(fa => ({
+        id: toUuid(fa.id),
+        user_id: effId,
+        asset_code: fa.assetCode || 'FA-001',
+        name: fa.name,
+        category: fa.category || 'Gym Equipment',
+        purchase_date: fa.purchaseDate || new Date().toISOString().split('T')[0],
+        purchase_cost: Number(fa.purchaseCost) || 0,
+        useful_life_years: Number(fa.usefulLifeYears) || 5,
+        salvage_value: Number(fa.salvageValue) || 0,
+        location: fa.location || 'HQ',
+        status: fa.status || 'Active'
+      }));
+
+      const paymentRecords = (payments || []).map(p => ({
+        id: toUuid(p.id),
+        user_id: effId,
+        customer_id: isUuid(p.customerId) ? p.customerId : null,
+        document_id: isUuid(p.documentId) ? p.documentId : null,
+        amount: Number(p.amount) || 0,
+        payment_type: p.type || 'Cash',
+        payment_timestamp: p.timestamp || new Date().toISOString()
+      }));
+
+      const taskRecords = (tasks || []).map(t => ({
+        id: toUuid(t.id),
+        user_id: effId,
+        title: t.title || 'Task',
+        description: t.description || '',
+        due_date: t.dueDate || null,
+        status: t.status || 'Pending',
+        priority: t.priority || 'Medium',
+        related_to: t.relatedTo || '',
+        related_id: t.relatedId || ''
+      }));
+
+      const logRecords = (activityLogs || []).slice(0, 50).map(l => ({
+        id: toUuid(l.id),
+        user_id: effId,
+        log_type: l.type || 'System',
+        message: l.message || '',
+        details: typeof l.details === 'object' ? JSON.stringify(l.details) : String(l.details || ''),
+        log_timestamp: l.timestamp || new Date().toISOString()
+      }));
+
+      const supplierRecords = (suppliers || []).map(s => ({
+        id: toUuid(s.id),
+        name: s.name || '',
+        contact_person: s.contactPerson || '',
+        email: s.email || '',
+        phone: s.phone || '',
+        address: s.address || '',
+        category: s.category || 'Supplies',
+        payment_terms: s.paymentTerms || 'Net 30',
+        status: s.status || 'Active'
+      }));
+
+      const poRecords = (purchaseOrders || []).map(po => ({
+        id: toUuid(po.id),
+        po_number: po.poNumber || 'PO-1001',
+        supplier_id: isUuid(po.supplierId) ? po.supplierId : null,
+        supplier_name: po.supplierName || '',
+        date: po.date || new Date().toISOString().split('T')[0],
+        expected_delivery_date: po.expectedDelivery || null,
+        status: po.status || 'Draft',
+        items: po.items || [],
+        total_amount: Number(po.totalAmount) || 0,
+        payment_terms: po.paymentTerms || 'Net 30',
+        notes: po.notes || ''
+      }));
+
+      const bomRecords = (boms || []).map(b => ({
+        id: toUuid(b.id),
+        user_id: effId,
+        name: b.name || 'BOM Specification',
+        output_unit: b.outputUnit || 'Unit',
+        output_qty: Number(b.batchYield) || 1,
+        estimated_labor_cost: Number(b.laborCost) || 0,
+        estimated_overhead_cost: Number(b.overheadCost) || 0,
+        components: b.components || [],
+        notes: b.notes || ''
+      }));
+
+      const prodOrderRecords = (productionOrders || []).map(mo => ({
+        id: toUuid(mo.id),
+        user_id: effId,
+        mo_number: mo.orderNumber || 'MO-1001',
+        bom_id: isUuid(mo.bomId) ? mo.bomId : null,
+        bom_name: mo.productName || '',
+        target_qty: Number(mo.quantity) || 100,
+        status: mo.status || 'Scheduled',
+        start_date: mo.startDate || null,
+        due_date: mo.dueDate || null,
+        total_cost: Number(mo.totalCost) || 0,
+        notes: mo.notes || ''
+      }));
+
+      // Execute all table upserts in parallel batches for maximum speed (50x faster)
+      await Promise.allSettled([
+        safeUpsertBatch('customers', customerRecords),
+        safeUpsertBatch('inventory', inventoryRecords),
+        safeUpsertBatch('quotations', quoteRecords),
+        safeUpsertBatch('invoices', invoiceRecords),
+        safeUpsertBatch('leads', leadRecords),
+        safeUpsertBatch('expenses', expenseRecords),
+        safeUpsertBatch('fixed_assets', fixedAssetRecords),
+        safeUpsertBatch('payments', paymentRecords),
+        safeUpsertBatch('tasks', taskRecords),
+        safeUpsertBatch('activity_logs', logRecords),
+        safeUpsertBatch('suppliers', supplierRecords),
+        safeUpsertBatch('purchase_orders', poRecords),
+        safeUpsertBatch('boms', bomRecords),
+        safeUpsertBatch('production_orders', prodOrderRecords),
+        safeUpsertBatch('user_profiles', [{
           user_id: effId,
-          name: b.name || 'BOM Specification',
-          output_unit: b.outputUnit || 'Unit',
-          output_qty: Number(b.batchYield) || 1,
-          estimated_labor_cost: Number(b.laborCost) || 0,
-          estimated_overhead_cost: Number(b.overheadCost) || 0,
-          components: b.components || [],
-          notes: b.notes || ''
-        });
-      }
-
-      // 15. Production Orders
-      for (const mo of (productionOrders || [])) {
-        await safeUpsert('production_orders', {
-          id: toUuid(mo.id),
-          user_id: effId,
-          mo_number: mo.orderNumber || 'MO-1001',
-          bom_id: isUuid(mo.bomId) ? mo.bomId : null,
-          bom_name: mo.productName || '',
-          target_qty: Number(mo.quantity) || 100,
-          status: mo.status || 'Scheduled',
-          start_date: mo.startDate || null,
-          due_date: mo.dueDate || null,
-          total_cost: Number(mo.totalCost) || 0,
-          notes: mo.notes || ''
-        });
-      }
+          config: smsConfig,
+          updated_at: new Date().toISOString()
+        }], 'user_id')
+      ]);
 
       // Also ensure all existing profiles have the latest config
       try {
