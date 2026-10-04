@@ -828,7 +828,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleCustomers : sampleMainCustomers;
+    return [];
   });
 
   const [inventory, setInventory] = useState(() => {
@@ -856,7 +856,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleInventory : sampleMainInventory;
+    return [];
   });
 
   const [invoices, setInvoices] = useState(() => {
@@ -894,7 +894,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleInvoices : sampleMainInvoices;
+    return [];
   });
 
   const [quotes, setQuotes] = useState(() => {
@@ -923,7 +923,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleQuotes : sampleMainQuotes;
+    return [];
   });
 
   const [leads, setLeads] = useState(() => {
@@ -947,7 +947,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleLeads : sampleMainLeads;
+    return [];
   });
 
   const [activityLogs, setActivityLogs] = useState(() => {
@@ -989,7 +989,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleExpenses : sampleMainExpenses;
+    return [];
   });
 
   const [payments, setPayments] = useState(() => {
@@ -1002,7 +1002,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleHairPinsPayments : sampleMainPayments;
+    return [];
   });
 
   const [fixedAssets, setFixedAssets] = useState(() => {
@@ -1015,7 +1015,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    return activeId === 'biz_hairpins' ? sampleFixedAssets : sampleMainFixedAssets;
+    return [];
   });
 
   const [tasks, setTasks] = useState(() => {
@@ -1133,8 +1133,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return activeId === 'biz_hairpins' ? sampleSuppliers : sampleMainSuppliers;
+    return [];
   });
 
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
@@ -1147,8 +1146,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return activeId === 'biz_hairpins' ? samplePurchaseOrders : sampleMainPurchaseOrders;
+    return [];
   });
 
   // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
@@ -1389,8 +1387,7 @@ export default function StoreContextProvider({ children }) {
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_boms`);
       if (bizSaved) return JSON.parse(bizSaved).map(normalizeBOM);
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return (activeId === 'biz_hairpins' ? sampleBOMs : sampleMainBOMs).map(normalizeBOM);
+    return [];
   });
 
   const [productionOrders, setProductionOrders] = useState(() => {
@@ -1400,8 +1397,7 @@ export default function StoreContextProvider({ children }) {
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_productionOrders`);
       if (bizSaved) return JSON.parse(bizSaved).map(normalizeProductionOrder);
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return (activeId === 'biz_hairpins' ? sampleProductionOrders : sampleMainProductionOrders).map(normalizeProductionOrder);
+    return [];
   });
 
   // --- HR & PAYROLL ERP STATE ---
@@ -1892,8 +1888,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return activeId === 'biz_hairpins' ? sampleJournalEntries : sampleMainJournalEntries;
+    return [];
   });
 
   const [journalLines, setJournalLines] = useState(() => {
@@ -1906,8 +1901,7 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-    return activeId === 'biz_hairpins' ? sampleJournalLines : sampleMainJournalLines;
+    return [];
   });
 
   const [paymentAllocations, setPaymentAllocations] = useState(() => {
@@ -2196,7 +2190,7 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
 
-      let loadedHairpinCustomers = isErased ? [] : sampleCustomers;
+      let loadedHairpinCustomers = [];
       if (savedCust) {
         try {
           const parsed = JSON.parse(savedCust);
@@ -2213,7 +2207,7 @@ export default function StoreContextProvider({ children }) {
         } catch (e) {}
       }
 
-      let loadedHairpinInventory = isErased ? [] : sampleInventory;
+      let loadedHairpinInventory = [];
       if (savedInv) {
         try {
           const parsed = JSON.parse(savedInv);
@@ -2229,7 +2223,7 @@ export default function StoreContextProvider({ children }) {
         } catch (e) {}
       }
 
-      let loadedHairpinInvoices = isErased ? [] : sampleInvoices;
+      let loadedHairpinInvoices = [];
       if (savedInvoices) {
         try {
           const parsed = JSON.parse(savedInvoices);
@@ -2249,18 +2243,18 @@ export default function StoreContextProvider({ children }) {
       return {
         customers: loadedHairpinCustomers,
         inventory: loadedHairpinInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : (isErased ? [] : sampleLeads),
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : (isErased ? [] : sampleQuotes),
+        leads: savedLeads ? JSON.parse(savedLeads) : [],
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
         invoices: loadedHairpinInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : (isErased ? [] : sampleExpenses),
-        payments: savedPayments ? JSON.parse(savedPayments) : (isErased ? [] : sampleHairPinsPayments),
-        fixedAssets: savedFA ? JSON.parse(savedFA) : (isErased ? [] : sampleFixedAssets),
-        journalEntries: savedJE ? JSON.parse(savedJE) : (isErased ? [] : sampleJournalEntries),
-        journalLines: savedJL ? JSON.parse(savedJL) : (isErased ? [] : sampleJournalLines),
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : (isErased ? [] : sampleSuppliers),
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : (isErased ? [] : samplePurchaseOrders),
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : (isErased ? [] : sampleBOMs.map(normalizeBOM)),
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : (isErased ? [] : sampleProductionOrders.map(normalizeProductionOrder)),
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : [],
+        payments: savedPayments ? JSON.parse(savedPayments) : [],
+        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
+        journalEntries: savedJE ? JSON.parse(savedJE) : [],
+        journalLines: savedJL ? JSON.parse(savedJL) : [],
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
         smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_HAIRPINS_SMS_CONFIG
       };
     }
@@ -2282,7 +2276,7 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_main_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig');
 
-      let loadedMainCustomers = isErased ? [] : sampleMainCustomers;
+      let loadedMainCustomers = [];
       if (savedCust) {
         try {
           const parsed = JSON.parse(savedCust);
@@ -2299,7 +2293,7 @@ export default function StoreContextProvider({ children }) {
         } catch (e) {}
       }
 
-      let loadedMainInventory = isErased ? [] : sampleMainInventory;
+      let loadedMainInventory = [];
       if (savedInv) {
         try {
           const parsed = JSON.parse(savedInv);
@@ -2315,7 +2309,7 @@ export default function StoreContextProvider({ children }) {
         } catch (e) {}
       }
 
-      let loadedMainInvoices = isErased ? [] : sampleMainInvoices;
+      let loadedMainInvoices = [];
       if (savedInvoices) {
         try {
           const parsed = JSON.parse(savedInvoices);
@@ -2335,18 +2329,18 @@ export default function StoreContextProvider({ children }) {
       return {
         customers: loadedMainCustomers,
         inventory: loadedMainInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : (isErased ? [] : sampleMainLeads),
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : (isErased ? [] : sampleMainQuotes),
+        leads: savedLeads ? JSON.parse(savedLeads) : [],
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
         invoices: loadedMainInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : (isErased ? [] : sampleMainExpenses),
-        payments: savedPayments ? JSON.parse(savedPayments) : (isErased ? [] : sampleMainPayments),
-        fixedAssets: savedFA ? JSON.parse(savedFA) : (isErased ? [] : sampleMainFixedAssets),
-        journalEntries: savedJE ? JSON.parse(savedJE) : (isErased ? [] : sampleMainJournalEntries),
-        journalLines: savedJL ? JSON.parse(savedJL) : (isErased ? [] : sampleMainJournalLines),
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : (isErased ? [] : sampleMainSuppliers),
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : (isErased ? [] : sampleMainPurchaseOrders),
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : (isErased ? [] : sampleMainBOMs.map(normalizeBOM)),
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : (isErased ? [] : sampleMainProductionOrders.map(normalizeProductionOrder)),
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : [],
+        payments: savedPayments ? JSON.parse(savedPayments) : [],
+        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
+        journalEntries: savedJE ? JSON.parse(savedJE) : [],
+        journalLines: savedJL ? JSON.parse(savedJL) : [],
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
         smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_MAIN_SMS_CONFIG
       };
     }
