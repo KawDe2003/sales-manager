@@ -396,9 +396,9 @@ const Dashboard = () => {
   const netProfit = grossProfit - opexBreakdown.totalOpex;
   const netMarginPct = grossRevenue > 0 ? ((netProfit / grossRevenue) * 100).toFixed(1) : '0.0';
 
-  const cogsPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((cogsBreakdown.totalCogs / grossRevenue) * 100)) : (isHairPins ? 56 : 35);
-  const opexPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((opexBreakdown.totalOpex / grossRevenue) * 100)) : (isHairPins ? 26 : 28);
-  const netPercentOfRev = grossRevenue > 0 ? Math.max(0, Math.round((netProfit / grossRevenue) * 100)) : (isHairPins ? 18 : 37);
+  const cogsPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((cogsBreakdown.totalCogs / grossRevenue) * 100)) : 0;
+  const opexPercentOfRev = grossRevenue > 0 ? Math.min(100, Math.round((opexBreakdown.totalOpex / grossRevenue) * 100)) : 0;
+  const netPercentOfRev = grossRevenue > 0 ? Math.max(0, Math.round((netProfit / grossRevenue) * 100)) : 0;
 
   // 6-Month Comparative P&L Trend Dataset
   const pnlMonthlyTrends = useMemo(() => {
@@ -556,35 +556,35 @@ const Dashboard = () => {
         gradient: isDark 
           ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.05) 100%)'
           : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.02) 100%)',
-        convRate: 100,
+        convRate: totalOrderInvoices > 0 ? 100 : 0,
         convLabel: 'Order Acceptance'
       },
       {
         id: 'machine_queue',
         name: 'Wire Bending & Forming',
         step: '02',
-        count: Math.max(totalOrderInvoices, (productionOrders || []).length > 0 ? (productionOrders || []).length : 4),
+        count: (productionOrders || []).length,
         value: grossWholesaleValue * 0.95,
         icon: Factory,
         color: isDark ? '#818cf8' : '#4f46e5',
         gradient: isDark
           ? 'linear-gradient(135deg, rgba(129, 140, 248, 0.22) 0%, rgba(99, 102, 241, 0.05) 100%)'
           : 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.02) 100%)',
-        convRate: 95,
+        convRate: (productionOrders || []).length > 0 ? 95 : 0,
         convLabel: 'Machine Yield'
       },
       {
         id: 'curing_packing',
         name: 'Enamel Curing & Card Mounted',
         step: '03',
-        count: Math.max(totalFinishedStockUnits > 0 ? totalFinishedStockUnits : 2330, 500),
+        count: totalFinishedStockUnits,
         value: grossWholesaleValue * 0.92,
         icon: Package,
         color: isDark ? '#f59e0b' : '#d97706',
         gradient: isDark
           ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.05) 100%)'
           : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.02) 100%)',
-        convRate: 92,
+        convRate: totalFinishedStockUnits > 0 ? 92 : 0,
         convLabel: 'Packaging Yield'
       },
       {
@@ -598,7 +598,7 @@ const Dashboard = () => {
         gradient: isDark
           ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 100%)'
           : 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.02) 100%)',
-        convRate: totalOrderInvoices > 0 ? Math.round((dispatchedInvoices.length / totalOrderInvoices) * 100) : 85,
+        convRate: totalOrderInvoices > 0 ? Math.round((dispatchedInvoices.length / totalOrderInvoices) * 100) : 0,
         convLabel: 'Dispatch Rate'
       },
       {
@@ -612,7 +612,7 @@ const Dashboard = () => {
         gradient: isDark
           ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)'
           : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
-        convRate: totalOrderInvoices > 0 ? Math.round((paidInvoices.length / totalOrderInvoices) * 100) : 75,
+        convRate: totalOrderInvoices > 0 ? Math.round((paidInvoices.length / totalOrderInvoices) * 100) : 0,
         convLabel: 'Collection Ratio'
       }
     ];
@@ -741,8 +741,8 @@ const Dashboard = () => {
 
   // 4. Sales Conversion Funnel Data
   const salesFunnelData = useMemo(() => {
-    const totalLeadsCount = leads.length > 0 ? leads.length : Math.max(quotes.length + 3, 5);
-    const leadsValue = leads.reduce((s, l) => s + (Number(l.estimatedBudget || l.budget || l.value) || 0), 0) || (quotes.reduce((s, q) => s + (Number(q.amount) || 0), 0) * 1.3);
+    const totalLeadsCount = leads.length;
+    const leadsValue = leads.reduce((s, l) => s + (Number(l.estimatedBudget || l.budget || l.value) || 0), 0);
 
     const quotesCount = quotes.length;
     const quotesValue = quotes.reduce((s, q) => s + (Number(q.amount) || 0), 0);
@@ -776,7 +776,7 @@ const Dashboard = () => {
           : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.02) 100%)',
         border: isDark ? 'rgba(56, 189, 248, 0.45)' : 'rgba(2, 132, 199, 0.35)',
         glow: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(2, 132, 199, 0.15)',
-        convRate: quotesCount > 0 ? Math.min(100, Math.round((quotesCount / totalLeadsCount) * 100)) : 80,
+        convRate: totalLeadsCount > 0 ? Math.min(100, Math.round((quotesCount / totalLeadsCount) * 100)) : 0,
         convLabel: 'Proposal Rate'
       },
       {
@@ -792,7 +792,7 @@ const Dashboard = () => {
           : 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.02) 100%)',
         border: isDark ? 'rgba(129, 140, 248, 0.45)' : 'rgba(79, 70, 229, 0.35)',
         glow: isDark ? 'rgba(129, 140, 248, 0.35)' : 'rgba(79, 70, 229, 0.15)',
-        convRate: quotesCount > 0 ? Math.min(100, Math.round(((activeQuotesCount + acceptedCount) / quotesCount) * 100)) : 85,
+        convRate: quotesCount > 0 ? Math.min(100, Math.round(((activeQuotesCount + acceptedCount) / quotesCount) * 100)) : 0,
         convLabel: 'Engagement Rate'
       },
       {
@@ -808,7 +808,7 @@ const Dashboard = () => {
           : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.02) 100%)',
         border: isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.35)',
         glow: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(217, 119, 6, 0.15)',
-        convRate: (activeQuotesCount + acceptedCount) > 0 ? Math.min(100, Math.round((acceptedCount / Math.max(1, activeQuotesCount + acceptedCount)) * 100)) : 65,
+        convRate: (activeQuotesCount + acceptedCount) > 0 ? Math.min(100, Math.round((acceptedCount / Math.max(1, activeQuotesCount + acceptedCount)) * 100)) : 0,
         convLabel: 'Closing Ratio'
       },
       {
@@ -824,7 +824,7 @@ const Dashboard = () => {
           : 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.02) 100%)',
         border: isDark ? 'rgba(16, 185, 129, 0.5)' : 'rgba(5, 150, 105, 0.35)',
         glow: isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(5, 150, 105, 0.15)',
-        convRate: quotesCount > 0 ? Math.min(100, Math.round((acceptedCount / quotesCount) * 100)) : quoteConversionRate,
+        convRate: quotesCount > 0 ? Math.min(100, Math.round((acceptedCount / quotesCount) * 100)) : (totalLeadsCount > 0 ? quoteConversionRate : 0),
         convLabel: 'Deal Win Rate'
       },
       {
@@ -840,7 +840,7 @@ const Dashboard = () => {
           : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
         border: isDark ? 'rgba(34, 211, 238, 0.45)' : 'rgba(8, 145, 178, 0.35)',
         glow: isDark ? 'rgba(34, 211, 238, 0.35)' : 'rgba(8, 145, 178, 0.15)',
-        convRate: invoices.length > 0 ? Math.min(100, Math.round((paidCount / Math.max(1, invoices.length)) * 100)) : 75,
+        convRate: invoices.length > 0 ? Math.min(100, Math.round((paidCount / Math.max(1, invoices.length)) * 100)) : 0,
         convLabel: 'Realization %'
       }
     ];
