@@ -1598,12 +1598,37 @@ tbody tr:hover td {
 
   /* GPU Hardware Acceleration for buttery 60fps scrolling */
   .main-container,
-  .app-sidebar,
   .mobile-bottom-dock,
   .modal-card {
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     backface-visibility: hidden;
+  }
+
+  /* Mobile Drawer Sliding System (Guarantees sidebar stays closed until toggled) */
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: min(82vw, 290px) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1100 !important;
+    transform: translateX(-100%) !important;
+    -webkit-transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s !important;
+    box-shadow: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebar-open .app-sidebar {
+    transform: translateX(0) !important;
+    -webkit-transform: translateX(0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    box-shadow: 25px 0 70px rgba(0, 0, 0, 0.75) !important;
   }
 
   /* Prevent iOS Safari auto-zooming on focus while keeping compact heights */
