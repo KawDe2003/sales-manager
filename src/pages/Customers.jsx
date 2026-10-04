@@ -470,7 +470,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
       <div 
         className="glass-panel app-modal-dialog" 
         style={{ 
-          width: '100%', 
+          width: 'min(680px, calc(100vw - 20px))', 
           maxWidth: '680px', 
           maxHeight: 'min(92vh, calc(100dvh - 24px))', 
           display: 'flex', 
@@ -519,8 +519,8 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
           }} 
           style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '18px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <div className="form-group">
                 <label className="form-label">{isHairPins ? 'Buyer ID / Account Code' : 'Client ID / Code'}</label>
                 <input required type="text" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
@@ -549,17 +549,20 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
 
               <div className="form-group">
                 <label className="form-label">{isHairPins ? 'Proprietor / Contact Person *' : 'Contact Person Name *'}</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '105px 1fr', gap: '8px' }}>
-                  <CustomSelect
-                    value={formData.salutation || 'Mr.'}
-                    onChange={val => setFormData({ ...formData, salutation: val })}
-                    options={SALUTATION_OPTIONS}
-                    style={{ height: '42px', minWidth: '95px' }}
-                  />
+                <div className="flex gap-2 w-full">
+                  <div style={{ width: '95px', flexShrink: 0 }}>
+                    <CustomSelect
+                      value={formData.salutation || 'Mr.'}
+                      onChange={val => setFormData({ ...formData, salutation: val })}
+                      options={SALUTATION_OPTIONS}
+                      style={{ height: '42px', width: '100%' }}
+                    />
+                  </div>
                   <input 
                     required 
                     type="text" 
                     className="form-input" 
+                    style={{ height: '42px', flex: 1, minWidth: 0 }}
                     placeholder={isHairPins ? "e.g. M. Farook" : "e.g. Rohan Jayasinghe"} 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})} 
@@ -656,7 +659,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
             }}
           >
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '0 24px' }}>Save Customer Record</button>
+            <button type="submit" className="btn btn-primary">Save Customer Record</button>
           </div>
         </form>
       </div>
