@@ -4512,13 +4512,96 @@ export default function StoreContextProvider({ children }) {
     isHydratingCloudRef.current = true;
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
     }
-    showNotification('Wiping local and cloud records...', 'info');
 
     const defaultConfig = activeBusinessId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
 
+    // 1. IMMEDIATELY WIPE ALL LOCAL STORAGE & MARK ERASED
     try {
-      // 1. Delete records from Supabase in foreign-key safe order
+      localStorage.setItem(`biz_data_${activeBusinessId}_erased`, 'true');
+      if (activeBusinessId === 'biz_main') {
+        localStorage.setItem('biz_data_biz_main_erased', 'true');
+      } else if (activeBusinessId === 'biz_hairpins') {
+        localStorage.setItem('biz_data_biz_hairpins_erased', 'true');
+      }
+
+      const dataKeys = [
+        'customers', 'inventory', 'quotes', 'invoices',
+        'leads', 'expenses', 'payments', 'fixedAssets',
+        'tasks', 'activity_logs', 'journalEntries', 'journalLines',
+        'suppliers', 'purchaseOrders', 'boms', 'productionOrders',
+        'employees', 'payruns', 'attendanceLogs', 'leaveRequests',
+        'salaryAdvances', 'stockTransfers', 'performanceReviews',
+        'expenseClaims', 'hrLetters', 'systemNotifications'
+      ];
+      dataKeys.forEach(k => {
+        localStorage.setItem(`biz_data_${activeBusinessId}_${k}`, '[]');
+        if (activeBusinessId === 'biz_main') {
+          localStorage.setItem(`biz_data_biz_main_${k}`, '[]');
+        }
+      });
+
+      const explicitGymKeys = [
+        'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
+        'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
+        'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
+        'gym_payment_allocations', 'gym_depreciation_schedule',
+        'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
+        'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
+        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
+        'gym_boms', 'gym_production_orders'
+      ];
+      explicitGymKeys.forEach(k => {
+        try { localStorage.setItem(k, '[]'); } catch (e) {}
+      });
+
+      // Re-seed clean default SMS / business configuration in localStorage
+      localStorage.setItem('gym_sms_config', JSON.stringify(defaultConfig));
+      localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(defaultConfig));
+      localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(defaultConfig));
+    } catch (e) {
+      console.warn('LocalStorage reset error', e);
+    }
+
+    // 2. IMMEDIATELY CLEAR ALL REACT STATE IN MEMORY (0ms UI update)
+    setCustomers([]);
+    setInventory([]);
+    setQuotes([]);
+    setInvoices([]);
+    setLeads([]);
+    setExpenses([]);
+    setPayments([]);
+    setFixedAssets([]);
+    setTasks([]);
+    setActivityLogs([]);
+    setPaymentAllocations([]);
+    setJournalEntries([]);
+    setJournalLines([]);
+    setDepreciationSchedule([]);
+    setSuppliers([]);
+    setPurchaseOrders([]);
+    setBoms([]);
+    setProductionOrders([]);
+    setEmployees([]);
+    setPayruns([]);
+    setAttendanceLogs([]);
+    setLeaveRequests([]);
+    setSalaryAdvances([]);
+    setStockTransfers([]);
+    setPerformanceReviews([]);
+    setExpenseClaims([]);
+    setHrLetters([]);
+    setSystemNotifications([]);
+    setSmsConfig(defaultConfig);
+    setHasUnsavedChanges(false);
+    setCloudSyncStatus('synced');
+    setLastSyncTime(new Date().toISOString());
+
+    showNotification('All data and settings have been completely reset to a clean state!', 'success');
+
+    // 3. ASYNCHRONOUSLY WIPE SUPABASE CLOUD IN PARALLEL WITHOUT BLOCKING UI
+    try {
       const tablesInOrder = [
         'payment_allocations',
         'payments',
@@ -4543,138 +4626,49 @@ export default function StoreContextProvider({ children }) {
         clientsToWipe.push(supabase);
       }
 
-      for (const client of clientsToWipe) {
-        for (const tbl of tablesInOrder) {
-          try {
-            // First attempt to delete records scoped to the active business
-            const scopedRes = await client.from(tbl).delete().eq('business_id', activeBusinessId);
-            if (scopedRes.error && (scopedRes.error.code === '42703' || scopedRes.error.message?.includes('business_id'))) {
-              // Fallback to wiping without business_id column constraint
-              const res1 = await client.from(tbl).delete().not('id', 'is', null);
-              if (res1.error) {
-                await client.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await Promise.allSettled(
+        clientsToWipe.flatMap(client =>
+          tablesInOrder.map(async (tbl) => {
+            try {
+              const scopedRes = await client.from(tbl).delete().eq('business_id', activeBusinessId);
+              if (scopedRes.error && (scopedRes.error.code === '42703' || scopedRes.error.message?.includes('business_id'))) {
+                await client.from(tbl).delete().not('id', 'is', null);
               }
+            } catch (tblErr) {
+              console.warn(`[Supabase Reset Notice on ${tbl}]`, tblErr?.message);
             }
-          } catch (tblErr) {
-            console.warn(`[Supabase Reset Notice on ${tbl}]`, tblErr.message);
-          }
-        }
+          })
+        )
+      );
 
-        // Also reset user_profiles configuration in Supabase to clean defaults
-        try {
-          await client.from('user_profiles').update({
+      await Promise.allSettled(
+        clientsToWipe.map(client =>
+          client.from('user_profiles').update({
             config: defaultConfig,
             updated_at: new Date().toISOString()
-          }).not('user_id', 'is', null);
-        } catch (profErr) {
-          console.warn('[Supabase Reset user_profiles notice]', profErr?.message);
-        }
-      }
-
-      // 2. Mark active and main business as erased and initialize empty partitions in localStorage
-      try {
-        localStorage.setItem(`biz_data_${activeBusinessId}_erased`, 'true');
-        if (activeBusinessId === 'biz_main') {
-          localStorage.setItem('biz_data_biz_main_erased', 'true');
-        } else if (activeBusinessId === 'biz_hairpins') {
-          localStorage.setItem('biz_data_biz_hairpins_erased', 'true');
-        }
-
-        const dataKeys = [
-          'customers', 'inventory', 'quotes', 'invoices',
-          'leads', 'expenses', 'payments', 'fixedAssets',
-          'tasks', 'activity_logs', 'journalEntries', 'journalLines',
-          'suppliers', 'purchaseOrders', 'boms', 'productionOrders'
-        ];
-        dataKeys.forEach(k => {
-          localStorage.setItem(`biz_data_${activeBusinessId}_${k}`, '[]');
-          if (activeBusinessId === 'biz_main') {
-            localStorage.setItem(`biz_data_biz_main_${k}`, '[]');
-          }
-        });
-
-        const explicitGymKeys = [
-          'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
-          'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
-          'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
-          'gym_payment_allocations', 'gym_depreciation_schedule',
-          'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
-          'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
-          'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
-          'gym_boms', 'gym_production_orders'
-        ];
-        explicitGymKeys.forEach(k => {
-          try { localStorage.setItem(k, '[]'); } catch (e) {}
-        });
-
-        // Re-seed clean default SMS / business configuration in localStorage
-        localStorage.setItem('gym_sms_config', JSON.stringify(defaultConfig));
-        localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(defaultConfig));
-        localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(defaultConfig));
-      } catch (e) {
-        console.warn('LocalStorage reset error', e);
-      }
-
-      // 3. Clear React state
-      setCustomers([]);
-      setInventory([]);
-      setQuotes([]);
-      setInvoices([]);
-      setLeads([]);
-      setExpenses([]);
-      setPayments([]);
-      setFixedAssets([]);
-      setTasks([]);
-      setActivityLogs([]);
-      setPaymentAllocations([]);
-      setJournalEntries([]);
-      setJournalLines([]);
-      setDepreciationSchedule([]);
-      setSuppliers([]);
-      setPurchaseOrders([]);
-      setBoms([]);
-      setProductionOrders([]);
-      setEmployees([]);
-      setPayruns([]);
-      setAttendanceLogs([]);
-      setLeaveRequests([]);
-      setSalaryAdvances([]);
-      setStockTransfers([]);
-      setPerformanceReviews([]);
-      setExpenseClaims([]);
-      setHrLetters([]);
-      setSystemNotifications([]);
-
-      // Reset SMS and business configurations to defaults
-      setSmsConfig(defaultConfig);
-
-      setCloudSyncStatus('synced');
-      setHasUnsavedChanges(false);
-      setLastSyncTime(new Date().toISOString());
-      showNotification('All data and settings have been completely reset to a clean state!', 'success');
-      return true;
+          }).not('user_id', 'is', null)
+        )
+      );
     } catch (err) {
-      console.error('[Reset Error]', err);
-      showNotification(`Reset error: ${err.message}`, 'error');
-      return false;
+      console.warn('[Supabase Cloud Reset Notice]', err);
     } finally {
       setIsStoreLoading(false);
       isHydratingCloudRef.current = false;
     }
+    return true;
   };
 
   // TRIGGER CONFIRMATION MODAL TO RESET EVERYTHING
   const resetEverythingWithConfirmation = () => {
-    confirmAction({
-      title: 'Reset All Business Data?',
-      message: 'This will permanently wipe all local and cloud records (clients, quotes, invoices, inventory, leads, expenses, and logs). Your system will be reset to a completely clean state. This action CANNOT be undone. Are you sure you want to proceed?',
-      confirmText: 'Yes, Reset Everything',
-      cancelText: 'Cancel & Keep Data',
-      variant: 'danger',
-      onConfirm: async () => {
-        await executeResetEverything();
-      }
-    });
+    const isConfirmed = window.confirm(
+      "⚠️ DANGER ZONE: Reset All Business Data?\n\n" +
+      "This will permanently wipe all local and cloud records (clients, quotes, invoices, inventory, leads, expenses, and logs).\n\n" +
+      "Your system will be reset to a completely clean state. This action CANNOT be undone.\n\n" +
+      "Click OK to proceed with erasing all data."
+    );
+    if (isConfirmed) {
+      executeResetEverything();
+    }
   };
 
   // REALTIME SUBSCRIPTION FOR QUOTES & INVOICES (LIVE CROSS-DEVICE SYNC)

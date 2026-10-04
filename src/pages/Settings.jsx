@@ -1540,7 +1540,6 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                 id="settings-danger-erase-btn"
                 className="btn"
                 onClick={resetEverythingWithConfirmation}
-                disabled={cloudSyncStatus === 'syncing'}
                 style={{
                   height: '44px',
                   padding: '0 22px',
@@ -1551,7 +1550,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
                   border: 'none',
                   borderRadius: '10px',
-                  cursor: cloudSyncStatus === 'syncing' ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   boxShadow: '0 3px 12px rgba(239, 68, 68, 0.35)',
                   flexShrink: 0
                 }}
