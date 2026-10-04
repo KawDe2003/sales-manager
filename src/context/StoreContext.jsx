@@ -804,10 +804,11 @@ export default function StoreContextProvider({ children }) {
   const [customers, setCustomers] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(c => {
             if (activeId === 'biz_hairpins') {
               if (c.businessId && c.businessId !== 'biz_hairpins') return false;
@@ -823,7 +824,7 @@ export default function StoreContextProvider({ children }) {
               return true;
             }
           });
-          if (sanitized.length > 0) return sanitized;
+          return sanitized;
         }
       }
     } catch (e) {}
@@ -833,10 +834,11 @@ export default function StoreContextProvider({ children }) {
   const [inventory, setInventory] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(i => {
             if (activeId === 'biz_hairpins') {
               if (String(i.id).startsWith('minv-')) return false;
@@ -850,7 +852,7 @@ export default function StoreContextProvider({ children }) {
               return true;
             }
           });
-          if (sanitized.length > 0) return sanitized;
+          return sanitized;
         }
       }
     } catch (e) {}
@@ -860,10 +862,11 @@ export default function StoreContextProvider({ children }) {
   const [invoices, setInvoices] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(inv => {
             if (activeId === 'biz_hairpins') {
               if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
@@ -879,17 +882,15 @@ export default function StoreContextProvider({ children }) {
               return true;
             }
           });
-          if (sanitized.length > 0) {
-            return sanitized.map(inv => {
-              const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
-              const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
-              return {
-                ...inv,
-                amount: validAmt,
-                totalAmount: validAmt
-              };
-            });
-          }
+          return sanitized.map(inv => {
+            const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
+            const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
+            return {
+              ...inv,
+              amount: validAmt,
+              totalAmount: validAmt
+            };
+          });
         }
       }
     } catch (e) {}
@@ -899,6 +900,7 @@ export default function StoreContextProvider({ children }) {
   const [quotes, setQuotes] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
@@ -927,10 +929,11 @@ export default function StoreContextProvider({ children }) {
   const [leads, setLeads] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(l => {
             if (activeId === 'biz_hairpins') {
               if (String(l.id).startsWith('mlead-')) return false;
@@ -940,7 +943,7 @@ export default function StoreContextProvider({ children }) {
               return true;
             }
           });
-          if (sanitized.length > 0) return sanitized;
+          return sanitized;
         }
       }
     } catch (e) {}
@@ -977,12 +980,12 @@ export default function StoreContextProvider({ children }) {
   const [expenses, setExpenses] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_expenses`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sanitized = sanitizeExpensesByBiz(parsed, activeId);
-          if (sanitized.length > 0) return sanitized;
+        if (Array.isArray(parsed)) {
+          return sanitizeExpensesByBiz(parsed, activeId);
         }
       }
     } catch (e) {}
@@ -992,10 +995,11 @@ export default function StoreContextProvider({ children }) {
   const [payments, setPayments] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_payments`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
     return activeId === 'biz_hairpins' ? sampleHairPinsPayments : sampleMainPayments;
@@ -1004,16 +1008,28 @@ export default function StoreContextProvider({ children }) {
   const [fixedAssets, setFixedAssets] = useState(() => {
     const activeId = getInitialActiveBusinessId();
     try {
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_fixedAssets`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
     return activeId === 'biz_hairpins' ? sampleFixedAssets : sampleMainFixedAssets;
   });
 
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const activeId = getInitialActiveBusinessId();
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
+      const saved = localStorage.getItem(`biz_data_${activeId}_tasks`) || localStorage.getItem('gym_tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
 
   // --- PROCUREMENT & PURCHASE ORDER (PO) ERP STATE ---
   const sampleSuppliers = [
@@ -1110,10 +1126,11 @@ export default function StoreContextProvider({ children }) {
   const [suppliers, setSuppliers] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_suppliers`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
     const activeId = localStorage.getItem('active_business_id') || 'biz_main';
@@ -1123,10 +1140,11 @@ export default function StoreContextProvider({ children }) {
   const [purchaseOrders, setPurchaseOrders] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_purchaseOrders`);
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
     const activeId = localStorage.getItem('active_business_id') || 'biz_main';
@@ -1367,6 +1385,7 @@ export default function StoreContextProvider({ children }) {
   const [boms, setBoms] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_boms`);
       if (bizSaved) return JSON.parse(bizSaved).map(normalizeBOM);
     } catch (e) {}
@@ -1377,6 +1396,7 @@ export default function StoreContextProvider({ children }) {
   const [productionOrders, setProductionOrders] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_productionOrders`);
       if (bizSaved) return JSON.parse(bizSaved).map(normalizeProductionOrder);
     } catch (e) {}
@@ -1876,8 +1896,12 @@ export default function StoreContextProvider({ children }) {
   const [journalEntries, setJournalEntries] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_journalEntries`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch (e) {}
     const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleJournalEntries : sampleMainJournalEntries;
@@ -1886,8 +1910,12 @@ export default function StoreContextProvider({ children }) {
   const [journalLines, setJournalLines] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
       const bizSaved = localStorage.getItem(`biz_data_${activeId}_journalLines`);
-      if (bizSaved) return JSON.parse(bizSaved);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch (e) {}
     const activeId = localStorage.getItem('active_business_id') || 'biz_main';
     return activeId === 'biz_hairpins' ? sampleJournalLines : sampleMainJournalLines;
@@ -2131,8 +2159,37 @@ export default function StoreContextProvider({ children }) {
     } catch (e) {}
   }, [productionOrders, activeBusinessId]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_payments', JSON.stringify(payments));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(payments));
+      }
+    } catch (e) {}
+  }, [payments, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_fixed_assets', JSON.stringify(fixedAssets));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(fixedAssets));
+      }
+    } catch (e) {}
+  }, [fixedAssets, activeBusinessId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_tasks', JSON.stringify(tasks));
+      if (activeBusinessId) {
+        localStorage.setItem(`biz_data_${activeBusinessId}_tasks`, JSON.stringify(tasks));
+      }
+    } catch (e) {}
+  }, [tasks, activeBusinessId]);
+
   // Load business dataset by ID
   const loadBusinessData = (businessId) => {
+    const isErased = localStorage.getItem(`biz_data_${businessId}_erased`) === 'true';
+
     if (businessId === 'biz_hairpins') {
       const savedCust = localStorage.getItem('biz_data_biz_hairpins_customers');
       const savedInv = localStorage.getItem('biz_data_biz_hairpins_inventory');
@@ -2150,11 +2207,11 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
 
-      let loadedHairpinCustomers = sampleCustomers;
+      let loadedHairpinCustomers = isErased ? [] : sampleCustomers;
       if (savedCust) {
         try {
           const parsed = JSON.parse(savedCust);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(c => {
               if (c.businessId && c.businessId !== 'biz_hairpins') return false;
               if (String(c.id).startsWith('mc-')) return false;
@@ -2162,32 +2219,32 @@ export default function StoreContextProvider({ children }) {
               if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedHairpinCustomers = sanitized;
+            loadedHairpinCustomers = sanitized;
           }
         } catch (e) {}
       }
 
-      let loadedHairpinInventory = sampleInventory;
+      let loadedHairpinInventory = isErased ? [] : sampleInventory;
       if (savedInv) {
         try {
           const parsed = JSON.parse(savedInv);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(i => {
               if (String(i.id).startsWith('minv-')) return false;
               const n = (i.name || '').toLowerCase();
               if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedHairpinInventory = sanitized;
+            loadedHairpinInventory = sanitized;
           }
         } catch (e) {}
       }
 
-      let loadedHairpinInvoices = sampleInvoices;
+      let loadedHairpinInvoices = isErased ? [] : sampleInvoices;
       if (savedInvoices) {
         try {
           const parsed = JSON.parse(savedInvoices);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(inv => {
               if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
               if (String(inv.id).startsWith('minv-')) return false;
@@ -2195,7 +2252,7 @@ export default function StoreContextProvider({ children }) {
               if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedHairpinInvoices = sanitized;
+            loadedHairpinInvoices = sanitized;
           }
         } catch (e) {}
       }
@@ -2203,18 +2260,18 @@ export default function StoreContextProvider({ children }) {
       return {
         customers: loadedHairpinCustomers,
         inventory: loadedHairpinInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : sampleLeads,
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleQuotes,
+        leads: savedLeads ? JSON.parse(savedLeads) : (isErased ? [] : sampleLeads),
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : (isErased ? [] : sampleQuotes),
         invoices: loadedHairpinInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : sampleExpenses,
-        payments: savedPayments ? JSON.parse(savedPayments) : sampleHairPinsPayments,
-        fixedAssets: savedFA ? JSON.parse(savedFA) : sampleFixedAssets,
-        journalEntries: savedJE ? JSON.parse(savedJE) : sampleJournalEntries,
-        journalLines: savedJL ? JSON.parse(savedJL) : sampleJournalLines,
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : sampleSuppliers,
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : samplePurchaseOrders,
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : sampleBOMs.map(normalizeBOM),
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : sampleProductionOrders.map(normalizeProductionOrder),
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : (isErased ? [] : sampleExpenses),
+        payments: savedPayments ? JSON.parse(savedPayments) : (isErased ? [] : sampleHairPinsPayments),
+        fixedAssets: savedFA ? JSON.parse(savedFA) : (isErased ? [] : sampleFixedAssets),
+        journalEntries: savedJE ? JSON.parse(savedJE) : (isErased ? [] : sampleJournalEntries),
+        journalLines: savedJL ? JSON.parse(savedJL) : (isErased ? [] : sampleJournalLines),
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : (isErased ? [] : sampleSuppliers),
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : (isErased ? [] : samplePurchaseOrders),
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : (isErased ? [] : sampleBOMs.map(normalizeBOM)),
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : (isErased ? [] : sampleProductionOrders.map(normalizeProductionOrder)),
         smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_HAIRPINS_SMS_CONFIG
       };
     }
@@ -2236,11 +2293,11 @@ export default function StoreContextProvider({ children }) {
       const savedMO = localStorage.getItem('biz_data_biz_main_productionOrders');
       const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig');
 
-      let loadedMainCustomers = sampleMainCustomers;
+      let loadedMainCustomers = isErased ? [] : sampleMainCustomers;
       if (savedCust) {
         try {
           const parsed = JSON.parse(savedCust);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(c => {
               if (c.businessId && c.businessId !== 'biz_main') return false;
               if (String(c.id).startsWith('c-10')) return false;
@@ -2248,32 +2305,32 @@ export default function StoreContextProvider({ children }) {
               if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedMainCustomers = sanitized;
+            loadedMainCustomers = sanitized;
           }
         } catch (e) {}
       }
 
-      let loadedMainInventory = sampleMainInventory;
+      let loadedMainInventory = isErased ? [] : sampleMainInventory;
       if (savedInv) {
         try {
           const parsed = JSON.parse(savedInv);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(i => {
               if (String(i.id).startsWith('inv-10')) return false;
               const n = (i.name || '').toLowerCase();
               if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedMainInventory = sanitized;
+            loadedMainInventory = sanitized;
           }
         } catch (e) {}
       }
 
-      let loadedMainInvoices = sampleMainInvoices;
+      let loadedMainInvoices = isErased ? [] : sampleMainInvoices;
       if (savedInvoices) {
         try {
           const parsed = JSON.parse(savedInvoices);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const sanitized = parsed.filter(inv => {
               if (inv.businessId && inv.businessId !== 'biz_main') return false;
               if (String(inv.id).startsWith('inv-20')) return false;
@@ -2281,7 +2338,7 @@ export default function StoreContextProvider({ children }) {
               if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
               return true;
             });
-            if (sanitized.length > 0) loadedMainInvoices = sanitized;
+            loadedMainInvoices = sanitized;
           }
         } catch (e) {}
       }
@@ -2289,18 +2346,18 @@ export default function StoreContextProvider({ children }) {
       return {
         customers: loadedMainCustomers,
         inventory: loadedMainInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : sampleMainLeads,
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : sampleMainQuotes,
+        leads: savedLeads ? JSON.parse(savedLeads) : (isErased ? [] : sampleMainLeads),
+        quotes: savedQuotes ? JSON.parse(savedQuotes) : (isErased ? [] : sampleMainQuotes),
         invoices: loadedMainInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : sampleMainExpenses,
-        payments: savedPayments ? JSON.parse(savedPayments) : sampleMainPayments,
-        fixedAssets: savedFA ? JSON.parse(savedFA) : sampleMainFixedAssets,
-        journalEntries: savedJE ? JSON.parse(savedJE) : sampleMainJournalEntries,
-        journalLines: savedJL ? JSON.parse(savedJL) : sampleMainJournalLines,
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : sampleMainSuppliers,
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : sampleMainPurchaseOrders,
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : sampleMainBOMs.map(normalizeBOM),
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : sampleMainProductionOrders.map(normalizeProductionOrder),
+        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : (isErased ? [] : sampleMainExpenses),
+        payments: savedPayments ? JSON.parse(savedPayments) : (isErased ? [] : sampleMainPayments),
+        fixedAssets: savedFA ? JSON.parse(savedFA) : (isErased ? [] : sampleMainFixedAssets),
+        journalEntries: savedJE ? JSON.parse(savedJE) : (isErased ? [] : sampleMainJournalEntries),
+        journalLines: savedJL ? JSON.parse(savedJL) : (isErased ? [] : sampleMainJournalLines),
+        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : (isErased ? [] : sampleMainSuppliers),
+        purchaseOrders: savedPO ? JSON.parse(savedPO) : (isErased ? [] : sampleMainPurchaseOrders),
+        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : (isErased ? [] : sampleMainBOMs.map(normalizeBOM)),
+        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : (isErased ? [] : sampleMainProductionOrders.map(normalizeProductionOrder)),
         smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_MAIN_SMS_CONFIG
       };
     }
@@ -2798,6 +2855,11 @@ export default function StoreContextProvider({ children }) {
   }, [theme]);
 
   const seedDummyData = () => {
+    try {
+      localStorage.removeItem('biz_data_biz_main_erased');
+      localStorage.removeItem(`biz_data_${activeBusinessId}_erased`);
+    } catch (e) {}
+
     if (activeBusinessId === 'biz_hairpins') {
       loadHairPinIndustryDefaults();
       return;
@@ -2841,6 +2903,11 @@ export default function StoreContextProvider({ children }) {
   };
 
   const loadHairPinIndustryDefaults = () => {
+    try {
+      localStorage.removeItem('biz_data_biz_hairpins_erased');
+      localStorage.removeItem(`biz_data_${activeBusinessId}_erased`);
+    } catch (e) {}
+
     setCustomers(sampleCustomers);
     setInventory(sampleInventory);
     setLeads(sampleLeads);
@@ -3610,6 +3677,37 @@ export default function StoreContextProvider({ children }) {
       const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, bomData, moData, supData, poData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
+
+      const isErased = localStorage.getItem(`biz_data_${activeBusinessId}_erased`) === 'true';
+      const hasAnyRemoteData = (cData?.length > 0) || (invData?.length > 0) || (qData?.length > 0) || (iData?.length > 0) || (lData?.length > 0) || (eData?.length > 0) || (pData?.length > 0) || (tData?.length > 0);
+
+      if (isErased && !hasAnyRemoteData) {
+        setCustomers([]);
+        setInventory([]);
+        setQuotes([]);
+        setInvoices([]);
+        setLeads([]);
+        setExpenses([]);
+        setPayments([]);
+        setFixedAssets([]);
+        setTasks([]);
+        setActivityLogs([]);
+        setSuppliers([]);
+        setPurchaseOrders([]);
+        setBoms([]);
+        setProductionOrders([]);
+        setCloudSyncStatus('synced');
+        setHasUnsavedChanges(false);
+        setTimeout(() => {
+          isHydratedRef.current = true;
+          isHydratingCloudRef.current = false;
+        }, 200);
+        return;
+      }
+
+      if (hasAnyRemoteData && isErased) {
+        try { localStorage.removeItem(`biz_data_${activeBusinessId}_erased`); } catch(e) {}
+      }
 
       // 1. Fixed Assets
       if (Array.isArray(faData)) {
@@ -4411,6 +4509,10 @@ export default function StoreContextProvider({ children }) {
   const executeResetEverything = async () => {
     setIsStoreLoading(true);
     setCloudSyncStatus('syncing');
+    isHydratingCloudRef.current = true;
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
     showNotification('Wiping local and cloud records...', 'info');
 
     const defaultConfig = activeBusinessId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
@@ -4448,9 +4550,9 @@ export default function StoreContextProvider({ children }) {
             const scopedRes = await client.from(tbl).delete().eq('business_id', activeBusinessId);
             if (scopedRes.error && (scopedRes.error.code === '42703' || scopedRes.error.message?.includes('business_id'))) {
               // Fallback to wiping without business_id column constraint
-              const res1 = await client.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              const res1 = await client.from(tbl).delete().not('id', 'is', null);
               if (res1.error) {
-                await client.from(tbl).delete().not('id', 'is', null);
+                await client.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
               }
             }
           } catch (tblErr) {
@@ -4469,36 +4571,49 @@ export default function StoreContextProvider({ children }) {
         }
       }
 
-      // 2. Clear Local Storage (both legacy gym_ and modern biz_data_ partitions)
+      // 2. Mark active and main business as erased and initialize empty partitions in localStorage
       try {
-        const allStorageKeys = Object.keys(localStorage);
-        allStorageKeys.forEach(k => {
-          if (k.startsWith('gym_') || k.startsWith('biz_data_') || k.startsWith('app_task_')) {
-            try { localStorage.removeItem(k); } catch (e) {}
+        localStorage.setItem(`biz_data_${activeBusinessId}_erased`, 'true');
+        if (activeBusinessId === 'biz_main') {
+          localStorage.setItem('biz_data_biz_main_erased', 'true');
+        } else if (activeBusinessId === 'biz_hairpins') {
+          localStorage.setItem('biz_data_biz_hairpins_erased', 'true');
+        }
+
+        const dataKeys = [
+          'customers', 'inventory', 'quotes', 'invoices',
+          'leads', 'expenses', 'payments', 'fixedAssets',
+          'tasks', 'activity_logs', 'journalEntries', 'journalLines',
+          'suppliers', 'purchaseOrders', 'boms', 'productionOrders'
+        ];
+        dataKeys.forEach(k => {
+          localStorage.setItem(`biz_data_${activeBusinessId}_${k}`, '[]');
+          if (activeBusinessId === 'biz_main') {
+            localStorage.setItem(`biz_data_biz_main_${k}`, '[]');
           }
         });
-      } catch (e) {}
 
-      const explicitKeys = [
-        'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
-        'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
-        'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
-        'gym_payment_allocations', 'gym_depreciation_schedule', 'gym_last_sync_time',
-        'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
-        'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
-        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
-        'gym_boms', 'gym_production_orders', 'gym_sms_config'
-      ];
-      explicitKeys.forEach(k => {
-        try { localStorage.removeItem(k); } catch (e) {}
-      });
+        const explicitGymKeys = [
+          'gym_customers', 'gym_inventory', 'gym_quotes', 'gym_invoices',
+          'gym_leads', 'gym_expenses', 'gym_payments', 'gym_fixed_assets',
+          'gym_tasks', 'gym_activity_logs', 'gym_logs', 'gym_journal_entries', 'gym_journal_lines',
+          'gym_payment_allocations', 'gym_depreciation_schedule',
+          'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
+          'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
+          'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
+          'gym_boms', 'gym_production_orders'
+        ];
+        explicitGymKeys.forEach(k => {
+          try { localStorage.setItem(k, '[]'); } catch (e) {}
+        });
 
-      // Re-seed clean default SMS / business configuration in localStorage
-      try {
+        // Re-seed clean default SMS / business configuration in localStorage
         localStorage.setItem('gym_sms_config', JSON.stringify(defaultConfig));
         localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(defaultConfig));
         localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(defaultConfig));
-      } catch (e) {}
+      } catch (e) {
+        console.warn('LocalStorage reset error', e);
+      }
 
       // 3. Clear React state
       setCustomers([]);
@@ -4544,6 +4659,7 @@ export default function StoreContextProvider({ children }) {
       return false;
     } finally {
       setIsStoreLoading(false);
+      isHydratingCloudRef.current = false;
     }
   };
 
