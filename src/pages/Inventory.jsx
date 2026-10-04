@@ -639,7 +639,9 @@ const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass 
       <div style={{ background: 'var(--subtle-bg)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid var(--subtle-border)' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item Selling Price:</span>
-          <span style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>LKR {sellingPrice.toLocaleString()}</span>
+          <span style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>
+            {item.type === 'Service' && sellingPrice === 0 ? 'Custom / Variable' : `LKR ${sellingPrice.toLocaleString()}`}
+          </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem' }}>
           <span style={{ color: 'var(--text-muted)' }}>Stock Cost Price:</span>
@@ -710,9 +712,15 @@ const StockRow = ({ item, salesData = { unitsSold: 0, salesRevenue: 0 }, onUpdat
         </span>
       </td>
       <td style={{ fontWeight: 600, color: 'var(--warning)' }}>LKR {costPrice.toLocaleString()}</td>
-      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>LKR {sellingPrice.toLocaleString()}</td>
+      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+        {item.type === 'Service' && sellingPrice === 0 ? (
+          <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, background: 'var(--subtle-bg)', padding: '2px 8px', borderRadius: '4px' }}>Variable Rate</span>
+        ) : (
+          `LKR ${sellingPrice.toLocaleString()}`
+        )}
+      </td>
       <td style={{ fontWeight: 800, color: unitProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-        LKR {unitProfit.toLocaleString()}
+        {item.type === 'Service' && sellingPrice === 0 ? '-' : `LKR ${unitProfit.toLocaleString()}`}
       </td>
       <td style={{ fontWeight: 800 }}>
         {salesData.unitsSold > 0 ? (
@@ -867,16 +875,37 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
               />
             </div>
             <div className="form-group mb-0">
-              <label className="form-label">Selling Price (LKR) <span style={{ color: 'var(--danger)', marginLeft: '4px' }}>*</span></label>
-              <input required type="number" min="0" step="any" className="form-input" style={{ height: '42px' }} placeholder="Unit selling price" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+              <label className="form-label">
+                Selling Price (LKR)
+                {formData.type === 'Service' ? (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 'normal', color: 'var(--text-muted)', marginLeft: '6px' }}>
+                    (Optional / Variable on distance)
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--danger)', marginLeft: '4px' }}>*</span>
+                )}
+              </label>
+              <input 
+                required={formData.type !== 'Service'} 
+                type="number" 
+                min="0" 
+                step="any" 
+                className="form-input" 
+                style={{ height: '42px' }} 
+                placeholder={formData.type === 'Service' ? "0 (Variable / Custom Rate)" : "Unit selling price"} 
+                value={formData.price !== undefined && formData.price !== null ? formData.price : ''} 
+                onChange={e => setFormData({...formData, price: e.target.value === '' ? '' : Number(e.target.value)})} 
+              />
             </div>
           </div>
 
           {/* Calculated Margin Live Indicator */}
           <div style={{ background: 'var(--subtle-bg)', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Calculated Unit Profit Margin:</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: calculatedMargin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-              LKR {calculatedMargin.toLocaleString()} ({calculatedMarginPct}%)
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: (formData.type === 'Service' && sellingPrice === 0) ? 'var(--accent-primary)' : calculatedMargin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+              {formData.type === 'Service' && sellingPrice === 0 
+                ? 'Variable Rate (Calculated per job/distance)' 
+                : `LKR ${calculatedMargin.toLocaleString()} (${calculatedMarginPct}%)`}
             </span>
           </div>
 

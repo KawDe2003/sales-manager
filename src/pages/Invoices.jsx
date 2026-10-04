@@ -877,6 +877,12 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     setSelectedInventoryId('');
   };
 
+  const handleUpdateItemPrice = (idx, newPrice) => {
+    const parsed = newPrice === '' ? 0 : Number(newPrice);
+    const newItems = formData.items.map((it, i) => i === idx ? { ...it, price: parsed } : it);
+    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
+  };
+
   const handleRemoveItem = (idx) => {
     const newItems = formData.items.filter((_, i) => i !== idx);
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
@@ -1060,8 +1066,19 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                       <tr key={idx}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.name}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
-                        <td style={{ color: 'var(--text-muted)' }}>{it.price.toLocaleString()}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{(it.price * it.quantity).toLocaleString()}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          <input 
+                            type="number" 
+                            min="0"
+                            step="any"
+                            className="form-input" 
+                            style={{ height: '32px', width: '110px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                            value={it.price !== undefined && it.price !== null ? it.price : ''} 
+                            placeholder="0 (Free / Variable)"
+                            onChange={(e) => handleUpdateItemPrice(idx, e.target.value)} 
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{((Number(it.price) || 0) * (Number(it.quantity) || 1)).toLocaleString()}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button type="button" className="action-btn" style={{ color: 'var(--danger)', background: 'var(--danger-bg)', border: '1px solid rgba(244,63,94,0.2)' }} onClick={() => handleRemoveItem(idx)}>
                             <Trash2 size={14} />
