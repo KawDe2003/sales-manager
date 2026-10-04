@@ -3670,7 +3670,7 @@ export default function StoreContextProvider({ children }) {
       const isErased = localStorage.getItem(`biz_data_${activeBusinessId}_erased`) === 'true';
       const hasAnyRemoteData = (cData?.length > 0) || (invData?.length > 0) || (qData?.length > 0) || (iData?.length > 0) || (lData?.length > 0) || (eData?.length > 0) || (pData?.length > 0) || (tData?.length > 0);
 
-      if (isErased && !hasAnyRemoteData) {
+      if (isErased) {
         setCustomers([]);
         setInventory([]);
         setQuotes([]);
@@ -3692,10 +3692,6 @@ export default function StoreContextProvider({ children }) {
           isHydratingCloudRef.current = false;
         }, 200);
         return;
-      }
-
-      if (hasAnyRemoteData && isErased) {
-        try { localStorage.removeItem(`biz_data_${activeBusinessId}_erased`); } catch(e) {}
       }
 
       // 1. Fixed Assets
@@ -4592,8 +4588,9 @@ export default function StoreContextProvider({ children }) {
         clientsToWipe.flatMap(client =>
           tablesInOrder.map(async (tbl) => {
             try {
-              const scopedRes = await client.from(tbl).delete().eq('business_id', activeBusinessId);
-              if (scopedRes.error && (scopedRes.error.code === '42703' || scopedRes.error.message?.includes('business_id'))) {
+              // Unconditionally wipe all records in this table
+              const res = await client.from(tbl).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              if (res.error) {
                 await client.from(tbl).delete().not('id', 'is', null);
               }
             } catch (tblErr) {
@@ -4608,7 +4605,7 @@ export default function StoreContextProvider({ children }) {
           client.from('user_profiles').update({
             config: defaultConfig,
             updated_at: new Date().toISOString()
-          }).not('user_id', 'is', null)
+          }).neq('user_id', '00000000-0000-0000-0000-000000000000')
         )
       );
     } catch (err) {
