@@ -6911,6 +6911,32 @@ export default function StoreContextProvider({ children }) {
     }
   };
 
+  // Helper to format any Sri Lankan phone number into QuickSend's mandatory format:
+  // Must start with 07 and have 10 digits (e.g. 0771234567)
+  const formatPhoneForQuickSend = (rawPhone) => {
+    if (!rawPhone) return '';
+    let digits = String(rawPhone).trim().replace(/[^0-9]/g, '');
+    
+    // e.g. 940771234567 -> 0771234567
+    if (digits.startsWith('940') && digits.length >= 12) {
+      digits = digits.substring(2);
+    }
+    // e.g. +94771234567 or 94771234567 (11 digits) -> 0771234567
+    else if (digits.startsWith('94') && digits.length === 11) {
+      digits = '0' + digits.substring(2);
+    }
+    // e.g. 771234567 (9 digits starting with 7) -> 0771234567
+    else if (digits.length === 9 && digits.startsWith('7')) {
+      digits = '0' + digits;
+    }
+    // e.g. 0094771234567 (13 digits) -> 0771234567
+    else if (digits.startsWith('0094') && digits.length === 13) {
+      digits = '0' + digits.substring(4);
+    }
+    
+    return digits;
+  };
+
   async function sendDirectSMS(phone, rawMessage) {
     try {
       if (!phone) {
@@ -6918,13 +6944,13 @@ export default function StoreContextProvider({ children }) {
         return { success: false, error: 'No phone number provided' };
       }
 
-      // Sanitize phone number (strip whitespace, symbols)
-      let cleanPhone = String(phone).trim().replace(/[^0-9]/g, '');
-      // Format Sri Lankan numbers: e.g. 0771234567 -> 94771234567
-      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-        cleanPhone = '94' + cleanPhone.substring(1);
-      } else if (cleanPhone.length === 9) {
-        cleanPhone = '94' + cleanPhone;
+      // Format Sri Lankan number: QuickSend requires 10-digit number starting with 07 (e.g. 0771234567)
+      const cleanPhone = formatPhoneForQuickSend(phone);
+      
+      if (!cleanPhone.startsWith('07') || cleanPhone.length !== 10) {
+        const errorMsg = `Invalid phone number "${phone}". Sri Lankan SMS gateway requires a 10-digit mobile number starting with 07 (e.g. 07XXXXXXXX).`;
+        showNotification(errorMsg, 'error');
+        return { success: false, error: errorMsg };
       }
 
       const senderId = smsConfig?.senderID || "SEYNEX";
@@ -6934,7 +6960,7 @@ export default function StoreContextProvider({ children }) {
         msg: rawMessage
       };
 
-      console.log(`[QuickSend API] Dispatching to ${cleanPhone} (${phone})...`);
+      console.log(`[QuickSend API] Dispatching to ${cleanPhone} (original: ${phone})...`);
 
       const res = await fetch('/api/quicksend?FUN=SEND_SINGLE', {
         method: 'POST',
@@ -6968,8 +6994,8 @@ export default function StoreContextProvider({ children }) {
         return { success: false, error: errorMsg, data };
       }
 
-      showNotification(`SMS sent successfully to ${phone}!`, 'success');
-      addLog?.('SMS', `Sent to ${phone}: ${rawMessage.substring(0, 50)}...`);
+      showNotification(`SMS sent successfully to ${cleanPhone}!`, 'success');
+      addLog?.('SMS', `Sent to ${cleanPhone}: ${rawMessage.substring(0, 50)}...`);
       return { success: true, data };
     } catch (err) {
       console.error('[QuickSend API Exception]', err);
@@ -6980,7 +7006,15 @@ export default function StoreContextProvider({ children }) {
 
   const sendBulkSMSArray = async (phonesArray, rawMessage) => {
     try {
-      const cleanPhones = (phonesArray || []).map(p => (typeof p === 'string' ? p.replace(/[^0-9]/g, '') : p));
+      const cleanPhones = (phonesArray || [])
+        .map(p => formatPhoneForQuickSend(p))
+        .filter(p => p.startsWith('07') && p.length === 10);
+
+      if (cleanPhones.length === 0) {
+        showNotification('No valid 10-digit mobile numbers (starting with 07) found for broadcast.', 'error');
+        return { success: false, error: 'No valid numbers' };
+      }
+
       const payload = {
         check_cost: false,
         senderID: smsConfig.senderID || "SEYNEX",
@@ -7006,8 +7040,8 @@ export default function StoreContextProvider({ children }) {
       }
 
       console.log('Bulk SMS Send Result:', data);
-      showNotification(`Broadcast sent to ${phonesArray.length} contacts!`);
-      addLog('SMS', `Bulk Broadcast to ${phonesArray.length} recipients.`);
+      showNotification(`Broadcast sent to ${cleanPhones.length} contacts!`);
+      addLog('SMS', `Bulk Broadcast to ${cleanPhones.length} recipients.`);
       return { success: true, data };
     } catch (err) {
       console.error('Failed to send Bulk API', err);

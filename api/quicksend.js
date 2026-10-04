@@ -52,9 +52,26 @@ export default async function handler(request, response) {
       });
     }
 
-    const bodyData = typeof request.body === 'string'
-      ? request.body
-      : JSON.stringify(request.body || {});
+    function formatPhone(raw) {
+      if (!raw) return '';
+      let digits = String(raw).trim().replace(/[^0-9]/g, '');
+      if (digits.startsWith('940') && digits.length >= 12) digits = digits.substring(2);
+      else if (digits.startsWith('94') && digits.length === 11) digits = '0' + digits.substring(2);
+      else if (digits.length === 9 && digits.startsWith('7')) digits = '0' + digits;
+      else if (digits.startsWith('0094') && digits.length === 13) digits = '0' + digits.substring(4);
+      return digits;
+    }
+
+    let parsedBody = typeof request.body === 'string' ? JSON.parse(request.body || '{}') : (request.body || {});
+    if (parsedBody && parsedBody.to) {
+      if (Array.isArray(parsedBody.to)) {
+        parsedBody.to = parsedBody.to.map(formatPhone);
+      } else {
+        parsedBody.to = formatPhone(parsedBody.to);
+      }
+    }
+
+    const bodyData = JSON.stringify(parsedBody);
 
     const res = await fetch(targetUrl, {
       method: 'POST',
