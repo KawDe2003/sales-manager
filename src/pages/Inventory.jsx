@@ -797,6 +797,7 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
     desc: '' 
   });
 
+  const isServiceOrSoftware = formData.type === 'Service' || formData.type === 'Software';
   const sellingPrice = Number(formData.price) || 0;
   const costPrice = Number(formData.costPrice) || 0;
   const calculatedMargin = sellingPrice - costPrice;
@@ -810,7 +811,17 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
            <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={18} /></button>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} className="modal-body">
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          onSave({
+            ...formData,
+            costPrice: isServiceOrSoftware ? (Number(formData.costPrice) || 0) : (Number(formData.costPrice) || 0),
+            stock: isServiceOrSoftware ? 0 : Number(formData.stock || 0),
+            reorderLevel: isServiceOrSoftware ? 0 : Number(formData.reorderLevel || 0),
+            price: Number(formData.price) || 0
+          }); 
+          onClose(); 
+        }} className="modal-body">
           <div className="form-group mb-4">
             <label className="form-label">Product Commercial Name</label>
             <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Turnstile Gate Reader / Gym POS Software" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -833,12 +844,31 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
           {/* Pricing & Cost Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="form-group mb-0">
-              <label className="form-label">Cost Price (LKR)</label>
-              <input required type="number" className="form-input" style={{ height: '42px' }} placeholder="Unit acquisition cost" value={formData.costPrice || ''} onChange={e => setFormData({...formData, costPrice: Number(e.target.value)})} />
+              <label className="form-label">
+                Cost Price (LKR)
+                {isServiceOrSoftware ? (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 'normal', color: 'var(--text-muted)', marginLeft: '6px' }}>
+                    (Optional for {formData.type})
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--danger)', marginLeft: '4px' }}>*</span>
+                )}
+              </label>
+              <input 
+                required={!isServiceOrSoftware} 
+                type="number" 
+                min="0"
+                step="any"
+                className="form-input" 
+                style={{ height: '42px' }} 
+                placeholder={isServiceOrSoftware ? "0 (Intangible / In-house)" : "Unit acquisition cost"} 
+                value={formData.costPrice !== undefined && formData.costPrice !== null ? formData.costPrice : ''} 
+                onChange={e => setFormData({...formData, costPrice: e.target.value === '' ? '' : Number(e.target.value)})} 
+              />
             </div>
             <div className="form-group mb-0">
-              <label className="form-label">Selling Price (LKR)</label>
-              <input required type="number" className="form-input" style={{ height: '42px' }} placeholder="Unit selling price" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+              <label className="form-label">Selling Price (LKR) <span style={{ color: 'var(--danger)', marginLeft: '4px' }}>*</span></label>
+              <input required type="number" min="0" step="any" className="form-input" style={{ height: '42px' }} placeholder="Unit selling price" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
             </div>
           </div>
 

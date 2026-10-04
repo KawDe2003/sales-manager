@@ -74,6 +74,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
   
   // Customer selection
   const [selectedCustomerId, setSelectedCustomerId] = useState('walk-in'); // 'walk-in' | customer.id | 'new'
+  const [newCustomerSalutation, setNewCustomerSalutation] = useState('Mr.');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerCity, setNewCustomerCity] = useState('');
@@ -271,10 +272,12 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
           setIsSubmitting(false);
           return;
         }
+        const formattedCustName = `${newCustomerSalutation} ${newCustomerName.trim()}`;
         const createdCustomer = {
-          name: newCustomerName.trim(),
+          salutation: newCustomerSalutation,
+          name: formattedCustName,
           phone: newCustomerPhone.trim() || '077 000 0000',
-          gymName: newCustomerCity.trim() ? `${newCustomerName.trim()} (${newCustomerCity.trim()})` : newCustomerName.trim(),
+          gymName: newCustomerCity.trim() ? `${formattedCustName} (${newCustomerCity.trim()})` : formattedCustName,
           email: `${newCustomerName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}@hairpins.lk`,
           status: 'Active',
           tag: 'Wholesale / Shop',
@@ -379,7 +382,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
           setIsSubmitting(false);
           return;
         }
-        custName = newCustomerName.trim();
+        custName = `${newCustomerSalutation} ${newCustomerName.trim()}`;
         custPhone = newCustomerPhone.trim();
       } else if (selectedCustomerId !== 'walk-in' && activeCustomer) {
         custName = activeCustomer.name || activeCustomer.gymName;
@@ -1133,15 +1136,30 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       borderRadius: '8px',
                       border: '1px solid var(--panel-border)'
                     }}>
-                      <input
-                        type="text"
-                        placeholder="Shop or Buyer Name *"
-                        value={newCustomerName}
-                        onChange={(e) => setNewCustomerName(e.target.value)}
-                        className="form-input"
-                        style={{ height: '36px', fontSize: '0.82rem' }}
-                        autoFocus
-                      />
+                      <div style={{ display: 'grid', gridTemplateColumns: '85px 1fr', gap: '6px' }}>
+                        <select
+                          className="form-input"
+                          style={{ height: '36px', fontSize: '0.82rem', padding: '0 6px', fontWeight: 600, cursor: 'pointer' }}
+                          value={newCustomerSalutation}
+                          onChange={(e) => setNewCustomerSalutation(e.target.value)}
+                        >
+                          <option value="Mr.">Mr.</option>
+                          <option value="Miss">Miss</option>
+                          <option value="Mrs.">Mrs.</option>
+                          <option value="Ms.">Ms.</option>
+                          <option value="Dr.">Dr.</option>
+                          <option value="Rev.">Rev.</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Contact / Buyer Name *"
+                          value={newCustomerName}
+                          onChange={(e) => setNewCustomerName(e.target.value)}
+                          className="form-input"
+                          style={{ height: '36px', fontSize: '0.82rem' }}
+                          autoFocus
+                        />
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"

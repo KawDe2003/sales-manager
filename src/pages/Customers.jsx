@@ -382,13 +382,36 @@ const Customers = () => {
   );
 };
 
+const SALUTATION_OPTIONS = [
+  { value: 'Mr.', label: 'Mr.' },
+  { value: 'Miss', label: 'Miss' },
+  { value: 'Mrs.', label: 'Mrs.' },
+  { value: 'Ms.', label: 'Ms.' },
+  { value: 'Dr.', label: 'Dr.' },
+  { value: 'Rev.', label: 'Rev.' }
+];
+
+const parseSalutationAndName = (rawName = '', defaultSalutation = 'Mr.') => {
+  if (!rawName) return { salutation: defaultSalutation, cleanName: '' };
+  const trimmed = rawName.trim();
+  const match = trimmed.match(/^(Mr\.|Miss|Mrs\.|Ms\.|Dr\.|Rev\.)\s*(.*)$/i);
+  if (match) {
+    const matchedPrefix = match[1].toLowerCase();
+    const found = SALUTATION_OPTIONS.find(opt => opt.value.toLowerCase() === matchedPrefix);
+    return { salutation: found ? found.value : defaultSalutation, cleanName: match[2].trim() };
+  }
+  return { salutation: defaultSalutation, cleanName: trimmed };
+};
+
 // ADD / EDIT CUSTOMER MODAL COMPONENT
 const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairPins = false, customerTags = [] }) => {
   const defaultTag = isHairPins ? 'Wholesale Distributor' : 'Enterprise Client';
+  const parsedContact = parseSalutationAndName(initialData?.name || '', initialData?.salutation || 'Mr.');
   const [formData, setFormData] = useState({
     code: initialData?.code || nextCustomerCode || (isHairPins ? 'HP-BUYER-101' : 'SNX-CUST-1001'),
     gymName: initialData?.gymName || '',
-    name: initialData?.name || '',
+    salutation: parsedContact.salutation,
+    name: parsedContact.cleanName,
     phone: initialData?.phone || '',
     email: initialData?.email || '',
     address: initialData?.address || '',
@@ -482,7 +505,18 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
 
         {/* Scrollable Form Body with Pinned Actions */}
         <form 
-          onSubmit={(e) => { e.preventDefault(); onSave(formData); onClose(); }} 
+          onSubmit={(e) => { 
+            e.preventDefault(); 
+            const formattedName = formData.name.trim() 
+              ? `${formData.salutation || 'Mr.'} ${formData.name.trim()}` 
+              : '';
+            onSave({
+              ...formData,
+              salutation: formData.salutation || 'Mr.',
+              name: formattedName
+            }); 
+            onClose(); 
+          }} 
           style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -514,15 +548,23 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, isHairP
               </div>
 
               <div className="form-group">
-                <label className="form-label">{isHairPins ? 'Proprietor / Contact Person' : 'Contact Person Name'}</label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-input" 
-                  placeholder={isHairPins ? "e.g. M. Farook (Proprietor)" : "e.g. Rohan Jayasinghe"} 
-                  value={formData.name} 
-                  onChange={e => setFormData({...formData, name: e.target.value})} 
-                />
+                <label className="form-label">{isHairPins ? 'Proprietor / Contact Person *' : 'Contact Person Name *'}</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '105px 1fr', gap: '8px' }}>
+                  <CustomSelect
+                    value={formData.salutation || 'Mr.'}
+                    onChange={val => setFormData({ ...formData, salutation: val })}
+                    options={SALUTATION_OPTIONS}
+                    style={{ height: '42px', minWidth: '95px' }}
+                  />
+                  <input 
+                    required 
+                    type="text" 
+                    className="form-input" 
+                    placeholder={isHairPins ? "e.g. M. Farook" : "e.g. Rohan Jayasinghe"} 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                  />
+                </div>
               </div>
 
               <div className="form-group">

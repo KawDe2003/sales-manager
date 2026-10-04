@@ -2218,15 +2218,42 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
   );
 };
 
+const LEAD_SALUTATIONS = [
+  { value: 'Mr.', label: 'Mr.' },
+  { value: 'Miss', label: 'Miss' },
+  { value: 'Mrs.', label: 'Mrs.' },
+  { value: 'Ms.', label: 'Ms.' },
+  { value: 'Dr.', label: 'Dr.' },
+  { value: 'Rev.', label: 'Rev.' }
+];
+
+const parseLeadSalutation = (raw = '') => {
+  if (!raw) return { salutation: 'Mr.', cleanName: '' };
+  const match = raw.trim().match(/^(Mr\.|Miss|Mrs\.|Ms\.|Dr\.|Rev\.)\s*(.*)$/i);
+  if (match) {
+    const found = LEAD_SALUTATIONS.find(s => s.value.toLowerCase() === match[1].toLowerCase());
+    return { salutation: found ? found.value : 'Mr.', cleanName: match[2].trim() };
+  }
+  return { salutation: 'Mr.', cleanName: raw.trim() };
+};
+
 // ===================================================================
 // CREATE / EDIT PROSPECT MODAL
 // ===================================================================
 const LeadModal = ({ initialData, onClose, onSave, statuses, markedActionDates = [] }) => {
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const initialContact = parseLeadSalutation(initialData?.contactPerson || initialData?.prospectName || '');
 
-  const [formData, setFormData] = useState(initialData || {
+  const [formData, setFormData] = useState(initialData ? {
+    ...initialData,
+    salutation: initialData.salutation || initialContact.salutation,
+    contactPerson: initialContact.cleanName,
+    prospectName: initialContact.cleanName
+  } : {
     gymName: '',
+    salutation: 'Mr.',
     contactPerson: '',
+    prospectName: '',
     phone: '',
     email: '',
     status: 'New',
@@ -2238,7 +2265,15 @@ const LeadModal = ({ initialData, onClose, onSave, statuses, markedActionDates =
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    const formattedPerson = formData.contactPerson?.trim() 
+      ? `${formData.salutation || 'Mr.'} ${formData.contactPerson.trim()}` 
+      : '';
+    onSave({
+      ...formData,
+      salutation: formData.salutation || 'Mr.',
+      contactPerson: formattedPerson,
+      prospectName: formattedPerson
+    });
   };
 
   // Lock body scroll
@@ -2318,15 +2353,23 @@ const LeadModal = ({ initialData, onClose, onSave, statuses, markedActionDates =
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-group">
                 <label className="form-label">Key Decision Maker <span style={{ color: '#ef4444' }}>*</span></label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. M. Farook (Manager)"
-                  style={{ height: '42px' }} 
-                  value={formData.contactPerson || formData.prospectName || ''} 
-                  onChange={e => setFormData({...formData, contactPerson: e.target.value, prospectName: e.target.value})} 
-                />
+                <div style={{ display: 'grid', gridTemplateColumns: '95px 1fr', gap: '8px' }}>
+                  <CustomSelect
+                    value={formData.salutation || 'Mr.'}
+                    onChange={val => setFormData({ ...formData, salutation: val })}
+                    options={LEAD_SALUTATIONS}
+                    style={{ height: '42px', minWidth: '85px' }}
+                  />
+                  <input 
+                    required 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g. M. Farook (Manager)"
+                    style={{ height: '42px' }} 
+                    value={formData.contactPerson || ''} 
+                    onChange={e => setFormData({...formData, contactPerson: e.target.value, prospectName: e.target.value})} 
+                  />
+                </div>
               </div>
 
               <div className="form-group">
