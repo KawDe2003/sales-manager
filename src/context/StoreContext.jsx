@@ -40,6 +40,19 @@ export const PLAN_CONFIGS = {
   }
 };
 
+export const DEFAULT_DASHBOARD_CONFIG = {
+  monthlyTarget: 1000000,
+  showMonthlyTarget: true,
+  showQuotationKpis: true,
+  showFinancialKpis: true,
+  showFunnel: true,
+  showTrendsChart: true,
+  showDebtorAging: true,
+  showRecentActivity: true,
+  showInventoryValuation: true,
+  compactCards: false
+};
+
 export const DEFAULT_APP_TEAM_MEMBERS = [
   // Seynex Enterprises (biz_main)
   {
@@ -723,7 +736,10 @@ export default function StoreContextProvider({ children }) {
     nextInvoiceNumber: 2002,
     quotePrefix: 'QT-',
     nextQuoteNumber: 2002,
-    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Seynex Enterprises: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
+    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Seynex Enterprises: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.',
+    smsAlertOnProposal: true,
+    smsAlertOnRejection: true,
+    smsAlertOnAcceptance: true
   };
 
   const DEFAULT_HAIRPINS_SMS_CONFIG = {
@@ -771,7 +787,10 @@ export default function StoreContextProvider({ children }) {
     nextInvoiceNumber: 1005,
     quotePrefix: 'QT-',
     nextQuoteNumber: 1003,
-    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.'
+    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.',
+    smsAlertOnProposal: true,
+    smsAlertOnRejection: true,
+    smsAlertOnAcceptance: true
   };
 
   const DEFAULT_SMS_CONFIG = DEFAULT_MAIN_SMS_CONFIG;
@@ -2050,6 +2069,46 @@ export default function StoreContextProvider({ children }) {
       console.warn('Failed to mirror gym_sms_config to localStorage', e);
     }
   }, [smsConfig, activeBusinessId]);
+
+  // Dashboard Configuration & Layout State (business-aware)
+  const [dashboardConfig, setDashboardConfig] = useState(() => {
+    try {
+      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_dashboardConfig`) || localStorage.getItem('gym_dashboard_config');
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (parsed && typeof parsed === 'object') {
+          return { ...DEFAULT_DASHBOARD_CONFIG, ...parsed };
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_DASHBOARD_CONFIG;
+  });
+
+  const updateDashboardConfig = (newConfig) => {
+    setDashboardConfig(prev => {
+      const updated = typeof newConfig === 'function' ? newConfig(prev) : { ...prev, ...newConfig };
+      try {
+        localStorage.setItem('gym_dashboard_config', JSON.stringify(updated));
+        const activeId = activeBusinessId || localStorage.getItem('active_business_id') || 'biz_main';
+        localStorage.setItem(`biz_data_${activeId}_dashboardConfig`, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    try {
+      const activeId = activeBusinessId || 'biz_main';
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_dashboardConfig`);
+      if (bizSaved) {
+        const parsed = JSON.parse(bizSaved);
+        if (parsed && typeof parsed === 'object') {
+          setDashboardConfig({ ...DEFAULT_DASHBOARD_CONFIG, ...parsed });
+        }
+      }
+    } catch (e) {}
+  }, [activeBusinessId]);
 
   // Multi-Business Persistence: Mirror each entity to active business slot
   useEffect(() => {
@@ -5214,6 +5273,17 @@ export default function StoreContextProvider({ children }) {
     // 2. Automatically Convert to Invoice with Ref: QT Number and Alert Business Owner
     const newInvoice = convertQuoteToInvoice(quote.id, acceptedQuote);
 
+    // Alert Business Owner via Seynex SMS API
+    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    if (smsConfig.smsAlertOnAcceptance !== false && recipientPhone) {
+      try {
+        const smsMsg = `[SEYNEX ALERT] DEAL WON! Customer ${quote.prospectName} has ACCEPTED Quote #${quote.quoteNumber} (LKR ${(Number(quote.amount) || 0).toLocaleString()}). Auto-invoice #${newInvoice?.invoiceNumber || ''} created. Check sales portal.`;
+        sendDirectSMS(recipientPhone, smsMsg);
+      } catch (err) {
+        console.warn('[QuickSend SMS Alert on Quote Acceptance Error]', err);
+      }
+    }
+
     showNotification(`Quotation #${quote.quoteNumber} accepted! Invoice #${newInvoice?.invoiceNumber || ''} (Ref: #${quote.quoteNumber}) created automatically.`, 'success');
     return { quote: acceptedQuote, invoice: newInvoice };
   };
@@ -5255,6 +5325,18 @@ export default function StoreContextProvider({ children }) {
     addLog('System', `Budget Counter Offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted by ${quote.prospectName} for #${quote.quoteNumber}`);
 
     const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    if (smsConfig.smsAlertOnProposal !== false && recipientPhone) {
+      try {
+        const diffNum = (Number(proposedBudget) || 0) - (Number(quote.amount) || 0);
+        const diffText = diffNum > 0 ? `+LKR ${diffNum.toLocaleString()}` : `-LKR ${Math.abs(diffNum).toLocaleString()}`;
+        const noteText = message ? ` Note: "${message.substring(0, 45)}"` : '';
+        const smsMsg = `[SEYNEX ALERT] COUNTER OFFER on #${quote.quoteNumber}: ${quote.prospectName} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} (Original: LKR ${(Number(quote.amount) || 0).toLocaleString()}, Diff: ${diffText}).${noteText}. Check portal.`;
+        await sendDirectSMS(recipientPhone, smsMsg);
+      } catch (err) {
+        console.warn('[QuickSend SMS Alert on Budget Proposal Error]', err);
+      }
+    }
+
     try {
       await sendNotification({
         eventType: 'BUDGET_PROPOSED',
@@ -5306,6 +5388,16 @@ export default function StoreContextProvider({ children }) {
     addLog('System', `Quotation #${quote.quoteNumber} declined by ${quote.prospectName}. Reason: ${reason || 'Not specified'}`);
 
     const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    if (smsConfig.smsAlertOnRejection !== false && recipientPhone) {
+      try {
+        const reasonText = reason ? ` Reason: "${reason.substring(0, 50)}"` : '';
+        const smsMsg = `[SEYNEX ALERT] QUOTE DECLINED: #${quote.quoteNumber} was declined by ${quote.prospectName}.${reasonText}. Check portal for details.`;
+        await sendDirectSMS(recipientPhone, smsMsg);
+      } catch (err) {
+        console.warn('[QuickSend SMS Alert on Quote Rejection Error]', err);
+      }
+    }
+
     try {
       await sendNotification({
         eventType: 'QUOTATION_REJECTED',
@@ -7178,6 +7270,7 @@ export default function StoreContextProvider({ children }) {
       deleteInvoice, deleteQuote,
       getNextSequentialInvoiceNumber, getNextSequentialQuoteNumber,
       smsConfig, updateSmsConfig, fetchSmsBalance, triggerSMS, sendDirectSMS, sendBulkSMSArray, handleTestSms,
+      dashboardConfig, updateDashboardConfig, DEFAULT_DASHBOARD_CONFIG,
       teamMembers, addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
       customRoles, addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole,
       theme, toggleTheme,

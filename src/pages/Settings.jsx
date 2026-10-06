@@ -486,16 +486,16 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="table-container" style={{ background: 'transparent' }}>
-              <table style={{ fontSize: '0.9rem' }}>
+            <div className="table-container" style={{ background: 'transparent', width: '100%', overflowX: 'auto' }}>
+              <table style={{ fontSize: '0.9rem', width: '100%', minWidth: '760px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Team Member Details</th>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Assigned Workspace</th>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Department</th>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>System Role</th>
-                    <th style={{ padding: '12px 0', opacity: 0.7 }}>Account Status</th>
-                    <th style={{ padding: '12px 0', textAlign: 'right', opacity: 0.7 }}>Actions & Security</th>
+                    <th style={{ padding: '12px 16px', opacity: 0.7, minWidth: '220px' }}>Team Member Details</th>
+                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '150px' }}>Assigned Workspace</th>
+                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '130px' }}>Department</th>
+                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '130px' }}>System Role</th>
+                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '120px' }}>Account Status</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', opacity: 0.7, minWidth: '160px' }}>Actions & Security</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -509,7 +509,7 @@ const Settings = () => {
                     })
                     .map(member => (
                     <tr key={member.id} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
-                      <td style={{ padding: '16px 0' }}>
+                      <td style={{ padding: '14px 16px', minWidth: '220px' }}>
                         <div className="flex items-center gap-3">
                           <div style={{
                             width: '42px', height: '42px', borderRadius: '12px',
@@ -1723,37 +1723,41 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="form-group">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <div className="form-group" style={{ minWidth: 0 }}>
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Invoice Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. INV-" />
                 </label>
                 <input type="text" className="form-input" 
+                  style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                   value={smsConfig.invoicePrefix || ''}
                   placeholder="INV-"
                   onChange={e => updateSmsConfig({...smsConfig, invoicePrefix: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ minWidth: 0 }}>
                 <label className="form-label">Starting Invoice #</label>
                 <input type="number" className="form-input" 
+                  style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                   value={smsConfig.nextInvoiceNumber || 1001}
                   onChange={e => updateSmsConfig({...smsConfig, nextInvoiceNumber: Number(e.target.value)})} />
               </div>
               
-              <div style={{ height: '1px', background: 'var(--panel-border)', gridColumn: 'span 2' }}></div>
+              <div style={{ height: '1px', background: 'var(--panel-border)', gridColumn: '1 / -1', width: '100%' }}></div>
               
-              <div className="form-group">
+              <div className="form-group" style={{ minWidth: 0 }}>
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Quotation Prefix <Info size={12} className="text-secondary" title="The text before the number e.g. QT-" />
                 </label>
                 <input type="text" className="form-input" 
+                  style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                   value={smsConfig.quotePrefix || ''}
                   placeholder="QT-"
                   onChange={e => updateSmsConfig({...smsConfig, quotePrefix: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ minWidth: 0 }}>
                 <label className="form-label">Starting Quotation #</label>
                 <input type="number" className="form-input" 
+                  style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}
                   value={smsConfig.nextQuoteNumber || 1001}
                   onChange={e => updateSmsConfig({...smsConfig, nextQuoteNumber: Number(e.target.value)})} />
               </div>

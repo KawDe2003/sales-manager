@@ -1,12 +1,13 @@
 import React, { useContext, useState, useMemo } from 'react';
-import { StoreContext } from '../context/StoreContext';
+import { StoreContext, DEFAULT_DASHBOARD_CONFIG } from '../context/StoreContext';
 import { 
   Users, Target, Activity, 
   TrendingUp, TrendingDown, BarChart3, Zap, ArrowUpRight, ArrowDownRight, Globe,
   FileText, PlusCircle, CreditCard, Award, AlertCircle, Calendar, Plus,
   CheckCircle2, XCircle, Clock, RefreshCw, ChevronRight, UserCheck,
   Wallet, Layers, ArrowRight, ShieldAlert, Sparkles, Filter, DollarSign,
-  Percent, ArrowRightCircle, Package, Truck, Factory, ShoppingCart, Scale, Check, Building2
+  Percent, ArrowRightCircle, Package, Truck, Factory, ShoppingCart, Scale, Check, Building2,
+  Sliders, X, RotateCcw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DatePicker from '../components/DatePicker';
@@ -86,10 +87,15 @@ const Dashboard = () => {
     theme = 'dark',
     setQuickSaleOpen,
     activeBusinessId,
-    activeBusiness
+    activeBusiness,
+    dashboardConfig = {},
+    updateDashboardConfig
   } = useContext(StoreContext) || {};
   const isDark = theme !== 'light';
   const isHairPins = activeBusinessId === 'biz_hairpins';
+
+  // --- DASHBOARD CUSTOMIZATION MODAL STATE ---
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
 
   // --- GLOBAL DATE FILTER STATE ---
   const [dateFilter, setDateFilter] = useState('30d'); // 'today', '7d', '30d', 'custom'
@@ -502,6 +508,14 @@ const Dashboard = () => {
   const hairpinBillingAmount = totalInvoicedThisMonth > 0 ? totalInvoicedThisMonth : invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const hairpinCashCollected = totalCollectedThisMonth > 0 ? totalCollectedThisMonth : payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
+  // --- CUSTOMIZABLE MONTHLY REVENUE TARGET METRICS ---
+  const currentMonthAchieved = isHairPins ? hairpinCashCollected : totalCollectedThisMonth;
+  const monthlyTarget = Number(dashboardConfig?.monthlyTarget) || 1000000;
+  const targetProgressPct = monthlyTarget > 0 ? Math.min(1000, Math.round((currentMonthAchieved / monthlyTarget) * 100)) : 0;
+  const remainingToTarget = Math.max(0, monthlyTarget - currentMonthAchieved);
+  const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const remainingDaysInMonth = Math.max(0, daysInCurrentMonth - now.getDate());
+
   // Hairpin Wholesale Order Status Donut Chart
   const hairpinOrderStatusDonut = useMemo(() => {
     const counts = {
@@ -882,6 +896,22 @@ const Dashboard = () => {
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button 
+              id="dashboard-customize-layout-btn"
+              onClick={() => setShowCustomizeModal(true)}
+              className="btn btn-secondary"
+              style={{
+                padding: '8px 16px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px'
+              }}
+              title="Customize dashboard cards, metrics, and sales target"
+            >
+              <Sliders size={15} /> Customize
+            </button>
+            <button 
               id="dashboard-quick-sale-bill-btn"
               onClick={() => setQuickSaleOpen(true)}
               className="btn"
@@ -915,7 +945,95 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* MONTHLY REVENUE TARGET PROGRESS WIDGET */}
+      {dashboardConfig?.showMonthlyTarget !== false && (
+        <div className="glass-panel hover-lift" style={{
+          marginBottom: '20px',
+          padding: '20px 24px',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)'
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%)',
+          border: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(99, 102, 241, 0.18)',
+          borderRadius: '16px',
+          boxShadow: isDark ? '0 12px 28px rgba(0, 0, 0, 0.4)' : '0 8px 20px rgba(0, 0, 0, 0.06)'
+        }}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--accent-primary)',
+                boxShadow: '0 0 14px rgba(99, 102, 241, 0.25)'
+              }}>
+                <Target size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Monthly Sales Target Goal
+                  </h3>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px',
+                    background: targetProgressPct >= 100 ? 'rgba(16, 185, 129, 0.18)' : 'rgba(99, 102, 241, 0.15)',
+                    color: targetProgressPct >= 100 ? '#10b981' : 'var(--accent-primary)',
+                    border: targetProgressPct >= 100 ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(99, 102, 241, 0.25)'
+                  }}>
+                    {targetProgressPct >= 100 ? '🎉 Goal Achieved!' : `${targetProgressPct}% Achieved`}
+                  </span>
+                </div>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  LKR {currentMonthAchieved.toLocaleString()} collected of LKR {monthlyTarget.toLocaleString()} monthly goal
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {remainingDaysInMonth} days remaining
+                </div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: remainingToTarget > 0 ? 'var(--text-secondary)' : '#10b981' }}>
+                  {remainingToTarget > 0 ? `LKR ${remainingToTarget.toLocaleString()} left` : 'Target surpassed!'}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCustomizeModal(true)}
+                className="btn btn-secondary"
+                style={{ height: '34px', padding: '0 12px', fontSize: '0.78rem', borderRadius: '8px' }}
+                title="Adjust monthly target or layout"
+              >
+                <Sliders size={13} /> Adjust Goal
+              </button>
+            </div>
+          </div>
+
+          {/* Target Progress Bar */}
+          <div style={{
+            width: '100%', height: '10px', borderRadius: '999px',
+            background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
+            overflow: 'hidden', position: 'relative'
+          }}>
+            <div style={{
+              width: `${Math.min(100, targetProgressPct)}%`,
+              height: '100%',
+              borderRadius: '999px',
+              background: targetProgressPct >= 100
+                ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+                : targetProgressPct >= 50
+                ? 'linear-gradient(90deg, #6366f1 0%, #38bdf8 100%)'
+                : 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)',
+              boxShadow: targetProgressPct >= 100
+                ? '0 0 12px rgba(16, 185, 129, 0.5)'
+                : '0 0 12px rgba(99, 102, 241, 0.4)',
+              transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
+            }} />
+          </div>
+        </div>
+      )}
+
       {/* KPI ROW 1: CUSTOMERS & PIPELINE / WHOLESALE ORDERS */}
+      {dashboardConfig?.showQuotationKpis !== false && (
       <div style={{ marginBottom: '16px' }}>
         <div className="flex justify-between items-center mb-2">
           <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
@@ -1103,8 +1221,10 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* KPI ROW 2: FINANCIALS, COLLECTIONS & STOCK */}
+      {dashboardConfig?.showFinancialKpis !== false && (
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px' }}>
           {isHairPins ? 'Wholesale Billing, Factory Cash & Inventory Stock' : 'Revenue, Collections & Debtors'}
@@ -1210,10 +1330,12 @@ const Dashboard = () => {
 
         </div>
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* EXECUTIVE REAL-TIME PROFIT & LOSS (P&L) CENTER                            */}
       {/* ========================================================================= */}
+      {dashboardConfig?.showProfitLoss !== false && (
       <div className="glass-panel mb-8" style={{
         padding: '24px',
         borderRadius: '18px',
@@ -1699,8 +1821,10 @@ const Dashboard = () => {
 
         </div>
       </div>
+      )}
 
       {/* COMPREHENSIVE VISUAL SUITE - ROW 1: FINANCIAL STUDIO & PIPELINE DONUT */}
+      {dashboardConfig?.showTrendsChart !== false && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
         {/* 1. FINANCIAL PERFORMANCE & CASHFLOW STUDIO (2 COLS) */}
@@ -2018,8 +2142,10 @@ const Dashboard = () => {
         </div>
 
       </div>
+      )}
 
       {/* COMPREHENSIVE VISUAL SUITE - ROW 2: FUNNEL (SALES OR WHOLESALE ORDER-TO-CASH) */}
+      {dashboardConfig?.showFunnel !== false && (
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
         background: isDark 
@@ -2175,8 +2301,10 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* COMPREHENSIVE VISUAL SUITE - ROW 3: DEBTOR AGING ANALYSIS (BAR CHART) */}
+      {dashboardConfig?.showDebtorAging !== false && (
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
         background: isDark 
@@ -2333,8 +2461,10 @@ const Dashboard = () => {
 
         </div>
       </div>
+      )}
 
       {/* LOWER SECTION: TOP 5 CUSTOMERS & OVERDUE DEBTORS */}
+      {dashboardConfig?.showRecentActivity !== false && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
         {/* [SUGGESTED] TOP CUSTOMERS CARD */}
@@ -2476,6 +2606,198 @@ const Dashboard = () => {
         </div>
 
       </div>
+      )}
+
+      {/* DASHBOARD LAYOUT & METRICS CUSTOMIZER MODAL */}
+      {showCustomizeModal && (
+        <div 
+          className="app-modal-backdrop" 
+          onClick={() => setShowCustomizeModal(false)}
+          style={{ zIndex: 99999 }}
+        >
+          <div 
+            className="app-modal-dialog" 
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              background: isDark ? '#0f172a' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(15, 23, 42, 0.15)',
+              borderRadius: '16px',
+              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(248, 250, 252, 0.8)'
+            }}>
+              <div className="flex items-center gap-3">
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '10px',
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--accent-primary)'
+                }}>
+                  <Sliders size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Dashboard Customization
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Personalize sales targets, visible KPI rows, and widget layout
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCustomizeModal(false)}
+                className="btn btn-secondary"
+                style={{ width: '32px', height: '32px', padding: 0, borderRadius: '8px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              
+              {/* Monthly Target Config */}
+              <div style={{
+                background: isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.05)',
+                border: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(99, 102, 241, 0.15)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '20px'
+              }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  🎯 Monthly Revenue Target Goal (LKR)
+                </label>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                  Set your business's monthly sales benchmark. Used to track completion progress on the top target widget.
+                </p>
+                <input 
+                  type="number"
+                  className="form-input"
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    color: 'var(--accent-primary)',
+                    background: isDark ? '#1e293b' : '#ffffff'
+                  }}
+                  value={dashboardConfig?.monthlyTarget || 1000000}
+                  onChange={e => updateDashboardConfig({ monthlyTarget: Number(e.target.value) || 0 })}
+                  placeholder="1000000"
+                />
+              </div>
+
+              {/* Section Visibility Switches */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Toggle Visible Sections & Cards
+                </div>
+                
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    { key: 'showMonthlyTarget', label: 'Monthly Sales Target & Progress Bar', desc: 'Top revenue completion bar and pace' },
+                    { key: 'showQuotationKpis', label: isHairPins ? 'Wholesale Orders & Dispatch Row' : 'Quotation Pipeline & Customer Base Row', desc: 'Deals, customer count, and conversion rate' },
+                    { key: 'showFinancialKpis', label: isHairPins ? 'Wholesale Billing & Factory Cash Row' : 'Revenue, Collections & Debtors Row', desc: 'Billing volume, actual cash, and overdue' },
+                    { key: 'showProfitLoss', label: 'Executive Profit & Loss Statement (P&L)', desc: 'Real-time gross/net margins, COGS, and OPEX' },
+                    { key: 'showTrendsChart', label: 'Financial Studio & Performance Charts', desc: 'Revenue vs Collections trends and donut split' },
+                    { key: 'showFunnel', label: isHairPins ? 'Factory Wholesale Order-to-Cash Pipeline' : 'Sales Conversion Velocity Funnel', desc: 'Lead-to-deal progression stages and win rate' },
+                    { key: 'showDebtorAging', label: 'Accounts Receivable & Debtor Aging', desc: 'Credit risk segmentation and overdue distribution' },
+                    { key: 'showRecentActivity', label: isHairPins ? 'Top Wholesale Buyers & Overdue Accounts' : 'Top 5 Clients & Overdue Accounts', desc: 'Top volume customer rankings and collections ledger' }
+                  ].map(sec => {
+                    const isChecked = dashboardConfig?.[sec.key] !== false;
+                    return (
+                      <div 
+                        key={sec.key}
+                        onClick={() => updateDashboardConfig({ [sec.key]: !isChecked })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '10px',
+                          background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.03)',
+                          border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        className="hover-lift"
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {sec.label}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {sec.desc}
+                          </div>
+                        </div>
+
+                        {/* Switch UI */}
+                        <div style={{
+                          width: '42px', height: '24px', borderRadius: '999px',
+                          background: isChecked ? 'var(--accent-primary)' : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(15, 23, 42, 0.15)'),
+                          position: 'relative',
+                          transition: 'background 0.2s ease',
+                          flexShrink: 0
+                        }}>
+                          <div style={{
+                            width: '18px', height: '18px', borderRadius: '50%',
+                            background: '#ffffff',
+                            position: 'absolute',
+                            top: '3px',
+                            left: isChecked ? '21px' : '3px',
+                            transition: 'left 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 24px',
+              borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(248, 250, 252, 0.8)'
+            }}>
+              <button 
+                type="button"
+                onClick={() => updateDashboardConfig(DEFAULT_DASHBOARD_CONFIG)}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.8rem', padding: '0 12px', height: '36px', gap: '6px' }}
+              >
+                <RotateCcw size={13} /> Reset Defaults
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowCustomizeModal(false)}
+                className="btn btn-primary"
+                style={{ fontSize: '0.84rem', padding: '0 20px', height: '36px' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
