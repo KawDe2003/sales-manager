@@ -33,31 +33,6 @@ const BUSINESS_PORTALS = {
       { label: 'Sales Rep', roleBadge: 'Enterprise Sales', icon: Briefcase, e: 'sales@seynex.lk', p: 'seynex2026', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.08)', border: 'rgba(56, 189, 248, 0.25)' },
       { label: 'Accountant', roleBadge: 'Finance', icon: Calculator, e: 'accounts@seynex.lk', p: 'seynex2026', color: '#c084fc', bg: 'rgba(168, 85, 247, 0.08)', border: 'rgba(168, 85, 247, 0.25)' }
     ]
-  },
-  biz_hairpins: {
-    id: 'biz_hairpins',
-    slug: 'hairpins',
-    name: 'Royal Hair Pin Industries',
-    shortName: 'Royal Hair Pins',
-    tagline: 'Manufacturing & Wholesale Operations Portal',
-    subBadge: 'Bobby Pins · Display Cards · Factory BOMs · Wholesale',
-    color: '#0d9488',
-    colorHover: '#0f766e',
-    glowColor: 'rgba(13, 148, 136, 0.28)',
-    ambientBg: 'radial-gradient(ellipse at 50% 10%, rgba(13, 148, 136, 0.18), transparent 70%)',
-    gradient: 'linear-gradient(135deg, #0d9488 0%, #10b981 100%)',
-    icon: Sparkles,
-    domainHint: '@royalhairpins.lk',
-    supportDepartment: 'Plant Office & Production Administration',
-    supportEmail: 'royalhairpins@gmail.com',
-    supportPhone: '+94 77 123 4567',
-    supportLocation: 'Kelaniya Industrial Zone, Sri Lanka',
-    directUrlParam: 'hairpins',
-    demoAccounts: [
-      { label: 'Factory Admin', roleBadge: 'Plant Management', icon: Shield, e: 'admin@royalhairpins.lk', p: 'hairpins2026', color: '#34d399', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.25)' },
-      { label: 'Wholesale Rep', roleBadge: 'Distribution Sales', icon: Briefcase, e: 'sales@royalhairpins.lk', p: 'hairpins2026', color: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.08)', border: 'rgba(45, 212, 191, 0.25)' },
-      { label: 'Cost Accountant', roleBadge: 'Plant Accounts', icon: Calculator, e: 'accounts@royalhairpins.lk', p: 'hairpins2026', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.08)', border: 'rgba(167, 139, 250, 0.25)' }
-    ]
   }
 };
 
@@ -68,23 +43,7 @@ const Login = () => {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  // Detect initial business from URL search param (?biz=hairpins), path slug (/login/hairpins), or localStorage
-  const detectInitialBusiness = () => {
-    const urlBiz = (searchParams.get('biz') || businessSlug || '').toLowerCase();
-    if (urlBiz === 'hairpins' || urlBiz === 'hairpin' || urlBiz === 'royalhairpins') {
-      return 'biz_hairpins';
-    }
-    if (urlBiz === 'seynex' || urlBiz === 'main') {
-      return 'biz_main';
-    }
-    try {
-      const saved = localStorage.getItem('active_business_id');
-      if (saved === 'biz_hairpins' || saved === 'biz_main') return saved;
-    } catch (e) {}
-    return 'biz_main';
-  };
-
-  const [selectedBizId, setSelectedBizId] = useState(detectInitialBusiness);
+  const [selectedBizId, setSelectedBizId] = useState('biz_main');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -273,137 +232,7 @@ const Login = () => {
           transition: 'box-shadow 0.35s ease, border-color 0.35s ease'
         }}>
 
-        {/* Business Workspace Switcher Tabs */}
-        <div style={{
-          padding: '16px 18px 0',
-          background: 'rgba(0, 0, 0, 0.25)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '10px'
-          }}>
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: '#94a3b8',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}>
-              <Layers size={13} style={{ color: activePortal.color }} />
-              Select Business Workspace
-            </span>
-            <span style={{
-              fontSize: '0.66rem',
-              fontWeight: 600,
-              color: '#64748b'
-            }}>
-              Separate Portals
-            </span>
-          </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            paddingBottom: '14px'
-          }}>
-            {/* Seynex Enterprises Tab */}
-            <button
-              type="button"
-              id="select-seynex-portal-btn"
-              onClick={() => handleSelectBusiness('biz_main')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 12px',
-                borderRadius: '11px',
-                border: selectedBizId === 'biz_main' 
-                  ? '1px solid #6366f1' 
-                  : '1px solid rgba(255, 255, 255, 0.08)',
-                background: selectedBizId === 'biz_main'
-                  ? 'linear-gradient(135deg, rgba(79, 70, 229, 0.25) 0%, rgba(99, 102, 241, 0.12) 100%)'
-                  : 'rgba(255, 255, 255, 0.03)',
-                color: selectedBizId === 'biz_main' ? '#ffffff' : '#94a3b8',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-                fontFamily: 'inherit'
-              }}>
-              <div style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '7px',
-                background: selectedBizId === 'biz_main' ? 'linear-gradient(135deg, #4f46e5, #3b82f6)' : 'rgba(255,255,255,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Building2 size={16} color={selectedBizId === 'biz_main' ? '#fff' : '#94a3b8'} />
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  Seynex
-                </div>
-                <div style={{ fontSize: '0.64rem', color: selectedBizId === 'biz_main' ? '#c7d2fe' : '#64748b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  Enterprise Portal
-                </div>
-              </div>
-            </button>
-
-            {/* Royal Hair Pins Tab */}
-            <button
-              type="button"
-              id="select-hairpins-portal-btn"
-              onClick={() => handleSelectBusiness('biz_hairpins')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 12px',
-                borderRadius: '11px',
-                border: selectedBizId === 'biz_hairpins' 
-                  ? '1px solid #14b8a6' 
-                  : '1px solid rgba(255, 255, 255, 0.08)',
-                background: selectedBizId === 'biz_hairpins'
-                  ? 'linear-gradient(135deg, rgba(13, 148, 136, 0.28) 0%, rgba(20, 184, 166, 0.12) 100%)'
-                  : 'rgba(255, 255, 255, 0.03)',
-                color: selectedBizId === 'biz_hairpins' ? '#ffffff' : '#94a3b8',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-                fontFamily: 'inherit'
-              }}>
-              <div style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '7px',
-                background: selectedBizId === 'biz_hairpins' ? 'linear-gradient(135deg, #0d9488, #10b981)' : 'rgba(255,255,255,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Sparkles size={16} color={selectedBizId === 'biz_hairpins' ? '#fff' : '#94a3b8'} />
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  Royal Hair Pins
-                </div>
-                <div style={{ fontSize: '0.64rem', color: selectedBizId === 'biz_hairpins' ? '#99f6e4' : '#64748b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  Factory & Wholesale
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* Dynamic Card Header */}
         <div style={{

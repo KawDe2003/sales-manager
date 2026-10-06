@@ -44,7 +44,8 @@ export default function BusinessSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const currentBiz = activeBusiness || businesses.find(b => b.id === activeBusinessId) || businesses[0] || {
+  const filteredBusinesses = businesses.filter(b => b.id !== 'biz_hairpins');
+  const currentBiz = activeBusiness || filteredBusinesses.find(b => b.id === activeBusinessId) || filteredBusinesses[0] || {
     id: 'biz_main',
     name: 'Seynex Enterprises',
     category: 'Enterprise Solutions & Tech',
@@ -52,7 +53,7 @@ export default function BusinessSwitcher() {
     icon: 'Building2'
   };
 
-  const isHairPins = currentBiz.id === 'biz_hairpins';
+  const isHairPins = false;
 
   const handleSelectBusiness = (bizId) => {
     if (isRestricted && bizId !== user.businessId) {
@@ -184,7 +185,7 @@ export default function BusinessSwitcher() {
               {isRestricted ? 'Assigned Workspace' : 'Select Active Business'}
             </span>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              {businesses.length} Businesses
+              {filteredBusinesses.length} Businesses
             </span>
           </div>
 
@@ -209,9 +210,9 @@ export default function BusinessSwitcher() {
 
           {/* Business Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0' }}>
-            {businesses.map((biz) => {
+            {filteredBusinesses.map((biz) => {
               const isSelected = biz.id === activeBusinessId;
-              const isBizHairPins = biz.id === 'biz_hairpins';
+              const isBizHairPins = false;
               const isLockedForUser = isRestricted && biz.id !== user.businessId;
 
               return (

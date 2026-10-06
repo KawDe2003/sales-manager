@@ -1,8 +1,8 @@
-import React, { useContext, useState, useEffect, useMemo } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialQuoteNumber } from '../context/StoreContext';
-import { FileText, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock } from 'lucide-react';
+import { FileText, Plus, Minus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock, ChevronDown, Package } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
@@ -471,7 +471,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
   );
 };
 
-const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] }) => {
+const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = [] }) => {
   const { smsConfig = {}, showNotification, quotes = [] } = useContext(StoreContext) || {};
   const isLocked = Boolean(
     initialData && (
@@ -490,7 +490,6 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
 
   const [formData, setFormData] = useState({
     quoteNumber: initialData?.quoteNumber || (() => {
-      // Always scan existing quotes to avoid duplicates (never trust stale config value alone)
       return getNextSequentialQuoteNumber(quotes, smsConfig).formattedNumber;
     })(),
     date: initialData?.date || new Date().toISOString().split('T')[0], 
@@ -505,21 +504,49 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
     agreementTerms: initialData?.agreementTerms || '1. Validity: 30 days from date of issue.\n2. Payment Terms: 50% advance upon contract signing, balance on completion.\n3. Taxes: All rates quoted are in Sri Lankan Rupees (LKR).'
   });
 
-  const [selectedInventoryId, setSelectedInventoryId] = useState('');
-  const [invSearchQuery, setInvSearchQuery] = useState('');
+  const [invSearch, setInvSearch] = useState('');
+  const [isInvOpen, setIsInvOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const invPickerRef = useRef(null);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (invPickerRef.current && !invPickerRef.current.contains(e.target)) {
+        setIsInvOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Filter categories
+  const categories = useMemo(() => {
+    const set = new Set();
+    inventory.forEach(i => {
+      if (i.category && i.category !== 'General') set.add(i.category);
+      else if (i.type) set.add(i.type);
+    });
+    return ['All', ...Array.from(set).slice(0, 5)];
+  }, [inventory]);
+
+  // Filtered inventory
   const filteredInventory = useMemo(() => {
-    const q = (invSearchQuery || '').trim().toLowerCase();
-    if (!q) return inventory;
+    const q = (invSearch || '').trim().toLowerCase();
     return inventory.filter(item => {
+      const matchesCategory = selectedCategory === 'All' || 
+        item.category === selectedCategory || 
+        item.type === selectedCategory;
+      if (!matchesCategory) return false;
+
+      if (!q) return true;
       const name = (item.name || '').toLowerCase();
       const sku = (item.sku || item.code || '').toLowerCase();
       const cat = (item.category || '').toLowerCase();
       const type = (item.type || '').toLowerCase();
-      const desc = (item.description || '').toLowerCase();
-      return name.includes(q) || sku.includes(q) || cat.includes(q) || type.includes(q) || desc.includes(q);
+      return name.includes(q) || sku.includes(q) || cat.includes(q) || type.includes(q);
     });
-  }, [inventory, invSearchQuery]);
+  }, [inventory, invSearch, selectedCategory]);
 
   const calculateSubtotal = (items) => items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const calculateTotal = (items, discount = 0) => calculateSubtotal(items) - Number(discount || 0);
@@ -541,15 +568,24 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
       newItems.push({ ...invItem, quantity: 1 });
     }
     
-    setFormData(prev => ({ ...prev, items: newItems, amount: calculateTotal(newItems, prev.discount) }));
-    setSelectedInventoryId('');
+    setFormData(prev => ({ 
+      ...prev, 
+      items: newItems, 
+      amount: calculateTotal(newItems, prev.discount) 
+    }));
+    setInvSearch('');
+    setIsInvOpen(false);
     if (showNotification) {
-      showNotification(`Added "${invItem.name}" to quotation`, 'success');
+      showNotification(`Added "${invItem.name}"`, 'success');
     }
   };
 
-  const handleAddItem = () => {
-    handleAddItemById(selectedInventoryId);
+  const handleUpdateItemQty = (idx, deltaOrVal, isAbsolute = false) => {
+    const newItems = [...formData.items];
+    let newQty = isAbsolute ? Number(deltaOrVal) : (Number(newItems[idx].quantity) || 1) + deltaOrVal;
+    if (newQty < 1) newQty = 1;
+    newItems[idx] = { ...newItems[idx], quantity: newQty };
+    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
   };
 
   const handleRemoveItem = (idx) => {
@@ -559,7 +595,7 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
 
   const handleUpdateItemPrice = (idx, newPrice) => {
     const newItems = [...formData.items];
-    newItems[idx].price = Number(newPrice);
+    newItems[idx] = { ...newItems[idx], price: Number(newPrice) };
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
   };
 
@@ -583,14 +619,14 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
         inset: 0,
         width: '100vw',
         height: '100dvh',
-        background: 'rgba(2, 6, 23, 0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(2, 6, 23, 0.85)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 999999,
-        padding: '12px'
+        padding: '8px'
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -599,60 +635,71 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
         style={{ 
           width: '100%', 
           maxWidth: '680px', 
-          maxHeight: 'min(92vh, calc(100dvh - 24px))', 
+          maxHeight: 'min(94vh, calc(100dvh - 16px))', 
           display: 'flex',
           flexDirection: 'column',
           padding: 0,
           overflow: 'hidden',
-          borderRadius: '16px',
-          background: 'var(--panel-bg)',
+          borderRadius: '14px',
+          background: 'var(--panel-bg, #0d1218)',
           border: '1px solid var(--panel-border)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)'
+          boxShadow: '0 20px 50px -10px rgba(0, 0, 0, 0.5)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-           <div className="flex justify-between items-center">
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>
-                 {isLocked ? 'View Quotation' : (initialData ? 'Update Quotation' : 'Craft New Proposal')}
-               </h2>
-               {isLocked && (
-                 <span style={{ 
-                   background: 'rgba(239, 68, 68, 0.12)', 
-                   color: '#ef4444', 
-                   padding: '4px 10px', 
-                   borderRadius: '20px', 
-                   fontSize: '0.72rem', 
-                   fontWeight: 800,
-                   display: 'inline-flex',
-                   alignItems: 'center',
-                   gap: '4px'
-                 }}>
-                   <Lock size={12} /> SENT & LOCKED
-                 </span>
-               )}
-             </div>
-             <button className="btn btn-secondary" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)' }} onClick={onClose}><X size={20} /></button>
-           </div>
+        {/* Compact Modal Header */}
+        <div style={{ flexShrink: 0, padding: '12px 18px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {isLocked ? 'View Quotation' : (initialData ? 'Update Quotation' : 'Craft Proposal')}
+              </h2>
+              {isLocked && (
+                <span style={{ 
+                  background: 'rgba(239, 68, 68, 0.12)', 
+                  color: '#ef4444', 
+                  padding: '2px 8px', 
+                  borderRadius: '12px', 
+                  fontSize: '0.68rem', 
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Lock size={11} /> LOCKED
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Sequential Quote #{formData.quoteNumber}
+            </div>
+          </div>
+          <button 
+            type="button"
+            className="btn btn-secondary" 
+            style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }} 
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {isLocked && (
           <div style={{
-            margin: '16px 24px 0 24px',
-            padding: '12px 16px',
-            borderRadius: '12px',
+            margin: '10px 16px 0 16px',
+            padding: '8px 12px',
+            borderRadius: '8px',
             background: 'rgba(239, 68, 68, 0.08)',
             border: '1px solid rgba(239, 68, 68, 0.25)',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             color: '#ef4444',
-            fontSize: '0.85rem',
-            fontWeight: 700
+            fontSize: '0.78rem',
+            fontWeight: 600
           }}>
-            <Lock size={16} />
-            <span>This quotation has already been sent to the customer and cannot be edited. It is displayed in read-only mode.</span>
+            <Lock size={14} />
+            <span>This quotation has already been sent to the customer and is in read-only mode.</span>
           </div>
         )}
 
@@ -665,402 +712,499 @@ const QuoteModal = ({ onClose, onSave, inventory, initialData, customers = [] })
           onSave({ ...formData, items: finalItems }); 
           onClose(); 
         }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Quotation ID #</label>
-              <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.quoteNumber} onChange={e => setFormData({...formData, quoteNumber: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Offer Date</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Valid Until (Expiry Date)</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.validUntil} onChange={e => setFormData({...formData, validUntil: e.target.value})} />
-            </div>
-          </div>
-
-          <div style={{ margin: '32px 0 0 0', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.85rem' }}>Prospect / Gym Name</label>
-                <div style={{ position: 'relative' }}>
-                  <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.prospectName} onChange={e => setFormData({...formData, prospectName: e.target.value})} />
-                  {customers.length > 0 && !initialData && (
-                    <div className="flex items-center gap-2" style={{ marginTop: '8px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Quick link:</span>
-                      <CustomSelect 
-                        value=""
-                        placeholder="Select Existing Client..."
-                        onChange={(val) => {
-                          const sel = customers.find(c => c.id === val);
-                          if (sel) setFormData(prev => ({ ...prev, prospectName: sel.gymName, prospectPhone: sel.phone || '' }));
-                        }}
-                        options={[
-                          { value: '', label: 'Select Existing Client...' },
-                          ...customers.map(c => ({ value: c.id, label: c.gymName }))
-                        ]}
-                        size="sm"
-                        style={{ minWidth: '200px' }}
-                        triggerStyle={{ height: '30px', fontSize: '0.78rem' }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.85rem' }}>Prospect Mobile</label>
-                <input type="tel" className="form-input" style={{ height: '44px' }} placeholder="07XXXXXXXX" value={formData.prospectPhone} onChange={e => setFormData({...formData, prospectPhone: e.target.value})} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '32px', padding: '24px', background: 'var(--subtle-bg)', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <label className="form-label mb-0" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                Proposal Line Items
-              </label>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {inventory.length} catalog items
-              </span>
-            </div>
-
-            {!isLocked && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                {/* Mini Search Bar for Inventory */}
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <Search 
-                    size={15} 
-                    style={{ 
-                      position: 'absolute', 
-                      left: '12px', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)', 
-                      color: invSearchQuery ? 'var(--accent-primary, #6366f1)' : 'var(--text-muted)',
-                      pointerEvents: 'none'
-                    }} 
-                  />
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={invSearchQuery}
-                    onChange={(e) => setInvSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (filteredInventory.length > 0) {
-                          handleAddItemById(filteredInventory[0].id);
-                          setInvSearchQuery('');
-                        }
-                      }
-                    }}
-                    placeholder="Mini search: type product name, SKU, or category (Press Enter to add)..."
-                    style={{
-                      height: '38px',
-                      paddingLeft: '36px',
-                      paddingRight: invSearchQuery ? '85px' : '14px',
-                      fontSize: '0.82rem',
-                      borderRadius: '10px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      borderColor: invSearchQuery ? 'rgba(99, 102, 241, 0.45)' : 'var(--panel-border)',
-                      boxShadow: invSearchQuery ? '0 0 0 2px rgba(99, 102, 241, 0.12)' : 'none'
-                    }}
-                  />
-                  {invSearchQuery && (
-                    <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '2px 6px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px' }}>
-                        {filteredInventory.length} found
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setInvSearchQuery('')}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: '4px',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          borderRadius: '50%'
-                        }}
-                        title="Clear search"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Instant Quick-Results Box when typing in the search bar */}
-                {invSearchQuery.trim() !== '' && (
-                  <div style={{
-                    maxHeight: '210px',
-                    overflowY: 'auto',
-                    background: 'var(--bg-secondary, #121822)',
-                    border: '1px solid var(--panel-border)',
-                    borderRadius: '12px',
-                    padding: '6px',
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}>
-                    {filteredInventory.length === 0 ? (
-                      <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        No inventory items matching "<strong>{invSearchQuery}</strong>"
-                        <div style={{ marginTop: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => setInvSearchQuery('')}
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          >
-                            Clear search
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      filteredInventory.map(item => (
-                        <div
-                          key={item.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            gap: '12px'
-                          }}
-                        >
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                {item.name}
-                              </span>
-                              {item.type && (
-                                <span style={{
-                                  fontSize: '0.68rem',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  background: item.type === 'Hardware' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                                  color: item.type === 'Hardware' ? '#60a5fa' : '#c084fc',
-                                  fontWeight: 600
-                                }}>
-                                  {item.type}
-                                </span>
-                              )}
-                              {item.category && item.category !== 'General' && (
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                  • {item.category}
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
-                              <span>Unit: LKR {(item.price || 0).toLocaleString()}</span>
-                              {item.stock !== undefined && (
-                                <span>Stock: <strong style={{ color: item.stock > 0 ? '#34d399' : '#f87171' }}>{item.stock}</strong></span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            style={{ padding: '5px 12px', fontSize: '0.75rem', height: '28px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => {
-                              handleAddItemById(item.id);
-                            }}
-                          >
-                            <Plus size={13} /> Add
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Dropdown Selector row with filtered options */}
-                <div className="flex gap-4">
-                  <CustomSelect 
-                    value={selectedInventoryId} 
-                    onChange={val => setSelectedInventoryId(val)}
-                    placeholder={
-                      invSearchQuery.trim()
-                        ? `Select from ${filteredInventory.length} matching item(s)...`
-                        : "+ Browse all inventory items..."
-                    }
-                    options={[
-                      { 
-                        value: '', 
-                        label: invSearchQuery.trim()
-                          ? `Select from ${filteredInventory.length} matching item(s)...`
-                          : '+ Browse all inventory items...' 
-                      },
-                      ...filteredInventory.map(inv => ({
-                        value: inv.id,
-                        label: `${inv.name} • LKR ${(inv.price || 0).toLocaleString()} ${inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}`
-                      }))
-                    ]}
-                    style={{ height: '44px', flex: 1 }}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn btn-primary" 
-                    disabled={!selectedInventoryId}
-                    style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: !selectedInventoryId ? 0.6 : 1 }} 
-                    onClick={handleAddItem}
-                    title="Add selected item"
-                  >
-                    <PlusCircle size={20} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {formData.items.length > 0 && (
-              <div className="table-container" style={{ marginTop: '16px', background: 'transparent' }}>
-                <table style={{ fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>Product / Service</th>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>Qty</th>
-                      <th style={{ padding: '8px 0', opacity: 0.7 }}>LKR Unit</th>
-                      <th style={{ padding: '8px 0', textAlign: 'right', opacity: 0.7 }}>Total</th>
-                      <th style={{ padding: '8px 0', textAlign: 'right', opacity: 0.7 }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.items.map((it, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0' }}>{it.name}</td>
-                        <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
-                        <td style={{ color: 'var(--text-muted)' }}>
-                          <input 
-                            type="number" 
-                            className="form-input" 
-                            style={{ height: '32px', width: '100px', fontSize: '0.8rem', padding: '4px 8px' }} 
-                            value={it.price} 
-                            onChange={(e) => handleUpdateItemPrice(idx, e.target.value)} 
-                          />
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>{(it.price * it.quantity).toLocaleString()}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button type="button" className="btn btn-danger" style={{ padding: '6px', borderRadius: '8px', background: 'var(--danger-20)', border: 'none' }} onClick={() => handleRemoveItem(idx)}>
-                            <Trash2 size={14} color="var(--danger)" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* DISCOUNT MODULE CONTROL PANEL */}
-          <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Tag size={18} color="#f59e0b" />
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f59e0b' }}>Special Discount & Coupon Module</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Quick Presets:</span>
-                {[
-                  { label: '5%', calc: (sub) => Math.round(sub * 0.05) },
-                  { label: '10%', calc: (sub) => Math.round(sub * 0.10) },
-                  { label: '15%', calc: (sub) => Math.round(sub * 0.15) },
-                  { label: 'LKR 5k', calc: () => 5000 },
-                  { label: 'LKR 10k', calc: () => 10000 }
-                ].map((preset, pIdx) => {
-                  const sub = calculateSubtotal(formData.items);
-                  const discountVal = preset.calc(sub);
-                  return (
-                    <button
-                      key={pIdx}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateTotal(formData.items, discountVal) })}
-                      style={{ 
-                        background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
-                        color: Number(formData.discount) === discountVal ? '#ffffff' : '#f59e0b',
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center flex-wrap gap-4">
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Gross Subtotal: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>LKR {calculateSubtotal(formData.items).toLocaleString()}</strong>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <label className="form-label mb-0" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Deduction (LKR):</label>
+          
+          <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            
+            {/* Row 1: Quote Meta Details (Compact 3-column) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                  Quotation ID #
+                </label>
                 <input 
-                  type="number" 
+                  required 
+                  type="text" 
                   className="form-input" 
-                  style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }} 
-                  value={formData.discount === 0 ? '' : formData.discount} 
-                  onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
-                  placeholder="0"
+                  style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                  value={formData.quoteNumber} 
+                  onChange={e => setFormData({...formData, quoteNumber: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                  Offer Date
+                </label>
+                <input 
+                  required 
+                  type="date" 
+                  className="form-input" 
+                  style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                  value={formData.date} 
+                  onChange={e => setFormData({...formData, date: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                  Valid Until
+                </label>
+                <input 
+                  required 
+                  type="date" 
+                  className="form-input" 
+                  style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                  value={formData.validUntil} 
+                  onChange={e => setFormData({...formData, validUntil: e.target.value})} 
                 />
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ marginTop: '20px', padding: '24px', background: 'rgba(129, 140, 248, 0.05)', borderRadius: '16px', border: '1px solid rgba(129, 140, 248, 0.2)' }}>
-            <div className="flex items-center gap-3">
-              <ShoppingBag size={24} className="text-secondary" />
-              <span className="text-secondary" style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em' }}>NET QUOTE ESTIMATE</span>
+            {/* Row 2: Client Info (Compact Card) */}
+            <div style={{ padding: '10px 12px', background: 'var(--subtle-bg)', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: 0 }}>
+                      Client / Gym Name
+                    </label>
+                    {customers.length > 0 && !initialData && (
+                      <select 
+                        style={{ 
+                          height: '22px', 
+                          fontSize: '0.7rem', 
+                          padding: '0 4px', 
+                          background: 'transparent', 
+                          border: 'none', 
+                          color: 'var(--accent-primary, #6366f1)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          outline: 'none'
+                        }}
+                        defaultValue=""
+                        onChange={(e) => {
+                          const sel = customers.find(c => c.id === e.target.value);
+                          if (sel) setFormData(prev => ({ ...prev, prospectName: sel.gymName, prospectPhone: sel.phone || '' }));
+                          e.target.value = '';
+                        }}
+                      >
+                        <option value="" disabled>+ Link Client</option>
+                        {customers.map(c => (
+                          <option key={c.id} value={c.id} style={{ background: '#1e293b', color: '#fff' }}>{c.gymName}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="Enter Gym / Business Name"
+                    className="form-input" 
+                    style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                    value={formData.prospectName} 
+                    onChange={e => setFormData({...formData, prospectName: e.target.value})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                    Prospect Mobile
+                  </label>
+                  <input 
+                    type="tel" 
+                    className="form-input" 
+                    style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                    placeholder="07XXXXXXXX" 
+                    value={formData.prospectPhone} 
+                    onChange={e => setFormData({...formData, prospectPhone: e.target.value})} 
+                  />
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(129, 140, 248, 0.2)' }}>
-              LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
+
+            {/* Row 3: Unified Line Items & Mini Inventory Search Combobox */}
+            <div style={{ padding: '12px', background: 'var(--subtle-bg)', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Proposal Items ({formData.items.length})
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  {inventory.length} items in catalog
+                </span>
+              </div>
+
+              {/* UNIFIED COMPACT SEARCH & ADD COMBOBOX */}
+              {!isLocked && (
+                <div ref={invPickerRef} style={{ position: 'relative', width: '100%', marginBottom: '10px' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search 
+                      size={14} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '10px', 
+                        color: invSearch ? 'var(--accent-primary, #6366f1)' : 'var(--text-muted)',
+                        pointerEvents: 'none'
+                      }} 
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={invSearch}
+                      onFocus={() => setIsInvOpen(true)}
+                      onChange={(e) => {
+                        setInvSearch(e.target.value);
+                        setIsInvOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (filteredInventory.length > 0) {
+                            handleAddItemById(filteredInventory[0].id);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setIsInvOpen(false);
+                        }
+                      }}
+                      placeholder="Quick search & add inventory (type name, SKU, or category)..."
+                      style={{
+                        height: '34px',
+                        paddingLeft: '32px',
+                        paddingRight: '60px',
+                        fontSize: '0.8rem',
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderColor: isInvOpen ? 'var(--accent-primary, #6366f1)' : 'var(--subtle-border)'
+                      }}
+                    />
+                    <div style={{ position: 'absolute', right: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {invSearch ? (
+                        <button
+                          type="button"
+                          onClick={() => setInvSearch('')}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '3px',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            borderRadius: '50%'
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsInvOpen(!isInvOpen)}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: 'none',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '0.68rem',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          <span>Browse</span>
+                          <ChevronDown size={11} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Attached dropdown menu */}
+                  {isInvOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      right: 0,
+                      zIndex: 100,
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                      background: 'var(--bg-secondary, #121822)',
+                      border: '1px solid var(--panel-border-highlight, rgba(99, 102, 241, 0.35))',
+                      borderRadius: '8px',
+                      boxShadow: '0 12px 30px rgba(0, 0, 0, 0.75)',
+                      padding: '4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px'
+                    }}>
+                      {/* Compact category filter pills */}
+                      <div style={{ display: 'flex', gap: '4px', padding: '4px 6px', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto' }}>
+                        {categories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            style={{
+                              border: 'none',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              background: selectedCategory === cat ? 'var(--accent-primary, #6366f1)' : 'rgba(255,255,255,0.06)',
+                              color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)'
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Items list */}
+                      {filteredInventory.length === 0 ? (
+                        <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          No catalog items found.
+                        </div>
+                      ) : (
+                        filteredInventory.map(item => (
+                          <div
+                            key={item.id}
+                            onClick={() => handleAddItemById(item.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              transition: 'background 0.15s',
+                              gap: '8px'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.12)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {item.name}
+                                </span>
+                                {item.type && (
+                                  <span style={{
+                                    fontSize: '0.64rem',
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                    background: item.type === 'Hardware' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                                    color: item.type === 'Hardware' ? '#60a5fa' : '#c084fc',
+                                    fontWeight: 600
+                                  }}>
+                                    {item.type}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', marginTop: '1px' }}>
+                                <span>LKR {(item.price || 0).toLocaleString()}</span>
+                                {item.stock !== undefined && (
+                                  <span>Stock: <strong style={{ color: item.stock > 0 ? '#34d399' : '#f87171' }}>{item.stock}</strong></span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              style={{ height: '24px', padding: '0 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddItemById(item.id);
+                              }}
+                            >
+                              <Plus size={12} /> Add
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Added Items Compact Table */}
+              {formData.items.length > 0 ? (
+                <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>Item</th>
+                        <th style={{ padding: '6px 4px', textAlign: 'center', width: '90px', color: 'var(--text-muted)', fontWeight: 600 }}>Qty</th>
+                        <th style={{ padding: '6px 4px', textAlign: 'right', width: '85px', color: 'var(--text-muted)', fontWeight: 600 }}>Price</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', width: '85px', color: 'var(--text-muted)', fontWeight: 600 }}>Total</th>
+                        <th style={{ padding: '6px 6px', width: '32px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.items.map((it, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
+                              {it.name}
+                            </div>
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, -1)}
+                                style={{ width: '20px', height: '20px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <Minus size={10} />
+                              </button>
+                              <span style={{ minWidth: '18px', textAlign: 'center', fontWeight: 700, fontSize: '0.78rem' }}>
+                                {it.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, 1)}
+                                style={{ width: '20px', height: '20px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <Plus size={10} />
+                              </button>
+                            </div>
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                            <input 
+                              type="number" 
+                              className="form-input" 
+                              style={{ height: '26px', width: '80px', fontSize: '0.75rem', padding: '2px 4px', textAlign: 'right' }} 
+                              value={it.price} 
+                              onChange={(e) => handleUpdateItemPrice(idx, e.target.value)} 
+                            />
+                          </td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {(it.price * it.quantity).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '6px 6px', textAlign: 'right' }}>
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveItem(idx)}
+                              style={{ background: 'none', border: 'none', color: 'var(--danger, #ef4444)', padding: '2px', cursor: 'pointer', display: 'flex' }}
+                              title="Remove item"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '6px' }}>
+                  No items in proposal. Click or search above to add items from inventory.
+                </div>
+              )}
             </div>
+
+            {/* Row 4: Discount & Financial Summary (Compact Bar) */}
+            <div style={{ padding: '10px 12px', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b' }}>
+                  <Tag size={13} />
+                  <span>Discount Presets:</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {[
+                    { label: '5%', calc: (s) => Math.round(s * 0.05) },
+                    { label: '10%', calc: (s) => Math.round(s * 0.10) },
+                    { label: '15%', calc: (s) => Math.round(s * 0.15) },
+                    { label: '5k', calc: () => 5000 },
+                    { label: '10k', calc: () => 10000 }
+                  ].map((p, idx) => {
+                    const sub = calculateSubtotal(formData.items);
+                    const val = p.calc(sub);
+                    const active = Number(formData.discount) === val && val > 0;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, discount: val, amount: calculateTotal(formData.items, val) })}
+                        style={{
+                          height: '22px',
+                          padding: '0 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: active ? '#f59e0b' : 'rgba(245, 158, 11, 0.12)',
+                          color: active ? '#fff' : '#f59e0b'
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: '1px solid rgba(245, 158, 11, 0.12)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Subtotal: <strong style={{ color: 'var(--text-primary)' }}>LKR {calculateSubtotal(formData.items).toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Discount (LKR):</span>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    style={{ width: '90px', height: '28px', fontSize: '0.78rem', padding: '2px 6px', textAlign: 'right', fontWeight: 700, color: '#f59e0b' }} 
+                    value={formData.discount === 0 ? '' : formData.discount} 
+                    onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
+                    placeholder="0"
+                  />
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--accent-primary, #6366f1)' }}>
+                  Net: LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 5: Agreement Terms (Compact Textarea) */}
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                Terms & Conditions (Optional)
+              </label>
+              <textarea 
+                className="form-input" 
+                style={{ minHeight: '48px', height: '52px', fontSize: '0.75rem', padding: '6px 8px', resize: 'vertical' }}
+                placeholder="Validity, payment terms, or remarks for client..."
+                value={formData.agreementTerms}
+                onChange={e => setFormData({ ...formData, agreementTerms: e.target.value })}
+              />
+            </div>
+
           </div>
 
-          <div style={{ marginTop: '24px' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Service Agreement & Terms (Optional)</label>
-            <textarea 
-              className="form-input" 
-              style={{ minHeight: '120px', resize: 'vertical', width: '100%', padding: '12px' }}
-              placeholder="Enter agreement terms, SLA, or conditions the client must agree to..."
-              value={formData.agreementTerms}
-              onChange={e => setFormData({ ...formData, agreementTerms: e.target.value })}
-            ></textarea>
-            <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '6px' }}>This agreement will be shown on the client portal and printed on the PDF.</p>
-          </div>
-
-          </div>
-
-          {/* Sticky Modal Footer Actions */}
+          {/* Compact Sticky Footer Actions */}
           <div 
-            className="flex justify-end gap-3 p-4 border-t modal-footer-solid responsive-form-actions"
             style={{
               flexShrink: 0,
-              background: 'var(--panel-bg)',
-              borderColor: 'var(--panel-border)',
-              paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+              padding: '10px 18px',
+              borderTop: '1px solid var(--panel-border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px',
+              background: 'var(--panel-bg, #0d1218)'
             }}
           >
-            <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '0.9rem' }} onClick={onClose}>
-              {isLocked ? 'Close' : 'Discard (Do Not Save)'}
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ height: '34px', padding: '0 14px', fontSize: '0.8rem' }} 
+              onClick={onClose}
+            >
+              {isLocked ? 'Close' : 'Discard'}
             </button>
             {!isLocked && (
-              <button type="submit" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Plus size={18} strokeWidth={3} /> Create Quotation
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                style={{ height: '34px', padding: '0 16px', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={15} /> Save Quotation
               </button>
             )}
           </div>

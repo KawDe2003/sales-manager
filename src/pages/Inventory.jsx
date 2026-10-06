@@ -3,7 +3,7 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   Package, Plus, Trash2, Edit2, X, Monitor, Server, 
   Wrench, ChevronRight, Search, Download, TrendingUp, 
-  AlertTriangle, Check, FileSpreadsheet, DollarSign, Layers, Tag
+  AlertTriangle, Check, FileSpreadsheet, DollarSign, Layers, Tag, Clock
 } from 'lucide-react';
 import { generateStockReportPDF } from '../utils/pdfGenerator';
 import { exportToExcel } from '../utils/export';
@@ -656,12 +656,27 @@ const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass 
       </div>
 
       <div style={{ borderTop: '1px solid var(--panel-border)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-         <div>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
            <span className={`badge ${getTypeBadgeClass(item.type)}`} style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
              {item.type}
            </span>
+           <span style={{ 
+             fontSize: '0.68rem', 
+             fontWeight: 700, 
+             padding: '2px 8px', 
+             borderRadius: '6px', 
+             background: 'rgba(99, 102, 241, 0.12)', 
+             color: 'var(--accent-primary)', 
+             border: '1px solid rgba(99, 102, 241, 0.25)', 
+             display: 'inline-flex', 
+             alignItems: 'center', 
+             gap: '3px' 
+           }}>
+             <Clock size={10} />
+             {item.billingCycle || (item.type === 'Hardware' ? 'One-Time' : 'Annual')}
+           </span>
            {isLowStock && (
-             <span className="badge badge-danger" style={{ marginLeft: '6px', fontSize: '0.65rem' }}>Low Stock</span>
+             <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Low Stock</span>
            )}
          </div>
          
@@ -700,7 +715,13 @@ const StockRow = ({ item, salesData = { unitsSold: 0, salesRevenue: 0 }, onUpdat
           <div style={{ padding: '8px', background: 'var(--subtle-bg)', borderRadius: '10px' }}>
             {getTypeIcon(item.type)}
           </div>
-          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
+          <div>
+            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <Clock size={10} />
+              {item.billingCycle || (item.type === 'Hardware' ? 'One-Time' : 'Annual')}
+            </div>
+          </div>
         </div>
       </td>
       <td>
@@ -797,7 +818,8 @@ const EmptyState = ({ message }) => (
 const InventoryModal = ({ onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState(initialData || { 
     name: '', 
-    type: 'Hardware', 
+    type: 'Software', 
+    billingCycle: 'Annual',
     price: 0, 
     costPrice: 0,
     reorderLevel: 5,
@@ -823,6 +845,7 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
           e.preventDefault(); 
           onSave({
             ...formData,
+            billingCycle: formData.billingCycle || (formData.type === 'Hardware' ? 'One-Time / Perpetual' : 'Annual'),
             costPrice: isServiceOrSoftware ? (Number(formData.costPrice) || 0) : (Number(formData.costPrice) || 0),
             stock: isServiceOrSoftware ? 0 : Number(formData.stock || 0),
             reorderLevel: isServiceOrSoftware ? 0 : Number(formData.reorderLevel || 0),
@@ -832,18 +855,49 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
         }} className="modal-body">
           <div className="form-group mb-4">
             <label className="form-label">Product Commercial Name</label>
-            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Turnstile Gate Reader / Gym POS Software" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Enterprise Cloud ERP License / Gym POS Software" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
 
           <div className="form-group mb-4">
             <label className="form-label">Classification Category</label>
             <CustomSelect 
               value={formData.type} 
-              onChange={val => setFormData({...formData, type: val})}
+              onChange={val => {
+                const defaultCycle = val === 'Hardware' ? 'One-Time / Perpetual' : 'Annual';
+                setFormData(prev => ({
+                  ...prev,
+                  type: val,
+                  billingCycle: prev.billingCycle && prev.billingCycle !== 'One-Time / Perpetual' && prev.billingCycle !== 'Annual' 
+                    ? prev.billingCycle 
+                    : defaultCycle
+                }));
+              }}
               options={[
-                { value: 'Hardware', label: 'Hardware / Terminal' },
                 { value: 'Software', label: 'Software Solution' },
-                { value: 'Service', label: 'Professional Service' }
+                { value: 'Service', label: 'Professional Service / Support' },
+                { value: 'Hardware', label: 'Hardware / Terminal' }
+              ]}
+              style={{ width: '100%', height: '42px' }}
+            />
+          </div>
+
+          {/* Billing / Renewal Cycle Selector */}
+          <div className="form-group mb-4">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Billing / Renewal Frequency *</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {formData.type === 'Software' || formData.type === 'Service' ? 'Recurring SaaS / SLA Cycle' : 'Sales Model'}
+              </span>
+            </label>
+            <CustomSelect 
+              value={formData.billingCycle || (formData.type === 'Hardware' ? 'One-Time / Perpetual' : 'Annual')} 
+              onChange={val => setFormData({ ...formData, billingCycle: val })}
+              options={[
+                { value: 'Annual', label: 'Annual (Yearly Renewal / Support)' },
+                { value: 'Monthly', label: 'Monthly (Monthly Recurring / SaaS)' },
+                { value: 'Quarterly', label: 'Quarterly (Every 3 Months)' },
+                { value: 'Bi-Annual', label: 'Bi-Annual (Every 6 Months)' },
+                { value: 'One-Time / Perpetual', label: 'One-Time / Perpetual (Lifetime License / Outright Purchase)' }
               ]}
               style={{ width: '100%', height: '42px' }}
             />

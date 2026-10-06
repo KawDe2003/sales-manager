@@ -153,9 +153,13 @@ export const AuthProvider = ({ children }) => {
     const defaultMembers = Array.isArray(DEFAULT_APP_TEAM_MEMBERS) && DEFAULT_APP_TEAM_MEMBERS.length > 0
       ? DEFAULT_APP_TEAM_MEMBERS
       : [
-          { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' },
-          { id: 'hairpins-admin-01', name: 'Royal Hair Pins Admin', email: 'admin@royalhairpins.lk', role: 'Admin', status: 'Active', password: 'hairpins2026', businessId: 'biz_hairpins' }
+          { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' }
         ];
+
+    // Filter out any legacy hairpins accounts
+    if (teamMembers && teamMembers.length > 0) {
+      teamMembers = teamMembers.filter(m => m.businessId !== 'biz_hairpins' && m.email !== 'admin@royalhairpins.lk');
+    }
 
     // Ensure default members for both businesses exist in teamMembers
     if (!teamMembers || teamMembers.length === 0) {
@@ -298,36 +302,8 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // 3. Fallback check for royalhairpins admin
-    if (cleanEmail === 'admin@royalhairpins.lk') {
-      if (targetBusinessId && targetBusinessId !== 'biz_hairpins') {
-        return {
-          data: null,
-          error: new Error('Access Denied: This account belongs to Royal Hair Pin Industries and cannot access Seynex Enterprises.')
-        };
-      }
-      const authUser = {
-        id: 'hairpins-admin-01',
-        email: 'admin@royalhairpins.lk',
-        businessId: 'biz_hairpins',
-        businessName: 'Royal Hair Pin Industries',
-        user_metadata: { name: 'Royal Hair Pins Admin', role: 'Admin', businessId: 'biz_hairpins' }
-      };
-      localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
-      localStorage.setItem('active_business_id', 'biz_hairpins');
-      window.dispatchEvent(new CustomEvent('active_business_changed', { detail: 'biz_hairpins' }));
-      setUser(authUser);
-      return { data: { user: authUser }, error: null };
-    }
-
-    // 4. Fallback check for seynex / company admin
+    // 3. Fallback check for seynex / company admin
     if (cleanEmail === 'admin@company.com' || cleanEmail === 'admin@seynex.lk') {
-      if (targetBusinessId && targetBusinessId !== 'biz_main') {
-        return {
-          data: null,
-          error: new Error('Access Denied: This account belongs to Seynex Enterprises and cannot access Royal Hair Pin Industries.')
-        };
-      }
       const authUser = {
         id: '76bb4580-2006-464f-aab8-64029dbe9540',
         email: cleanEmail,

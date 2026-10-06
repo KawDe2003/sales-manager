@@ -88,40 +88,7 @@ export const DEFAULT_APP_TEAM_MEMBERS = [
     department: 'Finance & Compliance',
     addedAt: '2025-01-01T00:00:00.000Z'
   },
-  // Royal Hair Pin Industries (biz_hairpins)
-  {
-    id: 'hairpins-admin-01',
-    name: 'Royal Hair Pins Admin',
-    email: 'admin@royalhairpins.lk',
-    role: 'Admin',
-    status: 'Active',
-    password: 'hairpins2026',
-    businessId: 'biz_hairpins',
-    department: 'Plant Management',
-    addedAt: '2025-01-01T00:00:00.000Z'
-  },
-  {
-    id: 'hairpins-sales-01',
-    name: 'Wholesale Sales Manager',
-    email: 'sales@royalhairpins.lk',
-    role: 'Sales Representative',
-    status: 'Active',
-    password: 'hairpins2026',
-    businessId: 'biz_hairpins',
-    department: 'Wholesale & Distribution',
-    addedAt: '2025-01-01T00:00:00.000Z'
-  },
-  {
-    id: 'hairpins-acc-01',
-    name: 'Factory Accounts Lead',
-    email: 'accounts@royalhairpins.lk',
-    role: 'Accountant',
-    status: 'Active',
-    password: 'hairpins2026',
-    businessId: 'biz_hairpins',
-    department: 'Factory Accounts',
-    addedAt: '2025-01-01T00:00:00.000Z'
-  },
+
   // Universal / Legacy fallbacks
   {
     id: 'legacy-admin-01',
@@ -203,6 +170,26 @@ export const getNextSequentialQuoteNumber = (quotes = [], config = {}) => {
     nextNumber: nextNum,
     formattedNumber: `${prefix}${nextNum}`
   };
+};
+
+export const getNextSequentialCustomerCode = (customers = []) => {
+  let highestNum = 0;
+  (customers || []).forEach(c => {
+    const raw = String(c?.code || '').trim();
+    // Match clean CUST-001, CUST-002, etc. and ignore legacy 4-digit numbers (like 1004 or 2399)
+    const match = raw.match(/^CUST-(\d+)$/i);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n < 1000) {
+        if (n > highestNum) highestNum = n;
+      }
+    }
+  });
+  if (highestNum === 0) {
+    highestNum = (customers || []).length;
+  }
+  const nextNum = highestNum + 1;
+  return `CUST-${String(nextNum).padStart(3, '0')}`;
 };
 
 export default function StoreContextProvider({ children }) {
@@ -400,7 +387,7 @@ export default function StoreContextProvider({ children }) {
     {
       id: 'biz_main',
       name: 'Seynex Enterprises',
-      category: 'General / Technology',
+      category: 'Enterprise Solutions & Tech',
       tagline: 'Main Enterprise Operations',
       companyName: 'Seynex Enterprises',
       dashboardName: 'Seynex Enterprises',
@@ -410,27 +397,13 @@ export default function StoreContextProvider({ children }) {
       currency: 'LKR',
       icon: 'Building2',
       color: '#4f46e5'
-    },
-    {
-      id: 'biz_hairpins',
-      name: 'Royal Hair Pin Industries',
-      category: 'Hair Pin Manufacturing & Wholesale',
-      tagline: 'Bobby Pins, U-Pins, Wave Grips & Fasteners',
-      companyName: 'Royal Hair Pin Industries',
-      dashboardName: 'Royal Hair Pins & Accessories',
-      companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
-      companyEmail: 'royalhairpins@gmail.com',
-      companyPhone: '+94 77 123 4567',
-      currency: 'LKR',
-      icon: 'Sparkles',
-      color: '#0d9488'
     }
   ];
 
   const sampleMainCustomers = [
-    { id: 'mc-1', gymName: 'Apex Global Technologies', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2025-01-10', renewalDate: '2026-11-10', notes: [] },
-    { id: 'mc-2', gymName: 'Metro Commercial Logistics', name: 'Samantha Silva', email: 'samantha@metrologistics.lk', phone: '0714567890', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [] },
-    { id: 'mc-3', gymName: 'Horizon Financial Services', name: 'Nishan Mendis', email: 'nishan@horizonfs.lk', phone: '0765678901', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [] }
+    { id: 'mc-1', code: 'CUST-001', gymName: 'Apex Global Technologies', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2025-01-10', renewalDate: '2026-11-10', notes: [] },
+    { id: 'mc-2', code: 'CUST-002', gymName: 'Metro Commercial Logistics', name: 'Samantha Silva', email: 'samantha@metrologistics.lk', phone: '0714567890', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [] },
+    { id: 'mc-3', code: 'CUST-003', gymName: 'Horizon Financial Services', name: 'Nishan Mendis', email: 'nishan@horizonfs.lk', phone: '0765678901', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [] }
   ];
 
   const sampleMainInventory = [
@@ -798,56 +771,51 @@ export default function StoreContextProvider({ children }) {
   const [businesses, setBusinesses] = useState(() => {
     try {
       const saved = localStorage.getItem('app_businesses');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(b => b.id !== 'biz_hairpins');
+          if (filtered.length > 0) return filtered;
+        }
+      }
     } catch (e) {}
     return DEFAULT_BUSINESSES;
   });
 
-  const getInitialActiveBusinessId = () => {
-    try {
-      const authUserStr = localStorage.getItem('gym_auth_user');
-      if (authUserStr) {
-        const authUser = JSON.parse(authUserStr);
-        if (authUser?.businessId && authUser.businessId !== 'all') {
-          return authUser.businessId;
-        }
-      }
-      const saved = localStorage.getItem('active_business_id');
-      if (saved) return saved;
-    } catch (e) {}
-    return 'biz_main';
-  };
+  const getInitialActiveBusinessId = () => 'biz_main';
 
-  const [activeBusinessId, setActiveBusinessId] = useState(getInitialActiveBusinessId);
+  const [activeBusinessId, setActiveBusinessId] = useState('biz_main');
 
   const [customers, setCustomers] = useState(() => {
-    const activeId = getInitialActiveBusinessId();
     try {
+      const activeId = 'biz_main';
       if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`);
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_customers`) || localStorage.getItem('gym_customers');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const sanitized = parsed.filter(c => {
-            if (activeId === 'biz_hairpins') {
-              if (c.businessId && c.businessId !== 'biz_hairpins') return false;
-              if (String(c.id).startsWith('mc-')) return false;
-              const n = (c.gymName || c.name || '').toLowerCase();
-              if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
-              return true;
-            } else {
-              if (c.businessId && c.businessId !== 'biz_main') return false;
-              if (String(c.id).startsWith('c-10')) return false;
-              const n = (c.gymName || c.name || '').toLowerCase();
-              if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
-              return true;
-            }
+            if (!c) return false;
+            if (c.businessId && c.businessId !== 'biz_main') return false;
+            if (String(c.id).startsWith('c-10')) return false;
+            const n = (c.gymName || c.name || '').toLowerCase();
+            if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
+            return true;
           });
-          return sanitized;
+          // Ensure clean sequential codes starting from 1 (CUST-001, CUST-002, ...)
+          return sanitized.map((c, idx) => {
+            let code = c.code;
+            const numMatch = code ? code.match(/^CUST-(\d+)$/i) : null;
+            const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
+            if (!code || isNaN(num) || num >= 1000 || code.match(/^CUST-[0-9a-f]{4}$/i) || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined')) {
+              code = `CUST-${String(idx + 1).padStart(3, '0')}`;
+            }
+            return { ...c, code, businessId: 'biz_main' };
+          });
         }
       }
     } catch (e) {}
-    return [];
+    return sampleMainCustomers;
   });
 
   const [inventory, setInventory] = useState(() => {
@@ -3812,20 +3780,29 @@ export default function StoreContextProvider({ children }) {
         });
 
         if (filteredCData.length > 0) {
-          const loadedCustomers = filteredCData.map(c => ({
-            id: c.id,
-            businessId: c.business_id || activeBusinessId,
-            gymName: c.gym_name || c.gymName,
-            name: c.name,
-            email: c.email,
-            phone: c.phone,
-            dob: c.dob,
-            purchaseDate: c.purchase_date || c.purchaseDate,
-            renewalDate: c.renewal_date || c.renewalDate, 
-            annualFee: Number(c.annual_fee || c.annualFee) || 0,
-            status: c.status,
-            notes: c.notes || []
-          }));
+          const loadedCustomers = filteredCData.map((c, idx) => {
+            let code = c.code;
+            const numMatch = code ? code.match(/^CUST-(\d+)$/i) : null;
+            const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
+            if (!code || isNaN(num) || num >= 1000 || code.match(/^CUST-[0-9a-f]{4}$/i) || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined')) {
+              code = `CUST-${String(idx + 1).padStart(3, '0')}`;
+            }
+            return {
+              id: c.id,
+              code,
+              businessId: c.business_id || activeBusinessId,
+              gymName: c.gym_name || c.gymName,
+              name: c.name,
+              email: c.email,
+              phone: c.phone,
+              dob: c.dob,
+              purchaseDate: c.purchase_date || c.purchaseDate,
+              renewalDate: c.renewal_date || c.renewalDate, 
+              annualFee: Number(c.annual_fee || c.annualFee) || 0,
+              status: c.status,
+              notes: c.notes || []
+            };
+          });
           setCustomers(loadedCustomers);
           try {
             localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers));
@@ -4740,16 +4717,20 @@ export default function StoreContextProvider({ children }) {
 
   // Actions
   const addCustomer = (customer) => {
+    const custCode = customer.code && !customer.code.match(/^CUST-[0-9a-f]{4}$/i) && !customer.code.includes('undefined')
+      ? customer.code
+      : getNextSequentialCustomerCode(customers);
     const newCustomer = { 
       ...customer, 
-      id: uuidv4(),
-      businessId: customer.businessId || activeBusinessId,
-      notes: [] 
+      id: customer.id || uuidv4(),
+      code: custCode,
+      businessId: 'biz_main',
+      notes: customer.notes || [] 
     };
     setCustomers(prev => [...prev, newCustomer]);
     syncCustomerToSupabase(newCustomer);
-    addLog('System', `Added new ${activeBusinessId === 'biz_hairpins' ? 'Wholesale Buyer' : 'Client'}: ${customer.gymName || customer.name}`);
-    showNotification(`${activeBusinessId === 'biz_hairpins' ? 'Wholesale buyer' : 'Client'} "${customer.gymName || customer.name}" added successfully!`, 'success');
+    addLog('System', `Added new Client: ${customer.gymName || customer.name} (${custCode})`);
+    showNotification(`Client "${customer.gymName || customer.name}" (${custCode}) added successfully!`, 'success');
   };
 
   const deleteCustomer = async (id) => {
@@ -5431,10 +5412,11 @@ export default function StoreContextProvider({ children }) {
 
     let customer = customers.find(c => c.gymName === quote.prospectName || (c.phone && quote.prospectPhone && c.phone === quote.prospectPhone));
     if (!customer) {
-      const custCode = `CUST-${(customers.length + 1001).toString().padStart(4, '0')}`;
+      const custCode = getNextSequentialCustomerCode(customers);
       customer = {
         id: uuidv4(),
         code: custCode,
+        businessId: 'biz_main',
         gymName: quote.prospectName,
         name: quote.prospectName,
         phone: quote.prospectPhone || '',

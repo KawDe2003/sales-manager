@@ -93,21 +93,14 @@ const Settings = () => {
   const tabParam = searchParams.get('tab');
   const [activeSettingsTab, setActiveSettingsTab] = useState(tabParam || 'users');
 
-  // Multi-Database Per-Business Credentials & Connection Testing State
+  // Database Credentials & Connection Testing State
   const seynexInitialCfg = getBusinessDbConfig ? getBusinessDbConfig('biz_main') : { url: '', anonKey: '' };
-  const hairpinsInitialCfg = getBusinessDbConfig ? getBusinessDbConfig('biz_hairpins') : { url: '', anonKey: '' };
 
   const [seynexDbUrl, setSeynexDbUrl] = useState(() => seynexInitialCfg.url || '');
   const [seynexDbKey, setSeynexDbKey] = useState(() => seynexInitialCfg.anonKey || '');
   const [showSeynexKey, setShowSeynexKey] = useState(false);
   const [seynexTesting, setSeynexTesting] = useState(false);
   const [seynexTestResult, setSeynexTestResult] = useState(null);
-
-  const [hairpinsDbUrl, setHairpinsDbUrl] = useState(() => hairpinsInitialCfg.url || '');
-  const [hairpinsDbKey, setHairpinsDbKey] = useState(() => hairpinsInitialCfg.anonKey || '');
-  const [showHairpinsKey, setShowHairpinsKey] = useState(false);
-  const [hairpinsTesting, setHairpinsTesting] = useState(false);
-  const [hairpinsTestResult, setHairpinsTestResult] = useState(null);
 
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
 
@@ -116,11 +109,8 @@ const Settings = () => {
     const handleDbUpdated = () => {
       if (getBusinessDbConfig) {
         const sCfg = getBusinessDbConfig('biz_main');
-        const hCfg = getBusinessDbConfig('biz_hairpins');
         setSeynexDbUrl(sCfg.url || '');
         setSeynexDbKey(sCfg.anonKey || '');
-        setHairpinsDbUrl(hCfg.url || '');
-        setHairpinsDbKey(hCfg.anonKey || '');
       }
     };
     window.addEventListener('business_db_config_updated', handleDbUpdated);
@@ -147,38 +137,11 @@ const Settings = () => {
     }
   };
 
-  const handleTestHairpinsConnection = async () => {
-    if (!testDatabaseConnection) return;
-    setHairpinsTesting(true);
-    setHairpinsTestResult(null);
-    try {
-      const res = await testDatabaseConnection('biz_hairpins');
-      setHairpinsTestResult(res);
-      if (res.success) {
-        showNotification(`Royal Hair Pins Database connected (${res.latencyMs}ms latency)!`, 'success');
-      } else {
-        showNotification(`Royal Hair Pins DB Test: ${res.error || 'Connection failed'}`, 'error');
-      }
-    } catch (e) {
-      setHairpinsTestResult({ success: false, error: e.message, latencyMs: 0 });
-      showNotification(`Royal Hair Pins DB Error: ${e.message}`, 'error');
-    } finally {
-      setHairpinsTesting(false);
-    }
-  };
-
   const handleSaveSeynexDb = () => {
     if (!saveBusinessDbConfig) return;
     saveBusinessDbConfig('biz_main', { url: seynexDbUrl, anonKey: seynexDbKey });
     showNotification('Seynex Enterprises database connection saved successfully.');
     handleTestSeynexConnection();
-  };
-
-  const handleSaveHairpinsDb = () => {
-    if (!saveBusinessDbConfig) return;
-    saveBusinessDbConfig('biz_hairpins', { url: hairpinsDbUrl, anonKey: hairpinsDbKey });
-    showNotification('Royal Hair Pin Industries database connection saved successfully.');
-    handleTestHairpinsConnection();
   };
 
   const handleResetSeynexDb = () => {
@@ -191,18 +154,6 @@ const Settings = () => {
     }
     setSeynexTestResult(null);
     showNotification('Seynex Enterprises database reset to environment defaults.');
-  };
-
-  const handleResetHairpinsDb = () => {
-    if (!saveBusinessDbConfig) return;
-    saveBusinessDbConfig('biz_hairpins', null);
-    if (getBusinessDbConfig) {
-      const cfg = getBusinessDbConfig('biz_hairpins');
-      setHairpinsDbUrl(cfg.url || '');
-      setHairpinsDbKey(cfg.anonKey || '');
-    }
-    setHairpinsTestResult(null);
-    showNotification('Royal Hair Pin Industries database reset to environment defaults.');
   };
 
   useEffect(() => {
@@ -446,9 +397,8 @@ const Settings = () => {
               <div className="flex items-center gap-2 flex-wrap" style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Workspace:</span>
                 {[
-                  { id: 'All', label: 'All Entities' },
-                  { id: 'biz_main', label: 'Seynex' },
-                  { id: 'biz_hairpins', label: 'Hair Pins' }
+                  { id: 'All', label: 'All Users' },
+                  { id: 'biz_main', label: 'Seynex Enterprises' }
                 ].map(ws => (
                   <button 
                     key={ws.id}
@@ -456,9 +406,7 @@ const Settings = () => {
                     onClick={() => setWorkspaceFilter(ws.id)}
                     style={{
                       padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
-                      background: workspaceFilter === ws.id 
-                        ? (ws.id === 'biz_hairpins' ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' : 'var(--accent-primary)') 
-                        : 'transparent',
+                      background: workspaceFilter === ws.id ? 'var(--accent-primary)' : 'transparent',
                       color: workspaceFilter === ws.id ? 'white' : 'var(--text-secondary)',
                       border: workspaceFilter === ws.id ? '1px solid transparent' : '1px solid var(--subtle-border)'
                     }}
@@ -1028,155 +976,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* ROYAL HAIR PIN INDUSTRIES DATABASE CARD */}
-              <div style={{
-                borderRadius: '16px',
-                border: activeBusinessId === 'biz_hairpins' ? '2px solid rgba(13, 148, 136, 0.5)' : '1px solid var(--panel-border)',
-                background: 'rgba(255, 255, 255, 0.02)',
-                padding: '22px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                position: 'relative'
-              }}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div style={{
-                      width: '42px', height: '42px', borderRadius: '10px',
-                      background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(16, 185, 129, 0.2))',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#2dd4bf', border: '1px solid rgba(13, 148, 136, 0.3)'
-                    }}>
-                      <Sparkles size={22} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Royal Hair Pins DB</h4>
-                        <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--subtle-bg)', color: 'var(--text-muted)' }}>biz_hairpins</span>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Manufacturing, Production Orders & Wholesale</div>
-                    </div>
-                  </div>
-                  <span style={{
-                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
-                    background: hairpinsDbUrl ? 'rgba(13, 148, 136, 0.12)' : 'rgba(148, 163, 184, 0.12)',
-                    color: hairpinsDbUrl ? '#2dd4bf' : 'var(--text-muted)',
-                    border: hairpinsDbUrl ? '1px solid rgba(13, 148, 136, 0.25)' : '1px solid var(--panel-border)'
-                  }}>
-                    {getBusinessDbConfig?.('biz_hairpins')?.isDedicated ? 'Dedicated Database' : 'Shared Cloud Project'}
-                  </span>
-                </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                      Supabase Project URL
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="https://xyz.supabase.co"
-                      value={hairpinsDbUrl}
-                      onChange={(e) => setHairpinsDbUrl(e.target.value)}
-                      style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                      Supabase Anon Public API Key
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showHairpinsKey ? "text" : "password"}
-                        className="input"
-                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
-                        value={hairpinsDbKey}
-                        onChange={(e) => setHairpinsDbKey(e.target.value)}
-                        style={{ height: '38px', fontSize: '0.82rem', fontFamily: 'monospace', paddingRight: '40px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowHairpinsKey(!showHairpinsKey)}
-                        style={{
-                          position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                          background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer'
-                        }}
-                      >
-                        {showHairpinsKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connection Ping & Status Box */}
-                <div style={{
-                  padding: '10px 14px', borderRadius: '10px',
-                  background: hairpinsTestResult?.success 
-                    ? 'rgba(16, 185, 129, 0.08)' 
-                    : hairpinsTestResult 
-                      ? 'rgba(239, 68, 68, 0.08)' 
-                      : 'rgba(255, 255, 255, 0.02)',
-                  border: hairpinsTestResult?.success 
-                    ? '1px solid rgba(16, 185, 129, 0.25)' 
-                    : hairpinsTestResult 
-                      ? '1px solid rgba(239, 68, 68, 0.25)' 
-                      : '1px solid var(--panel-border)',
-                  fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {hairpinsTesting ? (
-                      <RefreshCw size={14} className="animate-spin text-accent" />
-                    ) : hairpinsTestResult?.success ? (
-                      <CheckCircle2 size={14} color="var(--success)" />
-                    ) : hairpinsTestResult ? (
-                      <AlertTriangle size={14} color="var(--danger)" />
-                    ) : (
-                      <Database size={14} color="var(--text-muted)" />
-                    )}
-                    <span style={{ color: hairpinsTestResult?.success ? 'var(--success)' : hairpinsTestResult ? 'var(--danger)' : 'var(--text-muted)' }}>
-                      {hairpinsTesting ? 'Testing connection & measuring latency...' : hairpinsTestResult?.success ? 'Database connection verified' : hairpinsTestResult?.error || 'Ready to verify database connection'}
-                    </span>
-                  </div>
-                  {hairpinsTestResult?.latencyMs ? (
-                    <span style={{ fontWeight: 800, color: 'var(--success)', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
-                      ⚡ {hairpinsTestResult.latencyMs}ms
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* Card Actions */}
-                <div className="flex items-center gap-2 mt-auto pt-2">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleTestHairpinsConnection}
-                    disabled={hairpinsTesting || !hairpinsDbUrl}
-                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
-                  >
-                    <RefreshCw size={14} className={hairpinsTesting ? 'animate-spin' : ''} />
-                    Test Connection
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleSaveHairpinsDb}
-                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px', background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)', border: 'none' }}
-                  >
-                    <Save size={14} />
-                    Save Credentials
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleResetHairpinsDb}
-                    title="Reset to environment defaults"
-                    style={{ height: '36px', padding: '0 10px', fontSize: '0.8rem' }}
-                  >
-                    <RotateCcw size={14} />
-                  </button>
-                </div>
-              </div>
 
             </div>
 
@@ -2947,8 +2747,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [], activeBusinessId = 'b
               value={userForm.businessId} 
               onChange={val => setUserForm({...userForm, businessId: val})}
               options={[
-                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' },
-                { value: 'biz_hairpins', label: 'Royal Hair Pin Industries (biz_hairpins)' }
+                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' }
               ]}
               style={{ height: '42px', width: '100%' }}
             />
@@ -3151,8 +2950,7 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [], businesses = [
               value={form.businessId} 
               onChange={val => setForm({...form, businessId: val})}
               options={[
-                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' },
-                { value: 'biz_hairpins', label: 'Royal Hair Pin Industries (biz_hairpins)' }
+                { value: 'biz_main', label: 'Seynex Enterprises (biz_main)' }
               ]}
               style={{ height: '42px', width: '100%' }}
             />
