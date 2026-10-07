@@ -9,21 +9,6 @@ import {
 } from 'lucide-react';
 import { StoreContext, getNextSequentialInvoiceNumber, getNextSequentialQuoteNumber } from '../context/StoreContext';
 
-const HAIR_PIN_PRESETS = [
-  { id: 'hp-1', name: 'Classic Black Bobby Pins (2-Inch)', unit: 'Pkt', price: 250, category: 'Bobby Pins', desc: 'Gloss black enamel, ball tips (30 pcs/pkt)' },
-  { id: 'hp-2', name: 'Golden Wave Hair Grips (Carded)', unit: 'Card', price: 320, category: 'Wave Grips', desc: 'Firm wave grip 12-pin card' },
-  { id: 'hp-3', name: 'Salon Jumbo U-Pins (100 pcs Box)', unit: 'Box', price: 450, category: 'U-Pins', desc: 'Heavy duty bridal bun pins' },
-  { id: 'hp-4', name: 'Classic Snap Clips (1 Dozen Card)', unit: 'Dozen', price: 380, category: 'Snap Clips', desc: 'Black & assorted colors' },
-  { id: 'hp-5', name: 'Kids Pastel Hair Clips (12-Card)', unit: 'Card', price: 420, category: 'Kids Clips', desc: 'Hanging display card with floral motifs' },
-  { id: 'hp-6', name: 'Fancy Pearl & Crystal Hair Pins (Set 6)', unit: 'Set', price: 850, category: 'Fancy & Bridal', desc: 'Handcrafted floral wire pins' },
-  { id: 'hp-7', name: 'Wholesale Bobby Pins (1 Gross / 144 pcs)', unit: 'Gross', price: 720, category: 'Wholesale Packs', desc: '12 dozen trade master pack' },
-  { id: 'hp-8', name: 'Master Carton Bobby Pins (50 Gross)', unit: 'Carton', price: 34000, category: 'Wholesale Packs', desc: '7,200 pins bulk wholesale carton' },
-  { id: 'hp-9', name: 'Brown / Blonde Bobby Pins (2-Inch)', unit: 'Pkt', price: 280, category: 'Bobby Pins', desc: 'Color matched hair styling pins' },
-  { id: 'hp-10', name: 'Mini Black Hair Grips (1.5-Inch)', unit: 'Pkt', price: 220, category: 'Bobby Pins', desc: 'Fine hair & kids bobby pins' },
-  { id: 'hp-11', name: 'U-Pins Bridal Golden (50 pcs)', unit: 'Pkt', price: 380, category: 'U-Pins', desc: 'Bridal bun golden hair pins' },
-  { id: 'hp-12', name: 'Black Matte Snap Hair Clips (Large)', unit: 'Card', price: 350, category: 'Snap Clips', desc: 'Matte coated 6-piece card' }
-];
-
 const MAIN_ENTERPRISE_PRESETS = [
   { id: 'ep-1', name: 'Enterprise Cloud ERP License (Annual)', unit: 'License', price: 185000, category: 'Software', desc: 'Full-featured enterprise cloud operations license' },
   { id: 'ep-2', name: 'Annual Priority SLA & Support Contract', unit: 'Contract', price: 95000, category: 'Service', desc: '24/7 dedicated support and maintenance package' },
@@ -52,8 +37,6 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
     activeBusinessId,
     activeBusiness
   } = useContext(StoreContext) || {};
-
-  const isHairPins = activeBusinessId === 'biz_hairpins';
 
   const isDark = theme !== 'light';
 
@@ -109,7 +92,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
 
   // Business-aware available products: Business presets + business inventory
   const availableProducts = useMemo(() => {
-    const basePresets = isHairPins ? HAIR_PIN_PRESETS : MAIN_ENTERPRISE_PRESETS;
+    const basePresets = MAIN_ENTERPRISE_PRESETS;
     const list = [...basePresets];
 
     inventory.forEach((item) => {
@@ -119,15 +102,15 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
           id: item.id,
           name: item.name,
           price: Number(item.price) || 0,
-          unit: item.unit || item.outputUnit || (isHairPins ? 'Pkt' : 'Unit'),
-          category: item.category || item.type || (isHairPins ? 'Hair Pins' : 'General'),
+          unit: item.unit || item.outputUnit || 'Unit',
+          category: item.category || item.type || 'General',
           desc: item.desc || item.description || ''
         });
       }
     });
 
     return list;
-  }, [inventory, isHairPins]);
+  }, [inventory]);
 
   const categories = useMemo(() => {
     const cats = new Set(['All']);
@@ -256,7 +239,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
   // Handle Complete Sale
   const handleCompleteSale = async () => {
     if (cart.length === 0) {
-      showNotification?.('Please add at least one hair pin item to the bill.', 'error');
+      showNotification?.('Please add at least one item to the bill.', 'error');
       return;
     }
 
@@ -268,7 +251,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
 
       if (selectedCustomerId === 'new') {
         if (!newCustomerName.trim()) {
-          showNotification?.('Please enter the customer / shop name.', 'error');
+          showNotification?.('Please enter the customer / client name.', 'error');
           setIsSubmitting(false);
           return;
         }
@@ -278,9 +261,9 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
           name: formattedCustName,
           phone: newCustomerPhone.trim() || '077 000 0000',
           gymName: newCustomerCity.trim() ? `${formattedCustName} (${newCustomerCity.trim()})` : formattedCustName,
-          email: `${newCustomerName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}@hairpins.lk`,
+          email: `${newCustomerName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}@seynex.lk`,
           status: 'Active',
-          tag: 'Wholesale / Shop',
+          tag: 'Corporate / Client',
           purchaseDate: new Date().toISOString().split('T')[0]
         };
         addCustomer?.(createdCustomer);
@@ -319,7 +302,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
           unitPrice: i.unitPrice,
           amount: i.amount
         })),
-        notes: notes || `Quick Hair Pin Sale (${paymentMethod})`,
+        notes: notes || `Quick Sale (${paymentMethod})`,
         paymentMethod: paymentMethod,
         paidAt: isCash ? nowIso : null,
         payments: isCash ? [{
@@ -349,7 +332,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
       }
 
       setCompletedInvoice(invoiceData);
-      showNotification?.(`Hair Pin Bill #${invoiceNumber} completed successfully!`, 'success');
+      showNotification?.(`Sale Bill #${invoiceNumber} completed successfully!`, 'success');
       
       // Auto cloud sync
       setTimeout(() => {
@@ -456,7 +439,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
     const docType = completedInvoice.isQuote ? 'QUOTATION' : 'INVOICE';
     const text = encodeURIComponent(
       `*${docType} #${completedInvoice.quoteNumber || completedInvoice.invoiceNumber}*\n` +
-      `*${smsConfig.companyName || 'Royal Hair Pin Industries'}*\n` +
+      `*${smsConfig.companyName || 'Seynex Enterprises'}*\n` +
       `Date: ${completedInvoice.date}\n` +
       `Customer: ${completedInvoice.customerName || completedInvoice.prospectName}\n\n` +
       `*Items:*\n${itemList}\n\n` +
@@ -539,14 +522,14 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                  {isHairPins ? '⚡ Quick Hair Pin Billing' : '⚡ Quick Sales Billing'}
+                  ⚡ Quick Sales Billing
                 </h2>
                 <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.25)', color: isDark ? '#fbbf24' : '#b45309', fontWeight: 800 }}>
-                  {isHairPins ? 'WHOLESALE' : 'ENTERPRISE'}
+                  ENTERPRISE
                 </span>
               </div>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>
-                {smsConfig.companyName || (isHairPins ? 'Royal Hair Pin Industries' : activeBusiness?.name || 'Seynex Enterprises')}
+                {smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises'}
               </p>
             </div>
           </div>
@@ -589,7 +572,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 color: mobileTab === 'items' ? '#ffffff' : 'var(--text-secondary)'
               }}
             >
-              <Package size={15} /> {isHairPins ? '1. Pick Hair Pins' : '1. Pick Products'}
+              <Package size={15} /> 1. Pick Products
             </button>
             <button
               onClick={() => setMobileTab('checkout')}
@@ -667,10 +650,10 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             >
               <div style={{ textAlign: 'center', borderBottom: '1px dashed var(--panel-border)', paddingBottom: '12px', marginBottom: '12px' }}>
                 <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                  {smsConfig.companyName || (isHairPins ? 'Royal Hair Pin Industries' : activeBusiness?.name || 'Seynex Enterprises')}
+                  {smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises'}
                 </h4>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {smsConfig.companyAddress || (isHairPins ? 'Kelaniya, Sri Lanka' : 'Colombo 03, Sri Lanka')} | {smsConfig.companyPhone || (isHairPins ? '072 840 8880' : '+94 11 234 5678')}
+                  {smsConfig.companyAddress || 'Colombo 03, Sri Lanka'} | {smsConfig.companyPhone || '+94 11 234 5678'}
                 </div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '4px' }}>
                   {completedInvoice.isQuote ? `QUOTATION #${completedInvoice.quoteNumber || completedInvoice.invoiceNumber}` : `INVOICE #${completedInvoice.invoiceNumber}`}
@@ -775,7 +758,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
             overflow: 'hidden' 
           }}>
             
-            {/* COLUMN 1: HAIR PIN PRODUCT SELECTOR (Always on desktop, conditional on mobile) */}
+            {/* COLUMN 1: PRODUCT SELECTOR (Always on desktop, conditional on mobile) */}
             {(!isMobile || mobileTab === 'items') && (
               <div style={{ 
                 display: 'flex', 
@@ -793,7 +776,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                     <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
-                      placeholder={isHairPins ? "Search Bobby pins, U-pins, snap clips..." : "Search licenses, support, hardware, consulting..."}
+                      placeholder="Search licenses, support, hardware, consulting..."
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       className="form-input"
@@ -1093,7 +1076,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 {/* 1. Customer Selection - Clean & Simple */}
                 <div style={{ marginBottom: '14px', flexShrink: 0 }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    {isHairPins ? 'Customer / Wholesale Buyer' : 'Customer / Corporate Client'}
+                    Customer / Corporate Client
                   </div>
 
                   <select
@@ -1111,9 +1094,9 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       color: 'var(--text-primary)'
                     }}
                   >
-                    <option value="walk-in">🏪 {isHairPins ? 'Counter / Walk-in Customer (Cash)' : 'Walk-in / Direct Cash Client'}</option>
+                    <option value="walk-in">🏪 Walk-in / Direct Cash Client</option>
                     {customers.length > 0 && (
-                      <optgroup label={isHairPins ? "Saved Wholesale Shops & Buyers" : "Saved Corporate Clients & Accounts"}>
+                      <optgroup label="Saved Corporate Clients & Accounts">
                         {customers.map(c => (
                           <option key={c.id} value={c.id}>
                             🏢 {c.name || c.gymName} {c.phone ? `(${c.phone})` : ''}
@@ -1121,7 +1104,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         ))}
                       </optgroup>
                     )}
-                    <option value="new">➕ Add New {isHairPins ? 'Shop / Wholesale Buyer...' : 'Client / Account...'}</option>
+                    <option value="new">➕ Add New Client / Account...</option>
                   </select>
 
                   {/* Inline New Customer Fields */}
@@ -1152,7 +1135,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         </select>
                         <input
                           type="text"
-                          placeholder="Contact / Buyer Name *"
+                          placeholder="Contact / Client Name *"
                           value={newCustomerName}
                           onChange={(e) => setNewCustomerName(e.target.value)}
                           className="form-input"
@@ -1171,7 +1154,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                         />
                         <input
                           type="text"
-                          placeholder="City / Market (Pettah)"
+                          placeholder="City / Region (Colombo 03)"
                           value={newCustomerCity}
                           onChange={(e) => setNewCustomerCity(e.target.value)}
                           className="form-input"
@@ -1185,7 +1168,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                 {/* 2. Order Cart Items */}
                 <div style={{ flex: 1, minHeight: '120px', overflowY: 'auto', marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Hair Pin Items ({cart.length})</span>
+                    <span>Billed Items ({cart.length})</span>
                     {cart.length > 0 && (
                       <button 
                         onClick={() => setCart([])}
@@ -1201,7 +1184,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                       padding: '24px 14px', textAlign: 'center', borderRadius: '10px',
                       border: '1px dashed var(--panel-border)', color: 'var(--text-muted)', fontSize: '0.82rem'
                     }}>
-                      No hair pins in bill yet.<br />
+                      No items in bill yet.<br />
                       {isMobile ? (
                         <button
                           onClick={() => setMobileTab('items')}
@@ -1217,7 +1200,7 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                             cursor: 'pointer'
                           }}
                         >
-                          + Pick Hair Pins
+                          + Pick Items
                         </button>
                       ) : (
                         'Click tiles on the left to add.'

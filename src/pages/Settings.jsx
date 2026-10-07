@@ -66,7 +66,7 @@ const generateRandomPassword = () => {
 const Settings = () => {
   const { 
     smsConfig = {}, updateSmsConfig, fetchSmsBalance, showNotification, 
-    handleTestSms, resetToSeynexDefaults, seedDummyData, loadHairPinIndustryDefaults,
+    handleTestSms, resetToSeynexDefaults, seedDummyData,
     teamMembers = [], addTeamMember, updateTeamMember, updateTeamMemberRole, toggleTeamMemberStatus, deleteTeamMember, resetUserPassword,
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
@@ -88,7 +88,7 @@ const Settings = () => {
   
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [workspaceFilter, setWorkspaceFilter] = useState('All'); // 'All' | 'biz_main' | 'biz_hairpins'
+  const [workspaceFilter, setWorkspaceFilter] = useState('All');
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeSettingsTab, setActiveSettingsTab] = useState(tabParam || 'users');
@@ -481,33 +481,18 @@ const Settings = () => {
                         </div>
                       </td>
                       <td>
-                        {member.businessId === 'biz_hairpins' ? (
-                          <span className="badge" style={{ 
-                            fontSize: '0.72rem', 
-                            background: 'rgba(13, 148, 136, 0.15)', 
-                            color: '#2dd4bf', 
-                            border: '1px solid rgba(13, 148, 136, 0.3)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '3px 8px'
-                          }}>
-                            <Sparkles size={11} /> Royal Hair Pins
-                          </span>
-                        ) : (
-                          <span className="badge" style={{ 
-                            fontSize: '0.72rem', 
-                            background: 'rgba(79, 70, 229, 0.15)', 
-                            color: '#a5b4fc', 
-                            border: '1px solid rgba(79, 70, 229, 0.3)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '3px 8px'
-                          }}>
-                            <Building2 size={11} /> Seynex Enterprises
-                          </span>
-                        )}
+                        <span className="badge" style={{ 
+                          fontSize: '0.72rem', 
+                          background: 'rgba(79, 70, 229, 0.15)', 
+                          color: '#a5b4fc', 
+                          border: '1px solid rgba(79, 70, 229, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 8px'
+                        }}>
+                          <Building2 size={11} /> Seynex Enterprises
+                        </span>
                       </td>
                       <td>
                         <span className="badge badge-secondary" style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.05)' }}>
@@ -810,15 +795,15 @@ const Settings = () => {
                   <Database size={22} />
                 </div>
                 <div>
-                  <h3 className="h3" style={{ margin: 0 }}>Multi-Database Architecture & Dedicated Connections</h3>
+                  <h3 className="h3" style={{ margin: 0 }}>Cloud Database Architecture & Connection Settings</h3>
                   <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem' }}>
-                    Configure independent cloud database projects for <strong>Seynex Enterprises</strong> and <strong>Royal Hair Pins</strong>, or operate in a unified multi-tenant schema with partition isolation.
+                    Configure the primary Supabase cloud database credentials and security settings for <strong>Seynex Enterprises</strong>.
                   </p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '20px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
-                  Hybrid Multi-DB Active
+                  Cloud DB Active
                 </span>
               </div>
             </div>
@@ -1022,10 +1007,8 @@ const Settings = () => {
                   className="btn btn-secondary"
                   onClick={() => {
                     const sql = `-- =========================================================================
--- MULTI-BUSINESS DUAL-DATABASE ARCHITECTURE & PARTITIONING MIGRATION
--- Enables Strict Data Isolation between:
--- 1. Seynex Enterprises ('biz_main')
--- 2. Royal Hair Pin Industries ('biz_hairpins')
+-- SEYNEX ENTERPRISES CLOUD SCHEMA ARCHITECTURE & MIGRATION
+-- Project: Seynex Enterprises ('biz_main')
 -- =========================================================================
 
 -- Enable UUID extension
@@ -1047,12 +1030,12 @@ ALTER TABLE IF EXISTS user_profiles ADD COLUMN IF NOT EXISTS business_id VARCHAR
 -- 2. CREATE MANUFACTURING & PROCUREMENT TABLES
 CREATE TABLE IF NOT EXISTS boms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
+    business_id VARCHAR(50) DEFAULT 'biz_main',
     user_id UUID,
     name TEXT NOT NULL,
     output_product_id TEXT,
     output_qty NUMERIC DEFAULT 1,
-    output_unit TEXT DEFAULT 'Card (10 Pins)',
+    output_unit TEXT DEFAULT 'Unit',
     estimated_labor_cost NUMERIC DEFAULT 0,
     estimated_overhead_cost NUMERIC DEFAULT 0,
     components JSONB DEFAULT '[]'::jsonb,
@@ -1063,7 +1046,7 @@ CREATE TABLE IF NOT EXISTS boms (
 
 CREATE TABLE IF NOT EXISTS production_orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
+    business_id VARCHAR(50) DEFAULT 'biz_main',
     user_id UUID,
     mo_number TEXT NOT NULL,
     bom_id UUID,
@@ -1178,133 +1161,12 @@ ALTER TABLE IF EXISTS payments ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) 
 ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
-CREATE TABLE IF NOT EXISTS boms (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_hairpins', name TEXT NOT NULL, ...);
-CREATE TABLE IF NOT EXISTS production_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_hairpins', ...);
+CREATE TABLE IF NOT EXISTS boms (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', name TEXT NOT NULL, ...);
+CREATE TABLE IF NOT EXISTS production_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 CREATE TABLE IF NOT EXISTS suppliers (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 -- Click 'Copy Migration SQL' above to copy full schema with RLS policies & composite indexes`}
               </pre>
-            </div>
-          </div>
-
-          {/* Multi-Business Architecture: Hair Pins vs Main Business Separation Card */}
-          <div className="glass-panel" style={{ 
-            padding: '24px 28px', 
-            border: '1px solid rgba(99, 102, 241, 0.25)', 
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(13, 148, 136, 0.04) 100%)',
-            borderRadius: '16px'
-          }}>
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    background: 'rgba(99, 102, 241, 0.15)',
-                    color: '#818cf8',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    <Building2 size={26} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="h3" style={{ margin: 0, color: 'var(--text-primary)' }}>
-                        Multi-Business Entity Partitioning
-                      </h3>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(13, 148, 136, 0.18)', color: '#2dd4bf', border: '1px solid rgba(13, 148, 136, 0.3)' }}>
-                        Separated Profiles Active
-                      </span>
-                      {isUserRestricted && (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Lock size={11} /> Workspace Locked to {activeBusiness?.name}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '0.86rem', lineHeight: 1.5 }}>
-                      {isUserRestricted 
-                        ? `Your current login is dedicated to ${activeBusiness?.name}. Switching between business workspaces is restricted for single-entity accounts.` 
-                        : 'Hair Pins operations are partitioned as an independent business. Each business profile maintains its own isolated product catalog, leads pipeline, quotations, invoices, and company branding.'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {businesses.map((biz) => {
-                    const isActive = biz.id === activeBusinessId;
-                    const isHairPins = biz.id === 'biz_hairpins';
-                    const isLocked = isUserRestricted && biz.id !== user?.businessId;
-
-                    return (
-                      <button
-                        key={biz.id}
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => !isLocked && switchBusiness && switchBusiness(biz.id)}
-                        className="btn"
-                        style={{
-                          height: '38px',
-                          padding: '0 16px',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          border: isActive 
-                            ? (isHairPins ? '1px solid rgba(13, 148, 136, 0.5)' : '1px solid rgba(99, 102, 241, 0.5)')
-                            : '1px solid var(--subtle-border)',
-                          background: isActive
-                            ? (isHairPins ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' : 'var(--accent-gradient)')
-                            : 'var(--bg-secondary)',
-                          color: isActive ? '#ffffff' : (isLocked ? 'var(--text-muted)' : 'var(--text-secondary)'),
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: isLocked ? 'not-allowed' : 'pointer',
-                          opacity: isLocked ? 0.45 : 1,
-                          boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
-                        }}
-                      >
-                        {isHairPins ? <Sparkles size={14} /> : <Building2 size={14} />}
-                        <span>{biz.name}</span>
-                        {isActive ? (
-                          <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>✓ Active</span>
-                        ) : isLocked ? (
-                          <span style={{ fontSize: '0.68rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '2px' }}><Lock size={10} /> Locked</span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Business Details Panel */}
-              <div style={{
-                padding: '14px 18px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--subtle-border)',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '12px',
-                fontSize: '0.8rem'
-              }}>
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Current Active Entity</div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {activeBusiness?.name || (activeBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises')}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Business Category</div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {activeBusiness?.category || (activeBusinessId === 'biz_hairpins' ? 'Hair Pins Wholesale & Manufacturing' : 'Enterprise Solutions & Tech')}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Quick Switcher</div>
-                  <div style={{ color: 'var(--accent-primary)', marginTop: '2px', fontWeight: 600 }}>
-                    Top Header dropdown available on all pages
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1493,7 +1355,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                 <div style={{ position: 'relative' }}>
                   <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
                   <input type="text" className="form-input" style={{ paddingLeft: '40px' }} 
-                    placeholder="e.g. www.royalhairpins.lk"
+                    placeholder="e.g. www.seynex.lk"
                     value={smsConfig.companyWebsite || ''}
                     onChange={e => updateSmsConfig({...smsConfig, companyWebsite: e.target.value})} />
                 </div>
@@ -1841,7 +1703,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Rendered on PDF quotes, invoices & customer receipts</span>
               </label>
               <CustomColorPicker 
-                value={smsConfig.pdfColor || (smsConfig.companyName?.includes('Hair') ? '#0d9488' : '#4f46e5')} 
+                value={smsConfig.pdfColor || '#4f46e5'} 
                 onChange={val => updateSmsConfig({...smsConfig, pdfColor: val})}
                 label="Branding Accent"
               />
@@ -2704,7 +2566,7 @@ const AddUserModal = ({ onClose, onSave, customRoles = [], activeBusinessId = 'b
   };
 
   const copyCredentials = () => {
-    const text = `Sales Manager Login:\nEmail: ${userForm.email || '(enter email)'}\nPassword: ${userForm.password}\nRole: ${userForm.role}\nWorkspace: ${userForm.businessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises'}`;
+    const text = `Sales Manager Login:\nEmail: ${userForm.email || '(enter email)'}\nPassword: ${userForm.password}\nRole: ${userForm.role}\nWorkspace: Seynex Enterprises`;
     navigator.clipboard.writeText(text);
     setCopiedCredentials(true);
     setTimeout(() => setCopiedCredentials(false), 2200);

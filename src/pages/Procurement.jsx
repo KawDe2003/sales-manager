@@ -17,9 +17,8 @@ const Procurement = () => {
     activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
 
-  const isHairPins = activeBusinessId === 'biz_hairpins';
-  const defaultCompanyName = activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
-  const defaultCategory = isHairPins ? 'Hair Pin Raw Materials & Supplies' : 'Enterprise & IT Supplies';
+  const defaultCompanyName = activeBusiness?.name || 'Seynex Enterprises';
+  const defaultCategory = 'Enterprise & IT Supplies';
 
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'suppliers' | 'reorder'
   const [searchTerm, setSearchTerm] = useState('');
@@ -395,7 +394,7 @@ Please confirm receipt of this order and acknowledge your dispatch schedule. Tha
                   contactPerson: '', 
                   phone: '', 
                   email: '', 
-                  category: 'Hair Pin Raw Materials & Supplies', 
+                  category: 'Enterprise & IT Supplies', 
                   address: '',
                   isVatRegistered: false,
                   vatNumber: '',

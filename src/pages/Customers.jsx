@@ -110,11 +110,9 @@ const Customers = () => {
       <div className="page-hero">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="h1 mb-2">{isHairPins ? 'Wholesale Buyers & Salons' : 'Enterprise Clients & Accounts'}</h1>
+            <h1 className="h1 mb-2">Enterprise Clients & Accounts</h1>
             <p className="text-secondary" style={{ fontSize: '1rem' }}>
-              {isHairPins 
-                ? 'Manage wholesale distributors, cosmetic stores, salons, and retail outlet profiles.'
-                : 'Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.'}
+              Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.
             </p>
           </div>
           <div className="btn-group flex gap-3">
@@ -131,7 +129,7 @@ const Customers = () => {
               style={{ padding: '12px 24px' }} 
               onClick={handleOpenAddModal}
             >
-              <Plus size={18} /> {isHairPins ? 'New Wholesale Buyer' : 'New Client'}
+              <Plus size={18} /> New Client
             </button>
           </div>
         </div>

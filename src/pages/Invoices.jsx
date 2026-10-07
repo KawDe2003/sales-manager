@@ -14,8 +14,7 @@ const Invoices = () => {
     inventory = [], triggerSMS, showNotification, generateRecurringInvoices,
     sendDirectSMS, smsConfig = {}, activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
-  const isHairPins = activeBusinessId === 'biz_hairpins';
-  const defaultCompanyName = activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
+  const defaultCompanyName = activeBusiness?.name || 'Seynex Enterprises';
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);

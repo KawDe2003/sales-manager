@@ -423,7 +423,7 @@ const Login = () => {
                 <input
                   type="email"
                   id="login-email-input"
-                  placeholder={selectedBizId === 'biz_hairpins' ? 'admin@royalhairpins.lk' : 'admin@seynex.lk'}
+                  placeholder="admin@seynex.lk"
                   value={email}
                   onChange={e => handleEmailChange(e.target.value)}
                   required

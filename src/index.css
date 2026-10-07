@@ -1008,6 +1008,9 @@ tbody tr:hover td {
   backdrop-filter: blur(16px);
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .app-sidebar::-webkit-scrollbar {
@@ -1048,7 +1051,19 @@ tbody tr:hover td {
   background: var(--bg-secondary);
 }
 
-/* ===== SIDEBAR OVERLAY ===== */
+/* ===== SIDEBAR OVERLAY & BODY SCROLL LOCK ===== */
+html.sidebar-open-locked,
+body.sidebar-open-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
+html.sidebar-open-locked .app-sidebar,
+body.sidebar-open-locked .app-sidebar {
+  touch-action: pan-y !important;
+}
+
 .sidebar-overlay {
   position: fixed;
   inset: 0;
@@ -1058,6 +1073,8 @@ tbody tr:hover td {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 .sidebar-open .sidebar-overlay {
   opacity: 1;
@@ -1155,6 +1172,8 @@ tbody tr:hover td {
     box-shadow: none;
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
   .sidebar-open .app-sidebar {
     transform: translateX(0);

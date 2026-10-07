@@ -224,8 +224,7 @@ const AppContent = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
 
-  const isHairPins = activeBusinessId === 'biz_hairpins';
-  const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises');
+  const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises';
 
   const isFeatureEnabled = (key) => featureToggles[key] !== false;
 
@@ -274,6 +273,26 @@ const AppContent = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Lock background scroll when Sidebar Drawer is open (prevents body scroll on mobile)
+  useEffect(() => {
+    if (sidebarOpen) {
+      const origBodyOverflow = document.body.style.overflow;
+      const origHtmlOverflow = document.documentElement.style.overflow;
+      
+      document.body.classList.add('sidebar-open-locked');
+      document.documentElement.classList.add('sidebar-open-locked');
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      return () => {
+        document.body.classList.remove('sidebar-open-locked');
+        document.documentElement.classList.remove('sidebar-open-locked');
+        document.body.style.overflow = origBodyOverflow;
+        document.documentElement.style.overflow = origHtmlOverflow;
+      };
+    }
+  }, [sidebarOpen]);
+
   // Lock background scroll when Search Modal is open
   useEffect(() => {
     if (searchOpen) {
@@ -292,6 +311,11 @@ const AppContent = () => {
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
   const toggleSidebarCollapse = () => setIsSidebarCollapsed(prev => !prev);
   const closeSidebar = () => setSidebarOpen(false);
+
+  // Auto-close sidebar on route navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const isPublicShareView = location.pathname.startsWith('/share');
   const isCustomerPortal = location.pathname.startsWith('/portal') || location.pathname === '/pay' || location.pathname.startsWith('/pay/');
@@ -506,7 +530,7 @@ const AppContent = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Quick Hair Pin / Enterprise Billing */}
+          {/* Quick Instant Invoice / Quick Sale */}
           <button
             id="quick-sale-bill-header-btn"
             onClick={() => setQuickSaleOpen(true)}
@@ -516,32 +540,30 @@ const AppContent = () => {
               padding: '0 14px',
               fontSize: '0.82rem',
               fontWeight: 800,
-              background: isHairPins 
-                ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' 
-                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: isHairPins ? '0 2px 10px rgba(13, 148, 136, 0.35)' : '0 2px 10px rgba(59, 130, 246, 0.35)',
+              boxShadow: '0 2px 10px rgba(59, 130, 246, 0.35)',
               cursor: 'pointer'
             }}
-            title={isHairPins ? "Fast Hair Pin Billing / Wholesale Counter Sale" : "Fast Instant Invoice / Quick Sale"}
+            title="Fast Instant Invoice / Quick Sale"
           >
-            <Sparkles size={15} /> <span>{isHairPins ? '⚡ Quick Bill' : '⚡ Quick Sale'}</span>
+            <Sparkles size={15} /> <span>⚡ Quick Sale</span>
           </button>
 
           {/* Quick Actions */}
           <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-            <MessageSquare size={15} /> {isHairPins ? 'Van Alerts' : 'SMS Portal'}
+            <MessageSquare size={15} /> SMS Portal
           </Link>
           <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-emerald)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
-            <CreditCard size={15} /> {isHairPins ? 'Wholesale Order' : 'Invoice'}
+            <CreditCard size={15} /> Invoice
           </Link>
           <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '36px', padding: '0 14px', fontSize: '0.8rem', boxShadow: '0 2px 10px rgba(16, 185, 129, 0.25)' }}>
-            <PlusCircle size={15} /> {isHairPins ? 'New Buyer' : 'New Client'}
+            <PlusCircle size={15} /> New Client
           </Link>
 
           {/* Search */}
@@ -862,7 +884,7 @@ const AppContent = () => {
         </div>
       )}
 
-      {/* ===== QUICK HAIR PIN SALE & BILLING MODAL ===== */}
+      {/* ===== QUICK SALE & BILLING MODAL ===== */}
       <QuickSaleModal 
         isOpen={quickSaleOpen} 
         onClose={() => setQuickSaleOpen(false)} 
@@ -871,7 +893,13 @@ const AppContent = () => {
       {/* ===== MAIN LAYOUT ===== */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         {/* Sidebar Overlay (Mobile) */}
-        <div className="sidebar-overlay" onClick={closeSidebar}></div>
+        <div 
+          className="sidebar-overlay" 
+          onClick={closeSidebar}
+          onTouchMove={(e) => {
+            if (e.cancelable) e.preventDefault();
+          }}
+        ></div>
 
         {/* ===== SIDEBAR ===== */}
         <aside className={`app-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{ 
@@ -1007,35 +1035,32 @@ const AppContent = () => {
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             {checkPerm(['manage_clients']) && (
-              <NavItem to="/customers" icon={<Users size={18} />} label={isHairPins ? "Wholesale Buyers" : "Enterprise Clients"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/customers" icon={<Users size={18} />} label="Enterprise Clients" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && isFeatureEnabled('leads') && checkPerm(['manage_clients', 'manage_leads']) && (
+            {isFeatureEnabled('leads') && checkPerm(['manage_clients', 'manage_leads']) && (
               <NavItem to="/leads" icon={<Target size={18} />} label="Leads Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && isFeatureEnabled('tasks') && checkPerm(['manage_clients', 'manage_tasks']) && (
+            {isFeatureEnabled('tasks') && checkPerm(['manage_clients', 'manage_tasks']) && (
               <NavItem to="/tasks" icon={<CalendarDays size={18} />} label="Tasks & Calendar" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
           </nav>
 
           {/* Section: SALES & OPERATIONS */}
-          <SidebarSection label={isHairPins ? "WHOLESALE & FACTORY" : "SALES & BILLING"} collapsed={isSidebarCollapsed} />
+          <SidebarSection label="SALES & BILLING" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
-            {!isHairPins && isFeatureEnabled('quotations') && checkPerm(['manage_quotes']) && (
+            {isFeatureEnabled('quotations') && checkPerm(['manage_quotes']) && (
               <NavItem to="/quotations" icon={<FileText size={18} />} label="Quotations Pipeline" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {checkPerm(['manage_invoices', 'view_invoices']) && (
-              <NavItem to="/invoices" icon={<Receipt size={18} />} label={isHairPins ? "Wholesale Orders" : "Invoices & Billing"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices & Billing" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {isFeatureEnabled('inventory') && checkPerm(['manage_inventory', 'view_inventory']) && (
-              <NavItem to="/inventory" icon={<Package size={18} />} label={isHairPins ? "Products & Stock" : "Products & Licenses"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/inventory" icon={<Package size={18} />} label="Products & Licenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {isFeatureEnabled('procurement') && checkPerm(['manage_inventory', 'view_inventory']) && (
-              <NavItem to="/procurement" icon={<ShoppingBag size={18} />} label={isHairPins ? "Factory POs & Wire" : "Vendor Procurement"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/procurement" icon={<ShoppingBag size={18} />} label="Vendor Procurement" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {isHairPins && isFeatureEnabled('manufacturing') && checkPerm(['manage_inventory', 'view_inventory', 'all']) && (
-              <NavItem to="/manufacturing" icon={<Factory size={18} />} label="Production & BOM" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            )}
-            {!isHairPins && isFeatureEnabled('hrPayroll') && (
+            {isFeatureEnabled('hrPayroll') && (
               <NavItem to="/hr" icon={<Users size={18} />} label="HR & Payroll ERP" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
           </nav>
@@ -1044,21 +1069,21 @@ const AppContent = () => {
           <SidebarSection label="FINANCE" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             {checkPerm(['manage_invoices', 'view_invoices', 'view_financials']) && (
-              <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label={isHairPins ? "Cash & Payments" : "Payments Received"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/payments" icon={<BadgeDollarSign size={18} />} label="Payments Received" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {isFeatureEnabled('debtors') && checkPerm(['view_financials', 'view_debtors']) && (
-              <NavItem to="/debtors" icon={<AlertCircle size={18} />} label={isHairPins ? "Wholesale Debtors" : "Outstanding Debtors"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/debtors" icon={<AlertCircle size={18} />} label="Outstanding Debtors" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {isFeatureEnabled('expenses') && checkPerm(['view_financials', 'manage_expenses']) && (
-              <NavItem to="/expenses" icon={<Wallet size={18} />} label={isHairPins ? "Factory Expenses" : "Operating Expenses"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/expenses" icon={<Wallet size={18} />} label="Operating Expenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && isFeatureEnabled('fixedAssets') && checkPerm(['view_financials', 'manage_assets']) && (
+            {isFeatureEnabled('fixedAssets') && checkPerm(['view_financials', 'manage_assets']) && (
               <NavItem to="/assets" icon={<Building2 size={18} />} label="Fixed Assets" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {checkPerm(['view_reports', 'view_financials']) && (
-              <NavItem to="/reports" icon={<BarChart3 size={18} />} label={isHairPins ? "Executive P&L & Reports" : "Financial Reports"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/reports" icon={<BarChart3 size={18} />} label="Financial Reports" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && isFeatureEnabled('ledger') && checkPerm(['view_reports', 'view_financials']) && (
+            {isFeatureEnabled('ledger') && checkPerm(['view_reports', 'view_financials']) && (
               <NavItem to="/ledger" icon={<Scale size={18} />} label="Ledger Accounts" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
           </nav>
@@ -1067,17 +1092,15 @@ const AppContent = () => {
           <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
             {isFeatureEnabled('smsPortal') && (
-              <NavItem to="/sms" icon={<MessageSquare size={18} />} label={isHairPins ? "Van Alerts & SMS" : "SMS Portal & Broadcast"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/sms" icon={<MessageSquare size={18} />} label="SMS Portal & Broadcast" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && checkPerm(['view_logs', 'manage_users']) && (
+            {checkPerm(['view_logs', 'manage_users']) && (
               <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
             {checkPerm(['manage_users', 'manage_settings']) && (
-              <NavItem to="/settings" icon={<SettingsIcon size={18} />} label={isHairPins ? "Factory Settings" : "System Settings"} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              <NavItem to="/settings" icon={<SettingsIcon size={18} />} label="System Settings" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
-            {!isHairPins && (
-              <NavItem to="/features" icon={<Sparkles size={18} />} label="Features Directory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            )}
+            <NavItem to="/features" icon={<Sparkles size={18} />} label="Features Directory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
 
           {/* Sidebar Footer with Theme Switcher & Logout */}
@@ -1228,18 +1251,18 @@ const AppContent = () => {
               background: 'none', border: 'none', cursor: 'pointer',
               position: 'relative', top: '-10px', padding: 0
             }}
-            title="⚡ Quick Hair Pin Bill"
+            title="⚡ Quick Sale"
           >
             <div style={{
               width: '46px', height: '46px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
               color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(13, 148, 136, 0.5), 0 0 0 3px var(--bg-secondary)',
+              boxShadow: '0 4px 16px rgba(59, 130, 246, 0.5), 0 0 0 3px var(--bg-secondary)',
               transition: 'transform 0.15s ease'
             }}>
               <Zap size={22} />
             </div>
-            <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.64rem', marginTop: '2px' }}>⚡ Bill</span>
+            <span style={{ color: '#3b82f6', fontWeight: 800, fontSize: '0.64rem', marginTop: '2px' }}>⚡ Sale</span>
           </button>
 
           <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>

@@ -218,170 +218,8 @@ export default function StoreContextProvider({ children }) {
     return '76bb4580-2006-464f-aab8-64029dbe9540';
   };
 
-  // Initialize sample dummy data for Hair Pin Manufacturing & Wholesale
-  const sampleCustomers = [
-    { id: 'c-101', gymName: 'Lanka Fancy Center (Wholesale Pettah)', name: 'M. Farook', email: 'farook@lankafancy.lk', phone: '0772345678', dob: '1982-04-12', purchaseDate: '2025-01-15', renewalDate: '2026-08-15', annualFee: 450000, status: 'Active', tag: 'Wholesale Distributor', notes: [{ id: 'n1', text: 'Buys 15-20 cartons bobby pins monthly', timestamp: new Date().toISOString() }] },
-    { id: 'c-102', gymName: 'Queens Bridal & Beauty Salon', name: 'Nilmini Perera', email: 'nilmini@queensbridal.lk', phone: '0718765432', dob: '1990-09-20', purchaseDate: '2025-02-10', renewalDate: '2026-08-20', annualFee: 320000, status: 'Active', tag: 'Beauty Salon Chain', notes: [] },
-    { id: 'c-103', gymName: 'Sunil Cosmetics & Novelty Stores', name: 'Sunil Gamage', email: 'sunil@sunilcosmetics.lk', phone: '0765432109', dob: '1985-11-05', purchaseDate: '2025-03-01', renewalDate: '2026-07-01', annualFee: 600000, status: 'Active', tag: 'Retail Fancy Shop', notes: [] },
-    { id: 'c-104', gymName: 'New Fashion Corner Kurunegala', name: 'K. Bandara', email: 'bandara@newfashion.lk', phone: '0754321098', dob: '1988-06-18', purchaseDate: '2025-04-12', renewalDate: '2026-09-12', annualFee: 280000, status: 'Active', tag: 'Retail & Wholesale', notes: [] },
-    { id: 'c-105', gymName: 'Salon Chamari Hair Care', name: 'Chamari Silva', email: 'chamari@salonchamari.lk', phone: '0703210987', dob: '1993-02-28', purchaseDate: '2025-05-20', renewalDate: '2026-10-20', annualFee: 190000, status: 'Pending', tag: 'Salon Customer', notes: [] }
-  ];
-
-  const sampleInventory = [
-    { id: 'inv-101', name: 'Classic Black Bobby Pins (Box of 50 Pkts)', type: 'Bobby Pins', price: 250, costPrice: 140, stock: 450, reorderLevel: 50, desc: 'High-tensile tempered steel bobby pins with protective ball tips' },
-    { id: 'inv-102', name: 'Golden Wave Hair Grips (Card of 24 pcs)', type: 'Wave Grips', price: 320, costPrice: 180, stock: 320, reorderLevel: 40, desc: 'Anti-rust gold-tone wave contoured hair grip pins' },
-    { id: 'inv-103', name: 'Salon Jumbo U-Pins (Box of 100 pcs - Black)', type: 'U-Pins', price: 450, costPrice: 260, stock: 280, reorderLevel: 30, desc: 'Professional salon grade 6.5cm hair updo U-pins' },
-    { id: 'inv-104', name: 'Classic Snap Hair Clips 5cm (Card of 12 pcs)', type: 'Snap Clips', price: 380, costPrice: 210, stock: 550, reorderLevel: 60, desc: 'Durable spring-steel snap hair clips in black gloss finish' },
-    { id: 'inv-105', name: 'Kids Colorful Pastel Snap Clips (Card of 10 pcs)', type: 'Kids Clips', price: 420, costPrice: 220, stock: 380, reorderLevel: 40, desc: 'Vibrant enamel coated hair clips with rounded safety corners' },
-    { id: 'inv-106', name: 'Bridal Pearl & Crystal Fancy Hair Pins (Pack of 6)', type: 'Fancy Pins', price: 850, costPrice: 420, stock: 140, reorderLevel: 25, desc: 'Handcrafted wedding and bridal decorative pearl flower hair pins' },
-    { id: 'inv-107', name: 'Wholesale Bulk Bobby Pins (1 Gross = 144 pins)', type: 'Wholesale Pack', price: 720, costPrice: 390, stock: 210, reorderLevel: 30, desc: 'Master wholesale 1-gross polybag pack for cosmetic shops' },
-    { id: 'inv-108', name: 'Master Shipping Carton Bobby Pins (50 Gross)', type: 'Master Carton', price: 34000, costPrice: 19500, stock: 28, reorderLevel: 5, desc: 'Factory sealed master carton containing 7,200 hair pins' },
-    { id: 'inv-109', name: 'Spring Steel Wire 1.0mm (25kg Spool)', type: 'Raw Material', price: 9800, costPrice: 8500, stock: 20, reorderLevel: 4, desc: 'Cold-drawn high-carbon spring steel wire for pin forming' },
-    { id: 'inv-110', name: 'Rust-Proof Black Baking Enamel (5L Can)', type: 'Raw Material', price: 7500, costPrice: 6200, stock: 12, reorderLevel: 3, desc: 'Industrial thermosetting gloss black lacquer' },
-    { id: 'inv-111', name: 'Printed Hair Pin Display Cards (Pack of 1,000)', type: 'Packaging', price: 3500, costPrice: 2800, stock: 45, reorderLevel: 10, desc: 'Custom printed 350gsm brand backing cards with euro slot' }
-  ];
-
-  const sampleLeads = [
-    { 
-      id: 'lead-1', 
-      gymName: 'City Fancy Center Pettah', 
-      contactPerson: 'M. Riaz', 
-      name: 'M. Riaz', 
-      phone: '0771122334', 
-      email: 'riaz@cityfancy.lk', 
-      location: 'Colombo 11', 
-      status: 'Contacted', 
-      value: 350000, 
-      date: '2026-09-28T09:30:00.000Z',
-      lastActionDate: '2026-10-01T14:30:00.000Z',
-      nextActionDate: new Date().toISOString().split('T')[0], // Due Today!
-      nextActionNote: 'Call back to finalize wholesale bulk discount on 30 boxes',
-      comments: [
-        {
-          id: 'c-101',
-          date: '2026-10-01T14:30:00.000Z',
-          text: 'Spoke with Mr. Riaz. Very interested in our Classic Black Bobby Pins. Requested 5% volume rebate for 30 cartons order.',
-          type: 'Call',
-          nextActionDate: new Date().toISOString().split('T')[0],
-          nextActionNote: 'Call back to finalize wholesale bulk discount on 30 boxes',
-          author: 'Sales Executive'
-        },
-        {
-          id: 'c-100',
-          date: '2026-09-28T10:00:00.000Z',
-          text: 'Initial outreach via WhatsApp. Sent product catalog and wholesale price list.',
-          type: 'WhatsApp',
-          nextActionDate: '2026-10-01',
-          nextActionNote: 'Follow up on catalog delivery',
-          author: 'Sales Executive'
-        }
-      ]
-    },
-    { 
-      id: 'lead-2', 
-      gymName: 'Salon Majestic & Bridal Wear Kandy', 
-      contactPerson: 'S. Kumari', 
-      name: 'S. Kumari', 
-      phone: '0714455667', 
-      email: 'kumari@majestic.lk', 
-      location: 'Kandy', 
-      status: 'Demo Scheduled', 
-      value: 240000, 
-      date: '2026-09-25T11:00:00.000Z',
-      lastActionDate: '2026-09-30T16:00:00.000Z',
-      nextActionDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0], // Upcoming in 3 days
-      nextActionNote: 'Conduct on-site product presentation of Bridal Pearl Hair Pin series',
-      comments: [
-        {
-          id: 'c-201',
-          date: '2026-09-30T16:00:00.000Z',
-          text: 'Confirmed demo date with Ms. Kumari for next Monday at 10 AM at Kandy branch. Preparing bridal samples kit.',
-          type: 'Demo',
-          nextActionDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-          nextActionNote: 'Conduct on-site product presentation of Bridal Pearl Hair Pin series',
-          author: 'Admin'
-        }
-      ]
-    },
-    { 
-      id: 'lead-3', 
-      gymName: 'Glamour Cosmetics Galle Fort', 
-      contactPerson: 'Niluka Silva', 
-      name: 'Niluka Silva', 
-      phone: '0767788990', 
-      email: 'niluka@glamour.lk', 
-      location: 'Galle', 
-      status: 'Interested', 
-      value: 180000, 
-      date: '2026-09-20T10:00:00.000Z',
-      lastActionDate: '2026-09-28T11:15:00.000Z',
-      nextActionDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], // Overdue by 2 days!
-      nextActionNote: 'Send sample display stand mockups and credit payment terms',
-      comments: [
-        {
-          id: 'c-301',
-          date: '2026-09-28T11:15:00.000Z',
-          text: 'Meeting at shop. Wants counter display racks for snap clips. Overdue for follow-up on credit terms.',
-          type: 'Meeting',
-          nextActionDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-          nextActionNote: 'Send sample display stand mockups and credit payment terms',
-          author: 'Sales Executive'
-        }
-      ]
-    }
-  ];
-
-  const sampleQuotes = [
-    { id: 'q-101', shareKey: 'SNX-Q101', quoteNumber: 'QT-1001', date: '2026-07-20', prospectName: 'Lanka Fancy Center', prospectPhone: '0772345678', amount: 480000, status: 'Pending', items: [{ name: 'Wholesale Bobby Pins (20 Cartons)', qty: 20, unitPrice: 24000, amount: 480000 }] },
-    { id: 'q-102', shareKey: 'SNX-Q102', quoteNumber: 'QT-1002', date: '2026-07-25', prospectName: 'Queens Bridal & Beauty Salon', prospectPhone: '0718765432', amount: 145000, status: 'Sent', sentAt: '2026-07-25T10:00:00Z', items: [{ name: 'Salon Jumbo U-Pins + Pearl Bridal Sets', qty: 100, unitPrice: 1450, amount: 145000 }] }
-  ];
-
-  const sampleInvoices = [
-    { id: 'inv-201', shareKey: 'SNX-INV201', invoiceNumber: 'INV-1001', date: '2026-06-01', dueDate: '2026-06-15', customerId: 'c-101', prospectName: 'Lanka Fancy Center', amount: 450000, status: 'Paid', items: [{ name: 'Classic Black Bobby Pins (15 Master Cartons)', qty: 15, unitPrice: 30000, amount: 450000 }], reminderSent: true },
-    { id: 'inv-202', shareKey: 'SNX-INV202', invoiceNumber: 'INV-1002', date: '2026-06-10', dueDate: '2026-06-25', customerId: 'c-102', prospectName: 'Queens Bridal & Beauty Salon', amount: 145000, status: 'Paid', items: [{ name: 'Salon Jumbo U-Pins & Pearl Hair Pins Package', qty: 1, unitPrice: 145000, amount: 145000 }], reminderSent: true },
-    { id: 'inv-203', shareKey: 'SNX-INV203', invoiceNumber: 'INV-1003', date: '2026-07-01', dueDate: '2026-07-15', customerId: 'c-103', prospectName: 'Sunil Cosmetics & Novelty Stores', amount: 280000, status: 'Overdue', items: [{ name: 'Wholesale Bobby Pins & Snap Clips Assortment', qty: 1, unitPrice: 280000, amount: 280000 }], reminderSent: false },
-    { id: 'inv-204', shareKey: 'SNX-INV204', invoiceNumber: 'INV-1004', date: '2026-08-01', dueDate: '2026-08-25', customerId: 'c-104', prospectName: 'New Fashion Corner Kurunegala', amount: 195000, status: 'Sent', items: [{ name: 'Kids Snap Clips & Golden Wave Grips Pack', qty: 1, unitPrice: 195000, amount: 195000 }], reminderSent: false }
-  ];
-
-  const sampleExpenses = [
-    { id: 'exp-1', category: 'Operational', amount: 55000, date: '2026-07-05', description: 'Factory 3-Phase Machine Power & Electricity Bill' },
-    { id: 'exp-2', category: 'Operational', amount: 32000, date: '2026-07-10', description: 'Forming Machine Hydraulic Oil & Cutter Tool Sharpening' },
-    { id: 'exp-3', category: 'Staff', amount: 145000, date: '2026-07-28', description: 'Workshop Machine Operators & Packing Piece-Rate Wages' },
-    { id: 'exp-4', category: 'Administrative', amount: 48000, date: '2026-08-01', description: 'Wholesale Delivery Van Diesel Fuel & Maintenance' }
-  ];
-
-  const sampleFixedAssets = [
-    { id: 'fa-1', assetCode: 'FA-1001', name: 'Automatic Wire Bending & Pin Forming Machine (HP-2024)', category: 'Production Machinery', purchaseDate: '2025-01-10', purchaseCost: 1850000, usefulLifeYears: 8, salvageValue: 200000, depreciationMethod: 'Straight Line (SLM)', location: 'Factory Line 1', status: 'Active' },
-    { id: 'fa-2', assetCode: 'FA-1002', name: 'High-Temperature Enamel Baking & Curing Conveyor Oven', category: 'Production Machinery', purchaseDate: '2025-03-15', purchaseCost: 950000, usefulLifeYears: 10, salvageValue: 100000, depreciationMethod: 'Straight Line (SLM)', location: 'Baking Cell', status: 'Active' },
-    { id: 'fa-3', assetCode: 'FA-1003', name: 'Card Mounting & Shrink Packaging Sealer', category: 'Packaging Equipment', purchaseDate: '2025-05-20', purchaseCost: 580000, usefulLifeYears: 6, salvageValue: 50000, depreciationMethod: 'Straight Line (SLM)', location: 'Packaging Bay', status: 'Active' }
-  ];
-
-  const sampleJournalEntries = [
-    { id: 'je-1', date: '2026-01-01', reference: 'GEN-001', description: 'Initial Manufacturing Capital Contribution', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
-    { id: 'je-2', date: '2026-06-01', reference: 'GEN-002', description: 'Lanka Fancy Center INV-1001 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-01').toISOString() },
-    { id: 'je-3', date: '2026-06-10', reference: 'GEN-003', description: 'Queens Bridal Salon INV-1002 Payment Received', createdBy: 'System', timestamp: new Date('2026-06-10').toISOString() },
-    { id: 'je-4', date: '2026-07-01', reference: 'GEN-004', description: 'Sunil Cosmetics Invoice INV-1003 Billed (Debtor)', createdBy: 'System', timestamp: new Date('2026-07-01').toISOString() },
-    { id: 'je-5', date: '2026-07-05', reference: 'GEN-005', description: 'Factory Power & Machine Operating Expense', createdBy: 'System', timestamp: new Date('2026-07-05').toISOString() },
-    { id: 'je-6', date: '2026-07-10', reference: 'GEN-006', description: 'Machine Tooling & Maintenance Expense', createdBy: 'System', timestamp: new Date('2026-07-10').toISOString() }
-  ];
-
-  const sampleJournalLines = [
-    { id: 'jl-1', journalEntryId: 'je-1', accountId: '1020', debit: 5000000, credit: 0 },
-    { id: 'jl-2', journalEntryId: 'je-1', accountId: '3010', debit: 0, credit: 5000000 },
-    { id: 'jl-3', journalEntryId: 'je-2', accountId: '1020', debit: 450000, credit: 0 },
-    { id: 'jl-4', journalEntryId: 'je-2', accountId: '4010', debit: 0, credit: 450000 },
-    { id: 'jl-5', journalEntryId: 'je-3', accountId: '1020', debit: 145000, credit: 0 },
-    { id: 'jl-6', journalEntryId: 'je-3', accountId: '4010', debit: 0, credit: 145000 },
-    { id: 'jl-7', journalEntryId: 'je-4', accountId: '1100', debit: 280000, credit: 0 },
-    { id: 'jl-8', journalEntryId: 'je-4', accountId: '4010', debit: 0, credit: 280000 },
-    { id: 'jl-9', journalEntryId: 'je-5', accountId: '5050', debit: 55000, credit: 0 },
-    { id: 'jl-10', journalEntryId: 'je-5', accountId: '1020', debit: 0, credit: 55000 },
-    { id: 'jl-11', journalEntryId: 'je-6', accountId: '5060', debit: 32000, credit: 0 },
-    { id: 'jl-12', journalEntryId: 'je-6', accountId: '1020', debit: 0, credit: 32000 }
-  ];
-
   // ===================================================================
-  // MULTI-BUSINESS ERP ARCHITECTURE: MAIN BUSINESS vs HAIR PINS
+  // ENTERPRISE ERP ARCHITECTURE: SEYNEX ENTERPRISES
   // ===================================================================
   const DEFAULT_BUSINESSES = [
     {
@@ -502,11 +340,6 @@ export default function StoreContextProvider({ children }) {
       ],
       reminderSent: false
     }
-  ];
-
-  const sampleHairPinsPayments = [
-    { id: 'pay-hp-1', documentId: 'inv-201', invoiceNumber: 'INV-1001', amount: 450000, date: '2026-06-01', method: 'Cash', customerName: 'Lanka Fancy Center' },
-    { id: 'pay-hp-2', documentId: 'inv-202', invoiceNumber: 'INV-1002', amount: 145000, date: '2026-06-10', method: 'Bank Transfer', customerName: 'Queens Bridal & Beauty Salon' }
   ];
 
   const sampleMainPayments = [
@@ -715,57 +548,6 @@ export default function StoreContextProvider({ children }) {
     smsAlertOnAcceptance: true
   };
 
-  const DEFAULT_HAIRPINS_SMS_CONFIG = {
-    apiKey: '2179165276941c4e5eb994053957585',
-    email: 'royalhairpins@gmail.com',
-    senderID: 'SEYNEX',
-    companyName: 'Royal Hair Pin Industries',
-    dashboardName: 'Royal Hair Pins & Accessories',
-    receiptLogo: '',
-    companyLogo: '',
-    companyAddress: 'Industrial Zone, Kelaniya, Sri Lanka',
-    companyPhone: '+94 77 123 4567',
-    adminPhone: '+94 77 123 4567',
-    companyEmail: 'royalhairpins@gmail.com',
-    bankDetails: {
-      accountName: 'ROYAL HAIR PIN INDUSTRIES',
-      bank: 'Sampath Bank',
-      branch: 'Kelaniya Branch',
-      accountNumber: '1018 5281 9432'
-    },
-    quoteTemplate: 'Hi {name},\nHere is your hair pin quotation from Royal Hair Pins.\nTotal Amount: LKR {amount}\nView Quote: {link}',
-    thankYouTemplate: 'Hi {name},\nThank you for choosing Royal Hair Pins! Payment received for Invoice {invoiceNumber}.\nYour account is up to date.',
-    renewalTemplate: 'Hi {name},\nNotice: Scheduled wholesale supply renewal for {gym} (LKR {amount}) is due on {date}. View invoice: {link} . Contact {companyName} to confirm.',
-    invoiceReminderTemplate: 'Hi {name},\nReminder from Royal Hair Pins: Invoice {invoiceNumber} balance LKR {amount} is due. Kindly arrange settlement.',
-    birthdayTemplate: 'Happy Birthday {name}! Wishing you prosperity and success from Royal Hair Pins!',
-    cashReceivedTemplate: 'Hi {name},\nCash Received! Royal Hair Pins received LKR {amount} for {documentType} #{number}. Thank you!',
-    autoRenewalEnabled: true,
-    autoRenewalDays: '15,7,3,1,0',
-    autoInvoiceEnabled: false,
-    autoInvoiceDays: 3,
-    birthdayWishEnabled: true,
-    autoTaskReminderEnabled: true,
-    reminderHoursBefore: 24,
-    reminderClockTime: '09:00',
-    smsHeader: '',
-    smsFooter: '',
-    smsEncoding: 'GSM',
-    deliveryReports: true,
-    pdfColor: '#0d9488',
-    pdfFooterText: 'Thank you for your business. Quality Hair Pins & Fasteners.',
-    pdfNotes: 'Computer-generated invoice by Royal Hair Pin Industries Management System.',
-    sessionTimeout: 5,
-    balance: 0,
-    invoicePrefix: 'INV-',
-    nextInvoiceNumber: 1005,
-    quotePrefix: 'QT-',
-    nextQuoteNumber: 1003,
-    debtorNudgeTemplate: 'Hi {name},\nFriendly reminder from Royal Hair Pins: Outstanding balance of LKR {remainingBalance} for Invoice {invoiceNumber}. Please settle soon.',
-    smsAlertOnProposal: true,
-    smsAlertOnRejection: true,
-    smsAlertOnAcceptance: true
-  };
-
   const DEFAULT_SMS_CONFIG = DEFAULT_MAIN_SMS_CONFIG;
 
   const [businesses, setBusinesses] = useState(() => {
@@ -773,8 +555,8 @@ export default function StoreContextProvider({ children }) {
       const saved = localStorage.getItem('app_businesses');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const filtered = parsed.filter(b => b.id !== 'biz_hairpins');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const filtered = parsed.filter(b => b.id === 'biz_main');
           if (filtered.length > 0) return filtered;
         }
       }
@@ -827,17 +609,10 @@ export default function StoreContextProvider({ children }) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(i => {
-            if (activeId === 'biz_hairpins') {
-              if (String(i.id).startsWith('minv-')) return false;
-              const n = (i.name || '').toLowerCase();
-              if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
-              return true;
-            } else {
-              if (String(i.id).startsWith('inv-10')) return false;
-              const n = (i.name || '').toLowerCase();
-              if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
-              return true;
-            }
+            if (String(i.id).startsWith('inv-10')) return false;
+            const n = (i.name || '').toLowerCase();
+            if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
+            return true;
           });
           return sanitized;
         }
@@ -855,19 +630,11 @@ export default function StoreContextProvider({ children }) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(inv => {
-            if (activeId === 'biz_hairpins') {
-              if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
-              if (String(inv.id).startsWith('minv-')) return false;
-              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
-              if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
-              return true;
-            } else {
-              if (inv.businessId && inv.businessId !== 'biz_main') return false;
-              if (String(inv.id).startsWith('inv-20')) return false;
-              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
-              if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
-              return true;
-            }
+            if (inv.businessId && inv.businessId !== 'biz_main') return false;
+            if (String(inv.id).startsWith('inv-20')) return false;
+            const p = (inv.prospectName || inv.customerName || '').toLowerCase();
+            if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
+            return true;
           });
           return sanitized.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
@@ -893,13 +660,8 @@ export default function StoreContextProvider({ children }) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(q => {
-            if (activeId === 'biz_hairpins') {
-              if (String(q.id).startsWith('mq-')) return false;
-              return true;
-            } else {
-              if (String(q.id).startsWith('q-10')) return false;
-              return true;
-            }
+            if (String(q.id).startsWith('q-10')) return false;
+            return true;
           });
           return sanitized.map(q => {
             if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
@@ -922,13 +684,8 @@ export default function StoreContextProvider({ children }) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(l => {
-            if (activeId === 'biz_hairpins') {
-              if (String(l.id).startsWith('mlead-')) return false;
-              return true;
-            } else {
-              if (String(l.id).startsWith('lead-')) return false;
-              return true;
-            }
+            if (String(l.id).startsWith('lead-')) return false;
+            return true;
           });
           return sanitized;
         }
@@ -948,19 +705,11 @@ export default function StoreContextProvider({ children }) {
   const sanitizeExpensesByBiz = (list, bizId) => {
     if (!Array.isArray(list)) return [];
     return list.filter(e => {
-      if (bizId === 'biz_hairpins') {
-        if (e.businessId && e.businessId !== 'biz_hairpins') return false;
-        if (String(e.id).startsWith('mexp-')) return false;
-        const desc = (e.description || '').toLowerCase();
-        if (desc.includes('aws cloud') || desc.includes('colombo 03 office') || desc.includes('devops')) return false;
-        return true;
-      } else {
-        if (e.businessId && e.businessId !== 'biz_main') return false;
-        if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
-        const desc = (e.description || '').toLowerCase();
-        if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
-        return true;
-      }
+      if (e.businessId && e.businessId !== 'biz_main') return false;
+      if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
+      const desc = (e.description || '').toLowerCase();
+      if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
+      return true;
     });
   };
 
@@ -1018,98 +767,6 @@ export default function StoreContextProvider({ children }) {
     return [];
   });
 
-  // --- PROCUREMENT & PURCHASE ORDER (PO) ERP STATE ---
-  const sampleSuppliers = [
-    { 
-      id: 'sup-1', 
-      name: 'Lanka Steel & Wire Mills', 
-      contactPerson: 'Kanishka Silva', 
-      phone: '0112345678', 
-      email: 'sales@lankawire.lk', 
-      category: 'Spring Steel Wire & Metals', 
-      address: 'No 45, Industrial Zone, Kelaniya', 
-      status: 'Active',
-      isVatRegistered: true,
-      vatNumber: 'VAT-102938475-7000',
-      vatRate: 18
-    },
-    { 
-      id: 'sup-2', 
-      name: 'Apex Industrial Paints & Lacquers', 
-      contactPerson: 'Nalin Perera', 
-      phone: '0117654321', 
-      email: 'orders@apexpaints.lk', 
-      category: 'Enamel & Protective Coatings', 
-      address: 'No 112, Kandy Road, Ekala', 
-      status: 'Active',
-      isVatRegistered: false,
-      vatNumber: '',
-      vatRate: 18
-    },
-    { 
-      id: 'sup-3', 
-      name: 'ColorPack Printing & Packaging', 
-      contactPerson: 'Devinda de Silva', 
-      phone: '0728408880', 
-      email: 'packaging@colorpack.lk', 
-      category: 'Cards, Pouches & Master Cartons', 
-      address: 'No 680/1B, Colombo 10', 
-      status: 'Active',
-      isVatRegistered: true,
-      vatNumber: 'VAT-884920194-7000',
-      vatRate: 18
-    }
-  ];
-
-  const samplePurchaseOrders = [
-    {
-      id: 'po-1',
-      poNumber: 'PO-1001',
-      supplierId: 'sup-1',
-      supplierName: 'Lanka Steel & Wire Mills',
-      supplierPhone: '0112345678',
-      supplierEmail: 'sales@lankawire.lk',
-      supplierAddress: 'No 45, Industrial Zone, Kelaniya',
-      date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
-      expectedDelivery: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-      status: 'Ordered',
-      subtotal: 170000,
-      applyVat: true,
-      vatRate: 18,
-      vatAmount: 30600,
-      totalAmount: 200600,
-      isVatRegistered: true,
-      supplierVatNumber: 'VAT-102938475-7000',
-      shareKey: 'po_share_1001',
-      items: [
-        { name: 'Spring Steel Wire 1.0mm (25kg Spool)', quantity: 20, unitCost: 8500, totalCost: 170000 }
-      ]
-    },
-    {
-      id: 'po-2',
-      poNumber: 'PO-1002',
-      supplierId: 'sup-3',
-      supplierName: 'ColorPack Printing & Packaging',
-      supplierPhone: '0728408880',
-      supplierEmail: 'packaging@colorpack.lk',
-      supplierAddress: 'No 680/1B, Colombo 10',
-      date: new Date(Date.now() - 12 * 86400000).toISOString().split('T')[0],
-      expectedDelivery: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      status: 'Received',
-      subtotal: 84000,
-      applyVat: true,
-      vatRate: 18,
-      vatAmount: 15120,
-      totalAmount: 99120,
-      isVatRegistered: true,
-      supplierVatNumber: 'VAT-884920194-7000',
-      shareKey: 'po_share_1002',
-      items: [
-        { name: 'Printed Hair Pin Display Cards (Pack of 1,000)', quantity: 30, unitCost: 2800, totalCost: 84000 }
-      ]
-    }
-  ];
-
   const [suppliers, setSuppliers] = useState(() => {
     try {
       const activeId = localStorage.getItem('active_business_id') || 'biz_main';
@@ -1137,181 +794,6 @@ export default function StoreContextProvider({ children }) {
   });
 
   // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
-  const sampleBOMs = [
-    {
-      id: 'bom-1',
-      code: 'BOM-1001',
-      productSku: 'HP-BP-101',
-      name: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
-      productName: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
-      productCategory: 'Bobby Pins',
-      outputUnit: 'Packets',
-      batchYield: 100,
-      components: [
-        { name: 'Spring Steel Wire 1.0mm', materialName: 'Spring Steel Wire 1.0mm', materialSku: 'RM-WIRE-01', quantity: 12, unit: 'kg', unitCost: 340, totalCost: 4080 },
-        { name: 'Rust-Proof Black Baking Enamel', materialName: 'Rust-Proof Black Baking Enamel', materialSku: 'RM-ENML-02', quantity: 1, unit: 'L', unitCost: 1240, totalCost: 1240 },
-        { name: 'Protective Ball-End Dipping Plastic', materialName: 'Protective Ball-End Dipping Plastic', materialSku: 'RM-TIP-03', quantity: 0.5, unit: 'kg', unitCost: 900, totalCost: 450 },
-        { name: 'Printed Backing Cards', materialName: 'Printed Backing Cards', materialSku: 'PK-CARD-05', quantity: 100, unit: 'pcs', unitCost: 3.5, totalCost: 350 },
-        { name: 'Clear OPP Hanging Pouches', materialName: 'Clear OPP Hanging Pouches', materialSku: 'PK-BAG-06', quantity: 100, unit: 'pcs', unitCost: 2.2, totalCost: 220 }
-      ],
-      laborHours: 3.5,
-      laborRatePerHour: 850,
-      laborCost: 2975,
-      overheadCost: 1650,
-      machineOverhead: 1650,
-      materialCostPerUnit: 63.4,
-      totalCost: 10965,
-      totalCostPerUnit: 109.65,
-      suggestedPrice: 250,
-      suggestedRetailPrice: 250,
-      marginPercent: 56,
-      routing: ['High-Speed Automatic Wire Feeding & Bending', 'Heat Treatment & Spring Quenching', 'Electrostatically Applied Enamel & Oven Baking', 'Smooth Safety Ball-Tip Resin Dipping', 'Automated Card Mounting & OPP Bag Sealing', 'Final Batch Quality Inspection'],
-      notes: 'Master batch formulation producing 100 retail packets (120 pins per packet).'
-    },
-    {
-      id: 'bom-2',
-      code: 'BOM-1002',
-      productSku: 'HP-GW-102',
-      name: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
-      productName: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
-      productCategory: 'Wave Grips',
-      outputUnit: 'Cards',
-      batchYield: 50,
-      components: [
-        { name: 'Cold-Formed Spring Flat Wire', materialName: 'Cold-Formed Spring Flat Wire', materialSku: 'RM-FLAT-01', quantity: 5, unit: 'kg', unitCost: 450, totalCost: 2250 },
-        { name: 'Gold Metallic Lacquer & Luster Coating', materialName: 'Gold Metallic Lacquer & Luster Coating', materialSku: 'RM-GOLD-03', quantity: 0.4, unit: 'kg', unitCost: 4500, totalCost: 1800 },
-        { name: 'Gold-Tone Display Hanging Cards', materialName: 'Gold-Tone Display Hanging Cards', materialSku: 'PK-GCARD-02', quantity: 50, unit: 'pcs', unitCost: 5, totalCost: 250 },
-        { name: 'Polybag Packaging Sleeves', materialName: 'Polybag Packaging Sleeves', materialSku: 'PK-BAG-06', quantity: 50, unit: 'pcs', unitCost: 2, totalCost: 100 }
-      ],
-      laborHours: 2.5,
-      laborRatePerHour: 850,
-      laborCost: 2125,
-      overheadCost: 1200,
-      machineOverhead: 1200,
-      materialCostPerUnit: 88,
-      totalCost: 7725,
-      totalCostPerUnit: 154.5,
-      suggestedPrice: 320,
-      suggestedRetailPrice: 320,
-      marginPercent: 52,
-      routing: ['Precision Wave Die Pressing', 'Anti-Corrosion Polishing', 'Gold Dipping & Thermo-Cure', 'Card Attachment & Packaging'],
-      notes: 'Produces 50 display cards (24 pins per card / 2 Dozen).'
-    },
-    {
-      id: 'bom-3',
-      code: 'BOM-1003',
-      productSku: 'HP-SC-104',
-      name: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
-      productName: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
-      productCategory: 'Snap Clips',
-      outputUnit: 'Cards',
-      batchYield: 100,
-      components: [
-        { name: 'Spring Steel Strip Coil 0.8mm', materialName: 'Spring Steel Strip Coil 0.8mm', materialSku: 'RM-COIL-01', quantity: 7, unit: 'kg', unitCost: 480, totalCost: 3360 },
-        { name: 'Gloss Black Powder Coating', materialName: 'Gloss Black Powder Coating', materialSku: 'RM-ENML-02', quantity: 0.8, unit: 'kg', unitCost: 1100, totalCost: 880 },
-        { name: 'Center Click Spring Tongue Inserts', materialName: 'Center Click Spring Tongue Inserts', materialSku: 'RM-CLICK-03', quantity: 1200, unit: 'pcs', unitCost: 1.8, totalCost: 2160 },
-        { name: '1-Dozen Display Hanging Cards', materialName: '1-Dozen Display Hanging Cards', materialSku: 'PK-CARD-05', quantity: 100, unit: 'pcs', unitCost: 3.5, totalCost: 350 }
-      ],
-      laborHours: 4,
-      laborRatePerHour: 850,
-      laborCost: 3400,
-      overheadCost: 1800,
-      machineOverhead: 1800,
-      materialCostPerUnit: 67.5,
-      totalCost: 11950,
-      totalCostPerUnit: 119.5,
-      suggestedPrice: 380,
-      suggestedRetailPrice: 380,
-      marginPercent: 68,
-      routing: ['Progressive Stamping Press', 'Tumble Deburring & Edge Softening', 'Center Click Assembly', 'Electrostatic Black Coating', 'Card Insertion & QC'],
-      notes: 'Produces 100 retail dozen cards (12 clips per card = 1,200 clips).'
-    }
-  ];
-
-  const sampleProductionOrders = [
-    {
-      id: 'mo-1',
-      orderNumber: 'MO-2026-001',
-      bomId: 'bom-1',
-      productName: 'Classic Black Bobby Pins (Batch of 100 Packets = 12,000 pins)',
-      productSku: 'HP-BP-101',
-      quantity: 5,
-      quantityToProduce: 5,
-      status: 'In Progress',
-      priority: 'High',
-      startDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Automatic Forming Machine 1',
-      supervisor: 'Father (Master Craftsman)',
-      workstation: 'Automatic Forming Machine 1',
-      materialCost: 31700,
-      laborCost: 14875,
-      overheadCost: 8250,
-      totalCost: 54825,
-      totalBatchCost: 54825,
-      costPerUnit: 109.65,
-      unitCost: 109.65,
-      batchNumber: 'LOT-2026-09A',
-      components: sampleBOMs[0].components,
-      notes: 'Wholesale order for Lanka Fancy Center Pettah distributor.'
-    },
-    {
-      id: 'mo-2',
-      orderNumber: 'MO-2026-002',
-      bomId: 'bom-2',
-      productName: 'Golden Wave Hair Grips (Batch of 50 Cards = 100 Dozen)',
-      productSku: 'HP-GW-102',
-      quantity: 10,
-      quantityToProduce: 10,
-      status: 'Completed',
-      priority: 'Normal',
-      startDate: new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0],
-      dueDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      completedDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Wave Forming Line 2',
-      supervisor: 'Father (Master Craftsman)',
-      workstation: 'Wave Forming Line 2',
-      materialCost: 44000,
-      laborCost: 21250,
-      overheadCost: 12000,
-      totalCost: 77250,
-      totalBatchCost: 77250,
-      costPerUnit: 154.5,
-      unitCost: 154.5,
-      batchNumber: 'LOT-2026-08B',
-      components: sampleBOMs[1].components,
-      qcPassedQty: 10,
-      qcRejectedQty: 0,
-      qcInspector: 'Father (Master Craftsman)',
-      notes: 'Completed ahead of schedule, zero defects recorded during spring tension test.'
-    },
-    {
-      id: 'mo-3',
-      orderNumber: 'MO-2026-003',
-      bomId: 'bom-3',
-      productName: 'Classic Snap Hair Clips 5cm (Batch of 100 Cards = 100 Dozen)',
-      productSku: 'HP-SC-104',
-      quantity: 15,
-      quantityToProduce: 15,
-      status: 'Planned',
-      priority: 'Urgent',
-      startDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0],
-      assignedTo: 'Stamping Press 1',
-      supervisor: 'Father (Master Craftsman)',
-      workstation: 'Stamping Press 1',
-      materialCost: 101250,
-      laborCost: 51000,
-      overheadCost: 27000,
-      totalCost: 179250,
-      totalBatchCost: 179250,
-      costPerUnit: 119.5,
-      unitCost: 119.5,
-      batchNumber: 'LOT-2026-09C',
-      components: sampleBOMs[2].components,
-      notes: 'Planned batch replenishment for wholesale warehouse stock.'
-    }
-  ];
 
   const normalizeBOM = (b) => ({
     ...b,
@@ -2014,15 +1496,14 @@ export default function StoreContextProvider({ children }) {
 
   const [smsConfig, setSmsConfig] = useState(() => {
     try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_smsConfig`);
+      const bizSaved = localStorage.getItem('biz_data_biz_main_smsConfig') || localStorage.getItem('gym_sms_config');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (parsed && typeof parsed === 'object') {
-          return { ...(activeId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG), ...parsed };
+          return { ...DEFAULT_MAIN_SMS_CONFIG, ...parsed };
         }
       }
-      return activeId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
+      return DEFAULT_MAIN_SMS_CONFIG;
     } catch (e) {}
     return DEFAULT_MAIN_SMS_CONFIG;
   });
@@ -2199,92 +1680,6 @@ export default function StoreContextProvider({ children }) {
   // Load business dataset by ID
   const loadBusinessData = (businessId) => {
     const isErased = localStorage.getItem(`biz_data_${businessId}_erased`) === 'true';
-
-    if (businessId === 'biz_hairpins') {
-      const savedCust = localStorage.getItem('biz_data_biz_hairpins_customers');
-      const savedInv = localStorage.getItem('biz_data_biz_hairpins_inventory');
-      const savedLeads = localStorage.getItem('biz_data_biz_hairpins_leads');
-      const savedQuotes = localStorage.getItem('biz_data_biz_hairpins_quotes');
-      const savedInvoices = localStorage.getItem('biz_data_biz_hairpins_invoices');
-      const savedExpenses = localStorage.getItem('biz_data_biz_hairpins_expenses');
-      const savedPayments = localStorage.getItem('biz_data_biz_hairpins_payments');
-      const savedFA = localStorage.getItem('biz_data_biz_hairpins_fixedAssets');
-      const savedJE = localStorage.getItem('biz_data_biz_hairpins_journalEntries');
-      const savedJL = localStorage.getItem('biz_data_biz_hairpins_journalLines');
-      const savedSuppliers = localStorage.getItem('biz_data_biz_hairpins_suppliers');
-      const savedPO = localStorage.getItem('biz_data_biz_hairpins_purchaseOrders');
-      const savedBOM = localStorage.getItem('biz_data_biz_hairpins_boms');
-      const savedMO = localStorage.getItem('biz_data_biz_hairpins_productionOrders');
-      const savedConfig = localStorage.getItem('biz_data_biz_hairpins_smsConfig');
-
-      let loadedHairpinCustomers = [];
-      if (savedCust) {
-        try {
-          const parsed = JSON.parse(savedCust);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(c => {
-              if (c.businessId && c.businessId !== 'biz_hairpins') return false;
-              if (String(c.id).startsWith('mc-')) return false;
-              const n = (c.gymName || c.name || '').toLowerCase();
-              if (n.includes('apex global') || n.includes('metro commercial') || n.includes('horizon financial')) return false;
-              return true;
-            });
-            loadedHairpinCustomers = sanitized;
-          }
-        } catch (e) {}
-      }
-
-      let loadedHairpinInventory = [];
-      if (savedInv) {
-        try {
-          const parsed = JSON.parse(savedInv);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(i => {
-              if (String(i.id).startsWith('minv-')) return false;
-              const n = (i.name || '').toLowerCase();
-              if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
-              return true;
-            });
-            loadedHairpinInventory = sanitized;
-          }
-        } catch (e) {}
-      }
-
-      let loadedHairpinInvoices = [];
-      if (savedInvoices) {
-        try {
-          const parsed = JSON.parse(savedInvoices);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(inv => {
-              if (inv.businessId && inv.businessId !== 'biz_hairpins') return false;
-              if (String(inv.id).startsWith('minv-')) return false;
-              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
-              if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
-              return true;
-            });
-            loadedHairpinInvoices = sanitized;
-          }
-        } catch (e) {}
-      }
-
-      return {
-        customers: loadedHairpinCustomers,
-        inventory: loadedHairpinInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : [],
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
-        invoices: loadedHairpinInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_hairpins') : [],
-        payments: savedPayments ? JSON.parse(savedPayments) : [],
-        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
-        journalEntries: savedJE ? JSON.parse(savedJE) : [],
-        journalLines: savedJL ? JSON.parse(savedJL) : [],
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
-        smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_HAIRPINS_SMS_CONFIG
-      };
-    }
 
     if (businessId === 'biz_main') {
       const savedCust = localStorage.getItem('biz_data_biz_main_customers');
@@ -2870,11 +2265,6 @@ export default function StoreContextProvider({ children }) {
       localStorage.removeItem(`biz_data_${activeBusinessId}_erased`);
     } catch (e) {}
 
-    if (activeBusinessId === 'biz_hairpins') {
-      loadHairPinIndustryDefaults();
-      return;
-    }
-
     setCustomers(sampleMainCustomers);
     setInventory(sampleMainInventory);
     setLeads(sampleMainLeads);
@@ -2910,50 +2300,6 @@ export default function StoreContextProvider({ children }) {
     } catch (e) {}
 
     showNotification('Loaded Seynex Enterprises demo dataset successfully!', 'success');
-  };
-
-  const loadHairPinIndustryDefaults = () => {
-    try {
-      localStorage.removeItem('biz_data_biz_hairpins_erased');
-      localStorage.removeItem(`biz_data_${activeBusinessId}_erased`);
-    } catch (e) {}
-
-    setCustomers(sampleCustomers);
-    setInventory(sampleInventory);
-    setLeads(sampleLeads);
-    setQuotes(sampleQuotes);
-    setInvoices(sampleInvoices);
-    setExpenses(sampleExpenses);
-    setPayments(sampleHairPinsPayments);
-    setFixedAssets(sampleFixedAssets);
-    setJournalEntries(sampleJournalEntries);
-    setJournalLines(sampleJournalLines);
-    setSuppliers(sampleSuppliers);
-    setPurchaseOrders(samplePurchaseOrders);
-    setBoms(sampleBOMs.map(normalizeBOM));
-    setProductionOrders(sampleProductionOrders.map(normalizeProductionOrder));
-    setSmsConfig(DEFAULT_HAIRPINS_SMS_CONFIG);
-
-    try {
-      localStorage.setItem('biz_data_biz_hairpins_customers', JSON.stringify(sampleCustomers));
-      localStorage.setItem('biz_data_biz_hairpins_inventory', JSON.stringify(sampleInventory));
-      localStorage.setItem('biz_data_biz_hairpins_leads', JSON.stringify(sampleLeads));
-      localStorage.setItem('biz_data_biz_hairpins_quotes', JSON.stringify(sampleQuotes));
-      localStorage.setItem('biz_data_biz_hairpins_invoices', JSON.stringify(sampleInvoices));
-      localStorage.setItem('biz_data_biz_hairpins_expenses', JSON.stringify(sampleExpenses));
-      localStorage.setItem('biz_data_biz_hairpins_payments', JSON.stringify(sampleHairPinsPayments));
-      localStorage.setItem('biz_data_biz_hairpins_fixedAssets', JSON.stringify(sampleFixedAssets));
-      localStorage.setItem('biz_data_biz_hairpins_journalEntries', JSON.stringify(sampleJournalEntries));
-      localStorage.setItem('biz_data_biz_hairpins_journalLines', JSON.stringify(sampleJournalLines));
-      localStorage.setItem('biz_data_biz_hairpins_suppliers', JSON.stringify(sampleSuppliers));
-      localStorage.setItem('biz_data_biz_hairpins_purchaseOrders', JSON.stringify(samplePurchaseOrders));
-      localStorage.setItem('biz_data_biz_hairpins_boms', JSON.stringify(sampleBOMs));
-      localStorage.setItem('biz_data_biz_hairpins_productionOrders', JSON.stringify(sampleProductionOrders));
-      localStorage.setItem('biz_data_biz_hairpins_smsConfig', JSON.stringify(DEFAULT_HAIRPINS_SMS_CONFIG));
-    } catch (e) {}
-
-    setHasUnsavedChanges(true);
-    showNotification('🏭 Loaded Hair Pin Manufacturing & Wholesale Catalog successfully!', 'success');
   };
 
   const resetToSeynexDefaults = async () => {
@@ -3763,20 +3109,13 @@ export default function StoreContextProvider({ children }) {
 
       // 3. Customers
       if (Array.isArray(cData)) {
-        const isHp = activeBusinessId === 'biz_hairpins';
         const filteredCData = cData.filter(c => {
           if (c.business_id) return c.business_id === activeBusinessId;
           const cid = String(c.id || '');
           const gn = String(c.gym_name || c.name || '').toLowerCase();
-          if (isHp) {
-            if (cid.startsWith('mc-')) return false;
-            if (gn.includes('apex global') || gn.includes('metro commercial') || gn.includes('horizon financial')) return false;
-            return true;
-          } else {
-            if (cid.startsWith('c-10')) return false;
-            if (gn.includes('fancy center') || gn.includes('bridal') || gn.includes('cosmetics') || gn.includes('salon chamari') || gn.includes('fashion corner')) return false;
-            return true;
-          }
+          if (cid.startsWith('c-10')) return false;
+          if (gn.includes('fancy center') || gn.includes('bridal') || gn.includes('cosmetics') || gn.includes('salon chamari') || gn.includes('fashion corner')) return false;
+          return true;
         });
 
         if (filteredCData.length > 0) {
@@ -3813,20 +3152,13 @@ export default function StoreContextProvider({ children }) {
 
       // 4. Inventory
       if (Array.isArray(invData)) {
-        const isHp = activeBusinessId === 'biz_hairpins';
         const filteredInvData = invData.filter(i => {
           if (i.business_id) return i.business_id === activeBusinessId;
           const iid = String(i.id || '');
           const n = String(i.name || '').toLowerCase();
-          if (isHp) {
-            if (iid.startsWith('minv-')) return false;
-            if (n.includes('cloud erp') || n.includes('sla & support') || n.includes('security gateway') || n.includes('backup storage')) return false;
-            return true;
-          } else {
-            if (iid.startsWith('inv-10')) return false;
-            if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
-            return true;
-          }
+          if (iid.startsWith('inv-10')) return false;
+          if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
+          return true;
         });
 
         if (filteredInvData.length > 0) {
@@ -3912,20 +3244,13 @@ export default function StoreContextProvider({ children }) {
           localInvoices = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_invoices`) || localStorage.getItem('gym_invoices') || '[]');
         } catch (e) {}
 
-        const isHp = activeBusinessId === 'biz_hairpins';
         const filteredIData = iData.filter(inv => {
           if (inv.business_id) return inv.business_id === activeBusinessId;
           const iid = String(inv.id || '');
           const p = String(inv.prospect_name || '').toLowerCase();
-          if (isHp) {
-            if (iid.startsWith('minv-')) return false;
-            if (p.includes('apex global') || p.includes('metro commercial') || p.includes('horizon financial')) return false;
-            return true;
-          } else {
-            if (iid.startsWith('inv-20')) return false;
-            if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
-            return true;
-          }
+          if (iid.startsWith('inv-20')) return false;
+          if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
+          return true;
         });
 
         const loadedInvoices = filteredIData.map(inv => {
@@ -4503,16 +3828,12 @@ export default function StoreContextProvider({ children }) {
       autoSaveTimerRef.current = null;
     }
 
-    const defaultConfig = activeBusinessId === 'biz_hairpins' ? DEFAULT_HAIRPINS_SMS_CONFIG : DEFAULT_MAIN_SMS_CONFIG;
+    const defaultConfig = DEFAULT_MAIN_SMS_CONFIG;
 
     // 1. IMMEDIATELY WIPE ALL LOCAL STORAGE & MARK ERASED
     try {
       localStorage.setItem(`biz_data_${activeBusinessId}_erased`, 'true');
-      if (activeBusinessId === 'biz_main') {
-        localStorage.setItem('biz_data_biz_main_erased', 'true');
-      } else if (activeBusinessId === 'biz_hairpins') {
-        localStorage.setItem('biz_data_biz_hairpins_erased', 'true');
-      }
+      localStorage.setItem('biz_data_biz_main_erased', 'true');
 
       const dataKeys = [
         'customers', 'inventory', 'quotes', 'invoices',
@@ -4829,7 +4150,7 @@ export default function StoreContextProvider({ children }) {
     }));
   };
   
-  // Helper to deduct stock quantities from inventory upon sales (both Hardware & Hair Pin manufactured goods)
+  // Helper to deduct stock quantities from inventory upon sales
   const deductStockForInvoice = (items = []) => {
     if (!Array.isArray(items) || items.length === 0) return;
     setInventory(prevInventory => {
@@ -7174,7 +6495,7 @@ export default function StoreContextProvider({ children }) {
     msg = templateWithBranding
       .replace(/{name}/g, cName)
       .replace(/{gym}/g, cGym)
-      .replace(/{companyName}/g, smsConfig.companyName || 'Royal Hair Pin Industries')
+      .replace(/{companyName}/g, smsConfig.companyName || 'Seynex Enterprises')
       .replace(/{amount}/g, (documentData?.amount || customer?.annualFee || 0).toLocaleString())
       .replace(/{remainingBalance}/g, (documentData?.remainingBalance != null ? documentData.remainingBalance : (documentData?.amount || customer?.annualFee || 0)).toLocaleString())
       .replace(/{date}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : new Date().toLocaleDateString())
@@ -7259,7 +6580,7 @@ export default function StoreContextProvider({ children }) {
       notification, showNotification,
       systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
       quickSaleOpen, setQuickSaleOpen,
-      resetToSeynexDefaults, seedDummyData, loadHairPinIndustryDefaults,
+      resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
       boms, addBOM, updateBOM, deleteBOM,

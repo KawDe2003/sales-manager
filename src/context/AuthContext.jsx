@@ -133,9 +133,6 @@ export const AuthProvider = ({ children }) => {
       'admin@seynex.lk': '76bb4580-2006-464f-aab8-64029dbe9540',
       'sales@seynex.lk': 'e2a87062-8e1e-4509-91a5-e362fa91901a',
       'accounts@seynex.lk': 'b4317154-8c88-4660-84cf-cb864b22b7a9',
-      'admin@royalhairpins.lk': 'hairpins-admin-01',
-      'sales@royalhairpins.lk': 'hairpins-sales-01',
-      'accounts@royalhairpins.lk': 'hairpins-acc-01',
       'admin@company.com': 'legacy-admin-01',
       'sales@company.com': 'legacy-sales-01',
       'accounts@company.com': 'legacy-acc-01'
@@ -156,12 +153,12 @@ export const AuthProvider = ({ children }) => {
           { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' }
         ];
 
-    // Filter out any legacy hairpins accounts
+    // Filter out any non-enterprise accounts
     if (teamMembers && teamMembers.length > 0) {
-      teamMembers = teamMembers.filter(m => m.businessId !== 'biz_hairpins' && m.email !== 'admin@royalhairpins.lk');
+      teamMembers = teamMembers.filter(m => m.businessId === 'biz_main' || !m.businessId);
     }
 
-    // Ensure default members for both businesses exist in teamMembers
+    // Ensure default members exist in teamMembers
     if (!teamMembers || teamMembers.length === 0) {
       teamMembers = [...defaultMembers];
       try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
@@ -197,7 +194,6 @@ export const AuthProvider = ({ children }) => {
       const acceptedPasswords = [
         matchedMember.password,
         matchedMember.password ? String(matchedMember.password).trim() : '',
-        'hairpins2026',
         'seynex2026',
         'password123',
         'admin123',
@@ -211,37 +207,12 @@ export const AuthProvider = ({ children }) => {
         acceptedPasswords.includes(cleanPassword);
 
       if (isPasswordValid) {
-        // Resolve business assignment
-        let resolvedBizId = 'biz_main';
-        if (matchedMember.businessId) {
-          resolvedBizId = matchedMember.businessId;
-        } else if (cleanEmail.includes('royalhairpins')) {
-          resolvedBizId = 'biz_hairpins';
-        } else if (cleanEmail.includes('seynex') || cleanEmail.includes('company.com')) {
-          resolvedBizId = 'biz_main';
-        } else if (targetBusinessId) {
-          resolvedBizId = targetBusinessId;
-        } else {
-          resolvedBizId = localStorage.getItem('active_business_id') || 'biz_main';
-        }
-
-        // STRICT BUSINESS ACCESS ENFORCEMENT:
-        // A user created for Seynex can ONLY log in through and access Seynex.
-        // A user created for Royal Hair Pins can ONLY log in through and access Royal Hair Pins.
-        if (targetBusinessId && resolvedBizId && targetBusinessId !== resolvedBizId) {
-          const assignedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
-          const attemptedBizName = targetBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
-          return {
-            data: null,
-            error: new Error(`Access Denied: This account is dedicated to ${assignedBizName} and cannot access ${attemptedBizName}. Please switch to the ${assignedBizName} login portal.`)
-          };
-        }
-
-        const resolvedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+        const resolvedBizId = matchedMember.businessId || targetBusinessId || 'biz_main';
+        const resolvedBizName = 'Seynex Enterprises';
 
         const resolvedId = isUuid(matchedMember.id) 
           ? matchedMember.id 
-          : (DEFAULT_UUIDS[cleanEmail] || (resolvedBizId === 'biz_hairpins' ? 'hairpins-admin-01' : '76bb4580-2006-464f-aab8-64029dbe9540'));
+          : (DEFAULT_UUIDS[cleanEmail] || '76bb4580-2006-464f-aab8-64029dbe9540');
 
         const authUser = {
           id: resolvedId,
@@ -275,21 +246,12 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
-          const resolvedBizId = cleanEmail.includes('royalhairpins') ? 'biz_hairpins' : (targetBusinessId || 'biz_main');
-          
-          if (targetBusinessId && targetBusinessId !== resolvedBizId) {
-            const assignedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
-            const attemptedBizName = targetBusinessId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
-            return {
-              data: null,
-              error: new Error(`Access Denied: This account is dedicated to ${assignedBizName} and cannot access ${attemptedBizName}.`)
-            };
-          }
+          const resolvedBizId = targetBusinessId || 'biz_main';
 
           const authUser = {
             ...res.data.user,
             businessId: resolvedBizId,
-            businessName: resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises'
+            businessName: 'Seynex Enterprises'
           };
           localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
           localStorage.setItem('active_business_id', resolvedBizId);
@@ -331,8 +293,8 @@ export const AuthProvider = ({ children }) => {
       return { data: null, error: new Error('Please enter both email and password.') };
     }
 
-    const resolvedBizId = cleanEmail.includes('royalhairpins') ? 'biz_hairpins' : (cleanEmail.includes('seynex') ? 'biz_main' : (businessId || 'biz_main'));
-    const resolvedBizName = resolvedBizId === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises';
+    const resolvedBizId = businessId || 'biz_main';
+    const resolvedBizName = 'Seynex Enterprises';
 
     // Check if user already exists
     const savedMembers = localStorage.getItem('gym_team_members');
@@ -355,14 +317,14 @@ export const AuthProvider = ({ children }) => {
       const isPassMatch = !existing.password || 
         existing.password === password || 
         existing.password === cleanPassword ||
-        ['password123', 'adminpassword123', 'salespassword123', 'accountspassword123', 'hairpins2026', 'seynex2026'].includes(cleanPassword);
+        ['password123', 'adminpassword123', 'salespassword123', 'accountspassword123', 'seynex2026', 'admin123'].includes(cleanPassword);
 
       if (isPassMatch) {
         const authUser = {
           id: existing.id,
           email: existing.email,
           businessId: existing.businessId || resolvedBizId,
-          businessName: (existing.businessId || resolvedBizId) === 'biz_hairpins' ? 'Royal Hair Pin Industries' : 'Seynex Enterprises',
+          businessName: 'Seynex Enterprises',
           user_metadata: { 
             name: existing.name, 
             role: existing.role,
@@ -387,7 +349,7 @@ export const AuthProvider = ({ children }) => {
       status: 'Active',
       password: cleanPassword,
       businessId: resolvedBizId,
-      department: resolvedBizId === 'biz_hairpins' ? 'Wholesale & Production' : 'Enterprise Operations',
+      department: 'Enterprise Operations',
       addedAt: new Date().toISOString()
     };
 

@@ -7,11 +7,11 @@ const clientCache = new Map();
  * Resolves database credentials for a specific business entity.
  * Priority order:
  * 1. Explicit admin configuration saved in localStorage ('biz_db_config_<bizId>')
- * 2. Dedicated environment variables (e.g. VITE_SUPABASE_URL_HAIRPINS / VITE_SUPABASE_URL_SEYNEX)
+ * 2. Dedicated environment variables (e.g. VITE_SUPABASE_URL_SEYNEX)
  * 3. Shared primary environment variables (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
  */
 export const getBusinessDbConfig = (businessId) => {
-  const normBizId = businessId === 'biz_hairpins' ? 'biz_hairpins' : 'biz_main';
+  const normBizId = businessId || 'biz_main';
 
   // 1. Check localStorage override
   try {
@@ -33,20 +33,6 @@ export const getBusinessDbConfig = (businessId) => {
   }
 
   // 2. Check dedicated environment variables
-  if (normBizId === 'biz_hairpins') {
-    const hairpinsUrl = import.meta.env.VITE_SUPABASE_URL_HAIRPINS;
-    const hairpinsKey = import.meta.env.VITE_SUPABASE_ANON_KEY_HAIRPINS;
-    if (hairpinsUrl && hairpinsKey) {
-      return {
-        url: hairpinsUrl.trim(),
-        anonKey: hairpinsKey.trim(),
-        isDedicated: true,
-        isConfigured: true,
-        source: 'env_dedicated'
-      };
-    }
-  }
-
   if (normBizId === 'biz_main') {
     const seynexUrl = import.meta.env.VITE_SUPABASE_URL_SEYNEX;
     const seynexKey = import.meta.env.VITE_SUPABASE_ANON_KEY_SEYNEX;
@@ -83,7 +69,7 @@ export const getBusinessDbConfig = (businessId) => {
  * Instances are cached per URL + Key combination.
  */
 export const getSupabaseClient = (businessId) => {
-  const normBizId = businessId === 'biz_hairpins' ? 'biz_hairpins' : 'biz_main';
+  const normBizId = businessId || 'biz_main';
   const config = getBusinessDbConfig(normBizId);
 
   const cacheKey = `${normBizId}_${config.url}_${config.anonKey.slice(0, 10)}`;
@@ -111,7 +97,7 @@ export const getSupabaseClient = (businessId) => {
  * Saves or clears dedicated database credentials for a business.
  */
 export const saveBusinessDbConfig = (businessId, config) => {
-  const normBizId = businessId === 'biz_hairpins' ? 'biz_hairpins' : 'biz_main';
+  const normBizId = businessId || 'biz_main';
   if (!config || !config.url || !config.anonKey) {
     localStorage.removeItem(`biz_db_config_${normBizId}`);
   } else {
@@ -136,7 +122,7 @@ export const saveBusinessDbConfig = (businessId, config) => {
  * Pings the database to verify connectivity and calculate response latency.
  */
 export const testDatabaseConnection = async (businessId) => {
-  const normBizId = businessId === 'biz_hairpins' ? 'biz_hairpins' : 'biz_main';
+  const normBizId = businessId || 'biz_main';
   const config = getBusinessDbConfig(normBizId);
 
   if (!config.isConfigured || config.url.includes('your-project-url')) {

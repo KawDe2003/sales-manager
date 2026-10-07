@@ -44,7 +44,7 @@ export default function BusinessSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const filteredBusinesses = businesses.filter(b => b.id !== 'biz_hairpins');
+  const filteredBusinesses = businesses;
   const currentBiz = activeBusiness || filteredBusinesses.find(b => b.id === activeBusinessId) || filteredBusinesses[0] || {
     id: 'biz_main',
     name: 'Seynex Enterprises',
@@ -52,8 +52,6 @@ export default function BusinessSwitcher() {
     color: '#4f46e5',
     icon: 'Building2'
   };
-
-  const isHairPins = false;
 
   const handleSelectBusiness = (bizId) => {
     if (isRestricted && bizId !== user.businessId) {
@@ -122,14 +120,14 @@ export default function BusinessSwitcher() {
           width: '22px',
           height: '22px',
           borderRadius: '6px',
-          background: isHairPins ? 'rgba(13, 148, 136, 0.2)' : 'rgba(79, 70, 229, 0.2)',
-          color: isHairPins ? '#14b8a6' : '#818cf8',
+          background: 'rgba(79, 70, 229, 0.2)',
+          color: '#818cf8',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          {isHairPins ? <Sparkles size={13} /> : <Building2 size={13} />}
+          <Building2 size={13} />
         </div>
 
         {/* Business Name */}
@@ -143,11 +141,11 @@ export default function BusinessSwitcher() {
               fontWeight: 700,
               padding: '1px 5px',
               borderRadius: '4px',
-              background: isHairPins ? 'rgba(13, 148, 136, 0.15)' : 'rgba(79, 70, 229, 0.15)',
-              color: isHairPins ? '#2dd4bf' : '#a5b4fc',
-              border: `1px solid ${isHairPins ? 'rgba(13, 148, 136, 0.3)' : 'rgba(79, 70, 229, 0.3)'}`
+              background: 'rgba(79, 70, 229, 0.15)',
+              color: '#a5b4fc',
+              border: '1px solid rgba(79, 70, 229, 0.3)'
             }}>
-              {isHairPins ? 'Hair Pins' : 'Enterprise'}
+              Enterprise
             </span>
             {isRestricted && (
               <span title="Account restricted to this workspace only" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -212,7 +210,6 @@ export default function BusinessSwitcher() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 0' }}>
             {filteredBusinesses.map((biz) => {
               const isSelected = biz.id === activeBusinessId;
-              const isBizHairPins = false;
               const isLockedForUser = isRestricted && biz.id !== user.businessId;
 
               return (
@@ -248,21 +245,21 @@ export default function BusinessSwitcher() {
                       width: '28px',
                       height: '28px',
                       borderRadius: '8px',
-                      background: isBizHairPins ? 'rgba(13, 148, 136, 0.2)' : 'rgba(79, 70, 229, 0.2)',
-                      color: isBizHairPins ? '#14b8a6' : '#818cf8',
+                      background: 'rgba(79, 70, 229, 0.2)',
+                      color: '#818cf8',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0
                     }}>
-                      {isBizHairPins ? <Sparkles size={15} /> : <Building2 size={15} />}
+                      <Building2 size={15} />
                     </div>
                     <div>
                       <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                         {biz.name}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        {biz.category || (isBizHairPins ? 'Hair Pins & Accessories' : 'Enterprise / Tech')}
+                        {biz.category || 'Enterprise / Tech'}
                       </div>
                     </div>
                   </div>

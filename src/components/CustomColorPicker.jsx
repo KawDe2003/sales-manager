@@ -752,7 +752,7 @@ export default function CustomColorPicker({
                 color: value,
                 letterSpacing: '-0.01em'
               }}>
-                ROYAL HAIR PINS
+                SEYNEX ENTERPRISES
               </span>
               <span style={{
                 fontSize: '0.68rem',

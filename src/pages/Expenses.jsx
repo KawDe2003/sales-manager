@@ -18,8 +18,6 @@ const Expenses = () => {
   
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  
-  const isHairPins = activeBusinessId === 'biz_hairpins' || (activeBusiness?.name && activeBusiness.name.toLowerCase().includes('hair pin'));
 
   const initialForm = {
     category: 'Operational',
@@ -28,19 +26,6 @@ const Expenses = () => {
     date: new Date().toISOString().split('T')[0]
   };
   const [form, setForm] = useState(initialForm);
-
-  const hairPinCategories = [
-    'Operational',
-    'Staff',
-    'Administrative',
-    'Machinery & Tooling',
-    'Packaging & Consumables',
-    'Logistics & Van Fuel',
-    'Electricity & Power',
-    'Office Supplies',
-    'Marketing & Trade Stalls',
-    'Other'
-  ];
 
   const seynexCategories = [
     'Operational',
@@ -55,7 +40,7 @@ const Expenses = () => {
     'Other'
   ];
 
-  const baseCategories = isHairPins ? hairPinCategories : seynexCategories;
+  const baseCategories = seynexCategories;
 
   // Complete category list guaranteeing any category in form, stored data or ERP standard is selectable
   const categories = Array.from(new Set([
@@ -67,19 +52,11 @@ const Expenses = () => {
 
   // Strictly isolate expenses by business domain
   const visibleExpenses = expenses.filter(e => {
-    if (isHairPins) {
-      if (e.businessId && e.businessId !== 'biz_hairpins') return false;
-      if (String(e.id).startsWith('mexp-')) return false;
-      const desc = (e.description || '').toLowerCase();
-      if (desc.includes('aws cloud') || desc.includes('colombo 03 office') || desc.includes('devops')) return false;
-      return true;
-    } else {
-      if (e.businessId && e.businessId !== 'biz_main') return false;
-      if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
-      const desc = (e.description || '').toLowerCase();
-      if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
-      return true;
-    }
+    if (e.businessId && e.businessId !== 'biz_main') return false;
+    if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
+    const desc = (e.description || '').toLowerCase();
+    if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
+    return true;
   });
 
   const filteredExpenses = visibleExpenses.filter(e => {
@@ -147,17 +124,15 @@ const Expenses = () => {
               alignItems: 'center',
               gap: '5px'
             }}>
-              {isHairPins ? <Factory size={13} /> : <Building2 size={13} />}
-              {isHairPins ? 'Royal Hair Pins Factory ERP' : 'Seynex Enterprise Corp'}
+              <Building2 size={13} />
+              Seynex Enterprise Corp
             </span>
           </div>
           <h1 className="h1 mb-1">
-            {isHairPins ? 'Factory & Operating Expenses' : 'Operating Expenses & Petty Cash'}
+            Operating Expenses & Petty Cash
           </h1>
           <p className="text-secondary" style={{ fontSize: '0.9rem' }}>
-            {isHairPins 
-              ? 'Track factory 3-phase power, wire machinery tooling, van fuel, and piece-rate labor for accurate P&L.' 
-              : 'Track cloud infrastructure, telecom, payroll, and corporate compliance for executive P&L.'}
+            Track cloud infrastructure, telecom, payroll, and corporate compliance for executive P&L.
           </p>
         </div>
         <button 
@@ -335,7 +310,7 @@ const Expenses = () => {
                   className="form-input" 
                   value={form.description} 
                   onChange={e => setForm({...form, description: e.target.value})} 
-                  placeholder={isHairPins ? "e.g. Wholesale Delivery Van Diesel Fuel & Maintenance" : "e.g. AWS Cloud Hosting / Monthly Leased Line"} 
+                  placeholder="e.g. AWS Cloud Hosting / Monthly Leased Line" 
                 />
               </div>
               <div className="form-group mb-6">

@@ -92,7 +92,6 @@ const Dashboard = () => {
     updateDashboardConfig
   } = useContext(StoreContext) || {};
   const isDark = theme !== 'light';
-  const isHairPins = activeBusinessId === 'biz_hairpins';
 
   // --- DASHBOARD CUSTOMIZATION MODAL STATE ---
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
@@ -350,7 +349,7 @@ const Dashboard = () => {
               unitCost = unitPrice * ratio;
               costSource = 'inventory_matched';
             } else {
-              const defaultRatio = isHairPins ? 0.56 : 0.35;
+              const defaultRatio = 0.35;
               unitCost = unitPrice * defaultRatio;
               costSource = 'industry_standard';
             }
@@ -368,13 +367,13 @@ const Dashboard = () => {
         });
       } else {
         const invTotal = Number(inv.amount || inv.totalAmount) || 0;
-        const defaultRatio = isHairPins ? 0.56 : 0.35;
+        const defaultRatio = 0.35;
         totalCogs += Math.round(invTotal * defaultRatio);
       }
     });
 
     return { totalCogs, itemized };
-  }, [periodInvoices, inventory, isHairPins]);
+  }, [periodInvoices, inventory]);
 
   // Operating Expenses (OPEX) Calculation
   const opexBreakdown = useMemo(() => {
@@ -444,11 +443,11 @@ const Dashboard = () => {
             if (match && match.costPrice && match.price) {
               mCogs += itAmt * (Number(match.costPrice) / Number(match.price));
             } else {
-              mCogs += itAmt * (isHairPins ? 0.56 : 0.35);
+              mCogs += itAmt * 0.35;
             }
           });
         } else {
-          mCogs += invTotal * (isHairPins ? 0.56 : 0.35);
+          mCogs += invTotal * 0.35;
         }
       });
 
@@ -472,165 +471,15 @@ const Dashboard = () => {
       });
     }
     return list;
-  }, [invoices, expenses, inventory, isHairPins, now]);
-
-  // --- HAIR PINS WHOLESALE ORDER METRICS & FUNNEL ---
-  const hairpinOrdersThisMonth = useMemo(() => {
-    return invoices.filter(inv => {
-      const dStr = inv.date || inv.createdAt;
-      if (!dStr) return false;
-      const d = new Date(dStr);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-  }, [invoices, currentMonth, currentYear]);
-
-  const hairpinOrdersCount = invoicesThisMonth.length > 0 ? invoicesThisMonth.length : invoices.length;
-  
-  const hairpinDispatchedOrders = useMemo(() => {
-    return invoices.filter(inv => inv.status === 'Paid' || inv.status === 'Closed');
-  }, [invoices]);
-
-  const hairpinPendingOrders = useMemo(() => {
-    return invoices.filter(inv => inv.status === 'Sent' || inv.status === 'Pending' || inv.status === 'Partially Paid' || inv.status === 'Overdue');
-  }, [invoices]);
-
-  const hairpinFulfillmentRate = useMemo(() => {
-    if (invoices.length === 0) return 100;
-    return Math.round((hairpinDispatchedOrders.length / invoices.length) * 100);
-  }, [invoices, hairpinDispatchedOrders]);
-
-  const totalFinishedStockUnits = useMemo(() => {
-    return (inventory || [])
-      .filter(i => i.type !== 'Raw Material' && i.type !== 'Packaging')
-      .reduce((sum, item) => sum + (Number(item.stock) || 0), 0);
-  }, [inventory]);
-
-  const hairpinBillingAmount = totalInvoicedThisMonth > 0 ? totalInvoicedThisMonth : invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const hairpinCashCollected = totalCollectedThisMonth > 0 ? totalCollectedThisMonth : payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }, [invoices, expenses, inventory, now]);
 
   // --- CUSTOMIZABLE MONTHLY REVENUE TARGET METRICS ---
-  const currentMonthAchieved = isHairPins ? hairpinCashCollected : totalCollectedThisMonth;
+  const currentMonthAchieved = totalCollectedThisMonth;
   const monthlyTarget = Number(dashboardConfig?.monthlyTarget) || 1000000;
   const targetProgressPct = monthlyTarget > 0 ? Math.min(1000, Math.round((currentMonthAchieved / monthlyTarget) * 100)) : 0;
   const remainingToTarget = Math.max(0, monthlyTarget - currentMonthAchieved);
   const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const remainingDaysInMonth = Math.max(0, daysInCurrentMonth - now.getDate());
-
-  // Hairpin Wholesale Order Status Donut Chart
-  const hairpinOrderStatusDonut = useMemo(() => {
-    const counts = {
-      'Paid & Dispatched': invoices.filter(i => i.status === 'Paid').length,
-      'In-Transit / Delivered': invoices.filter(i => i.status === 'Sent' || i.status === 'Pending').length,
-      'Partially Settled': invoices.filter(i => i.status === 'Partially Paid').length,
-      'Credit Overdue': invoices.filter(i => i.status === 'Overdue').length,
-      'Draft / Packing': invoices.filter(i => i.status === 'Draft').length
-    };
-
-    const colors = {
-      'Paid & Dispatched': isDark ? '#10b981' : '#059669',
-      'In-Transit / Delivered': isDark ? '#06b6d4' : '#0284c7',
-      'Partially Settled': isDark ? '#f59e0b' : '#d97706',
-      'Credit Overdue': isDark ? '#ef4444' : '#dc2626',
-      'Draft / Packing': isDark ? '#94a3b8' : '#64748b'
-    };
-
-    return Object.entries(counts)
-      .filter(([_, val]) => val > 0)
-      .map(([name, value]) => ({
-        name,
-        value,
-        color: colors[name] || (isDark ? '#94a3b8' : '#64748b')
-      }));
-  }, [invoices, isDark]);
-
-  // Hair Pins Factory Wholesale Order-to-Cash Pipeline
-  const hairpinFulfillmentFunnel = useMemo(() => {
-    const totalOrderInvoices = invoices.length;
-    const grossWholesaleValue = invoices.reduce((s, i) => s + (Number(i.amount || i.totalAmount) || 0), 0);
-
-    const paidInvoices = invoices.filter(i => i.status === 'Paid');
-    const dispatchedInvoices = invoices.filter(i => ['Paid', 'Sent', 'Overdue'].includes(i.status));
-
-    const totalCollected = totalCollectedThisMonth > 0 
-      ? totalCollectedThisMonth 
-      : invoices.reduce((s, i) => {
-          const pTotal = (i.payments || []).reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
-          return s + (i.status === 'Paid' ? (Number(i.amount) || 0) : pTotal);
-        }, 0);
-
-    return [
-      {
-        id: 'orders_placed',
-        name: 'Wholesale Orders Placed',
-        step: '01',
-        count: totalOrderInvoices,
-        value: grossWholesaleValue,
-        icon: ShoppingCart,
-        color: isDark ? '#38bdf8' : '#0284c7',
-        gradient: isDark 
-          ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.02) 100%)',
-        convRate: totalOrderInvoices > 0 ? 100 : 0,
-        convLabel: 'Order Acceptance'
-      },
-      {
-        id: 'machine_queue',
-        name: 'Wire Bending & Forming',
-        step: '02',
-        count: (productionOrders || []).length,
-        value: grossWholesaleValue * 0.95,
-        icon: Factory,
-        color: isDark ? '#818cf8' : '#4f46e5',
-        gradient: isDark
-          ? 'linear-gradient(135deg, rgba(129, 140, 248, 0.22) 0%, rgba(99, 102, 241, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(79, 70, 229, 0.02) 100%)',
-        convRate: (productionOrders || []).length > 0 ? 95 : 0,
-        convLabel: 'Machine Yield'
-      },
-      {
-        id: 'curing_packing',
-        name: 'Enamel Curing & Card Mounted',
-        step: '03',
-        count: totalFinishedStockUnits,
-        value: grossWholesaleValue * 0.92,
-        icon: Package,
-        color: isDark ? '#f59e0b' : '#d97706',
-        gradient: isDark
-          ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.02) 100%)',
-        convRate: totalFinishedStockUnits > 0 ? 92 : 0,
-        convLabel: 'Packaging Yield'
-      },
-      {
-        id: 'dispatched_van',
-        name: 'Dispatched via Delivery Van',
-        step: '04',
-        count: dispatchedInvoices.length,
-        value: dispatchedInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0),
-        icon: Truck,
-        color: isDark ? '#10b981' : '#059669',
-        gradient: isDark
-          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.02) 100%)',
-        convRate: totalOrderInvoices > 0 ? Math.round((dispatchedInvoices.length / totalOrderInvoices) * 100) : 0,
-        convLabel: 'Dispatch Rate'
-      },
-      {
-        id: 'cash_realized',
-        name: 'Cash Collected & Settled',
-        step: '05',
-        count: paidInvoices.length,
-        value: totalCollected,
-        icon: Award,
-        color: isDark ? '#22d3ee' : '#0891b2',
-        gradient: isDark
-          ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
-        convRate: totalOrderInvoices > 0 ? Math.round((paidInvoices.length / totalOrderInvoices) * 100) : 0,
-        convLabel: 'Collection Ratio'
-      }
-    ];
-  }, [invoices, totalCollectedThisMonth, totalFinishedStockUnits, productionOrders, isDark]);
 
   // --- CHARTS & VISUALIZATIONS DATA ---
   const [financeChartMode, setFinanceChartMode] = useState('revenue_collections'); // 'revenue_collections' | 'cashflow_profit' | 'billing_trajectory'
@@ -876,13 +725,13 @@ const Dashboard = () => {
                 fontWeight: 800,
                 padding: '3px 10px',
                 borderRadius: '20px',
-                background: isHairPins ? 'rgba(236, 72, 153, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                color: isHairPins ? '#f472b6' : '#60a5fa',
-                border: isHairPins ? '1px solid rgba(236, 72, 153, 0.35)' : '1px solid rgba(59, 130, 246, 0.35)',
+                background: 'rgba(59, 130, 246, 0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
               }}>
-                {activeBusiness?.name || (isHairPins ? 'Royal Hair Pin Industries' : 'Seynex Enterprises')}
+                {activeBusiness?.name || 'Seynex Enterprises'}
               </span>
             </div>
             <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
@@ -890,7 +739,7 @@ const Dashboard = () => {
                 width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', 
                 boxShadow: '0 0 10px var(--success)'
               }}></span>
-              {isHairPins ? 'Hair Pins Manufacturing & Wholesale CRM Insights' : 'Real-Time Enterprise Financials & CRM Insights'}
+              Real-Time Enterprise Financials & CRM Insights
             </p>
           </div>
 
@@ -919,21 +768,19 @@ const Dashboard = () => {
                 padding: '8px 18px',
                 fontSize: '0.85rem',
                 fontWeight: 800,
-                background: isHairPins 
-                  ? 'linear-gradient(135deg, #0d9488 0%, #059669 100%)' 
-                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '7px',
-                boxShadow: isHairPins ? '0 4px 12px rgba(13, 148, 136, 0.35)' : '0 4px 12px rgba(59, 130, 246, 0.35)',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)',
                 cursor: 'pointer'
               }}
-              title={isHairPins ? "Quick Hair Pin Wholesale / Retail Sale" : "⚡ Quick Sales Billing / Instant Invoice"}
+              title="⚡ Quick Sales Billing / Instant Invoice"
             >
-              <Sparkles size={16} /> {isHairPins ? '⚡ Quick Bill (Hair Pins)' : '⚡ Quick Sale'}
+              <Sparkles size={16} /> ⚡ Quick Sale
             </button>
             <Link to="/invoices" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
               <CreditCard size={16} /> Invoices
@@ -1032,202 +879,106 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* KPI ROW 1: CUSTOMERS & PIPELINE / WHOLESALE ORDERS */}
+      {/* KPI ROW 1: CUSTOMERS & PIPELINE */}
       {dashboardConfig?.showQuotationKpis !== false && (
       <div style={{ marginBottom: '16px' }}>
         <div className="flex justify-between items-center mb-2">
           <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-            {isHairPins ? '🏭 Wholesale Orders & Factory Dispatch Velocity' : 'Quotation Pipeline & Customer Base'}
+            Quotation Pipeline & Customer Base
           </div>
-          {isHairPins && (
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f472b6', background: 'rgba(236, 72, 153, 0.12)', padding: '2px 8px', borderRadius: '6px' }}>
-              Direct Wholesale Order Flow (No QTs Required)
-            </span>
-          )}
         </div>
 
-        {isHairPins ? (
-          /* HAIR PINS WHOLESALE ORDER OPERATIONS ROW */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Wholesale Customers */}
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Wholesale Outlets</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Users size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {totalCustomersCount}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Pettah Outlets & Salon Chains
+        {/* SEYNEX ENTERPRISE QUOTATION ROW */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={18} />
               </div>
             </div>
-
-            {/* Wholesale Orders Received */}
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Orders Received</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ShoppingCart size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {hairpinOrdersCount}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Direct wholesale orders placed
-              </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {totalCustomersCount}
             </div>
-
-            {/* Dispatched & Settled */}
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Dispatched & Settled</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckCircle2 size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
-                {hairpinDispatchedOrders.length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Shipped & payments cleared
-              </div>
-            </div>
-
-            {/* Pending Dispatch / Dues */}
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Pending Dispatch</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Truck size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? '#fbbf24' : '#d97706' }}>
-                {hairpinPendingOrders.length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                In delivery van / pending dues
-              </div>
-            </div>
-
-            {/* Fulfillment Velocity Card */}
-            <div className="glass-panel hover-lift" style={{ 
-              padding: '20px', 
-              border: isDark ? '2px solid rgba(13, 148, 136, 0.4)' : '2px solid rgba(13, 148, 136, 0.35)',
-              background: isDark 
-                ? 'linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(6, 78, 59, 0.18) 100%)'
-                : 'linear-gradient(135deg, rgba(13, 148, 136, 0.14) 0%, rgba(13, 148, 136, 0.04) 100%)'
-            }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#2dd4bf' : '#0d9488' }}>Fulfillment Velocity</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? '#0d9488' : '#0d9488', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Zap size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                {hairpinFulfillmentRate}%
-              </div>
-              <div style={{ fontSize: '0.7rem', color: isDark ? '#2dd4bf' : '#0d9488', fontWeight: 700, marginTop: '4px' }}>
-                Orders Dispatched & Settled
-              </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Active Client Portfolio
             </div>
           </div>
-        ) : (
-          /* SEYNEX ENTERPRISE QUOTATION ROW */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Users size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {totalCustomersCount}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Active Client Portfolio
+
+          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} />
               </div>
             </div>
-
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {quotesThisMonth.length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Total generated this month
-              </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {quotesThisMonth.length}
             </div>
-
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CheckCircle2 size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
-                {acceptedQuotesThisMonth.length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Confirmed & Invoiced deals
-              </div>
-            </div>
-
-            <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <XCircle size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
-                {rejectedQuotesThisMonth.length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Declined proposals
-              </div>
-            </div>
-
-            <div className="glass-panel hover-lift" style={{ 
-              padding: '20px', 
-              border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
-              background: isDark 
-                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
-                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
-            }}>
-              <div className="flex justify-between items-start mb-2">
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Target size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                {quoteConversionRate}%
-              </div>
-              <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
-                Sent → Accepted this month
-              </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Total generated this month
             </div>
           </div>
-        )}
+
+          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
+              {acceptedQuotesThisMonth.length}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Confirmed & Invoiced deals
+            </div>
+          </div>
+
+          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XCircle size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
+              {rejectedQuotesThisMonth.length}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Declined proposals
+            </div>
+          </div>
+
+          <div className="glass-panel hover-lift" style={{ 
+            padding: '20px', 
+            border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
+            background: isDark 
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
+              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
+          }}>
+            <div className="flex justify-between items-start mb-2">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Target size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+              {quoteConversionRate}%
+            </div>
+            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
+              Sent → Accepted this month
+            </div>
+          </div>
+        </div>
       </div>
       )}
 
-      {/* KPI ROW 2: FINANCIALS, COLLECTIONS & STOCK */}
+      {/* KPI ROW 2: FINANCIALS, COLLECTIONS & RENEWALS */}
       {dashboardConfig?.showFinancialKpis !== false && (
       <div style={{ marginBottom: '24px' }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          {isHairPins ? 'Wholesale Billing, Factory Cash & Inventory Stock' : 'Revenue, Collections & Debtors'}
+          Revenue, Collections & Debtors
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           
@@ -1235,17 +986,17 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                {isHairPins ? 'Wholesale Billing' : 'Invoiced (Month)'}
+                Invoiced (Month)
               </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)' }} className="metric-value">
-              LKR {isHairPins ? hairpinBillingAmount.toLocaleString() : totalInvoicedThisMonth.toLocaleString()}
+              LKR {totalInvoicedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {isHairPins ? 'Issued wholesale sales volume' : 'Issued billing volume'}
+              Issued billing volume
             </div>
           </div>
 
@@ -1253,17 +1004,17 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                {isHairPins ? 'Factory Cash Collected' : 'Collected (Month)'}
+                Collected (Month)
               </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Award size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }} className="metric-value">
-              LKR {isHairPins ? hairpinCashCollected.toLocaleString() : totalCollectedThisMonth.toLocaleString()}
+              LKR {totalCollectedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {isHairPins ? 'Direct counter cash & bank receipts' : 'Actual cash received'}
+              Actual cash received
             </div>
           </div>
 
@@ -1271,7 +1022,7 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                {isHairPins ? 'Wholesale Debtors' : 'Total Debtors'}
+                Total Debtors
               </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clock size={18} />
@@ -1281,7 +1032,7 @@ const Dashboard = () => {
               LKR {totalOutstandingDebtors.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {isHairPins ? 'Outstanding balances with shops' : 'Outstanding & partial dues'}
+              Outstanding & partial dues
             </div>
           </div>
 
@@ -1289,7 +1040,7 @@ const Dashboard = () => {
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                {isHairPins ? 'Overdue Dues' : 'Overdue Amount'}
+                Overdue Amount
               </span>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AlertCircle size={18} />
@@ -1299,32 +1050,30 @@ const Dashboard = () => {
               LKR {totalOverdueAmount.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {isHairPins ? 'Past due shop credit terms' : 'Past due payment dates'}
+              Past due payment dates
             </div>
           </div>
 
-          {/* Card 5: Finished Stock (Hair Pins) vs Renewals (Seynex) */}
+          {/* Card 5: Renewals (Seynex) */}
           <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                {isHairPins ? 'Finished Stock' : 'Renewals (30 Days)'}
+                Renewals (30 Days)
               </span>
               <div style={{ 
                 width: '36px', height: '36px', borderRadius: '10px', 
-                background: isHairPins 
-                  ? (isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.12)')
-                  : (isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)'), 
-                color: isHairPins ? '#2dd4bf' : (isDark ? '#c084fc' : '#7c3aed'), 
+                background: isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)', 
+                color: isDark ? '#c084fc' : '#7c3aed', 
                 display: 'flex', alignItems: 'center', justifyContent: 'center' 
               }}>
-                {isHairPins ? <Package size={18} /> : <RefreshCw size={18} />}
+                <RefreshCw size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: isHairPins ? (isDark ? '#2dd4bf' : '#0d9488') : (isDark ? '#c084fc' : '#7c3aed') }}>
-              {isHairPins ? `${totalFinishedStockUnits.toLocaleString()} Pkts` : upcomingRenewalsCount}
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: isDark ? '#c084fc' : '#7c3aed' }}>
+              {upcomingRenewalsCount}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {isHairPins ? 'Finished goods ready for dispatch' : 'Subscriptions due soon'}
+              Subscriptions due soon
             </div>
           </div>
 
@@ -1376,9 +1125,7 @@ const Dashboard = () => {
                 </span>
               </div>
               <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                {isHairPins 
-                  ? 'Manufacturing Gross Margin, Factory Direct Materials (COGS) & Net Operating Return' 
-                  : 'Turnover, Cloud Infrastructure Delivery Costs (COGS) & Operating Net Margin'}
+                Turnover, Cloud Infrastructure Delivery Costs (COGS) & Operating Net Margin
               </p>
             </div>
           </div>
@@ -1789,7 +1536,7 @@ const Dashboard = () => {
                     <YAxis axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#475569', fontSize: 11, fontWeight: 700}} tickFormatter={(v) => `${v >= 1000 ? (v/1000).toFixed(0) + 'k' : v}`}/>
                     <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
                     <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '10px' }} />
-                    <Bar dataKey="revenue" name="Gross Revenue" fill={isHairPins ? "#0d9488" : "#3b82f6"} radius={[4, 4, 0, 0]} maxBarSize={22} />
+                    <Bar dataKey="revenue" name="Gross Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={22} />
                     <Bar dataKey="cogs" name="COGS" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={22} />
                     <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} />
                     <Bar dataKey="netProfit" name="Net Profit" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
@@ -2041,22 +1788,22 @@ const Dashboard = () => {
                boxShadow: isDark ? '0 0 15px rgba(56, 189, 248, 0.2)' : 'none',
                display: 'flex', alignItems: 'center', justifyContent: 'center' 
              }}>
-                {isHairPins ? <Truck color={isDark ? "#38bdf8" : "#0284c7"} size={22} /> : <Target color={isDark ? "#38bdf8" : "#0284c7"} size={22} />}
+                <Target color={isDark ? "#38bdf8" : "#0284c7"} size={22} />
              </div>
              <div>
                 <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                  {isHairPins ? 'Wholesale Order Distribution' : 'Deal Distribution'}
+                  Deal Distribution
                 </h3>
                 <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: 0 }}>
-                  {isHairPins ? 'Factory Order Status & Shipment Tracking' : 'Quotation Pipeline Status'}
+                  Quotation Pipeline Status
                 </p>
              </div>
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            {((isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut) || []).length === 0 ? (
+            {(quoteStatusDonut || []).length === 0 ? (
               <div className="text-center py-12 text-secondary" style={{ fontSize: '0.85rem' }}>
-                {isHairPins ? 'No wholesale orders placed yet' : 'No quotations created yet'}
+                No quotations created yet
               </div>
             ) : (
               <>
@@ -2064,7 +1811,7 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut}
+                        data={quoteStatusDonut}
                         cx="50%" cy="50%"
                         innerRadius="62%"
                         outerRadius="88%"
@@ -2073,7 +1820,7 @@ const Dashboard = () => {
                         stroke={isDark ? 'rgba(11, 15, 20, 0.8)' : '#ffffff'}
                         strokeWidth={2}
                       >
-                        {(isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut).map((entry, idx) => (
+                        {quoteStatusDonut.map((entry, idx) => (
                           <Cell 
                             key={`donut-${idx}`} 
                             fill={entry.color} 
@@ -2092,27 +1839,27 @@ const Dashboard = () => {
                     textAlign: 'center', pointerEvents: 'none'
                   }}>
                     <div style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
-                      {isHairPins ? invoices.length : quotes.length}
+                      {quotes.length}
                     </div>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
-                      {isHairPins ? 'Total Orders' : 'Total Deals'}
+                      Total Deals
                     </div>
                     <div style={{ 
                       fontSize: '0.68rem', fontWeight: 800, 
-                      color: isDark ? (isHairPins ? '#2dd4bf' : '#10b981') : (isHairPins ? '#0d9488' : '#059669'), 
+                      color: isDark ? '#10b981' : '#059669', 
                       background: isDark ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.12)', 
                       padding: '2px 6px', borderRadius: '4px',
                       marginTop: '4px', display: 'inline-block'
                     }}>
-                      {isHairPins ? `${hairpinFulfillmentRate}% Settled` : `${quoteConversionRate}% Won`}
+                      {quoteConversionRate}% Won
                     </div>
                   </div>
                 </div>
 
                 {/* Pipeline Status Breakdown Pills */}
                 <div className="flex flex-wrap justify-center gap-2 w-full mt-4">
-                  {(isHairPins ? hairpinOrderStatusDonut : quoteStatusDonut).map((item, idx) => {
-                    const totalBase = isHairPins ? invoices.length : quotes.length;
+                  {quoteStatusDonut.map((item, idx) => {
+                    const totalBase = quotes.length;
                     const pct = totalBase > 0 ? Math.round((item.value / totalBase) * 100) : 0;
                     return (
                       <div 
@@ -2144,7 +1891,7 @@ const Dashboard = () => {
       </div>
       )}
 
-      {/* COMPREHENSIVE VISUAL SUITE - ROW 2: FUNNEL (SALES OR WHOLESALE ORDER-TO-CASH) */}
+      {/* COMPREHENSIVE VISUAL SUITE - ROW 2: FUNNEL */}
       {dashboardConfig?.showFunnel !== false && (
       <div className="glass-panel mb-8" style={{ 
         padding: '24px',
@@ -2173,12 +1920,10 @@ const Dashboard = () => {
             </div>
             <div>
               <h3 className="h3" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                {isHairPins ? 'Factory Wholesale Order-to-Cash Pipeline' : 'Sales Conversion Velocity Funnel'}
+                Sales Conversion Velocity Funnel
               </h3>
               <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: 0 }}>
-                {isHairPins 
-                  ? 'Order Receipt → Wire Bending → Curing & Packing → Van Dispatch → Cash Settlement' 
-                  : 'Lead Capture → Proposal Formulation → Client Negotiation → Deal Settlement'}
+                Lead Capture → Proposal Formulation → Client Negotiation → Deal Settlement
               </p>
             </div>
           </div>
@@ -2191,10 +1936,10 @@ const Dashboard = () => {
               border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(16, 185, 129, 0.25)'
             }}>
               <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>
-                {isHairPins ? 'Fulfillment Velocity:' : 'Deal Win Rate:'}
+                Deal Win Rate:
               </span>
               <span style={{ fontSize: '0.9rem', fontWeight: 900, color: isDark ? '#ffffff' : '#065f46' }}>
-                {isHairPins ? `${hairpinFulfillmentRate}%` : `${quoteConversionRate}%`}
+                {quoteConversionRate}%
               </span>
             </div>
           </div>
@@ -2202,7 +1947,7 @@ const Dashboard = () => {
 
         {/* Funnel Visual Stages Flow */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative">
-          {(isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).map((stage) => {
+          {salesFunnelData.map((stage) => {
             const Icon = stage.icon;
             const isSelected = activeFunnelStage === stage.id;
             return (
@@ -2247,7 +1992,7 @@ const Dashboard = () => {
                   </div>
 
                   <div style={{ fontSize: '1.5rem', fontWeight: 900, color: stage.color, lineHeight: 1.1 }}>
-                    {stage.count} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{isHairPins ? 'records' : 'entities'}</span>
+                    {stage.count} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>entities</span>
                   </div>
 
                   <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px' }}>
@@ -2288,7 +2033,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <Sparkles size={16} color="#38bdf8" />
               <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                Inspecting stage: <strong style={{ color: '#38bdf8' }}>{((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.name}</strong> — Showing {((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.count} active pipeline records totaling LKR {Math.round(((isHairPins ? hairpinFulfillmentFunnel : salesFunnelData).find(s => s.id === activeFunnelStage))?.value || 0).toLocaleString()}.
+                Inspecting stage: <strong style={{ color: '#38bdf8' }}>{(salesFunnelData.find(s => s.id === activeFunnelStage))?.name}</strong> — Showing {(salesFunnelData.find(s => s.id === activeFunnelStage))?.count} active pipeline records totaling LKR {Math.round((salesFunnelData.find(s => s.id === activeFunnelStage))?.value || 0).toLocaleString()}.
               </div>
             </div>
             <button 
@@ -2475,14 +2220,14 @@ const Dashboard = () => {
                   <Award size={20} />
                </div>
                <div>
-                  <h3 className="h3">{isHairPins ? 'Top 5 Wholesale Buyers & Outlets' : 'Top 5 Clients'}</h3>
+                  <h3 className="h3">Top 5 Clients</h3>
                   <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-                    {isHairPins ? 'By Wholesale Invoiced Volume' : 'By Invoiced Volume (This Month)'}
+                    By Invoiced Volume (This Month)
                   </p>
                </div>
             </div>
             <Link to="/customers" className="btn btn-secondary" style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}>
-              {isHairPins ? 'View All Buyers' : 'View All Clients'}
+              View All Clients
             </Link>
           </div>
           
@@ -2490,7 +2235,7 @@ const Dashboard = () => {
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: '24px' }}>Rank & {isHairPins ? 'Buyer' : 'Client'}</th>
+                  <th style={{ paddingLeft: '24px' }}>Rank & Client</th>
                   <th>Contact</th>
                   <th style={{ textAlign: 'right', paddingRight: '24px' }}>Total Invoiced</th>
                 </tr>
@@ -2499,7 +2244,7 @@ const Dashboard = () => {
                 {topCustomersThisMonth.length === 0 ? (
                   <tr>
                     <td colSpan="3" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                      {isHairPins ? 'No invoiced wholesale buyers found for this period.' : 'No invoiced customers found for this period.'}
+                      No invoiced customers found for this period.
                     </td>
                   </tr>
                 ) : (
@@ -2551,9 +2296,9 @@ const Dashboard = () => {
                   <AlertCircle color={isDark ? "var(--danger)" : "#dc2626"} size={20} />
                </div>
                <div>
-                  <h3 className="h3">{isHairPins ? 'Immediate Attention Required' : 'Immediate Action Required'}</h3>
+                  <h3 className="h3">Immediate Action Required</h3>
                   <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-                    {isHairPins ? 'Pending Wholesale Collections & Overdue Accounts' : 'Overdue Invoices & Debtor Balances'}
+                    Overdue Invoices & Debtor Balances
                   </p>
                </div>
             </div>
@@ -2564,7 +2309,7 @@ const Dashboard = () => {
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: '24px' }}>{isHairPins ? 'Buyer / Wholesale Invoice' : 'Client / Invoice'}</th>
+                  <th style={{ paddingLeft: '24px' }}>Client / Invoice</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right', paddingRight: '24px' }}>Amount Due</th>
                 </tr>
@@ -2595,7 +2340,7 @@ const Dashboard = () => {
                   <tr>
                     <td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>
                       <p className="text-secondary" style={{ fontSize: '0.9rem' }}>
-                        {isHairPins ? 'All wholesale accounts are settled and up to date.' : 'All accounts are settled and up to date.'}
+                        All accounts are settled and up to date.
                       </p>
                     </td>
                   </tr>
@@ -2708,13 +2453,13 @@ const Dashboard = () => {
                 <div className="flex flex-col gap-2.5">
                   {[
                     { key: 'showMonthlyTarget', label: 'Monthly Sales Target & Progress Bar', desc: 'Top revenue completion bar and pace' },
-                    { key: 'showQuotationKpis', label: isHairPins ? 'Wholesale Orders & Dispatch Row' : 'Quotation Pipeline & Customer Base Row', desc: 'Deals, customer count, and conversion rate' },
-                    { key: 'showFinancialKpis', label: isHairPins ? 'Wholesale Billing & Factory Cash Row' : 'Revenue, Collections & Debtors Row', desc: 'Billing volume, actual cash, and overdue' },
+                    { key: 'showQuotationKpis', label: 'Quotation Pipeline & Customer Base Row', desc: 'Deals, customer count, and conversion rate' },
+                    { key: 'showFinancialKpis', label: 'Revenue, Collections & Debtors Row', desc: 'Billing volume, actual cash, and overdue' },
                     { key: 'showProfitLoss', label: 'Executive Profit & Loss Statement (P&L)', desc: 'Real-time gross/net margins, COGS, and OPEX' },
                     { key: 'showTrendsChart', label: 'Financial Studio & Performance Charts', desc: 'Revenue vs Collections trends and donut split' },
-                    { key: 'showFunnel', label: isHairPins ? 'Factory Wholesale Order-to-Cash Pipeline' : 'Sales Conversion Velocity Funnel', desc: 'Lead-to-deal progression stages and win rate' },
+                    { key: 'showFunnel', label: 'Sales Conversion Velocity Funnel', desc: 'Lead-to-deal progression stages and win rate' },
                     { key: 'showDebtorAging', label: 'Accounts Receivable & Debtor Aging', desc: 'Credit risk segmentation and overdue distribution' },
-                    { key: 'showRecentActivity', label: isHairPins ? 'Top Wholesale Buyers & Overdue Accounts' : 'Top 5 Clients & Overdue Accounts', desc: 'Top volume customer rankings and collections ledger' }
+                    { key: 'showRecentActivity', label: 'Top 5 Clients & Overdue Accounts', desc: 'Top volume customer rankings and collections ledger' }
                   ].map(sec => {
                     const isChecked = dashboardConfig?.[sec.key] !== false;
                     return (
