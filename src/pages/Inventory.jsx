@@ -361,6 +361,7 @@ const Inventory = () => {
                 <tr>
                   <th>Product Item</th>
                   <th>Category</th>
+                  <th>Fee Type</th>
                   <th>Cost Price</th>
                   <th>Selling Price</th>
                   <th>Unit Profit</th>
@@ -375,7 +376,7 @@ const Inventory = () => {
               <tbody>
                 {filteredInventory.length === 0 ? (
                   <tr>
-                    <td colSpan="10" style={{ textAlign: 'center', padding: '80px 0' }}>
+                    <td colSpan="12" style={{ textAlign: 'center', padding: '80px 0' }}>
                       <EmptyState message="No stock items registered." />
                     </td>
                   </tr>
@@ -717,10 +718,11 @@ const StockRow = ({ item, salesData = { unitsSold: 0, salesRevenue: 0 }, onUpdat
           </div>
           <div>
             <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Clock size={10} />
-              {item.billingCycle || (item.type === 'Hardware' ? 'One-Time' : 'Annual')}
-            </div>
+            {item.sku && (
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                SKU: {item.sku}
+              </div>
+            )}
           </div>
         </div>
       </td>
@@ -730,6 +732,18 @@ const StockRow = ({ item, salesData = { unitsSold: 0, salesRevenue: 0 }, onUpdat
           item.type === 'Software' ? 'badge-primary' : 'badge-success'
         }`}>
           {item.type}
+        </span>
+      </td>
+      <td>
+        <span className={`badge ${
+          (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'))
+            ? 'badge-warning'
+            : 'badge-primary'
+        }`} style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Clock size={11} />
+          {(item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'))
+            ? 'One-Time Fee'
+            : (item.billingCycle === 'Monthly' ? 'Monthly Fee' : 'Annual Fee')}
         </span>
       </td>
       <td style={{ fontWeight: 600, color: 'var(--warning)' }}>LKR {costPrice.toLocaleString()}</td>

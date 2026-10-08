@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialQuoteNumber } from '../context/StoreContext';
-import { FileText, Plus, Minus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock, ChevronDown, Package } from 'lucide-react';
+import { FileText, Plus, Minus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, User, Link as LinkIcon, Search, Receipt, Eye, Tag, MessageCircle, AlertTriangle, CheckCircle, RefreshCw, Lock, ChevronDown, Package, MapPin } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
@@ -246,6 +246,14 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
               <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
               <span className="sm-hidden">{new Date(quote.date).toLocaleDateString()}</span>
             </div>
+            {(quote.prospectAddress || quote.address) && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={11} className="text-secondary" />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
+                  {quote.prospectAddress || quote.address}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -495,6 +503,8 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
     date: initialData?.date || new Date().toISOString().split('T')[0], 
     prospectName: initialData?.prospectName || '', 
     prospectPhone: initialData?.prospectPhone || '',
+    prospectAddress: initialData?.prospectAddress || initialData?.address || '',
+    address: initialData?.address || initialData?.prospectAddress || '',
     status: initialData?.status || 'Draft',
     items: initialItems,
     discount: initialDiscount,
@@ -565,7 +575,8 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
         quantity: (Number(newItems[existingIndex].quantity) || 1) + 1
       };
     } else {
-      newItems.push({ ...invItem, quantity: 1 });
+      const defaultCycle = invItem.billingCycle || (invItem.type === 'Hardware' ? 'One-Time' : 'Annual');
+      newItems.push({ ...invItem, quantity: 1, billingCycle: defaultCycle });
     }
     
     setFormData(prev => ({ 
@@ -578,6 +589,12 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
     if (showNotification) {
       showNotification(`Added "${invItem.name}"`, 'success');
     }
+  };
+
+  const handleUpdateItemBillingCycle = (idx, newCycle) => {
+    const newItems = [...formData.items];
+    newItems[idx] = { ...newItems[idx], billingCycle: newCycle };
+    setFormData({ ...formData, items: newItems });
   };
 
   const handleUpdateItemQty = (idx, deltaOrVal, isAbsolute = false) => {
@@ -782,7 +799,15 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                         defaultValue=""
                         onChange={(e) => {
                           const sel = customers.find(c => c.id === e.target.value);
-                          if (sel) setFormData(prev => ({ ...prev, prospectName: sel.gymName, prospectPhone: sel.phone || '' }));
+                          if (sel) {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              prospectName: sel.gymName, 
+                              prospectPhone: sel.phone || '',
+                              prospectAddress: sel.address || '',
+                              address: sel.address || ''
+                            }));
+                          }
                           e.target.value = '';
                         }}
                       >
@@ -816,6 +841,21 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                     onChange={e => setFormData({...formData, prospectPhone: e.target.value})} 
                   />
                 </div>
+              </div>
+
+              {/* Client Address */}
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
+                  Client / Billing Address
+                </label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  style={{ height: '35px', fontSize: '0.82rem', padding: '4px 8px' }} 
+                  placeholder="e.g. No. 45/A, Galle Road, Colombo 03" 
+                  value={formData.prospectAddress || formData.address || ''} 
+                  onChange={e => setFormData({...formData, prospectAddress: e.target.value, address: e.target.value})} 
+                />
               </div>
             </div>
 
@@ -1030,6 +1070,7 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <th style={{ padding: '6px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600 }}>Item</th>
+                        <th style={{ padding: '6px 4px', textAlign: 'center', width: '105px', color: 'var(--text-muted)', fontWeight: 600 }}>Fee Type</th>
                         <th style={{ padding: '6px 4px', textAlign: 'center', width: '90px', color: 'var(--text-muted)', fontWeight: 600 }}>Qty</th>
                         <th style={{ padding: '6px 4px', textAlign: 'right', width: '85px', color: 'var(--text-muted)', fontWeight: 600 }}>Price</th>
                         <th style={{ padding: '6px 8px', textAlign: 'right', width: '85px', color: 'var(--text-muted)', fontWeight: 600 }}>Total</th>
@@ -1040,9 +1081,31 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                       {formData.items.map((it, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
+                            <div style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
                               {it.name}
                             </div>
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                            <select
+                              className="form-input"
+                              style={{ 
+                                height: '26px', 
+                                fontSize: '0.72rem', 
+                                padding: '1px 4px', 
+                                width: '98px', 
+                                background: 'var(--subtle-bg)', 
+                                border: '1px solid var(--panel-border)',
+                                borderRadius: '4px',
+                                color: 'var(--text-primary)',
+                                cursor: 'pointer'
+                              }}
+                              value={it.billingCycle || (it.type === 'Hardware' ? 'One-Time' : 'Annual')}
+                              onChange={(e) => handleUpdateItemBillingCycle(idx, e.target.value)}
+                            >
+                              <option value="Annual">Annual Fee</option>
+                              <option value="One-Time">One-Time Fee</option>
+                              <option value="Monthly">Monthly Fee</option>
+                            </select>
                           </td>
                           <td style={{ padding: '6px 4px', textAlign: 'center' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>

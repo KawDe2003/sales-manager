@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
@@ -398,6 +398,9 @@ const SharedDocument = () => {
     ? (docData.status === 'Received' || docData.status === 'Delivered') 
     : (docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice');
 
+  const recipientCustomer = customers.find(cust => cust.id === docData.customerId) || {};
+  const recipientAddress = docData.billingAddress || docData.address || docData.prospectAddress || recipientCustomer.address || (isPO ? (docData.supplierAddress || suppliers.find(s => s.id === docData.supplierId)?.address) : '');
+
   return (
     <div className="shared-doc-wrapper" style={{ 
       minHeight: '100vh', 
@@ -559,6 +562,13 @@ const SharedDocument = () => {
                 {customerName}
               </h1>
 
+              {recipientAddress && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '0.85rem', fontWeight: 500, marginBottom: '12px' }}>
+                  <MapPin size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                  <span>{recipientAddress}</span>
+                </div>
+              )}
+
               {isPO && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                   {docData.applyVat ? (
@@ -653,9 +663,10 @@ const SharedDocument = () => {
 
             {/* Desktop Table View (>= 641px) */}
             <div className="desktop-billing-table" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <div style={{ minWidth: '420px' }}>
+              <div style={{ minWidth: '500px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
                   <div style={{ flex: 1 }}>DESCRIPTION</div>
+                  <div style={{ width: '110px', textAlign: 'center' }}>FEE TYPE</div>
                   <div style={{ width: '60px', textAlign: 'center' }}>QTY</div>
                   <div style={{ width: '120px', textAlign: 'right' }}>OFFER PRICE</div>
                   <div style={{ width: '140px', textAlign: 'right' }}>TOTAL</div>
@@ -665,6 +676,7 @@ const SharedDocument = () => {
                   const p = getItemPrice(item);
                   const q = getItemQty(item);
                   const name = getItemName(item);
+                  const isOneTime = (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'));
                   return (
                     <div key={idx} style={{ 
                       display: 'flex', 
@@ -674,6 +686,19 @@ const SharedDocument = () => {
                     }}>
                       <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                         {name}
+                      </div>
+                      <div style={{ width: '110px', textAlign: 'center' }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.18)',
+                          color: isOneTime ? '#f59e0b' : '#a5b4fc',
+                          border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                        }}>
+                          {isOneTime ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual')}
+                        </span>
                       </div>
                       <div style={{ width: '60px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
                         {q}
@@ -701,6 +726,9 @@ const SharedDocument = () => {
                       <Tag size={16} color="#f59e0b" />
                       <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
                     </div>
+                    <div style={{ width: '110px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>Deduction</span>
+                    </div>
                     <div style={{ width: '60px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
                       1
                     </div>
@@ -721,22 +749,37 @@ const SharedDocument = () => {
                 const p = getItemPrice(item);
                 const q = getItemQty(item);
                 const name = getItemName(item);
+                const isOneTime = (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'));
                 return (
                   <div key={idx} style={{ 
                     padding: '14px 0', 
                     borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.08)' 
                   }}>
-                    <div style={{ 
-                      color: '#ffffff', 
-                      fontWeight: 800, 
-                      fontSize: '0.92rem', 
-                      textTransform: 'uppercase', 
-                      letterSpacing: '0.01em',
-                      lineHeight: 1.35,
-                      marginBottom: '8px',
-                      wordBreak: 'break-word'
-                    }}>
-                      {name}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                      <div style={{ 
+                        color: '#ffffff', 
+                        fontWeight: 800, 
+                        fontSize: '0.92rem', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.01em',
+                        lineHeight: 1.35,
+                        wordBreak: 'break-word',
+                        flex: 1
+                      }}>
+                        {name}
+                      </div>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.18)',
+                        color: isOneTime ? '#f59e0b' : '#a5b4fc',
+                        border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+                        flexShrink: 0
+                      }}>
+                        {isOneTime ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual')}
+                      </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>

@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock, MapPin } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
@@ -366,7 +366,13 @@ Thank you for your business!`;
               onSendWhatsApp={() => handleSendWhatsApp(invoice)}
               onSendSms={() => handleOpenSmsModal(invoice)}
               onDownload={() => {
-                const docData = { ...invoice, gymName: getCustomerName(invoice.customerId, invoice) };
+                const customer = customers.find(c => c.id === invoice.customerId) || {};
+                const docData = { 
+                  ...invoice, 
+                  gymName: getCustomerName(invoice.customerId, invoice),
+                  billingAddress: invoice.billingAddress || invoice.address || customer.address || '',
+                  address: invoice.billingAddress || invoice.address || customer.address || ''
+                };
                 showNotification && showNotification(`Generating PDF for Invoice #${invoice.invoiceNumber || 'Document'}...`, 'info');
                 generateDocumentPDF('Invoice', docData, invoice.items || []);
               }}
@@ -630,6 +636,14 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
                 </>
               )}
             </div>
+            {(invoice.billingAddress || invoice.address || customer.address) && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={11} className="text-secondary" />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
+                  {invoice.billingAddress || invoice.address || customer.address}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -849,6 +863,8 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     date: initialData?.date || new Date().toISOString().split('T')[0],
     dueDate: initialData?.dueDate || '',
     customerId: initialData?.customerId || (customers[0]?.id || ''),
+    billingAddress: initialData?.billingAddress || initialData?.address || (customers.find(c => c.id === (initialData?.customerId || customers[0]?.id))?.address || ''),
+    address: initialData?.address || initialData?.billingAddress || (customers.find(c => c.id === (initialData?.customerId || customers[0]?.id))?.address || ''),
     items: initialItems,
     discount: initialDiscount,
     amount: initialData?.amount || 0,
@@ -870,10 +886,19 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     if (!invItem) return;
     let newItems = [...formData.items];
     const existingIndex = newItems.findIndex(i => i.id === invItem.id);
-    if (existingIndex >= 0) newItems[existingIndex].quantity += 1;
-    else newItems.push({ ...invItem, quantity: 1 });
+    if (existingIndex >= 0) {
+      newItems[existingIndex].quantity += 1;
+    } else {
+      const defaultCycle = invItem.billingCycle || (invItem.type === 'Hardware' ? 'One-Time' : 'Annual');
+      newItems.push({ ...invItem, quantity: 1, billingCycle: defaultCycle });
+    }
     setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
     setSelectedInventoryId('');
+  };
+
+  const handleUpdateItemBillingCycle = (idx, newCycle) => {
+    const newItems = formData.items.map((it, i) => i === idx ? { ...it, billingCycle: newCycle } : it);
+    setFormData({ ...formData, items: newItems });
   };
 
   const handleUpdateItemPrice = (idx, newPrice) => {
@@ -1011,13 +1036,34 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               <label className="form-label">Client / Local Gym</label>
               <CustomSelect 
                 value={formData.customerId} 
-                onChange={val => setFormData({ ...formData, customerId: val })}
+                onChange={val => {
+                  const selectedCust = customers.find(c => c.id === val);
+                  setFormData({ 
+                    ...formData, 
+                    customerId: val,
+                    billingAddress: selectedCust?.address || formData.billingAddress || '',
+                    address: selectedCust?.address || formData.address || ''
+                  });
+                }}
                 placeholder="Select a Client"
                 options={[
                   { value: '', label: 'Select a Client' },
                   ...customers.map(c => ({ value: c.id, label: c.gymName }))
                 ]}
                 style={{ height: '44px', width: '100%' }}
+              />
+            </div>
+            <div className="form-group md:col-span-2">
+              <label className="form-label flex items-center gap-1">
+                <MapPin size={14} /> Client / Billing Address
+              </label>
+              <input 
+                type="text" 
+                className="form-input" 
+                style={{ height: '44px' }} 
+                placeholder="Street address, City, District / Postal Code" 
+                value={formData.billingAddress || ''} 
+                onChange={e => setFormData({ ...formData, billingAddress: e.target.value, address: e.target.value })} 
               />
             </div>
             <div className="form-group">
@@ -1054,6 +1100,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                   <thead>
                     <tr>
                       <th>Product</th>
+                      <th>Fee Type</th>
                       <th>Qty</th>
                       <th>LKR Unit</th>
                       <th style={{ textAlign: 'right' }}>Total</th>
@@ -1064,6 +1111,28 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                     {formData.items.map((it, idx) => (
                       <tr key={idx}>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.name}</td>
+                        <td>
+                          <select
+                            className="form-input"
+                            style={{ 
+                              height: '32px', 
+                              fontSize: '0.78rem', 
+                              padding: '2px 6px', 
+                              width: '110px',
+                              background: 'var(--subtle-bg)',
+                              border: '1px solid var(--panel-border)',
+                              borderRadius: '6px',
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer'
+                            }}
+                            value={it.billingCycle || (it.type === 'Hardware' ? 'One-Time' : 'Annual')}
+                            onChange={(e) => handleUpdateItemBillingCycle(idx, e.target.value)}
+                          >
+                            <option value="Annual">Annual Fee</option>
+                            <option value="One-Time">One-Time Fee</option>
+                            <option value="Monthly">Monthly Fee</option>
+                          </select>
+                        </td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
                         <td style={{ color: 'var(--text-muted)' }}>
                           <input 

@@ -4742,7 +4742,7 @@ export default function StoreContextProvider({ children }) {
         name: quote.prospectName,
         phone: quote.prospectPhone || '',
         email: quote.prospectEmail || '',
-        address: quote.prospectAddress || '',
+        address: quote.prospectAddress || quote.address || '',
         status: 'Active',
         tags: ['Walk-in'],
         leadSource: 'Quotation Conversion',
@@ -4752,12 +4752,15 @@ export default function StoreContextProvider({ children }) {
       };
       setCustomers(prev => [...prev, customer]);
       syncCustomerToSupabase(customer);
+    } else if (!customer.address && (quote.prospectAddress || quote.address)) {
+      customer.address = quote.prospectAddress || quote.address;
     }
 
     const { nextNumber, formattedNumber: invoiceNumber } = getNextSequentialInvoiceNumber(invoices, smsConfig);
     updateSmsConfig(prev => ({ ...prev, nextInvoiceNumber: nextNumber + 1 }));
 
     const quoteRef = quote.quoteNumber || 'QT';
+    const quoteAddress = quote.prospectAddress || quote.address || customer.address || '';
 
     const newInvoice = {
       id: uuidv4(),
@@ -4767,6 +4770,8 @@ export default function StoreContextProvider({ children }) {
       dueDate: quote.validUntil || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       customerId: customer.id,
       prospectName: customer.gymName,
+      billingAddress: quoteAddress,
+      address: quoteAddress,
       items: quote.items || [],
       amount: Number(quote.amount) || 0,
       subtotal: Number(quote.subtotal || quote.amount) || 0,

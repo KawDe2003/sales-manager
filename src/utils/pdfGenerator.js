@@ -402,8 +402,10 @@ export const generateDocumentPDF = (type, documentData, items) => {
       refLabel: '',
       refVal: isInvoice && quoteRef ? `Converted from Quote: #${quoteRef.replace(/^#/, '')}` : (quoteRef ? `Ref: #${quoteRef.replace(/^#/, '')}` : '')
     });
+    const recipientAddress = documentData?.billingAddress || documentData?.address || documentData?.prospectAddress;
     const billToY = headerEndY + 6;
-    const tableStartY = billToY + 30;
+    const billToBoxHeight = recipientAddress ? 28 : 23;
+    const tableStartY = billToY + (recipientAddress ? 34 : 29);
 
     // PAID Watermark for Invoices marked as Paid
     if (isInvoice && documentData?.status === 'Paid') {
@@ -418,17 +420,27 @@ export const generateDocumentPDF = (type, documentData, items) => {
 
     // ── Bill To ─────────────────────────────────────────────────────────────
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.rect(14, billToY, 95, 23, 'F');
+    doc.rect(14, billToY, 95, billToBoxHeight, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(14, billToY, 95, 23, 'S');
+    doc.rect(14, billToY, 95, billToBoxHeight, 'S');
 
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('BILL TO / RECIPIENT:', 18, billToY + 6);
-    doc.setFontSize(10);
+    doc.text('BILL TO / RECIPIENT:', 18, billToY + 5.5);
+    doc.setFontSize(9.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(targetName, 18, billToY + 13);
+    doc.text(targetName, 18, billToY + 11.5);
+
+    let nextBillToY = billToY + 16.5;
+    if (recipientAddress) {
+      doc.setFontSize(7.8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const splitAddress = doc.splitTextToSize(recipientAddress, 88);
+      doc.text(splitAddress[0], 18, nextBillToY);
+      nextBillToY += 4.5;
+    }
 
     const recipientDetails = [];
     if (documentData?.contactPerson) {
@@ -439,10 +451,10 @@ export const generateDocumentPDF = (type, documentData, items) => {
       recipientDetails.push(`Tel: ${recipientPhone}`);
     }
     if (recipientDetails.length > 0) {
-      doc.setFontSize(8);
+      doc.setFontSize(7.8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
-      doc.text(recipientDetails.join('  •  '), 18, billToY + 19);
+      doc.text(recipientDetails.join('  •  '), 18, nextBillToY);
     }
 
     // ── Line Items Table ──────────────────────────────────────────────────────
@@ -451,19 +463,20 @@ export const generateDocumentPDF = (type, documentData, items) => {
       tableBody = standardItems.map(item => [
         item.name || item.description || 'Item Description',
         item.type || item.category || 'Service',
+        (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware')) ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual'),
         formatLKR(getItemPrice(item)),
         String(getItemQty(item)),
         formatLKR(getItemTotal(item))
       ]);
     } else {
       tableBody = [
-        ['Software License Package & Enterprise Support', 'Package', formatLKR(subTotal), '1', formatLKR(subTotal)]
+        ['Software License Package & Enterprise Support', 'Package', 'Annual', formatLKR(subTotal), '1', formatLKR(subTotal)]
       ];
     }
 
     runAutoTable(doc, {
       startY: tableStartY,
-      head: [['Item Description', 'Classification', 'Unit Price', 'Qty', 'Line Total']],
+      head: [['Item Description', 'Classification', 'Fee Type', 'Unit Price', 'Qty', 'Line Total']],
       body: tableBody,
       theme: 'grid',
       showHead: 'everyPage',
@@ -475,9 +488,10 @@ export const generateDocumentPDF = (type, documentData, items) => {
         cellPadding: 4
       },
       columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'center' },
-        4: { halign: 'right', fontStyle: 'bold' }
+        2: { halign: 'center' },
+        3: { halign: 'right' },
+        4: { halign: 'center' },
+        5: { halign: 'right', fontStyle: 'bold' }
       },
       styles: { fontSize: 8.5, cellPadding: 3.5, textColor: [30, 41, 59] }
     });
