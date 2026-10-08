@@ -1082,8 +1082,22 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                       {formData.items.map((it, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            <div style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
-                              {it.name}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.15)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                                color: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? '#38bdf8' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? '#34d399' : '#c084fc',
+                                border: `1px solid ${(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.3)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+                                flexShrink: 0
+                              }}>
+                                {(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'Hardware' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'Service' : 'Software'}
+                              </span>
+                              <div style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
+                                {it.name}
+                              </div>
                             </div>
                           </td>
                           <td style={{ padding: '6px 4px', textAlign: 'center' }}>

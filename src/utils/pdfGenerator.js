@@ -460,14 +460,33 @@ export const generateDocumentPDF = (type, documentData, items) => {
     // ── Line Items Table ──────────────────────────────────────────────────────
     let tableBody = [];
     if (standardItems.length > 0) {
-      tableBody = standardItems.map(item => [
-        item.name || item.description || 'Item Description',
-        item.type || item.category || 'Service',
-        (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware')) ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual'),
-        formatLKR(getItemPrice(item)),
-        String(getItemQty(item)),
-        formatLKR(getItemTotal(item))
-      ]);
+      tableBody = standardItems.map(item => {
+        const rawName = item.name || item.description || 'Item Description';
+        const rawType = item.type || item.category || '';
+        let classification = rawType;
+        if (!classification || classification.toLowerCase() === 'service') {
+          if (/(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|card|cable|camera|bracket|hardware)/i.test(rawName)) {
+            classification = 'Hardware';
+          } else if (/(software|cloud|license|app|portal|module|api|automation|system|database|erp)/i.test(rawName)) {
+            classification = 'Software';
+          } else if (/(installation|service|training|support|setup|consulting)/i.test(rawName)) {
+            classification = 'Service';
+          } else {
+            classification = rawType || 'Hardware';
+          }
+        }
+        const isOneTime = /(one[- ]?time|perpetual)/i.test(rawName) || item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && classification === 'Hardware');
+        const cycle = isOneTime ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual');
+
+        return [
+          rawName,
+          classification,
+          cycle,
+          formatLKR(getItemPrice(item)),
+          String(getItemQty(item)),
+          formatLKR(getItemTotal(item))
+        ];
+      });
     } else {
       tableBody = [
         ['Software License Package & Enterprise Support', 'Package', 'Annual', formatLKR(subTotal), '1', formatLKR(subTotal)]

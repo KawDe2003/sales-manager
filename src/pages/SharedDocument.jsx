@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
 import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin, Cpu, Monitor, Wrench } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
@@ -411,6 +411,26 @@ const SharedDocument = () => {
     return 'Annual';
   };
 
+  const getItemClassification = (item) => {
+    if (item?.type) {
+      const t = String(item.type).toLowerCase();
+      if (t.includes('hardware')) return 'Hardware';
+      if (t.includes('software')) return 'Software';
+      if (t.includes('service') || t.includes('support') || t.includes('consulting')) return 'Service';
+    }
+    const name = String(getItemName(item)).toLowerCase();
+    if (/(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|card|cable|camera|bracket|hardware|server unit|gateway|fingerprint)/i.test(name)) {
+      return 'Hardware';
+    }
+    if (/(software|cloud|license|app|portal|module|api|automation|system|database|erp|pos|subscription)/i.test(name)) {
+      return 'Software';
+    }
+    if (/(installation|service|training|support|consulting|setup|maintenance|delivery|sla)/i.test(name)) {
+      return 'Service';
+    }
+    return item?.type || 'Hardware';
+  };
+
   return (
     <div className="shared-doc-wrapper" style={{ 
       minHeight: '100vh', 
@@ -690,10 +710,11 @@ const SharedDocument = () => {
               <div style={{ minWidth: '500px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
                   <div style={{ flex: 1 }}>DESCRIPTION</div>
+                  <div style={{ width: '105px', textAlign: 'center' }}>TYPE</div>
                   <div style={{ width: '110px', textAlign: 'center' }}>FEE TYPE</div>
-                  <div style={{ width: '60px', textAlign: 'center' }}>QTY</div>
-                  <div style={{ width: '120px', textAlign: 'right' }}>OFFER PRICE</div>
-                  <div style={{ width: '140px', textAlign: 'right' }}>TOTAL</div>
+                  <div style={{ width: '55px', textAlign: 'center' }}>QTY</div>
+                  <div style={{ width: '115px', textAlign: 'right' }}>OFFER PRICE</div>
+                  <div style={{ width: '135px', textAlign: 'right' }}>TOTAL</div>
                 </div>
 
                 {standardItems.map((item, idx) => {
@@ -702,6 +723,7 @@ const SharedDocument = () => {
                   const name = getItemName(item);
                   const cycle = getItemBillingCycle(item);
                   const isOneTime = cycle === 'One-Time';
+                  const itemType = getItemClassification(item);
                   return (
                     <div key={idx} style={{ 
                       display: 'flex', 
@@ -709,33 +731,50 @@ const SharedDocument = () => {
                       padding: '16px 0', 
                       borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.06)' 
                     }}>
-                      <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: '0.01em' }}>
+                      <div style={{ flex: 1, color: '#ffffff', fontWeight: 750, fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: '0.01em', paddingRight: '12px' }}>
                         {name}
                       </div>
-                      <div style={{ width: '120px', textAlign: 'center' }}>
+                      <div style={{ width: '105px', textAlign: 'center' }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '10px',
+                          background: itemType === 'Hardware' ? 'rgba(14, 165, 233, 0.12)' : (itemType === 'Software' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(16, 185, 129, 0.12)'),
+                          color: itemType === 'Hardware' ? '#38bdf8' : (itemType === 'Software' ? '#c084fc' : '#34d399'),
+                          border: `1px solid ${itemType === 'Hardware' ? 'rgba(14, 165, 233, 0.28)' : (itemType === 'Software' ? 'rgba(168, 85, 247, 0.28)' : 'rgba(16, 185, 129, 0.28)')}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {itemType === 'Hardware' ? <Cpu size={11} /> : (itemType === 'Software' ? <Monitor size={11} /> : <Wrench size={11} />)}
+                          {itemType}
+                        </span>
+                      </div>
+                      <div style={{ width: '110px', textAlign: 'center' }}>
                         <span style={{
                           fontSize: '0.72rem',
                           fontWeight: 700,
-                          padding: '3px 10px',
+                          padding: '3px 9px',
                           borderRadius: '12px',
                           background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.16)',
                           color: isOneTime ? '#fbbf24' : '#a5b4fc',
                           border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '5px'
+                          gap: '4px'
                         }}>
                           <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isOneTime ? '#fbbf24' : '#818cf8', flexShrink: 0 }}></span>
                           {isOneTime ? 'One-Time' : (cycle === 'Monthly' ? 'Monthly' : 'Annual')}
                         </span>
                       </div>
-                      <div style={{ width: '60px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
+                      <div style={{ width: '55px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
                         {q}
                       </div>
-                      <div style={{ width: '120px', textAlign: 'right', color: '#cbd5e1', fontWeight: 600, fontSize: '0.95rem' }}>
+                      <div style={{ width: '115px', textAlign: 'right', color: '#cbd5e1', fontWeight: 600, fontSize: '0.95rem' }}>
                         {p.toLocaleString()}
                       </div>
-                      <div style={{ width: '140px', textAlign: 'right', color: '#ffffff', fontWeight: 900, fontSize: '1.1rem' }}>
+                      <div style={{ width: '135px', textAlign: 'right', color: '#ffffff', fontWeight: 900, fontSize: '1.1rem' }}>
                         {(p * q).toLocaleString()}
                       </div>
                     </div>
@@ -755,16 +794,19 @@ const SharedDocument = () => {
                       <Tag size={16} color="#f59e0b" />
                       <span>SPECIAL BUNDLE DISCOUNT APPLIED</span>
                     </div>
+                    <div style={{ width: '105px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>Bundle Offer</span>
+                    </div>
                     <div style={{ width: '110px', textAlign: 'center' }}>
                       <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700 }}>Deduction</span>
                     </div>
-                    <div style={{ width: '60px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <div style={{ width: '55px', textAlign: 'center', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
                       1
                     </div>
-                    <div style={{ width: '120px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
+                    <div style={{ width: '115px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
                       - {discountAmount.toLocaleString()}
                     </div>
-                    <div style={{ width: '140px', textAlign: 'right', color: '#f59e0b', fontWeight: 900, fontSize: '1.1rem' }}>
+                    <div style={{ width: '135px', textAlign: 'right', color: '#f59e0b', fontWeight: 900, fontSize: '1.1rem' }}>
                       - LKR {discountAmount.toLocaleString()}
                     </div>
                   </div>
@@ -780,15 +822,16 @@ const SharedDocument = () => {
                 const name = getItemName(item);
                 const cycle = getItemBillingCycle(item);
                 const isOneTime = cycle === 'One-Time';
+                const itemType = getItemClassification(item);
                 return (
                   <div key={idx} style={{ 
                     padding: '14px 0', 
                     borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.08)' 
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
                       <div style={{ 
                         color: '#ffffff', 
-                        fontWeight: 800, 
+                        fontWeight: 750, 
                         fontSize: '0.92rem', 
                         textTransform: 'uppercase', 
                         letterSpacing: '0.01em',
@@ -798,22 +841,38 @@ const SharedDocument = () => {
                       }}>
                         {name}
                       </div>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.16)',
-                        color: isOneTime ? '#fbbf24' : '#a5b4fc',
-                        border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
-                        flexShrink: 0,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: isOneTime ? '#fbbf24' : '#818cf8', flexShrink: 0 }}></span>
-                        {isOneTime ? 'One-Time' : (cycle === 'Monthly' ? 'Monthly' : 'Annual')}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '8px',
+                          background: itemType === 'Hardware' ? 'rgba(14, 165, 233, 0.12)' : (itemType === 'Software' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(16, 185, 129, 0.12)'),
+                          color: itemType === 'Hardware' ? '#38bdf8' : (itemType === 'Software' ? '#c084fc' : '#34d399'),
+                          border: `1px solid ${itemType === 'Hardware' ? 'rgba(14, 165, 233, 0.28)' : (itemType === 'Software' ? 'rgba(168, 85, 247, 0.28)' : 'rgba(16, 185, 129, 0.28)')}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}>
+                          {itemType === 'Hardware' ? <Cpu size={10} /> : (itemType === 'Software' ? <Monitor size={10} /> : <Wrench size={10} />)}
+                          {itemType}
+                        </span>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '8px',
+                          background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.16)',
+                          color: isOneTime ? '#fbbf24' : '#a5b4fc',
+                          border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: isOneTime ? '#fbbf24' : '#818cf8', flexShrink: 0 }}></span>
+                          {isOneTime ? 'One-Time' : (cycle === 'Monthly' ? 'Monthly' : 'Annual')}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>
