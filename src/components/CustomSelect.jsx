@@ -241,7 +241,7 @@ const CustomSelect = ({
       className={`custom-select-container ${className}`}
       style={{
         position:   'relative',
-        minWidth:   '120px',
+        minWidth:   containerStyle.minWidth !== undefined ? containerStyle.minWidth : (containerStyle.width ? 'auto' : '120px'),
         userSelect: 'none',
         ...containerStyle
       }}

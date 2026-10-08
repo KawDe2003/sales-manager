@@ -7,32 +7,32 @@
      warm amber counterpoint for hierarchy. */
 
   /* 1. Base Backgrounds */
-  --bg-color: #0b0f14;
-  --bg-primary: #0d1218;
-  --bg-secondary: #121822;
-  --bg-tertiary: #182130;
+  --bg-color: #111a2e;
+  --bg-primary: #16223b;
+  --bg-secondary: #1c2b4a;
+  --bg-tertiary: #24375c;
 
   /* 2. Panels and Cards (Glassmorphism / Contrast) */
-  --panel-bg: rgba(24, 32, 45, 0.75);
-  --panel-border: rgba(148, 163, 184, 0.12);
-  --panel-border-highlight: rgba(99, 102, 241, 0.25);
-  --panel-glow: rgba(99, 102, 241, 0.04);
+  --panel-bg: rgba(30, 44, 72, 0.88);
+  --panel-border: rgba(148, 163, 184, 0.22);
+  --panel-border-highlight: rgba(99, 102, 241, 0.32);
+  --panel-glow: rgba(99, 102, 241, 0.08);
 
   /* 3. Typography */
-  --text-primary: #eef2f6;
-  --text-secondary: #97a3b6;
-  --text-muted: #64748b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 
   /* 4. Inputs & Shadows */
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
-  --input-bg: rgba(15, 20, 28, 0.85);
-  --input-border: rgba(148, 163, 184, 0.18);
+  --card-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.35);
+  --input-bg: rgba(33, 48, 77, 0.85);
+  --input-border: rgba(148, 163, 184, 0.26);
   --input-focus: #6366f1;
 
   /* 5. Header & Subtle Areas */
-  --subtle-bg: rgba(148, 163, 184, 0.05);
-  --subtle-border: rgba(148, 163, 184, 0.09);
-  --header-bg: rgba(11, 15, 20, 0.85);
+  --subtle-bg: rgba(148, 163, 184, 0.10);
+  --subtle-border: rgba(148, 163, 184, 0.16);
+  --header-bg: rgba(17, 26, 46, 0.92);
 
   /* 6. Brand Accents - Calm & Eye-friendly */
   --accent-primary: #4f46e5;
@@ -479,21 +479,32 @@ button, button:hover, button:focus,
 .btn-lg { height: 46px; min-height: 46px; padding: 0 24px; font-size: 0.95rem; border-radius: 12px; }
 
 /* ===== FORMS & INPUTS ===== */
-.form-group { margin-bottom: var(--space-4); }
+.form-group { 
+  margin-bottom: var(--space-4); 
+  display: flex;
+  flex-direction: column;
+}
+
+.grid > .form-group {
+  margin-bottom: 0;
+}
 
 .form-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.75rem;
   color: var(--text-secondary);
-  margin-bottom: var(--space-2);
+  margin-bottom: 6px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .form-input, .form-select, .form-textarea, select.form-input,
 input[type="text"], input[type="number"], input[type="email"], input[type="date"], input[type="password"], textarea {
   width: 100%;
+  height: 44px;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
@@ -504,6 +515,11 @@ input[type="text"], input[type="number"], input[type="email"], input[type="date"
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   box-sizing: border-box;
   outline: none;
+}
+
+textarea.form-input, textarea {
+  height: auto;
+  min-height: 80px;
 }
 
 input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="date"]:focus, input[type="password"]:focus, textarea:focus, .form-input:focus {
@@ -677,9 +693,9 @@ input[type="date"]::-webkit-datetime-edit {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(2, 6, 23, 0.88) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(15, 23, 42, 0.68) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -698,11 +714,11 @@ input[type="date"]::-webkit-datetime-edit {
 .modal-content,
 .modal-card {
   width: 100% !important;
-  background: #111827 !important; /* Fully solid opaque dark slate background */
+  background: #1e293b !important; /* Elevated lighter slate surface */
   color: var(--text-primary) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
   /* overflow:visible allows inner scrollable areas to work correctly */
   overflow: visible !important;
   display: flex !important;
@@ -735,8 +751,8 @@ input[type="date"]::-webkit-datetime-edit {
   align-items: center !important;
   justify-content: space-between !important;
   padding: 1.25rem 1.5rem !important;
-  border-bottom: 1px solid var(--panel-border) !important;
-  background: rgba(255, 255, 255, 0.02) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 [data-theme='light'] .modal-header-solid {
@@ -756,8 +772,8 @@ input[type="date"]::-webkit-datetime-edit {
   justify-content: flex-end !important;
   gap: 0.75rem !important;
   padding: 1.15rem 1.5rem !important;
-  border-top: 1px solid var(--panel-border) !important;
-  background: rgba(255, 255, 255, 0.02) !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background: rgba(15, 23, 42, 0.45) !important;
 }
 
 [data-theme='light'] .modal-footer-solid {

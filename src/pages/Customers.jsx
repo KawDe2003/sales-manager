@@ -453,53 +453,50 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
       className="modal-overlay app-modal-backdrop"
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        top: 0, left: 0, right: 0, bottom: 0,
         inset: 0,
         width: '100vw',
         height: '100dvh',
-        background: 'rgba(2, 6, 23, 0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 999999,
-        padding: '12px'
+        padding: '16px'
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div 
         className="glass-panel app-modal-dialog" 
         style={{ 
-          width: 'min(680px, calc(100vw - 20px))', 
-          maxWidth: '680px', 
+          width: 'min(700px, calc(100vw - 24px))', 
+          maxWidth: '700px', 
           maxHeight: 'min(92vh, calc(100dvh - 24px))', 
           display: 'flex', 
           flexDirection: 'column', 
           padding: 0, 
           overflow: 'hidden',
           borderRadius: '16px',
-          background: 'var(--panel-bg)',
-          border: '1px solid var(--panel-border)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)'
+          background: 'linear-gradient(180deg, #1e293b 0%, #151f32 100%)',
+          border: '1px solid rgba(148, 163, 184, 0.22)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Modal Header */}
-        <div className="modal-header" style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-          <div className="flex justify-between items-center">
+        <div className="modal-header modal-header-solid" style={{ flexShrink: 0, padding: '18px 24px', borderBottom: '1px solid rgba(148, 163, 184, 0.18)' }}>
+          <div className="flex justify-between items-center w-full">
             <div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem' }}>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc' }}>
                 {initialData ? 'Edit Enterprise Client' : 'Create New Enterprise Client'}
               </h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
                 Complete corporate details, contact person, and billing profile.
               </p>
             </div>
-            <button type="button" className="btn btn-secondary" style={{ padding: '8px' }} onClick={onClose}><X size={20} /></button>
+            <button type="button" className="btn btn-secondary" style={{ padding: '8px', borderRadius: '10px' }} onClick={onClose}><X size={20} /></button>
           </div>
         </div>
 
@@ -519,12 +516,12 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
           }} 
           style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
-          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '18px' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '22px 24px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 w-full">
               <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label className="form-label">
                   <span>Client ID / Code</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
                     <Lock size={10} /> Auto-generated (Locked)
                   </span>
                 </label>
@@ -536,8 +533,9 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                     readOnly 
                     disabled
                     style={{ 
-                      background: 'rgba(255, 255, 255, 0.03)', 
-                      borderColor: 'rgba(255, 255, 255, 0.1)', 
+                      height: '44px',
+                      background: 'rgba(255, 255, 255, 0.05)', 
+                      borderColor: 'rgba(148, 163, 184, 0.2)', 
                       color: 'var(--accent-primary)', 
                       fontWeight: 800, 
                       cursor: 'not-allowed',
@@ -554,6 +552,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                   value={formData.status} 
                   onChange={val => setFormData({...formData, status: val})}
                   options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
+                  style={{ height: '44px', width: '100%' }}
                 />
               </div>
 
@@ -563,6 +562,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                   required 
                   type="text" 
                   className="form-input" 
+                  style={{ height: '44px' }}
                   placeholder="e.g. Apex Global Technologies (Pvt) Ltd" 
                   value={formData.gymName} 
                   onChange={e => setFormData({...formData, gymName: e.target.value})} 
@@ -571,20 +571,18 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
 
               <div className="form-group">
                 <label className="form-label">Contact Person Name *</label>
-                <div className="flex gap-2 w-full">
-                  <div style={{ width: '95px', flexShrink: 0 }}>
-                    <CustomSelect
-                      value={formData.salutation || 'Mr.'}
-                      onChange={val => setFormData({ ...formData, salutation: val })}
-                      options={SALUTATION_OPTIONS}
-                      style={{ height: '42px', width: '100%' }}
-                    />
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '105px 1fr', gap: '10px', width: '100%', alignItems: 'center' }}>
+                  <CustomSelect
+                    value={formData.salutation || 'Mr.'}
+                    onChange={val => setFormData({ ...formData, salutation: val })}
+                    options={SALUTATION_OPTIONS}
+                    style={{ height: '44px', width: '100%', minWidth: '0px' }}
+                  />
                   <input 
                     required 
                     type="text" 
                     className="form-input" 
-                    style={{ height: '42px', flex: 1, minWidth: 0 }}
+                    style={{ height: '44px', width: '100%', margin: 0 }}
                     placeholder="e.g. Rohan Jayasinghe" 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})} 
@@ -594,22 +592,51 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
 
               <div className="form-group">
                 <label className="form-label">Mobile Number (07X-XXXXXXX) *</label>
-                <input required type="tel" className="form-input" placeholder="07XXXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                <input 
+                  required 
+                  type="tel" 
+                  className="form-input" 
+                  style={{ height: '44px' }}
+                  placeholder="07XXXXXXXX" 
+                  value={formData.phone} 
+                  onChange={e => setFormData({...formData, phone: e.target.value})} 
+                />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Email Address</label>
-                <input type="email" className="form-input" placeholder="contact@company.lk" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  style={{ height: '44px' }}
+                  placeholder="contact@company.lk" 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Tax / VAT Information</label>
-                <input type="text" className="form-input" placeholder="VAT-10293847-7000" value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  style={{ height: '44px' }}
+                  placeholder="VAT-10293847-7000" 
+                  value={formData.taxNumber} 
+                  onChange={e => setFormData({...formData, taxNumber: e.target.value})} 
+                />
               </div>
 
               <div className="form-group md:col-span-2">
                 <label className="form-label">Address</label>
-                <input type="text" className="form-input" placeholder="No. 123, Galle Road, Colombo 03" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  style={{ height: '44px' }}
+                  placeholder="No. 123, Galle Road, Colombo 03" 
+                  value={formData.address} 
+                  onChange={e => setFormData({...formData, address: e.target.value})} 
+                />
               </div>
 
               <div className="form-group md:col-span-2">
@@ -618,12 +645,13 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                   value={formData.leadSource} 
                   onChange={val => setFormData({...formData, leadSource: val})}
                   options={LEAD_SOURCES.map(s => ({ value: s, label: s }))}
+                  style={{ height: '44px', width: '100%' }}
                 />
               </div>
 
               {/* Tags Selection */}
-              <div className="form-group md:col-span-2">
-                <label className="form-label">Customer Tags / Labels</label>
+              <div className="form-group md:col-span-2" style={{ marginTop: '2px' }}>
+                <label className="form-label" style={{ marginBottom: '8px' }}>Customer Tags / Labels</label>
                 <div className="flex gap-2 flex-wrap">
                   {(customerTags.length > 0 ? customerTags : SEYNEX_CUSTOMER_TAGS).filter(t => t !== 'All').map(tag => {
                     const isSelected = (formData.tags || []).includes(tag);
@@ -633,21 +661,22 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                         type="button"
                         onClick={() => toggleTag(tag)}
                         style={{
-                          padding: '6px 14px',
+                          padding: '7px 14px',
                           borderRadius: '8px',
                           fontSize: '0.8rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           border: '1px solid',
-                          borderColor: isSelected ? 'var(--accent-primary)' : 'var(--panel-border)',
-                          background: isSelected ? 'var(--accent-primary)20' : 'var(--subtle-bg)',
-                          color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                          borderColor: isSelected ? 'var(--accent-primary)' : 'rgba(148, 163, 184, 0.25)',
+                          background: isSelected ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                          color: isSelected ? '#a5b4fc' : '#cbd5e1',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '6px',
+                          transition: 'all 0.18s ease'
                         }}
                       >
-                        <Tag size={12} /> {tag}
+                        <Tag size={12} style={{ opacity: isSelected ? 1 : 0.7 }} /> {tag}
                       </button>
                     );
                   })}
@@ -658,16 +687,30 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
 
           {/* Sticky Modal Footer (Actions) */}
           <div 
-            className="flex justify-end gap-3 p-4 border-t modal-footer-solid" 
+            className="flex justify-end gap-3 modal-footer-solid" 
             style={{ 
               flexShrink: 0, 
-              background: 'var(--panel-bg)', 
-              borderColor: 'var(--panel-border)',
+              background: 'rgba(21, 31, 50, 0.95)', 
+              borderTop: '1px solid rgba(148, 163, 184, 0.18)',
+              padding: '16px 24px',
               paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
             }}
           >
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Save Customer Record</button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ minWidth: '100px', height: '42px', fontWeight: 600 }}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              style={{ minWidth: '180px', height: '42px', fontWeight: 600 }}
+            >
+              Save Customer Record
+            </button>
           </div>
         </form>
       </div>
@@ -711,14 +754,14 @@ const NotesModal = ({ customer, onClose }) => {
         inset: 0,
         width: '100vw',
         height: '100dvh',
-        background: 'rgba(2, 6, 23, 0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 999999,
-        padding: '12px'
+        padding: '16px'
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -733,9 +776,9 @@ const NotesModal = ({ customer, onClose }) => {
           padding: 0,
           overflow: 'hidden',
           borderRadius: '16px',
-          background: 'var(--panel-bg)',
-          border: '1px solid var(--panel-border)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.45)'
+          background: 'linear-gradient(180deg, #1e293b 0%, #151f32 100%)',
+          border: '1px solid rgba(148, 163, 184, 0.22)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)'
         }}
         onClick={(e) => e.stopPropagation()}
       >

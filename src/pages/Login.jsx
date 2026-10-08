@@ -134,9 +134,7 @@ const Login = () => {
         if (error) throw error;
         setSuccessAnim(true);
         setMessage(`Account created for ${BUSINESS_PORTALS[targetBizId].name}! Logging you in...`);
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 450);
+        navigate('/', { replace: true });
       } else {
         const { error } = await signIn({ 
           email: cleanEmail, 
@@ -145,9 +143,7 @@ const Login = () => {
         });
         if (error) throw error;
         setSuccessAnim(true);
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 450);
+        navigate('/', { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
