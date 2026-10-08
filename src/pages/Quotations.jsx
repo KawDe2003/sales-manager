@@ -156,7 +156,13 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
   const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
   const { smsConfig = {}, invoices = [], customers = [] } = useContext(StoreContext) || {};
-  const customer = customers.find(c => c.id === quote.customerId || (c.gymName && quote.prospectName && c.gymName === quote.prospectName) || (c.name && quote.prospectName && c.name === quote.prospectName)) || {};
+  const customer = customers.find(c => 
+    (quote.customerId && c.id === quote.customerId) ||
+    (quote.customer_id && c.id === quote.customer_id) ||
+    (c.gymName && quote.prospectName && c.gymName.trim().toLowerCase() === quote.prospectName.trim().toLowerCase()) ||
+    (c.name && quote.prospectName && c.name.trim().toLowerCase() === quote.prospectName.trim().toLowerCase()) ||
+    (c.phone && quote.prospectPhone && c.phone.trim() === quote.prospectPhone.trim())
+  ) || {};
   const displayAddress = quote.prospectAddress || quote.address || customer.address || '';
   const isAccepted = quote.status === 'Accepted';
   const isRejected = quote.status === 'Rejected';
@@ -222,7 +228,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
     <div className="glass-panel hover-lift" style={{ 
       padding: '20px', 
       display: 'flex', 
-      flexDirection: 'column',
+      flexDirection: 'column', 
       gap: '20px',
       borderLeft: `4px solid ${borderLeftColor}`
     }}>
@@ -248,9 +254,22 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
               <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
               <span className="sm-hidden">{new Date(quote.date).toLocaleDateString()}</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: displayAddress ? 'var(--text-secondary)' : 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <MapPin size={11} className={displayAddress ? "text-secondary" : "text-muted"} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: displayAddress ? 600 : 400 }}>
+            <div style={{ 
+              fontSize: '0.74rem', 
+              color: displayAddress ? 'var(--text-primary)' : 'var(--text-muted)', 
+              marginTop: '5px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              background: displayAddress ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              border: `1px solid ${displayAddress ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)'}`,
+              width: 'fit-content',
+              maxWidth: '100%'
+            }}>
+              <MapPin size={11} className={displayAddress ? "text-accent" : "text-muted"} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: displayAddress ? 600 : 400 }} title={displayAddress || 'Address: None recorded'}>
                 {displayAddress ? `Address: ${displayAddress}` : 'Address: None recorded'}
               </span>
             </div>
@@ -500,11 +519,18 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
     quoteNumber: initialData?.quoteNumber || (() => {
       return getNextSequentialQuoteNumber(quotes, smsConfig).formattedNumber;
     })(),
-    date: initialData?.date || new Date().toISOString().split('T')[0], 
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    customerId: initialData?.customerId || initialData?.customer_id || '',
     prospectName: initialData?.prospectName || '', 
     prospectPhone: initialData?.prospectPhone || '',
-    prospectAddress: initialData?.prospectAddress || initialData?.address || '',
-    address: initialData?.address || initialData?.prospectAddress || '',
+    prospectAddress: initialData?.prospectAddress || initialData?.address || initialData?.prospect_address || (() => {
+      const match = customers.find(c => (initialData?.customerId && c.id === initialData.customerId) || (initialData?.prospectName && c.gymName && c.gymName.toLowerCase() === initialData.prospectName.toLowerCase()));
+      return match?.address || '';
+    })(),
+    address: initialData?.address || initialData?.prospectAddress || initialData?.prospect_address || (() => {
+      const match = customers.find(c => (initialData?.customerId && c.id === initialData.customerId) || (initialData?.prospectName && c.gymName && c.gymName.toLowerCase() === initialData.prospectName.toLowerCase()));
+      return match?.address || '';
+    })(),
     status: initialData?.status || 'Draft',
     items: initialItems,
     discount: initialDiscount,
@@ -803,6 +829,7 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                           if (sel) {
                             setFormData(prev => ({ 
                               ...prev, 
+                              customerId: sel.id,
                               prospectName: sel.gymName, 
                               prospectPhone: sel.phone || '',
                               prospectAddress: sel.address || '',

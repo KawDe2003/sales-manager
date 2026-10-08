@@ -239,9 +239,9 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const sampleMainCustomers = [
-    { id: 'mc-1', code: 'CUST-001', gymName: 'Apex Global Technologies', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2025-01-10', renewalDate: '2026-11-10', notes: [] },
-    { id: 'mc-2', code: 'CUST-002', gymName: 'Metro Commercial Logistics', name: 'Samantha Silva', email: 'samantha@metrologistics.lk', phone: '0714567890', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [] },
-    { id: 'mc-3', code: 'CUST-003', gymName: 'Horizon Financial Services', name: 'Nishan Mendis', email: 'nishan@horizonfs.lk', phone: '0765678901', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [] }
+    { id: 'mc-1', code: 'CUST-001', gymName: 'Apex Global Technologies', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', address: 'No. 128, Galle Road, Colombo 03, Sri Lanka', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2025-01-10', renewalDate: '2026-11-10', notes: [] },
+    { id: 'mc-2', code: 'CUST-002', gymName: 'Metro Commercial Logistics', name: 'Samantha Silva', email: 'samantha@metrologistics.lk', phone: '0714567890', address: 'Level 4, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [] },
+    { id: 'mc-3', code: 'CUST-003', gymName: 'Horizon Financial Services', name: 'Nishan Mendis', email: 'nishan@horizonfs.lk', phone: '0765678901', address: 'No. 45, Alfred House Gardens, Colombo 03, Sri Lanka', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [] }
   ];
 
   const sampleMainInventory = [
@@ -305,10 +305,13 @@ export default function StoreContextProvider({ children }) {
       date: '2026-09-25',
       validUntil: '2026-10-25',
       customerId: 'mc-1',
-      prospectName: 'Orion Solutions Colombo',
-      contactPerson: 'Dinesh Wickramasinghe',
-      phone: '0776789012',
-      email: 'dinesh@orionsolutions.lk',
+      prospectName: 'Apex Global Technologies',
+      contactPerson: 'Rohan Jayasinghe',
+      phone: '0773456789',
+      prospectPhone: '0773456789',
+      email: 'rohan@apexglobal.lk',
+      prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+      address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
       status: 'Sent',
       sentAt: '2026-09-25T11:00:00Z',
       amount: 520000,
@@ -331,6 +334,8 @@ export default function StoreContextProvider({ children }) {
       dueDate: '2026-10-05',
       customerId: 'mc-1',
       prospectName: 'Apex Global Technologies',
+      billingAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+      address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
       amount: 650000,
       totalAmount: 650000,
       status: 'Paid',
@@ -2368,25 +2373,37 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
-      const { error } = await supabase
+      const fullQuotePayload = {
+        id: toUuid(quote.id),
+        user_id: effId,
+        share_key: quote.shareKey || generateShareKey(),
+        quote_number: quote.quoteNumber || 'QT-1001',
+        customer_id: isUuid(quote.customerId) ? quote.customerId : null,
+        date: quote.date || new Date().toISOString().split('T')[0],
+        prospect_name: quote.prospectName || '',
+        prospect_phone: quote.prospectPhone || '',
+        prospect_address: quote.prospectAddress || quote.address || '',
+        address: quote.prospectAddress || quote.address || '',
+        amount: Number(quote.amount) || 0,
+        status: quote.status || 'Pending',
+        items: quote.items || [],
+        // Explicit invoice link fields — critical for SharedDocument status resolution
+        converted_invoice_id: quote.convertedInvoiceId || null,
+        converted_invoice_number: quote.convertedInvoiceNumber || null,
+        sent_at: quote.sentAt || null,
+        accepted_at: quote.acceptedAt || null
+      };
+
+      let { error } = await supabase
         .from('quotations')
-        .upsert({
-          id: toUuid(quote.id),
-          user_id: effId,
-          share_key: quote.shareKey || generateShareKey(),
-          quote_number: quote.quoteNumber || 'QT-1001',
-          date: quote.date || new Date().toISOString().split('T')[0],
-          prospect_name: quote.prospectName || '',
-          prospect_phone: quote.prospectPhone || '',
-          amount: Number(quote.amount) || 0,
-          status: quote.status || 'Pending',
-          items: quote.items || [],
-          // Explicit invoice link fields — critical for SharedDocument status resolution
-          converted_invoice_id: quote.convertedInvoiceId || null,
-          converted_invoice_number: quote.convertedInvoiceNumber || null,
-          sent_at: quote.sentAt || null,
-          accepted_at: quote.acceptedAt || null
-        }, { onConflict: 'id' });
+        .upsert(fullQuotePayload, { onConflict: 'id' });
+
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column'))) {
+        const { prospect_address, address, customer_id, ...coreQuote } = fullQuotePayload;
+        const fallbackRes = await supabase.from('quotations').upsert(coreQuote, { onConflict: 'id' });
+        error = fallbackRes.error;
+      }
+
       if (error) {
         console.warn('[Supabase Sync] Quote Warning:', error.message);
         setCloudSyncStatus('error');
@@ -2422,9 +2439,11 @@ export default function StoreContextProvider({ children }) {
         reminder_sent: !!invoice.reminderSent
       };
 
-      // Extended payload including optional relational fields
+      // Extended payload including optional relational and address fields
       const extendedPayload = {
         ...cleanCorePayload,
+        billing_address: invoice.billingAddress || invoice.address || '',
+        address: invoice.billingAddress || invoice.address || '',
         notes: invoice.notes || '',
         quote_ref: invoice.quoteRef || invoice.quotationNumber || null,
         quotation_number: invoice.quotationNumber || invoice.quoteRef || null,
@@ -2462,23 +2481,33 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
-      const { error } = await supabase
+      const fullCustPayload = {
+        id: toUuid(customer.id),
+        user_id: effId,
+        business_id: customer.businessId || activeBusinessId,
+        gym_name: customer.gymName || 'Client Gym',
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        address: customer.address || '',
+        dob: customer.dob || null,
+        purchase_date: customer.purchaseDate || null,
+        renewal_date: customer.renewalDate || null,
+        annual_fee: Number(customer.annualFee) || 0,
+        status: customer.status || 'Active',
+        notes: customer.notes || []
+      };
+
+      let { error } = await supabase
         .from('customers')
-        .upsert({
-          id: toUuid(customer.id),
-          user_id: effId,
-          business_id: customer.businessId || activeBusinessId,
-          gym_name: customer.gymName || 'Client Gym',
-          name: customer.name || '',
-          email: customer.email || '',
-          phone: customer.phone || '',
-          dob: customer.dob || null,
-          purchase_date: customer.purchaseDate || null,
-          renewal_date: customer.renewalDate || null,
-          annual_fee: Number(customer.annualFee) || 0,
-          status: customer.status || 'Active',
-          notes: customer.notes || []
-        }, { onConflict: 'id' });
+        .upsert(fullCustPayload, { onConflict: 'id' });
+
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('address') || error.message?.includes('column'))) {
+        const { address, ...coreCust } = fullCustPayload;
+        const fallbackRes = await supabase.from('customers').upsert(coreCust, { onConflict: 'id' });
+        error = fallbackRes.error;
+      }
+
       if (error) {
         console.warn('[Supabase Sync] Customer Warning:', error.message);
         setCloudSyncStatus('error');
@@ -3134,6 +3163,10 @@ export default function StoreContextProvider({ children }) {
               name: c.name,
               email: c.email,
               phone: c.phone,
+              address: c.address || c.street_address || '',
+              taxNumber: c.tax_number || c.taxNumber || '',
+              tags: Array.isArray(c.tags) ? c.tags : (c.tag ? [c.tag] : []),
+              leadSource: c.lead_source || c.leadSource || 'Walk-in',
               dob: c.dob,
               purchaseDate: c.purchase_date || c.purchaseDate,
               renewalDate: c.renewal_date || c.renewalDate, 
@@ -3200,13 +3233,17 @@ export default function StoreContextProvider({ children }) {
           const finalConvNum = q.converted_invoice_number || localMatch?.convertedInvoiceNumber || matchedInv?.invoice_number || null;
           const finalConvId = q.converted_invoice_id || localMatch?.convertedInvoiceId || matchedInv?.id || null;
 
+          const quoteAddress = q.prospect_address || q.address || localMatch?.prospectAddress || localMatch?.address || '';
           return {
             id: q.id,
             shareKey: q.share_key,
             quoteNumber: q.quote_number,
             date: q.date,
+            customerId: q.customer_id || localMatch?.customerId || null,
             prospectName: q.prospect_name,
             prospectPhone: q.prospect_phone,
+            prospectAddress: quoteAddress,
+            address: quoteAddress,
             amount: Number(q.amount) || 0,
             status: q.status || localMatch?.status || 'Pending',
             items: q.items || localMatch?.items || [],
@@ -3265,6 +3302,7 @@ export default function StoreContextProvider({ children }) {
             (inv.quotation_id && q.id === inv.quotation_id)
           ) : null;
 
+          const invoiceAddress = inv.billing_address || inv.address || localMatch?.billingAddress || localMatch?.address || '';
           let parsed = {
             id: inv.id,
             businessId: inv.business_id || activeBusinessId,
@@ -3277,6 +3315,8 @@ export default function StoreContextProvider({ children }) {
             status: inv.status,
             items: inv.items || localMatch?.items || [],
             prospectName: inv.prospect_name || localMatch?.prospectName || '',
+            billingAddress: invoiceAddress,
+            address: invoiceAddress,
             reminderSent: inv.reminder_sent,
             installmentPlan: (inv.installment_plan && inv.installment_plan.enabled) 
               ? inv.installment_plan 
@@ -3582,6 +3622,7 @@ export default function StoreContextProvider({ children }) {
         name: c.name || '',
         email: c.email || '',
         phone: c.phone || '',
+        address: c.address || '',
         dob: c.dob || null,
         purchase_date: c.purchaseDate || null,
         renewal_date: c.renewalDate || null,
@@ -3607,9 +3648,12 @@ export default function StoreContextProvider({ children }) {
         user_id: effId,
         share_key: q.shareKey || generateShareKey(),
         quote_number: q.quoteNumber || 'QT-1001',
+        customer_id: isUuid(q.customerId) ? q.customerId : null,
         date: q.date || new Date().toISOString().split('T')[0],
         prospect_name: q.prospectName || '',
         prospect_phone: q.prospectPhone || '',
+        prospect_address: q.prospectAddress || q.address || '',
+        address: q.prospectAddress || q.address || '',
         amount: Number(q.amount) || 0,
         status: q.status || 'Pending',
         items: q.items || []
@@ -3624,6 +3668,8 @@ export default function StoreContextProvider({ children }) {
         due_date: inv.dueDate || null,
         customer_id: isUuid(inv.customerId) ? inv.customerId : null,
         prospect_name: inv.prospectName || '',
+        billing_address: inv.billingAddress || inv.address || '',
+        address: inv.billingAddress || inv.address || '',
         amount: Number(inv.amount) || 0,
         status: inv.status || 'Draft',
         items: inv.items || [],
@@ -4196,10 +4242,19 @@ export default function StoreContextProvider({ children }) {
       finalInvoiceNumber = getNextSequentialInvoiceNumber(invoices, smsConfig).formattedNumber;
     }
     const rawAmt = Number(invoice.amount != null && !isNaN(invoice.amount) ? invoice.amount : (invoice.totalAmount != null && !isNaN(invoice.totalAmount) ? invoice.totalAmount : 0)) || 0;
+    const matchedCust = customers.find(c => 
+      (invoice.customerId && c.id === invoice.customerId) || 
+      (invoice.prospectName && c.gymName && c.gymName.toLowerCase() === invoice.prospectName.toLowerCase())
+    );
+    const resolvedAddress = invoice.billingAddress || invoice.address || matchedCust?.address || '';
+
     const newInvoice = { 
       ...invoice, 
       id: invoice.id || uuidv4(), 
       businessId: invoice.businessId || activeBusinessId,
+      customerId: invoice.customerId || matchedCust?.id || null,
+      billingAddress: resolvedAddress,
+      address: resolvedAddress,
       shareKey: invoice.shareKey || generateShareKey(), 
       invoiceNumber: finalInvoiceNumber,
       status: invoice.status || 'Sent',
@@ -4207,6 +4262,11 @@ export default function StoreContextProvider({ children }) {
       totalAmount: rawAmt,
       date: invoice.date || invoice.issueDate || new Date().toISOString().split('T')[0]
     };
+
+    if (matchedCust && !matchedCust.address && resolvedAddress) {
+      updateCustomer(matchedCust.id, { address: resolvedAddress });
+    }
+
     setInvoices(prev => [...prev, newInvoice]);
     syncInvoiceToSupabase(newInvoice);
 
@@ -4389,14 +4449,28 @@ export default function StoreContextProvider({ children }) {
     if (!finalQuoteNumber || quotes.some(q => q.quoteNumber === finalQuoteNumber)) {
       finalQuoteNumber = getNextSequentialQuoteNumber(quotes, smsConfig).formattedNumber;
     }
+    const matchedCust = customers.find(c => 
+      (quote.customerId && c.id === quote.customerId) || 
+      (quote.prospectName && c.gymName && c.gymName.toLowerCase() === quote.prospectName.toLowerCase())
+    );
+    const resolvedAddress = quote.prospectAddress || quote.address || matchedCust?.address || '';
+
     const newQuote = { 
       ...quote, 
       id: quote.id || uuidv4(), 
       businessId: quote.businessId || activeBusinessId,
+      customerId: quote.customerId || matchedCust?.id || null,
+      prospectAddress: resolvedAddress,
+      address: resolvedAddress,
       shareKey: quote.shareKey || generateShareKey(), 
       quoteNumber: finalQuoteNumber,
       status: quote.status || 'Pending' 
     };
+
+    if (matchedCust && !matchedCust.address && resolvedAddress) {
+      updateCustomer(matchedCust.id, { address: resolvedAddress });
+    }
+
     setQuotes(prev => [...prev, newQuote]);
     syncQuoteToSupabase(newQuote);
 

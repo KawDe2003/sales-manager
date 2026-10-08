@@ -402,7 +402,13 @@ const SharedDocument = () => {
     ? (docData.status === 'Received' || docData.status === 'Delivered') 
     : (docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice');
 
-  const recipientCustomer = customers.find(cust => cust.id === docData.customerId) || {};
+  const recipientCustomer = customers.find(cust => 
+    (docData.customerId && cust.id === docData.customerId) ||
+    (docData.customer_id && cust.id === docData.customer_id) ||
+    (cust.gymName && (docData.prospectName || docData.customerName) && cust.gymName.trim().toLowerCase() === (docData.prospectName || docData.customerName).trim().toLowerCase()) ||
+    (cust.name && (docData.prospectName || docData.customerName) && cust.name.trim().toLowerCase() === (docData.prospectName || docData.customerName).trim().toLowerCase()) ||
+    (cust.phone && (docData.prospectPhone || docData.customerPhone) && cust.phone.trim() === (docData.prospectPhone || docData.customerPhone).trim())
+  ) || {};
   const recipientAddress = docData.billingAddress || docData.address || docData.prospectAddress || recipientCustomer.address || (isPO ? (docData.supplierAddress || suppliers.find(s => s.id === docData.supplierId)?.address) : '');
 
   const getItemBillingCycle = (item) => {

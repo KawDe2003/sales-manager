@@ -258,7 +258,25 @@ const Customers = () => {
                   </div>
 
                   {/* Quick Contact Info */}
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                    <div style={{
+                      fontSize: '0.74rem',
+                      color: customer.address ? 'var(--text-primary)' : 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: customer.address ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      border: `1px solid ${customer.address ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)'}`,
+                      width: 'fit-content',
+                      maxWidth: '100%'
+                    }}>
+                      <MapPin size={12} className={customer.address ? "text-accent" : "text-muted"} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={customer.address || 'Address: None recorded'}>
+                        {customer.address ? customer.address : 'Address: None recorded'}
+                      </span>
+                    </div>
                     {customer.phone && <div className="flex items-center gap-2"><Phone size={12} /> {customer.phone}</div>}
                     {customer.email && <div className="flex items-center gap-2"><Mail size={12} /> {customer.email}</div>}
                     {customer.renewalFrequency && customer.renewalFrequency !== 'None' && (
@@ -958,6 +976,10 @@ const Customer360Modal = ({ customer, quotes = [], invoices = [], payments = [],
               <h2 className="h2" style={{ margin: 0, fontSize: '1.5rem' }}>{customer.gymName}</h2>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 Contact: {customer.name} • Phone: {customer.phone} • Email: {customer.email || 'N/A'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: customer.address ? 'var(--text-secondary)' : 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={13} className={customer.address ? "text-accent" : "text-muted"} />
+                <span>{customer.address ? `Address: ${customer.address}` : 'Address: None recorded'}</span>
               </div>
             </div>
 

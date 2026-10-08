@@ -553,10 +553,15 @@ Thank you for your business!`;
 const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendWhatsApp, onSendSms, onDownload, onDelete }) => {
   const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
-  const customer = customers.find(c => c.id === invoice.customerId) || 
-                   customers.find(c => c.gymName && (c.gymName === invoice.prospectName || c.gymName === invoice.customerName)) ||
-                   customers.find(c => c.name && (c.name === invoice.prospectName || c.name === invoice.customerName)) || {};
+  const customer = customers.find(c => 
+    (invoice.customerId && c.id === invoice.customerId) ||
+    (invoice.customer_id && c.id === invoice.customer_id) ||
+    (c.gymName && (invoice.prospectName || invoice.customerName) && c.gymName.trim().toLowerCase() === (invoice.prospectName || invoice.customerName).trim().toLowerCase()) ||
+    (c.name && (invoice.prospectName || invoice.customerName) && c.name.trim().toLowerCase() === (invoice.prospectName || invoice.customerName).trim().toLowerCase()) ||
+    (c.phone && invoice.prospectPhone && c.phone.trim() === invoice.prospectPhone.trim())
+  ) || {};
 
+  const displayAddress = invoice.billingAddress || invoice.address || customer.address || '';
   const invoiceAmount = Number(invoice.amount != null && !isNaN(invoice.amount) ? invoice.amount : (invoice.totalAmount != null && !isNaN(invoice.totalAmount) ? invoice.totalAmount : (invoice.items?.[0]?.amount || 0))) || 0;
 
   const historicalPayments = payments.filter(p => p.documentId === invoice.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -636,10 +641,23 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
                 </>
               )}
             </div>
-            <div style={{ fontSize: '0.75rem', color: (invoice.billingAddress || invoice.address || customer.address) ? 'var(--text-secondary)' : 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <MapPin size={11} className={(invoice.billingAddress || invoice.address || customer.address) ? "text-secondary" : "text-muted"} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: (invoice.billingAddress || invoice.address || customer.address) ? 600 : 400 }}>
-                {(invoice.billingAddress || invoice.address || customer.address) ? `Address: ${invoice.billingAddress || invoice.address || customer.address}` : 'Address: None recorded'}
+            <div style={{ 
+              fontSize: '0.74rem', 
+              color: displayAddress ? 'var(--text-primary)' : 'var(--text-muted)', 
+              marginTop: '5px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              background: displayAddress ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              border: `1px solid ${displayAddress ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)'}`,
+              width: 'fit-content',
+              maxWidth: '100%'
+            }}>
+              <MapPin size={11} className={displayAddress ? "text-accent" : "text-muted"} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: displayAddress ? 600 : 400 }} title={displayAddress || 'Address: None recorded'}>
+                {displayAddress ? `Address: ${displayAddress}` : 'Address: None recorded'}
               </span>
             </div>
           </div>
