@@ -636,14 +636,12 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
                 </>
               )}
             </div>
-            {(invoice.billingAddress || invoice.address || customer.address) && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={11} className="text-secondary" />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
-                  {invoice.billingAddress || invoice.address || customer.address}
-                </span>
-              </div>
-            )}
+            <div style={{ fontSize: '0.75rem', color: (invoice.billingAddress || invoice.address || customer.address) ? 'var(--text-secondary)' : 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={11} className={(invoice.billingAddress || invoice.address || customer.address) ? "text-secondary" : "text-muted"} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: (invoice.billingAddress || invoice.address || customer.address) ? 600 : 400 }}>
+                {(invoice.billingAddress || invoice.address || customer.address) ? `Address: ${invoice.billingAddress || invoice.address || customer.address}` : 'Address: None recorded'}
+              </span>
+            </div>
           </div>
         </div>
 

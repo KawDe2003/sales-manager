@@ -90,6 +90,8 @@ const SharedDocument = () => {
                 shareKey: data.share_key, 
                 quoteNumber: data.quote_number,
                 prospectName: data.prospect_name,
+                prospectAddress: data.prospect_address || data.address || '',
+                address: data.prospect_address || data.address || '',
                 convertedInvoiceId: data.converted_invoice_id || data.convertedInvoiceId || null,
                 convertedInvoiceNumber: data.converted_invoice_number || data.convertedInvoiceNumber || null,
                 sentAt: data.sent_at || data.sentAt || null,
@@ -277,7 +279,9 @@ const SharedDocument = () => {
                 dueDate: data.due_date,
                 customerId: data.customer_id,
                 reminderSent: data.reminder_sent,
-                prospectName: data.prospect_name
+                prospectName: data.prospect_name,
+                billingAddress: data.billing_address || data.address || '',
+                address: data.billing_address || data.address || ''
               };
             }
           }
@@ -688,6 +692,77 @@ const SharedDocument = () => {
               {smsConfig.vatNumber && (
                 <div style={{ color: 'var(--accent-primary, #059669)', fontSize: '0.75rem', fontWeight: 700, marginTop: '2px' }}>
                   VAT Reg No: {smsConfig.vatNumber}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CLIENT / BILL TO ADDRESS BAR */}
+          <div className="shared-address-bar" style={{
+            background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.9))',
+            border: '1px solid #e2e8f0',
+            borderRadius: '18px',
+            padding: '18px 24px',
+            marginBottom: '32px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '20px',
+            alignItems: 'center',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <MapPin size={13} style={{ color: '#6366f1' }} />
+                <span>{isQuote ? 'PROPOSAL PREPARED FOR / CLIENT ADDRESS' : (isPO ? 'AUTHORIZED SUPPLIER / BILL TO' : 'BILLED TO / CLIENT ADDRESS')}</span>
+              </div>
+              <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.2rem', marginBottom: '4px', letterSpacing: '-0.02em' }}>
+                {customerName}
+              </div>
+              <div style={{ color: '#475569', fontSize: '0.88rem', fontWeight: 500, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: 1.4 }}>
+                <span>{recipientAddress || 'Client address on file / Available upon request'}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                  ISSUE DATE
+                </div>
+                <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.95rem' }}>
+                  {new Date(docData.date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+
+              {(docData.dueDate || docData.validUntil) && (
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                    {isQuote ? 'OFFER VALID UNTIL' : 'PAYMENT DUE'}
+                  </div>
+                  <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.95rem' }}>
+                    {new Date(docData.dueDate || docData.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+              )}
+
+              {docData.status && (
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                    STATUS
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    background: (docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice') ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                    color: (docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice') ? '#059669' : '#4f46e5',
+                    border: `1px solid ${(docData.status === 'Paid' || docData.status === 'Accepted' || docData.status === 'Converted to Invoice') ? 'rgba(16, 185, 129, 0.25)' : 'rgba(99, 102, 241, 0.25)'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {docData.status}
+                  </span>
                 </div>
               )}
             </div>

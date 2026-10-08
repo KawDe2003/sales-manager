@@ -155,7 +155,9 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
   const navigate = useNavigate();
   const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
   const previewLink = `${shareLink}?preview=true`;
-  const { smsConfig = {}, invoices = [] } = useContext(StoreContext) || {};
+  const { smsConfig = {}, invoices = [], customers = [] } = useContext(StoreContext) || {};
+  const customer = customers.find(c => c.id === quote.customerId || (c.gymName && quote.prospectName && c.gymName === quote.prospectName) || (c.name && quote.prospectName && c.name === quote.prospectName)) || {};
+  const displayAddress = quote.prospectAddress || quote.address || customer.address || '';
   const isAccepted = quote.status === 'Accepted';
   const isRejected = quote.status === 'Rejected';
   const isExpired = quote.status === 'Expired';
@@ -246,14 +248,12 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
               <span className="sm-hidden" style={{ opacity: 0.3 }}>•</span>
               <span className="sm-hidden">{new Date(quote.date).toLocaleDateString()}</span>
             </div>
-            {(quote.prospectAddress || quote.address) && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={11} className="text-secondary" />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
-                  {quote.prospectAddress || quote.address}
-                </span>
-              </div>
-            )}
+            <div style={{ fontSize: '0.75rem', color: displayAddress ? 'var(--text-secondary)' : 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={11} className={displayAddress ? "text-secondary" : "text-muted"} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '340px', fontWeight: displayAddress ? 600 : 400 }}>
+                {displayAddress ? `Address: ${displayAddress}` : 'Address: None recorded'}
+              </span>
+            </div>
           </div>
         </div>
 
