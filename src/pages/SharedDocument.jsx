@@ -1391,61 +1391,157 @@ const SharedDocument = () => {
 
       </div>
 
+      {/* ANIMATION STYLES FOR CONFIRMATION MODAL */}
+      <style>{`
+        @keyframes confFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes confPopIn {
+          0% { opacity: 0; transform: scale(0.86) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes confCheckBounce {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.22); opacity: 1; }
+          75% { transform: scale(0.92); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes confRipple {
+          0% { transform: scale(0.85); opacity: 0.85; }
+          65% { transform: scale(1.55); opacity: 0; }
+          100% { transform: scale(1.55); opacity: 0; }
+        }
+        @keyframes confSparkFloat {
+          0% { transform: translateY(0) scale(0.8); opacity: 0.6; }
+          100% { transform: translateY(-9px) scale(1.2); opacity: 1; }
+        }
+        @keyframes confSlideUp {
+          0% { opacity: 0; transform: translateY(14px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes confShimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+
       {/* GRATITUDE MODAL */}
       {showGratitude && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(20px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px'
+          background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px',
+          animation: 'confFadeIn 0.3s ease-out forwards'
         }}>
           <div className="glass-panel" style={{ 
-            maxWidth: '480px', width: '100%', textAlign: 'center', padding: '48px 32px',
-            border: '1px solid rgba(16,185,129,0.25)', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
-            background: '#0f172a'
+            maxWidth: '490px', width: '100%', textAlign: 'center', padding: '44px 32px 36px',
+            borderRadius: '24px',
+            border: '1px solid rgba(16, 185, 129, 0.38)',
+            boxShadow: '0 32px 70px -10px rgba(0,0,0,0.7), 0 0 45px rgba(16, 185, 129, 0.22)',
+            background: 'linear-gradient(160deg, #131d31 0%, #0c1322 100%)',
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'confPopIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards'
           }}>
+            {/* Top ambient glow arc */}
             <div style={{
-              width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.14)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto'
-            }}>
-              <CheckCircle size={48} color="#10b981" />
+              position: 'absolute', top: '-55px', left: '50%', transform: 'translateX(-50%)',
+              width: '260px', height: '120px', borderRadius: '50%',
+              background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.35) 0%, transparent 70%)',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Pulsing checkmark with celebratory micro-sparks */}
+            <div style={{ position: 'relative', width: '92px', height: '92px', margin: '0 auto 24px auto' }}>
+              {/* Outer expanding halo ripple 1 */}
+              <div style={{
+                position: 'absolute', inset: '-6px', borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.28)',
+                animation: 'confRipple 2s ease-out infinite'
+              }} />
+              {/* Outer expanding halo ripple 2 */}
+              <div style={{
+                position: 'absolute', inset: '-14px', borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.16)',
+                animation: 'confRipple 2s ease-out 0.65s infinite'
+              }} />
+
+              {/* Central Glowing Icon Circle */}
+              <div style={{
+                position: 'relative', width: '100%', height: '100%', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 10px 28px rgba(16, 185, 129, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.35)',
+                animation: 'confCheckBounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both'
+              }}>
+                <CheckCircle size={50} color="#ffffff" strokeWidth={2.4} />
+              </div>
+
+              {/* Celebratory floating spark particles */}
+              <div style={{ position: 'absolute', top: '-4px', left: '-4px', width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399', animation: 'confSparkFloat 1.8s ease-in-out infinite alternate' }} />
+              <div style={{ position: 'absolute', top: '2px', right: '-6px', width: '9px', height: '9px', borderRadius: '50%', background: '#fbbf24', boxShadow: '0 0 8px #fbbf24', animation: 'confSparkFloat 2.1s ease-in-out 0.3s infinite alternate' }} />
+              <div style={{ position: 'absolute', bottom: '6px', left: '-8px', width: '9px', height: '9px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 8px #38bdf8', animation: 'confSparkFloat 1.9s ease-in-out 0.6s infinite alternate' }} />
+              <div style={{ position: 'absolute', bottom: '-2px', right: '-4px', width: '7px', height: '7px', borderRadius: '50%', background: '#a7f3d0', boxShadow: '0 0 6px #a7f3d0', animation: 'confSparkFloat 1.7s ease-in-out 0.2s infinite alternate' }} />
             </div>
-            <h2 style={{ fontSize: '1.85rem', marginBottom: '12px', color: '#ffffff', fontWeight: 900 }}>
+
+            <h2 style={{ 
+              fontSize: '1.9rem', marginBottom: '10px', color: '#ffffff', fontWeight: 900,
+              letterSpacing: '-0.02em',
+              animation: 'confSlideUp 0.4s ease-out 0.2s both'
+            }}>
               Quotation Accepted!
             </h2>
-            <p style={{ fontSize: '1rem', lineHeight: 1.6, marginBottom: '8px', color: '#cbd5e1' }}>
-              Thank you, <strong style={{ color: '#f1f5f9' }}>{customerName}</strong>! Your acceptance has been registered.
+            <p style={{ 
+              fontSize: '1.02rem', lineHeight: 1.55, marginBottom: '8px', color: '#e2e8f0',
+              animation: 'confSlideUp 0.4s ease-out 0.28s both'
+            }}>
+              Thank you, <strong style={{ color: '#38bdf8', fontWeight: 800 }}>{customerName}</strong>! Your acceptance has been registered.
             </p>
-            <p style={{ fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '28px', color: '#64748b' }}>
-              Your invoice has been <strong style={{ color: '#10b981' }}>automatically generated</strong> and our team has been notified. 
+            <p style={{ 
+              fontSize: '0.86rem', lineHeight: 1.6, marginBottom: '28px', color: '#94a3b8',
+              animation: 'confSlideUp 0.4s ease-out 0.35s both'
+            }}>
+              Your invoice has been <strong style={{ color: '#34d399' }}>automatically generated</strong> and our team has been notified. 
               You will receive your invoice shortly via WhatsApp or SMS.
             </p>
 
-            {/* Invoice link if available */}
-            {docData?.convertedInvoiceId && (
-              <a
-                href={`${window.location.origin}/share/invoice/${docData.convertedInvoiceId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-                style={{ 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  width: '100%', height: '48px', fontWeight: 800, marginBottom: '12px',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  border: 'none', textDecoration: 'none', borderRadius: '10px',
-                  color: '#fff', fontSize: '0.92rem'
-                }}
-              >
-                <Receipt size={18} /> View Your Invoice #{docData.convertedInvoiceNumber || ''}
-              </a>
-            )}
+            {/* Action buttons with staggered entrance */}
+            <div style={{ animation: 'confSlideUp 0.4s ease-out 0.42s both' }}>
+              {docData?.convertedInvoiceId && (
+                <a
+                  href={`${window.location.origin}/share/invoice/${docData.convertedInvoiceId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    width: '100%', height: '50px', fontWeight: 800, marginBottom: '12px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: 'none', textDecoration: 'none', borderRadius: '12px',
+                    color: '#fff', fontSize: '0.94rem',
+                    boxShadow: '0 8px 22px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Receipt size={19} /> View Your Invoice #{docData.convertedInvoiceNumber || ''}
+                </a>
+              )}
 
-            <button 
-              className="btn btn-secondary" 
-              style={{ width: '100%', height: '44px', fontWeight: 700, fontSize: '0.88rem' }} 
-              onClick={() => setShowGratitude(false)}
-            >
-              Close
-            </button>
+              <button 
+                className="btn btn-secondary" 
+                style={{ 
+                  width: '100%', height: '46px', fontWeight: 700, fontSize: '0.9rem',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                }} 
+                onClick={() => setShowGratitude(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1480,12 +1576,25 @@ const SharedDocument = () => {
                   await proposeBudget(docData.id || id, {
                     proposedBudget: proposedAmount,
                     message: counterMessage,
-                    preferredChanges
+                    preferredChanges,
+                    directQuote: docData
                   });
                 }
-                setDocData(prev => ({ ...prev, status: 'Counter Offer' }));
+                setDocData(prev => ({ 
+                  ...prev, 
+                  status: 'Counter Offer',
+                  lastCounterOffer: {
+                    proposedBudget: Number(proposedAmount),
+                    message: counterMessage,
+                    preferredChanges,
+                    createdAt: new Date().toISOString()
+                  }
+                }));
                 setShowProposeModal(false);
-                showNotification('Your counter offer has been submitted to management.', 'success');
+                showNotification(`Your counter offer of LKR ${Number(proposedAmount).toLocaleString()} was submitted! Owner notified via SMS.`, 'success');
+              } catch (err) {
+                console.error('Error submitting counter offer:', err);
+                showNotification('Failed to submit proposal. Please try again.', 'error');
               } finally {
                 setIsSubmitting(false);
               }
@@ -1600,7 +1709,7 @@ const SharedDocument = () => {
               setIsSubmitting(true);
               try {
                 if (rejectQuote) {
-                  await rejectQuote(docData.id || id, rejectionReason);
+                  await rejectQuote(docData.id || id, rejectionReason, docData);
                 }
                 setDocData(prev => ({ ...prev, status: 'Rejected', rejectionReason }));
                 setShowRejectModal(false);

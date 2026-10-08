@@ -132,6 +132,40 @@ const Dashboard = () => {
     return d >= start && d <= end;
   };
 
+  // Creative Lighter KPI Card Style Helper (elevated luminous slate with ambient corner aura)
+  const getKpiCardStyle = (accentColor, glowRgba, isHero = false, heroDarkBg = null) => ({
+    padding: '20px',
+    borderRadius: '16px',
+    background: isDark
+      ? (isHero && heroDarkBg
+          ? `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), ${heroDarkBg}`
+          : `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, rgba(36, 53, 85, 0.88) 0%, rgba(24, 37, 63, 0.94) 100%)`)
+      : (isHero
+          ? `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)`
+          : `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)`),
+    border: isDark
+      ? (isHero ? `1.5px solid ${accentColor}` : `1px solid rgba(148, 163, 184, 0.28)`)
+      : (isHero ? `1.5px solid ${accentColor}` : `1px solid rgba(15, 23, 42, 0.1)`),
+    boxShadow: isDark
+      ? `0 12px 28px -4px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 16px ${glowRgba}`
+      : `0 8px 24px -2px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9)`,
+    position: 'relative',
+    overflow: 'hidden'
+  });
+
+  const getKpiIconStyle = (accentColor, bgRgba) => ({
+    width: '38px',
+    height: '38px',
+    borderRadius: '11px',
+    background: bgRgba,
+    color: accentColor,
+    border: `1px solid ${isDark ? accentColor + '40' : accentColor + '30'}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: `0 4px 12px ${bgRgba}`
+  });
+
   // --- SECTION 12 MANDATORY REAL-DATABASE METRICS ---
 
   // 1. Total Customers
@@ -795,41 +829,44 @@ const Dashboard = () => {
       {/* MONTHLY REVENUE TARGET PROGRESS WIDGET */}
       {dashboardConfig?.showMonthlyTarget !== false && (
         <div className="glass-panel hover-lift" style={{
-          marginBottom: '20px',
-          padding: '20px 24px',
+          marginBottom: '22px',
+          padding: '22px 26px',
           background: isDark
-            ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%)',
-          border: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(99, 102, 241, 0.18)',
-          borderRadius: '16px',
-          boxShadow: isDark ? '0 12px 28px rgba(0, 0, 0, 0.4)' : '0 8px 20px rgba(0, 0, 0, 0.06)'
+            ? 'radial-gradient(circle at 95% 20%, rgba(99, 102, 241, 0.22) 0%, transparent 60%), linear-gradient(135deg, rgba(38, 55, 88, 0.9) 0%, rgba(24, 38, 64, 0.95) 100%)'
+            : 'radial-gradient(circle at 95% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 60%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: isDark ? '1px solid rgba(129, 140, 248, 0.35)' : '1px solid rgba(99, 102, 241, 0.2)',
+          borderRadius: '18px',
+          boxShadow: isDark
+            ? '0 16px 36px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 25px rgba(99, 102, 241, 0.15)'
+            : '0 10px 28px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
         }}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
             <div className="flex items-center gap-3">
               <div style={{
-                width: '42px', height: '42px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%)',
+                width: '44px', height: '44px', borderRadius: '13px',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.2) 100%)',
+                border: '1px solid rgba(129, 140, 248, 0.4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--accent-primary)',
-                boxShadow: '0 0 14px rgba(99, 102, 241, 0.25)'
+                color: '#a5b4fc',
+                boxShadow: '0 0 16px rgba(99, 102, 241, 0.3)'
               }}>
                 <Target size={22} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     Monthly Sales Target Goal
                   </h3>
                   <span style={{
-                    fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px',
-                    background: targetProgressPct >= 100 ? 'rgba(16, 185, 129, 0.18)' : 'rgba(99, 102, 241, 0.15)',
-                    color: targetProgressPct >= 100 ? '#10b981' : 'var(--accent-primary)',
-                    border: targetProgressPct >= 100 ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(99, 102, 241, 0.25)'
+                    fontSize: '0.72rem', fontWeight: 800, padding: '3px 9px', borderRadius: '6px',
+                    background: targetProgressPct >= 100 ? 'rgba(16, 185, 129, 0.22)' : 'rgba(99, 102, 241, 0.2)',
+                    color: targetProgressPct >= 100 ? '#34d399' : '#a5b4fc',
+                    border: targetProgressPct >= 100 ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(99, 102, 241, 0.35)'
                   }}>
                     {targetProgressPct >= 100 ? '🎉 Goal Achieved!' : `${targetProgressPct}% Achieved`}
                   </span>
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 500 }}>
                   LKR {currentMonthAchieved.toLocaleString()} collected of LKR {monthlyTarget.toLocaleString()} monthly goal
                 </p>
               </div>
@@ -837,17 +874,17 @@ const Dashboard = () => {
 
             <div className="flex items-center gap-3">
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {remainingDaysInMonth} days remaining
                 </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: remainingToTarget > 0 ? 'var(--text-secondary)' : '#10b981' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: remainingToTarget > 0 ? (isDark ? '#e2e8f0' : '#334155') : '#34d399' }}>
                   {remainingToTarget > 0 ? `LKR ${remainingToTarget.toLocaleString()} left` : 'Target surpassed!'}
                 </div>
               </div>
               <button
                 onClick={() => setShowCustomizeModal(true)}
                 className="btn btn-secondary"
-                style={{ height: '34px', padding: '0 12px', fontSize: '0.78rem', borderRadius: '8px' }}
+                style={{ height: '36px', padding: '0 14px', fontSize: '0.8rem', borderRadius: '9px', fontWeight: 600 }}
                 title="Adjust monthly target or layout"
               >
                 <Sliders size={13} /> Adjust Goal
@@ -857,8 +894,8 @@ const Dashboard = () => {
 
           {/* Target Progress Bar */}
           <div style={{
-            width: '100%', height: '10px', borderRadius: '999px',
-            background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
+            width: '100%', height: '11px', borderRadius: '999px',
+            background: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.08)',
             overflow: 'hidden', position: 'relative'
           }}>
             <div style={{
@@ -871,8 +908,8 @@ const Dashboard = () => {
                 ? 'linear-gradient(90deg, #6366f1 0%, #38bdf8 100%)'
                 : 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)',
               boxShadow: targetProgressPct >= 100
-                ? '0 0 12px rgba(16, 185, 129, 0.5)'
-                : '0 0 12px rgba(99, 102, 241, 0.4)',
+                ? '0 0 14px rgba(16, 185, 129, 0.6)'
+                : '0 0 14px rgba(99, 102, 241, 0.5)',
               transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
             }} />
           </div>
@@ -881,92 +918,91 @@ const Dashboard = () => {
 
       {/* KPI ROW 1: CUSTOMERS & PIPELINE */}
       {dashboardConfig?.showQuotationKpis !== false && (
-      <div style={{ marginBottom: '16px' }}>
-        <div className="flex justify-between items-center mb-2">
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+      <div style={{ marginBottom: '18px' }}>
+        <div className="flex justify-between items-center mb-2.5">
+          <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b' }}>
             Quotation Pipeline & Customer Base
           </div>
         </div>
 
         {/* SEYNEX ENTERPRISE QUOTATION ROW */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#38bdf8', 'rgba(56, 189, 248, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Customers</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Total Customers</span>
+              <div style={getKpiIconStyle('#38bdf8', isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(2, 132, 199, 0.12)')}>
                 <Users size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
               {totalCustomersCount}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Active Client Portfolio
             </div>
           </div>
 
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#818cf8', 'rgba(129, 140, 248, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Quotes (This Month)</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Quotes (This Month)</span>
+              <div style={getKpiIconStyle('#818cf8', isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(79, 70, 229, 0.12)')}>
                 <FileText size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
               {quotesThisMonth.length}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Total generated this month
             </div>
           </div>
 
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#34d399', 'rgba(16, 185, 129, 0.18)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Accepted Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Accepted Quotes</span>
+              <div style={getKpiIconStyle('#34d399', isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)')}>
                 <CheckCircle2 size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }}>
               {acceptedQuotesThisMonth.length}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Confirmed & Invoiced deals
             </div>
           </div>
 
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#f87171', 'rgba(244, 63, 94, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Rejected Quotes</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? 'var(--danger)' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Rejected Quotes</span>
+              <div style={getKpiIconStyle('#f87171', isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(225, 29, 72, 0.12)')}>
                 <XCircle size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isDark ? 'var(--danger)' : '#dc2626' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }}>
               {rejectedQuotesThisMonth.length}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Declined proposals
             </div>
           </div>
 
-          <div className="glass-panel hover-lift" style={{ 
-            padding: '20px', 
-            border: isDark ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(5, 150, 105, 0.35)',
-            background: isDark 
-              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.04) 100%)'
-          }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle(
+            '#34d399', 
+            'rgba(52, 211, 153, 0.25)', 
+            true, 
+            'linear-gradient(145deg, rgba(22, 64, 56, 0.9) 0%, rgba(18, 48, 44, 0.95) 100%)'
+          )}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? 'var(--success)' : '#059669' }}>Conversion Rate</span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'var(--success)' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#34d399' : '#059669' }}>Conversion Rate</span>
+              <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(52, 211, 153, 0.6)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)' }}>
                 <Target size={18} />
               </div>
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
               {quoteConversionRate}%
             </div>
-            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--success)' : '#059669', fontWeight: 700, marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#34d399' : '#059669', fontWeight: 700, marginTop: '4px' }}>
               Sent → Accepted this month
             </div>
           </div>
@@ -976,103 +1012,98 @@ const Dashboard = () => {
 
       {/* KPI ROW 2: FINANCIALS, COLLECTIONS & RENEWALS */}
       {dashboardConfig?.showFinancialKpis !== false && (
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px' }}>
+      <div style={{ marginBottom: '26px' }}>
+        <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '10px' }}>
           Revenue, Collections & Debtors
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           
           {/* Card 1: Billing */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#818cf8', 'rgba(129, 140, 248, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
                 Invoiced (Month)
               </span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.12)', color: isDark ? '#818cf8' : '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={getKpiIconStyle('#818cf8', isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(79, 70, 229, 0.12)')}>
                 <CreditCard size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
               LKR {totalInvoicedThisMonth.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Issued billing volume
             </div>
           </div>
 
           {/* Card 2: Cash Collected */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#34d399', 'rgba(16, 185, 129, 0.18)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
                 Collected (Month)
               </span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? 'var(--success)' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={getKpiIconStyle('#34d399', isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)')}>
                 <Award size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? 'var(--success)' : '#059669' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
               LKR {totalCollectedThisMonth.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Actual cash received
             </div>
           </div>
 
           {/* Card 3: Debtors */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#fbbf24', 'rgba(245, 158, 11, 0.18)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
                 Total Debtors
               </span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={getKpiIconStyle('#fbbf24', isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(217, 119, 6, 0.12)')}>
                 <Clock size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
               LKR {totalOutstandingDebtors.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Outstanding & partial dues
             </div>
           </div>
 
           {/* Card 4: Overdue */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#f87171', 'rgba(244, 63, 94, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
                 Overdue Amount
               </span>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={getKpiIconStyle('#f87171', isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(225, 29, 72, 0.12)')}>
                 <AlertCircle size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
               LKR {totalOverdueAmount.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Past due payment dates
             </div>
           </div>
 
           {/* Card 5: Renewals (Seynex) */}
-          <div className="glass-panel hover-lift" style={{ padding: '20px' }}>
+          <div className="glass-panel hover-lift" style={getKpiCardStyle('#c084fc', 'rgba(192, 132, 252, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
                 Renewals (30 Days)
               </span>
-              <div style={{ 
-                width: '36px', height: '36px', borderRadius: '10px', 
-                background: isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(147, 51, 234, 0.12)', 
-                color: isDark ? '#c084fc' : '#7c3aed', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center' 
-              }}>
+              <div style={getKpiIconStyle('#c084fc', isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(147, 51, 234, 0.12)')}>
                 <RefreshCw size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: isDark ? '#c084fc' : '#7c3aed' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#c084fc' : '#7c3aed' }}>
               {upcomingRenewalsCount}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Subscriptions due soon
             </div>
           </div>
@@ -1087,14 +1118,14 @@ const Dashboard = () => {
       {dashboardConfig?.showProfitLoss !== false && (
       <div className="glass-panel mb-8" style={{
         padding: '24px',
-        borderRadius: '18px',
+        borderRadius: '20px',
         background: isDark
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 20, 0.95) 100%)'
-          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%)',
-        border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
+          ? 'radial-gradient(circle at 95% 10%, rgba(16, 185, 129, 0.16) 0%, transparent 50%), linear-gradient(135deg, rgba(32, 48, 76, 0.9) 0%, rgba(20, 32, 54, 0.95) 100%)'
+          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%)',
+        border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(5, 150, 105, 0.25)',
         boxShadow: isDark
-          ? '0 24px 48px -12px rgba(0, 0, 0, 0.7), 0 0 25px rgba(16, 185, 129, 0.08)'
-          : '0 16px 36px -10px rgba(15, 23, 42, 0.12), 0 0 20px rgba(5, 150, 105, 0.06)'
+          ? '0 20px 48px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 30px rgba(16, 185, 129, 0.12)'
+          : '0 16px 36px -10px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
       }}>
         {/* P&L Suite Header & Period Selector */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
@@ -1102,11 +1133,11 @@ const Dashboard = () => {
             <div style={{
               width: '46px', height: '46px', borderRadius: '14px',
               background: isDark
-                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)'
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(56, 189, 248, 0.2) 100%)'
                 : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%)',
-              border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.25)',
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(16, 185, 129, 0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isDark ? '0 0 20px rgba(16, 185, 129, 0.25)' : 'none'
+              boxShadow: isDark ? '0 0 20px rgba(16, 185, 129, 0.3)' : 'none'
             }}>
               <Scale color={isDark ? "#34d399" : "#059669"} size={24} />
             </div>
@@ -1116,15 +1147,15 @@ const Dashboard = () => {
                   Executive Profit & Loss Statement (P&L)
                 </h3>
                 <span style={{
-                  fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px',
-                  background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)',
+                  fontSize: '0.62rem', fontWeight: 800, padding: '3px 9px', borderRadius: '6px',
+                  background: isDark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(5, 150, 105, 0.12)',
                   color: isDark ? '#34d399' : '#059669',
-                  border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(5, 150, 105, 0.2)'
+                  border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(5, 150, 105, 0.2)'
                 }}>
                   LKAS / SLFRS REAL-TIME
                 </span>
               </div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', margin: '3px 0 0 0' }}>
                 Turnover, Cloud Infrastructure Delivery Costs (COGS) & Operating Net Margin
               </p>
             </div>
@@ -1134,10 +1165,10 @@ const Dashboard = () => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            background: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(15, 23, 42, 0.05)',
+            background: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(15, 23, 42, 0.05)',
             padding: '4px',
-            borderRadius: '10px',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+            borderRadius: '11px',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(15, 23, 42, 0.08)',
             gap: '4px',
             flexWrap: 'wrap'
           }}>
@@ -1157,15 +1188,15 @@ const Dashboard = () => {
                     padding: '6px 13px',
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    borderRadius: '7px',
+                    borderRadius: '8px',
                     border: 'none',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     background: active 
-                      ? (isDark ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' : 'linear-gradient(135deg, #059669 0%, #0d9488 100%)')
+                      ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)'
                       : 'transparent',
-                    color: active ? '#ffffff' : (isDark ? 'var(--text-secondary)' : '#475569'),
-                    boxShadow: active ? '0 4px 12px rgba(5, 150, 105, 0.35)' : 'none'
+                    color: active ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                    boxShadow: active ? '0 4px 12px rgba(5, 150, 105, 0.4)' : 'none'
                   }}
                 >
                   {tab.label}
@@ -1181,22 +1212,27 @@ const Dashboard = () => {
           {/* Card 1: Gross Sales Revenue */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '18px', 
-            borderRadius: '14px',
-            border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(2, 132, 199, 0.2)',
-            background: isDark ? 'rgba(56, 189, 248, 0.04)' : 'rgba(2, 132, 199, 0.03)'
+            borderRadius: '16px',
+            border: isDark ? '1px solid rgba(56, 189, 248, 0.38)' : '1px solid rgba(2, 132, 199, 0.25)',
+            background: isDark 
+              ? 'radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.2) 0%, transparent 60%), linear-gradient(145deg, rgba(32, 50, 82, 0.9) 0%, rgba(22, 36, 62, 0.95) 100%)' 
+              : 'radial-gradient(circle at 85% 15%, rgba(2, 132, 199, 0.1) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%)',
+            boxShadow: isDark 
+              ? '0 10px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 16px rgba(56, 189, 248, 0.14)' 
+              : '0 8px 20px rgba(2, 132, 199, 0.08)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#38bdf8' : '#0284c7' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#38bdf8' : '#0284c7' }}>
                 Gross Sales Revenue
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.1)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: isDark ? 'rgba(56, 189, 248, 0.25)' : 'rgba(2, 132, 199, 0.12)', color: isDark ? '#38bdf8' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.4)', boxShadow: '0 4px 12px rgba(56, 189, 248, 0.25)' }}>
                 <DollarSign size={16} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
               LKR {grossRevenue.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               {periodInvoices.length} billed {periodInvoices.length === 1 ? 'order' : 'orders'} (100% Turnover)
             </div>
           </div>
@@ -1204,22 +1240,27 @@ const Dashboard = () => {
           {/* Card 2: Cost of Goods Sold (COGS) */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '18px', 
-            borderRadius: '14px',
-            border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(217, 119, 6, 0.2)',
-            background: isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(217, 119, 6, 0.03)'
+            borderRadius: '16px',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.38)' : '1px solid rgba(217, 119, 6, 0.25)',
+            background: isDark 
+              ? 'radial-gradient(circle at 85% 15%, rgba(245, 158, 11, 0.2) 0%, transparent 60%), linear-gradient(145deg, rgba(42, 48, 72, 0.9) 0%, rgba(28, 34, 54, 0.95) 100%)' 
+              : 'radial-gradient(circle at 85% 15%, rgba(217, 119, 6, 0.1) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #fffbeb 100%)',
+            boxShadow: isDark 
+              ? '0 10px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 16px rgba(245, 158, 11, 0.14)' 
+              : '0 8px 20px rgba(217, 119, 6, 0.08)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#fbbf24' : '#d97706' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#fbbf24' : '#d97706' }}>
                 Cost of Goods Sold (COGS)
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.1)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(217, 119, 6, 0.12)', color: isDark ? '#fbbf24' : '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(245, 158, 11, 0.4)', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)' }}>
                 <Layers size={16} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
               LKR {cogsBreakdown.totalCogs.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               {cogsPercentOfRev}% of Gross Revenue
             </div>
           </div>
@@ -1227,48 +1268,58 @@ const Dashboard = () => {
           {/* Card 3: Gross Operating Profit */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '18px', 
-            borderRadius: '14px',
-            border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(5, 150, 105, 0.3)',
-            background: isDark ? 'rgba(16, 185, 129, 0.06)' : 'rgba(5, 150, 105, 0.04)'
+            borderRadius: '16px',
+            border: isDark ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(5, 150, 105, 0.35)',
+            background: isDark 
+              ? 'radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.24) 0%, transparent 60%), linear-gradient(145deg, rgba(26, 56, 70, 0.9) 0%, rgba(20, 42, 54, 0.95) 100%)' 
+              : 'radial-gradient(circle at 85% 15%, rgba(5, 150, 105, 0.1) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%)',
+            boxShadow: isDark 
+              ? '0 10px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 20px rgba(16, 185, 129, 0.18)' 
+              : '0 8px 20px rgba(5, 150, 105, 0.08)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#34d399' : '#059669' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#34d399' : '#059669' }}>
                 Gross Operating Profit
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)', color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: isDark ? 'rgba(16, 185, 129, 0.25)' : 'rgba(5, 150, 105, 0.15)', color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16, 185, 129, 0.45)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}>
                 <TrendingUp size={16} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
               LKR {grossProfit.toLocaleString()}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(5, 150, 105, 0.12)', padding: '1px 6px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)', padding: '2px 7px', borderRadius: '5px' }}>
                 {grossMarginPct}% Margin
               </span>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Post-COGS</span>
+              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>Post-COGS</span>
             </div>
           </div>
 
           {/* Card 4: Operating Expenses (OPEX) */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '18px', 
-            borderRadius: '14px',
-            border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(225, 29, 72, 0.2)',
-            background: isDark ? 'rgba(239, 68, 68, 0.04)' : 'rgba(225, 29, 72, 0.03)'
+            borderRadius: '16px',
+            border: isDark ? '1px solid rgba(244, 63, 94, 0.38)' : '1px solid rgba(225, 29, 72, 0.25)',
+            background: isDark 
+              ? 'radial-gradient(circle at 85% 15%, rgba(244, 63, 94, 0.22) 0%, transparent 60%), linear-gradient(145deg, rgba(48, 38, 62, 0.9) 0%, rgba(32, 26, 46, 0.95) 100%)' 
+              : 'radial-gradient(circle at 85% 15%, rgba(225, 29, 72, 0.1) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #fff1f2 100%)',
+            boxShadow: isDark 
+              ? '0 10px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 16px rgba(244, 63, 94, 0.14)' 
+              : '0 8px 20px rgba(225, 29, 72, 0.08)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: isDark ? '#f87171' : '#dc2626' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#f87171' : '#dc2626' }}>
                 Operating Expenses (OPEX)
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.1)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(225, 29, 72, 0.12)', color: isDark ? '#f87171' : '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(244, 63, 94, 0.4)', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)' }}>
                 <Activity size={16} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
               LKR {opexBreakdown.totalOpex.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               {periodExpenses.length} expense {periodExpenses.length === 1 ? 'item' : 'items'} ({opexPercentOfRev}% of Rev)
             </div>
           </div>
@@ -1276,35 +1327,42 @@ const Dashboard = () => {
           {/* Card 5: Net Operating Profit (Bottom Line) */}
           <div className="glass-panel hover-lift" style={{ 
             padding: '18px', 
-            borderRadius: '14px',
+            borderRadius: '16px',
             border: netProfit >= 0 
-              ? (isDark ? '2px solid rgba(34, 211, 238, 0.45)' : '2px solid rgba(8, 145, 178, 0.35)')
-              : (isDark ? '2px solid rgba(239, 68, 68, 0.45)' : '2px solid rgba(225, 29, 72, 0.35)'),
+              ? (isDark ? '1.5px solid rgba(34, 211, 238, 0.55)' : '1.5px solid rgba(8, 145, 178, 0.45)')
+              : (isDark ? '1.5px solid rgba(239, 68, 68, 0.55)' : '1.5px solid rgba(225, 29, 72, 0.45)'),
             background: netProfit >= 0
-              ? (isDark ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%)' : 'linear-gradient(135deg, rgba(34, 211, 238, 0.14) 0%, rgba(6, 78, 59, 0.05) 100%)')
-              : (isDark ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(127, 29, 29, 0.2) 100%)' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(127, 29, 29, 0.05) 100%)')
+              ? (isDark 
+                  ? 'radial-gradient(circle at 85% 15%, rgba(34, 211, 238, 0.28) 0%, transparent 60%), linear-gradient(145deg, rgba(22, 60, 80, 0.92) 0%, rgba(16, 46, 64, 0.96) 100%)' 
+                  : 'radial-gradient(circle at 85% 15%, rgba(8, 145, 178, 0.14) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #ecfeff 100%)')
+              : (isDark 
+                  ? 'radial-gradient(circle at 85% 15%, rgba(239, 68, 68, 0.25) 0%, transparent 60%), linear-gradient(145deg, rgba(60, 26, 36, 0.92) 0%, rgba(42, 18, 26, 0.96) 100%)' 
+                  : 'radial-gradient(circle at 85% 15%, rgba(225, 29, 72, 0.14) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #fff1f2 100%)'),
+            boxShadow: isDark
+              ? '0 12px 28px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 25px rgba(34, 211, 238, 0.25)'
+              : '0 10px 24px rgba(8, 145, 178, 0.12)'
           }}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626') }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626') }}>
                 Net Operating Profit
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: netProfit >= 0 ? '#0891b2' : '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: netProfit >= 0 ? '#0891b2' : '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.25)', boxShadow: '0 4px 14px rgba(8, 145, 178, 0.4)' }}>
                 <Award size={16} />
               </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
               LKR {netProfit.toLocaleString()}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <span style={{ 
-                fontSize: '0.68rem', fontWeight: 800, 
+                fontSize: '0.7rem', fontWeight: 800, 
                 color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626'), 
-                background: netProfit >= 0 ? (isDark ? 'rgba(34, 211, 238, 0.15)' : 'rgba(8, 145, 178, 0.12)') : 'rgba(239, 68, 68, 0.15)', 
-                padding: '1px 6px', borderRadius: '4px' 
+                background: netProfit >= 0 ? (isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(8, 145, 178, 0.12)') : 'rgba(239, 68, 68, 0.2)', 
+                padding: '2px 7px', borderRadius: '5px' 
               }}>
                 {netMarginPct}% Net Margin
               </span>
-              <span style={{ fontSize: '0.65rem', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.68rem', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
                 {netProfit >= 0 ? '✓ Profitable' : 'Deficit'}
               </span>
             </div>
@@ -1315,10 +1373,13 @@ const Dashboard = () => {
         {/* Visual Margin Waterfall Progress Bar */}
         <div style={{ 
           marginBottom: '20px', 
-          padding: '14px 18px', 
-          borderRadius: '12px', 
-          background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
-          border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)'
+          padding: '16px 20px', 
+          borderRadius: '14px', 
+          background: isDark 
+            ? 'linear-gradient(145deg, rgba(34, 50, 80, 0.75) 0%, rgba(22, 34, 58, 0.85) 100%)' 
+            : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+          border: isDark ? '1px solid rgba(148, 163, 184, 0.18)' : '1px solid rgba(15, 23, 42, 0.08)',
+          boxShadow: isDark ? '0 6px 18px -3px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)' : '0 4px 12px rgba(0, 0, 0, 0.04)'
         }}>
           <div className="flex justify-between items-center mb-2">
             <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
@@ -1377,8 +1438,11 @@ const Dashboard = () => {
           <div style={{
             padding: '20px',
             borderRadius: '14px',
-            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)'
+            background: isDark 
+              ? 'linear-gradient(145deg, rgba(32, 48, 76, 0.78) 0%, rgba(20, 32, 54, 0.88) 100%)' 
+              : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+            border: isDark ? '1px solid rgba(148, 163, 184, 0.18)' : '1px solid rgba(15, 23, 42, 0.08)',
+            boxShadow: isDark ? '0 8px 20px -4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)' : '0 4px 12px rgba(0, 0, 0, 0.04)'
           }}>
             <div className="flex justify-between items-center mb-4 pb-2" style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
               <div>
@@ -1486,8 +1550,11 @@ const Dashboard = () => {
           <div style={{
             padding: '20px',
             borderRadius: '14px',
-            background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.08)',
+            background: isDark 
+              ? 'linear-gradient(145deg, rgba(32, 48, 76, 0.78) 0%, rgba(20, 32, 54, 0.88) 100%)' 
+              : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+            border: isDark ? '1px solid rgba(148, 163, 184, 0.18)' : '1px solid rgba(15, 23, 42, 0.08)',
+            boxShadow: isDark ? '0 8px 20px -4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)' : '0 4px 12px rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column'
           }}>

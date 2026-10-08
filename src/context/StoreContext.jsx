@@ -511,8 +511,9 @@ export default function StoreContextProvider({ children }) {
     receiptLogo: '',
     companyLogo: '',
     companyAddress: 'No. 45/A, Galle Road, Colombo 03, Sri Lanka',
-    companyPhone: '+94 11 234 5678',
-    adminPhone: '+94 11 234 5678',
+    companyPhone: '0728408880',
+    adminPhone: '0728408880',
+    ownerPhone: '0728408880',
     companyEmail: 'info@seynex.lk',
     bankDetails: {
       accountName: 'SEYNEX ENTERPRISES PVT LTD',
@@ -4650,7 +4651,7 @@ export default function StoreContextProvider({ children }) {
     const newInvoice = convertQuoteToInvoice(quote.id, acceptedQuote);
 
     // Alert Business Owner via Seynex SMS API
-    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    const recipientPhone = getOwnerMobilePhone();
     if (smsConfig.smsAlertOnAcceptance !== false && recipientPhone) {
       try {
         const smsMsg = `[SEYNEX ALERT] DEAL WON! Customer ${quote.prospectName} has ACCEPTED Quote #${quote.quoteNumber} (LKR ${(Number(quote.amount) || 0).toLocaleString()}). Auto-invoice #${newInvoice?.invoiceNumber || ''} created. Check sales portal.`;
@@ -4664,10 +4665,33 @@ export default function StoreContextProvider({ children }) {
     return { quote: acceptedQuote, invoice: newInvoice };
   };
 
-  // Customer Response: Propose Budget (Counter Offer)
-  const proposeBudget = async (quoteId, { proposedBudget, message, preferredChanges }) => {
-    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
-    if (!quote) return;
+  // Customer Response: Propose Budget (Counter Offer) - Sends SMS directly to Owner
+  const proposeBudget = async (quoteId, { proposedBudget, message, preferredChanges, directQuote } = {}) => {
+    let quote = directQuote || quotes.find(q => q.id === quoteId || q.shareKey === quoteId || q.quoteNumber === quoteId);
+    if (!quote && quoteId) {
+      try {
+        const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+        quote = localQuotes.find(q => q.id === quoteId || q.shareKey === quoteId || q.quoteNumber === quoteId);
+      } catch (e) {}
+    }
+    if (!quote && quoteId) {
+      try {
+        const { data } = await supabase.from('quotations').select('*').or(`id.eq.${quoteId},share_key.eq.${quoteId},quote_number.eq.${quoteId}`).maybeSingle();
+        if (data) {
+          quote = {
+            ...data,
+            shareKey: data.share_key,
+            quoteNumber: data.quote_number,
+            prospectName: data.prospect_name,
+            amount: data.amount
+          };
+        }
+      } catch (e) {}
+    }
+    if (!quote) {
+      console.warn('[proposeBudget] Quotation not found for ID/Key:', quoteId);
+      return null;
+    }
 
     const counterOffer = {
       id: uuidv4(),
@@ -4687,27 +4711,37 @@ export default function StoreContextProvider({ children }) {
       lastCounterOffer: counterOffer
     };
 
-    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q));
+    setQuotes(prev => {
+      const exists = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey);
+      const nextList = exists 
+        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q)
+        : [updatedQuote, ...prev];
+      try { localStorage.setItem('gym_quotes', JSON.stringify(nextList)); } catch (e) {}
+      return nextList;
+    });
     syncQuoteToSupabase(updatedQuote);
 
     addNotification({
       type: 'warning',
       title: 'Budget Proposed (Counter Offer)',
-      message: `${quote.prospectName} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} for #${quote.quoteNumber}`,
+      message: `${quote.prospectName || 'Customer'} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} for #${quote.quoteNumber}`,
       link: '/quotations',
       time: counterOffer.createdAt
     });
 
     addLog('System', `Budget Counter Offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted by ${quote.prospectName} for #${quote.quoteNumber}`);
 
-    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
-    if (smsConfig.smsAlertOnProposal !== false && recipientPhone) {
+    // DISPATCH SMS ALERT TO BUSINESS OWNER
+    const ownerMobile = getOwnerMobilePhone();
+    if (smsConfig.smsAlertOnProposal !== false && ownerMobile) {
       try {
         const diffNum = (Number(proposedBudget) || 0) - (Number(quote.amount) || 0);
-        const diffText = diffNum > 0 ? `+LKR ${diffNum.toLocaleString()}` : `-LKR ${Math.abs(diffNum).toLocaleString()}`;
-        const noteText = message ? ` Note: "${message.substring(0, 45)}"` : '';
-        const smsMsg = `[SEYNEX ALERT] COUNTER OFFER on #${quote.quoteNumber}: ${quote.prospectName} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} (Original: LKR ${(Number(quote.amount) || 0).toLocaleString()}, Diff: ${diffText}).${noteText}. Check portal.`;
-        await sendDirectSMS(recipientPhone, smsMsg);
+        const diffText = diffNum >= 0 ? `+LKR ${diffNum.toLocaleString()}` : `-LKR ${Math.abs(diffNum).toLocaleString()}`;
+        const noteText = message ? ` | Note: "${message.substring(0, 40)}"` : '';
+        const prefText = preferredChanges ? ` | Changes: "${preferredChanges.substring(0, 35)}"` : '';
+        const smsMsg = `[SEYNEX ALERT] BUDGET PROPOSED: ${quote.prospectName || 'Customer'} proposed LKR ${(Number(proposedBudget) || 0).toLocaleString()} on #${quote.quoteNumber} (Original: LKR ${(Number(quote.amount) || 0).toLocaleString()}, Diff: ${diffText}).${noteText}${prefText}. Check portal.`;
+        console.log(`[proposeBudget] Dispatching SMS to owner (${ownerMobile}):`, smsMsg);
+        await sendDirectSMS(ownerMobile, smsMsg);
       } catch (err) {
         console.warn('[QuickSend SMS Alert on Budget Proposal Error]', err);
       }
@@ -4716,7 +4750,7 @@ export default function StoreContextProvider({ children }) {
     try {
       await sendNotification({
         eventType: 'BUDGET_PROPOSED',
-        recipientPhone,
+        recipientPhone: ownerMobile,
         recipientName: quote.prospectName,
         data: {
           quoteNumber: quote.quoteNumber,
@@ -4733,13 +4767,32 @@ export default function StoreContextProvider({ children }) {
       console.warn('[Notification Error on Budget Proposal]', e);
     }
 
-    showNotification(`Counter offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted!`, 'info');
+    showNotification(`Counter offer of LKR ${(Number(proposedBudget) || 0).toLocaleString()} submitted! Owner notified via SMS.`, 'info');
     return updatedQuote;
   };
 
   // Customer Response: Reject Quotation
-  const rejectQuote = async (quoteId, reason = '') => {
-    const quote = quotes.find(q => q.id === quoteId || q.shareKey === quoteId);
+  const rejectQuote = async (quoteId, reason = '', directQuote = null) => {
+    let quote = directQuote || quotes.find(q => q.id === quoteId || q.shareKey === quoteId || q.quoteNumber === quoteId);
+    if (!quote && quoteId) {
+      try {
+        const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+        quote = localQuotes.find(q => q.id === quoteId || q.shareKey === quoteId || q.quoteNumber === quoteId);
+      } catch (e) {}
+    }
+    if (!quote && quoteId) {
+      try {
+        const { data } = await supabase.from('quotations').select('*').or(`id.eq.${quoteId},share_key.eq.${quoteId},quote_number.eq.${quoteId}`).maybeSingle();
+        if (data) {
+          quote = {
+            ...data,
+            shareKey: data.share_key,
+            quoteNumber: data.quote_number,
+            prospectName: data.prospect_name
+          };
+        }
+      } catch (e) {}
+    }
     if (!quote) return;
 
     const rejectionTime = new Date().toISOString();
@@ -4750,7 +4803,14 @@ export default function StoreContextProvider({ children }) {
       rejectionReason: reason || 'Customer declined proposal'
     };
 
-    setQuotes(prev => prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q));
+    setQuotes(prev => {
+      const exists = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey);
+      const nextList = exists
+        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? updatedQuote : q)
+        : [updatedQuote, ...prev];
+      try { localStorage.setItem('gym_quotes', JSON.stringify(nextList)); } catch (e) {}
+      return nextList;
+    });
     syncQuoteToSupabase(updatedQuote);
 
     addNotification({
@@ -4763,7 +4823,7 @@ export default function StoreContextProvider({ children }) {
 
     addLog('System', `Quotation #${quote.quoteNumber} declined by ${quote.prospectName}. Reason: ${reason || 'Not specified'}`);
 
-    const recipientPhone = smsConfig.adminPhone || smsConfig.companyPhone || '0728408880';
+    const recipientPhone = getOwnerMobilePhone();
     if (smsConfig.smsAlertOnRejection !== false && recipientPhone) {
       try {
         const reasonText = reason ? ` Reason: "${reason.substring(0, 50)}"` : '';
@@ -4901,7 +4961,7 @@ export default function StoreContextProvider({ children }) {
     });
 
     // ── NOTIFY BUSINESS OWNER VIA SMS & WHATSAPP ──────────────────────────────
-    const ownerPhone = smsConfig.adminPhone || smsConfig.companyPhone || '072 840 8880';
+    const ownerPhone = getOwnerMobilePhone();
     if (ownerPhone) {
       const ownerAlertMsg = `BUSINESS WIN: Quotation #${quoteRef} was ACCEPTED by ${quote.prospectName}!\nInvoice #${newInvoice.invoiceNumber} (Converted from Quote: #${quoteRef}) has been AUTOMATICALLY CREATED.\nAmount: LKR ${(Number(quote.amount) || 0).toLocaleString()}.\nPortal: ${window.location.origin}/share/invoice/${newInvoice.id || newInvoice.shareKey}`;
       try {
@@ -6387,7 +6447,7 @@ export default function StoreContextProvider({ children }) {
 
   // Helper to format any Sri Lankan phone number into QuickSend's mandatory format:
   // Must start with 07 and have 10 digits (e.g. 0771234567)
-  const formatPhoneForQuickSend = (rawPhone) => {
+  function formatPhoneForQuickSend(rawPhone) {
     if (!rawPhone) return '';
     let digits = String(rawPhone).trim().replace(/[^0-9]/g, '');
     
@@ -6409,7 +6469,25 @@ export default function StoreContextProvider({ children }) {
     }
     
     return digits;
-  };
+  }
+
+  // Helper to resolve the owner's valid mobile phone for internal alerts
+  function getOwnerMobilePhone() {
+    const candidates = [
+      smsConfig?.ownerPhone,
+      smsConfig?.adminPhone,
+      smsConfig?.companyPhone,
+      '0728408880'
+    ];
+    for (const raw of candidates) {
+      if (!raw) continue;
+      const formatted = formatPhoneForQuickSend(raw);
+      if (formatted && formatted.startsWith('07') && formatted.length === 10) {
+        return formatted;
+      }
+    }
+    return '0728408880';
+  }
 
   async function sendDirectSMS(phone, rawMessage) {
     try {
