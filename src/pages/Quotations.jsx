@@ -575,7 +575,8 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
         quantity: (Number(newItems[existingIndex].quantity) || 1) + 1
       };
     } else {
-      const defaultCycle = invItem.billingCycle || (invItem.type === 'Hardware' ? 'One-Time' : 'Annual');
+      const isOneTimeName = invItem.name && /(one[- ]?time|setup|install|perpetual)/i.test(invItem.name);
+      const defaultCycle = invItem.billingCycle || ((invItem.type === 'Hardware' || isOneTimeName) ? 'One-Time' : 'Annual');
       newItems.push({ ...invItem, quantity: 1, billingCycle: defaultCycle });
     }
     

@@ -401,6 +401,16 @@ const SharedDocument = () => {
   const recipientCustomer = customers.find(cust => cust.id === docData.customerId) || {};
   const recipientAddress = docData.billingAddress || docData.address || docData.prospectAddress || recipientCustomer.address || (isPO ? (docData.supplierAddress || suppliers.find(s => s.id === docData.supplierId)?.address) : '');
 
+  const getItemBillingCycle = (item) => {
+    const rawName = getItemName(item);
+    if (/(one[- ]?time|perpetual)/i.test(rawName)) return 'One-Time';
+    if (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual') return 'One-Time';
+    if (item.billingCycle === 'Monthly') return 'Monthly';
+    if (item.billingCycle === 'Annual') return 'Annual';
+    if (item.type === 'Hardware' || /(setup|install)/i.test(rawName)) return 'One-Time';
+    return 'Annual';
+  };
+
   return (
     <div className="shared-doc-wrapper" style={{ 
       minHeight: '100vh', 
@@ -413,8 +423,15 @@ const SharedDocument = () => {
       boxSizing: 'border-box',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
-      {/* Mobile Responsive Style Rules */}
+      {/* Responsive & Print Style Rules */}
       <style>{`
+        .desktop-billing-table {
+          display: block;
+        }
+        .mobile-billing-list {
+          display: none !important;
+        }
+
         @media (max-width: 640px) {
           .shared-doc-wrapper {
             padding: 16px 10px !important;
@@ -430,23 +447,6 @@ const SharedDocument = () => {
             border-radius: 18px !important;
             margin-bottom: 20px !important;
           }
-        @media print {
-          .shared-doc-wrapper {
-            background: #ffffff !important;
-            padding: 0 !important;
-          }
-          .shared-doc-card {
-            box-shadow: none !important;
-            border: none !important;
-            border-radius: 0 !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-        @media (max-width: 640px) {
           .desktop-billing-table {
             display: none !important;
           }
@@ -464,7 +464,31 @@ const SharedDocument = () => {
             border-bottom-right-radius: 20px !important;
           }
         }
+
         @media (min-width: 641px) {
+          .desktop-billing-table {
+            display: block !important;
+          }
+          .mobile-billing-list {
+            display: none !important;
+          }
+        }
+
+        @media print {
+          .shared-doc-wrapper {
+            background: #ffffff !important;
+            padding: 0 !important;
+          }
+          .shared-doc-card {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
           .desktop-billing-table {
             display: block !important;
           }
@@ -676,7 +700,8 @@ const SharedDocument = () => {
                   const p = getItemPrice(item);
                   const q = getItemQty(item);
                   const name = getItemName(item);
-                  const isOneTime = (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'));
+                  const cycle = getItemBillingCycle(item);
+                  const isOneTime = cycle === 'One-Time';
                   return (
                     <div key={idx} style={{ 
                       display: 'flex', 
@@ -684,20 +709,24 @@ const SharedDocument = () => {
                       padding: '16px 0', 
                       borderBottom: (idx === standardItems.length - 1 && discountAmount === 0) ? 'none' : '1px solid rgba(255,255,255,0.06)' 
                     }}>
-                      <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                      <div style={{ flex: 1, color: '#ffffff', fontWeight: 800, fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: '0.01em' }}>
                         {name}
                       </div>
-                      <div style={{ width: '110px', textAlign: 'center' }}>
+                      <div style={{ width: '120px', textAlign: 'center' }}>
                         <span style={{
-                          fontSize: '0.7rem',
+                          fontSize: '0.72rem',
                           fontWeight: 700,
-                          padding: '3px 8px',
+                          padding: '3px 10px',
                           borderRadius: '12px',
-                          background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.18)',
-                          color: isOneTime ? '#f59e0b' : '#a5b4fc',
-                          border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                          background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.16)',
+                          color: isOneTime ? '#fbbf24' : '#a5b4fc',
+                          border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
                         }}>
-                          {isOneTime ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual')}
+                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isOneTime ? '#fbbf24' : '#818cf8', flexShrink: 0 }}></span>
+                          {isOneTime ? 'One-Time' : (cycle === 'Monthly' ? 'Monthly' : 'Annual')}
                         </span>
                       </div>
                       <div style={{ width: '60px', textAlign: 'center', color: '#ffffff', fontWeight: 700, fontSize: '0.95rem' }}>
@@ -749,7 +778,8 @@ const SharedDocument = () => {
                 const p = getItemPrice(item);
                 const q = getItemQty(item);
                 const name = getItemName(item);
-                const isOneTime = (item.billingCycle === 'One-Time' || item.billingCycle === 'One-Time / Perpetual' || (!item.billingCycle && item.type === 'Hardware'));
+                const cycle = getItemBillingCycle(item);
+                const isOneTime = cycle === 'One-Time';
                 return (
                   <div key={idx} style={{ 
                     padding: '14px 0', 
@@ -773,12 +803,16 @@ const SharedDocument = () => {
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: '10px',
-                        background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.18)',
-                        color: isOneTime ? '#f59e0b' : '#a5b4fc',
+                        background: isOneTime ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.16)',
+                        color: isOneTime ? '#fbbf24' : '#a5b4fc',
                         border: `1px solid ${isOneTime ? 'rgba(245, 158, 11, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
-                        flexShrink: 0
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}>
-                        {isOneTime ? 'One-Time' : (item.billingCycle === 'Monthly' ? 'Monthly' : 'Annual')}
+                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: isOneTime ? '#fbbf24' : '#818cf8', flexShrink: 0 }}></span>
+                        {isOneTime ? 'One-Time' : (cycle === 'Monthly' ? 'Monthly' : 'Annual')}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
