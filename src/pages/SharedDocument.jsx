@@ -102,12 +102,32 @@ const SharedDocument = () => {
 
           if (foundDoc) {
             const qNum = String(foundDoc.quoteNumber || foundDoc.quote_number || '').trim();
+
+            // Always check Supabase to ensure freshest status (Accepted, Converted, etc.)
+            try {
+              const query = supabase.from('quotations').select('*');
+              if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
+              else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
+              const { data: cloudQuote } = await query.maybeSingle();
+              if (cloudQuote) {
+                if (['Accepted', 'Converted to Invoice', 'Counter Offer', 'Rejected'].includes(cloudQuote.status) || !foundDoc.status) {
+                  foundDoc.status = cloudQuote.status;
+                }
+                foundDoc.acceptedAt = cloudQuote.accepted_at || cloudQuote.acceptedAt || foundDoc.acceptedAt;
+                foundDoc.convertedInvoiceId = cloudQuote.converted_invoice_id || cloudQuote.convertedInvoiceId || foundDoc.convertedInvoiceId;
+                foundDoc.convertedInvoiceNumber = cloudQuote.converted_invoice_number || cloudQuote.convertedInvoiceNumber || foundDoc.convertedInvoiceNumber;
+                if (cloudQuote.last_counter_offer) {
+                  foundDoc.lastCounterOffer = cloudQuote.last_counter_offer;
+                }
+              }
+            } catch (e) {}
+
             let allInvs = Array.isArray(invoices) && invoices.length > 0 ? invoices : [];
             if (allInvs.length === 0) {
               try { allInvs = JSON.parse(localStorage.getItem('gym_invoices') || '[]'); } catch (e) {}
             }
 
-            // Strict reciprocal match: Only link if there is explicit bidirectional evidence
+            // Link matching invoice if present
             const matchingInv = allInvs.find(inv => {
               const qIdMatch = inv.quotationId && (
                 String(inv.quotationId) === String(foundDoc.id) || 
@@ -128,52 +148,48 @@ const SharedDocument = () => {
                 qIdMatch
               );
 
-              if (qIdMatch) return true;
-              if (invIdMatch && hasQuoteRef) return true;
-              if (invNumMatch && hasQuoteRef) return true;
-              return false;
+              return qIdMatch || (invIdMatch && hasQuoteRef) || (invNumMatch && hasQuoteRef);
             });
 
-            // A quote is ONLY converted if stored status is Converted to Invoice AND verified matching invoice exists
-            const isLegitConverted = Boolean(
-              foundDoc.status === 'Converted to Invoice' && matchingInv
-            );
-
-            if (isLegitConverted && matchingInv) {
-              foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber || matchingInv.invoice_number;
-              foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey;
+            if (matchingInv) {
+              foundDoc.convertedInvoiceNumber = matchingInv.invoiceNumber || matchingInv.invoice_number || foundDoc.convertedInvoiceNumber;
+              foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey || foundDoc.convertedInvoiceId;
               foundDoc.status = 'Converted to Invoice';
-            } else {
-              // Not legitimately converted — scrub any stale/polluted invoice links
-              delete foundDoc.convertedInvoiceNumber;
-              delete foundDoc.convertedInvoiceId;
-              delete foundDoc.converted_invoice_id;
-              
-              // If status was marked 'Converted to Invoice' or 'Accepted' without a verified converted invoice,
-              // reset back to the real pre-conversion status ('Sent' or 'Pending')
-              if (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') {
-                foundDoc.status = foundDoc.sentAt ? 'Sent' : 'Pending';
+            } else if (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') {
+              // If invoice details missing, query Supabase for corresponding invoice
+              if (!foundDoc.convertedInvoiceNumber || !foundDoc.convertedInvoiceId) {
+                try {
+                  const { data: invData } = await supabase
+                    .from('invoices')
+                    .select('*')
+                    .or(`quotation_id.eq.${foundDoc.id || '00000000-0000-0000-0000-000000000000'},quote_ref.eq.${qNum}`)
+                    .maybeSingle();
+                  if (invData) {
+                    foundDoc.convertedInvoiceNumber = invData.invoice_number;
+                    foundDoc.convertedInvoiceId = invData.id || invData.share_key;
+                    foundDoc.status = 'Converted to Invoice';
+                  }
+                } catch (e) {}
               }
-
-              // Self-heal localStorage so subsequent reloads stay clean
-              try {
-                const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
-                if (Array.isArray(storedQuotes)) {
-                  const cleaned = storedQuotes.map(sq => {
-                    if (sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum) {
-                      return {
-                        ...sq,
-                        status: foundDoc.status,
-                        convertedInvoiceNumber: undefined,
-                        convertedInvoiceId: undefined
-                      };
-                    }
-                    return sq;
-                  });
-                  localStorage.setItem('gym_quotes', JSON.stringify(cleaned));
-                }
-              } catch (e) {}
+              // PERMANENT: Never revert an Accepted or Converted to Invoice quote back to Sent/Pending
             }
+
+            // Sync latest quote status to localStorage so subsequent reloads stay consistent
+            try {
+              const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+              if (Array.isArray(storedQuotes)) {
+                const nextList = storedQuotes.map(sq => {
+                  if (sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum) {
+                    return { ...sq, ...foundDoc };
+                  }
+                  return sq;
+                });
+                if (!nextList.some(sq => sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum)) {
+                  nextList.unshift(foundDoc);
+                }
+                localStorage.setItem('gym_quotes', JSON.stringify(nextList));
+              }
+            } catch (e) {}
 
             setDocData(foundDoc);
             setCustomerName(foundDoc.prospectName || 'Valued Client');
@@ -1287,20 +1303,40 @@ const SharedDocument = () => {
                       onClick={async () => { 
                         setIsSubmitting(true);
                         try {
+                          let res = null;
                           if (acceptQuote) {
-                            const res = await acceptQuote(docData.id || id, '', docData);
-                            if (res?.invoice) {
-                              setDocData(prev => ({ 
-                                ...prev, 
-                                status: 'Converted to Invoice', 
-                                convertedInvoiceNumber: res.invoice.invoiceNumber,
-                                convertedInvoiceId: res.invoice.id || res.invoice.shareKey,
-                                acceptedAt: new Date().toISOString() 
-                              }));
-                            } else {
-                              setDocData(prev => ({ ...prev, status: 'Accepted', acceptedAt: new Date().toISOString() }));
-                            }
+                            res = await acceptQuote(docData.id || id, '', docData);
                           }
+                          const nowIso = new Date().toISOString();
+                          const invNum = res?.invoice?.invoiceNumber || docData.convertedInvoiceNumber || null;
+                          const invId = res?.invoice?.id || res?.invoice?.shareKey || docData.convertedInvoiceId || null;
+                          const nextStatus = invNum ? 'Converted to Invoice' : 'Accepted';
+                          
+                          const acceptedData = {
+                            ...docData,
+                            status: nextStatus,
+                            convertedInvoiceNumber: invNum,
+                            convertedInvoiceId: invId,
+                            acceptedAt: nowIso
+                          };
+
+                          setDocData(acceptedData);
+
+                          // Instantly persist in localStorage so immediate reload preserves state
+                          try {
+                            const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
+                            const nextList = storedQuotes.map(sq => {
+                              if (sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey || sq.quoteNumber === acceptedData.quoteNumber) {
+                                return { ...sq, ...acceptedData };
+                              }
+                              return sq;
+                            });
+                            if (!nextList.some(sq => sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey)) {
+                              nextList.unshift(acceptedData);
+                            }
+                            localStorage.setItem('gym_quotes', JSON.stringify(nextList));
+                          } catch (e) {}
+
                           setShowGratitude(true);
                         } finally {
                           setIsSubmitting(false);

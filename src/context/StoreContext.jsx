@@ -4627,14 +4627,45 @@ export default function StoreContextProvider({ children }) {
       acceptanceNotes: notes || quote.acceptanceNotes
     };
 
+    // 2. Automatically Convert to Invoice with Ref: QT Number and Alert Business Owner
+    const newInvoice = convertQuoteToInvoice(quote.id, acceptedQuote);
+
+    const finalQuote = {
+      ...acceptedQuote,
+      status: newInvoice ? 'Converted to Invoice' : 'Accepted',
+      convertedInvoiceId: newInvoice?.id || newInvoice?.shareKey || acceptedQuote.convertedInvoiceId || null,
+      convertedInvoiceNumber: newInvoice?.invoiceNumber || acceptedQuote.convertedInvoiceNumber || null
+    };
+
     setQuotes(prev => {
-      const updated = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey)
-        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey) ? acceptedQuote : q)
-        : [acceptedQuote, ...prev];
+      const updated = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber)
+        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber) ? finalQuote : q)
+        : [finalQuote, ...prev];
       try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
       return updated;
     });
-    syncQuoteToSupabase(acceptedQuote);
+
+    // Sync to Supabase full schema and direct update
+    syncQuoteToSupabase(finalQuote);
+    try {
+      const updateData = {
+        status: finalQuote.status,
+        accepted_at: acceptanceTime,
+        converted_invoice_id: finalQuote.convertedInvoiceId,
+        converted_invoice_number: finalQuote.convertedInvoiceNumber
+      };
+      if (isUuid(quote.id)) {
+        supabase.from('quotations').update(updateData).eq('id', quote.id).then();
+      }
+      if (quote.shareKey) {
+        supabase.from('quotations').update(updateData).eq('share_key', quote.shareKey).then();
+      }
+      if (quote.quoteNumber) {
+        supabase.from('quotations').update(updateData).eq('quote_number', quote.quoteNumber).then();
+      }
+    } catch (e) {
+      console.warn('[Direct Supabase Update on Accept Quote]:', e);
+    }
 
     // In-App Notification
     addNotification({
@@ -4646,9 +4677,6 @@ export default function StoreContextProvider({ children }) {
     });
 
     addLog('System', `Quotation #${quote.quoteNumber} ACCEPTED by customer ${quote.prospectName}`);
-
-    // 2. Automatically Convert to Invoice with Ref: QT Number and Alert Business Owner
-    const newInvoice = convertQuoteToInvoice(quote.id, acceptedQuote);
 
     // Alert Business Owner via Seynex SMS API
     const recipientPhone = getOwnerMobilePhone();
@@ -4662,7 +4690,7 @@ export default function StoreContextProvider({ children }) {
     }
 
     showNotification(`Quotation #${quote.quoteNumber} accepted! Invoice #${newInvoice?.invoiceNumber || ''} (Ref: #${quote.quoteNumber}) created automatically.`, 'success');
-    return { quote: acceptedQuote, invoice: newInvoice };
+    return { quote: finalQuote, invoice: newInvoice };
   };
 
   // Customer Response: Propose Budget (Counter Offer) - Sends SMS directly to Owner
@@ -4945,7 +4973,10 @@ export default function StoreContextProvider({ children }) {
       convertedAt: new Date().toISOString()
     };
     setQuotes(prev => {
-      const updated = prev.map(q => q.id === quote.id ? updatedQuote : q);
+      const exists = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber);
+      const updated = exists
+        ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber) ? updatedQuote : q)
+        : [updatedQuote, ...prev];
       try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
       return updated;
     });
