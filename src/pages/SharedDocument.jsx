@@ -55,72 +55,99 @@ const SharedDocument = () => {
           }
         } else if (type === 'quote') {
           const searchKey = String(id || '').trim();
-          const rawQuote = quotes.find(item => 
+
+          const STATUS_PRIORITY = {
+            'Converted to Invoice': 6,
+            'Accepted': 5,
+            'Rejected': 4,
+            'Counter Offer': 3,
+            'Expired': 2,
+            'Sent': 1,
+            'Pending': 0,
+            'Draft': 0
+          };
+          const getStatusWeight = (st) => STATUS_PRIORITY[st] ?? 0;
+
+          // 1. Context quote candidate
+          const contextQuote = quotes.find(item => 
             item.id === searchKey || 
             item.shareKey === searchKey || 
             item.quoteNumber === searchKey || 
             item.quote_number === searchKey ||
             String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
           );
-          if (rawQuote) {
-            foundDoc = { ...rawQuote };
-          }
-          if (!foundDoc) {
-            try {
-              const localQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
-              const matched = localQuotes.find(item => 
-                item.id === searchKey || 
-                item.shareKey === searchKey || 
-                item.quoteNumber === searchKey || 
-                item.quote_number === searchKey ||
-                String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
-              );
-              if (matched) foundDoc = { ...matched };
-            } catch (e) {}
-          }
-          if (!foundDoc) {
+
+          // 2. Local storage quote candidates across all known business keys
+          let localQuote = null;
+          try {
+            const cacheKeys = [
+              'gym_quotes',
+              'biz_data_biz_main_quotes',
+              'biz_data_biz_1_quotes'
+            ];
+            for (const ck of cacheKeys) {
+              const list = JSON.parse(localStorage.getItem(ck) || '[]');
+              if (Array.isArray(list)) {
+                const matched = list.find(item => 
+                  item.id === searchKey || 
+                  item.shareKey === searchKey || 
+                  item.quoteNumber === searchKey || 
+                  item.quote_number === searchKey ||
+                  String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
+                );
+                if (matched) {
+                  if (!localQuote || getStatusWeight(matched.status) > getStatusWeight(localQuote.status)) {
+                    localQuote = matched;
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+
+          // 3. Supabase authoritative quote candidate
+          let cloudQuote = null;
+          try {
             const query = supabase.from('quotations').select('*');
             if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
             else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
-
             const { data, error } = await query.maybeSingle();
             if (data && !error) {
-              foundDoc = { 
+              cloudQuote = { 
                 ...data, 
                 shareKey: data.share_key, 
                 quoteNumber: data.quote_number,
                 prospectName: data.prospect_name,
                 prospectAddress: data.prospect_address || data.address || '',
                 address: data.prospect_address || data.address || '',
-                convertedInvoiceId: data.converted_invoice_id || data.convertedInvoiceId || null,
-                convertedInvoiceNumber: data.converted_invoice_number || data.convertedInvoiceNumber || null,
-                sentAt: data.sent_at || data.sentAt || null,
-                acceptedAt: data.accepted_at || data.acceptedAt || null
+                convertedInvoiceId: data.converted_invoice_id || null,
+                convertedInvoiceNumber: data.converted_invoice_number || null,
+                sentAt: data.sent_at || null,
+                acceptedAt: data.accepted_at || null,
+                status: data.status || 'Pending'
               };
             }
+          } catch (e) {}
+
+          // 4. Merge candidates: the one with highest status priority always wins!
+          const candidates = [localQuote, contextQuote, cloudQuote].filter(Boolean);
+          if (candidates.length > 0) {
+            candidates.sort((a, b) => getStatusWeight(b.status) - getStatusWeight(a.status));
+            foundDoc = { ...candidates[0] };
+            candidates.forEach(c => {
+              if (c.convertedInvoiceNumber && !foundDoc.convertedInvoiceNumber) {
+                foundDoc.convertedInvoiceNumber = c.convertedInvoiceNumber;
+              }
+              if (c.convertedInvoiceId && !foundDoc.convertedInvoiceId) {
+                foundDoc.convertedInvoiceId = c.convertedInvoiceId;
+              }
+              if (c.acceptedAt && !foundDoc.acceptedAt) {
+                foundDoc.acceptedAt = c.acceptedAt;
+              }
+            });
           }
 
           if (foundDoc) {
             const qNum = String(foundDoc.quoteNumber || foundDoc.quote_number || '').trim();
-
-            // Always check Supabase to ensure freshest status (Accepted, Converted, etc.)
-            try {
-              const query = supabase.from('quotations').select('*');
-              if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
-              else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
-              const { data: cloudQuote } = await query.maybeSingle();
-              if (cloudQuote) {
-                if (['Accepted', 'Converted to Invoice', 'Counter Offer', 'Rejected'].includes(cloudQuote.status) || !foundDoc.status) {
-                  foundDoc.status = cloudQuote.status;
-                }
-                foundDoc.acceptedAt = cloudQuote.accepted_at || cloudQuote.acceptedAt || foundDoc.acceptedAt;
-                foundDoc.convertedInvoiceId = cloudQuote.converted_invoice_id || cloudQuote.convertedInvoiceId || foundDoc.convertedInvoiceId;
-                foundDoc.convertedInvoiceNumber = cloudQuote.converted_invoice_number || cloudQuote.convertedInvoiceNumber || foundDoc.convertedInvoiceNumber;
-                if (cloudQuote.last_counter_offer) {
-                  foundDoc.lastCounterOffer = cloudQuote.last_counter_offer;
-                }
-              }
-            } catch (e) {}
 
             let allInvs = Array.isArray(invoices) && invoices.length > 0 ? invoices : [];
             if (allInvs.length === 0) {
@@ -156,7 +183,6 @@ const SharedDocument = () => {
               foundDoc.convertedInvoiceId = matchingInv.id || matchingInv.shareKey || foundDoc.convertedInvoiceId;
               foundDoc.status = 'Converted to Invoice';
             } else if (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') {
-              // If invoice details missing, query Supabase for corresponding invoice
               if (!foundDoc.convertedInvoiceNumber || !foundDoc.convertedInvoiceId) {
                 try {
                   const { data: invData } = await supabase
@@ -171,25 +197,52 @@ const SharedDocument = () => {
                   }
                 } catch (e) {}
               }
-              // PERMANENT: Never revert an Accepted or Converted to Invoice quote back to Sent/Pending
             }
 
-            // Sync latest quote status to localStorage so subsequent reloads stay consistent
-            try {
-              const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
-              if (Array.isArray(storedQuotes)) {
-                const nextList = storedQuotes.map(sq => {
-                  if (sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum) {
-                    return { ...sq, ...foundDoc };
+            // Sync latest winning quote status to all localStorage cache keys
+            const cacheKeys = [
+              'gym_quotes',
+              'biz_data_biz_main_quotes',
+              'biz_data_biz_1_quotes'
+            ];
+            cacheKeys.forEach(k => {
+              try {
+                const storedQuotes = JSON.parse(localStorage.getItem(k) || '[]');
+                if (Array.isArray(storedQuotes)) {
+                  const nextList = storedQuotes.map(sq => {
+                    if (sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum) {
+                      return { ...sq, ...foundDoc };
+                    }
+                    return sq;
+                  });
+                  if (!nextList.some(sq => sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum)) {
+                    nextList.unshift(foundDoc);
                   }
-                  return sq;
-                });
-                if (!nextList.some(sq => sq.id === foundDoc.id || sq.shareKey === foundDoc.shareKey || sq.quoteNumber === qNum)) {
-                  nextList.unshift(foundDoc);
+                  localStorage.setItem(k, JSON.stringify(nextList));
                 }
-                localStorage.setItem('gym_quotes', JSON.stringify(nextList));
-              }
-            } catch (e) {}
+              } catch (e) {}
+            });
+
+            // If Accepted or Converted, also guarantee Supabase has it
+            if (foundDoc.status === 'Converted to Invoice' || foundDoc.status === 'Accepted') {
+              try {
+                const upData = {
+                  status: foundDoc.status,
+                  accepted_at: foundDoc.acceptedAt || new Date().toISOString(),
+                  converted_invoice_id: foundDoc.convertedInvoiceId || null,
+                  converted_invoice_number: foundDoc.convertedInvoiceNumber || null
+                };
+                if (isUUID) {
+                  supabase.from('quotations').update(upData).eq('id', foundDoc.id).then();
+                }
+                if (foundDoc.shareKey) {
+                  supabase.from('quotations').update(upData).eq('share_key', foundDoc.shareKey).then();
+                }
+                if (foundDoc.quoteNumber) {
+                  supabase.from('quotations').update(upData).eq('quote_number', foundDoc.quoteNumber).then();
+                }
+              } catch (e) {}
+            }
 
             setDocData(foundDoc);
             setCustomerName(foundDoc.prospectName || 'Valued Client');
@@ -1322,19 +1375,41 @@ const SharedDocument = () => {
 
                           setDocData(acceptedData);
 
-                          // Instantly persist in localStorage so immediate reload preserves state
-                          try {
-                            const storedQuotes = JSON.parse(localStorage.getItem('gym_quotes') || '[]');
-                            const nextList = storedQuotes.map(sq => {
-                              if (sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey || sq.quoteNumber === acceptedData.quoteNumber) {
-                                return { ...sq, ...acceptedData };
+                          // Instantly persist in all localStorage cache keys so immediate reload preserves state
+                          const cacheKeys = ['gym_quotes', 'biz_data_biz_main_quotes', 'biz_data_biz_1_quotes'];
+                          cacheKeys.forEach(k => {
+                            try {
+                              const storedQuotes = JSON.parse(localStorage.getItem(k) || '[]');
+                              const nextList = storedQuotes.map(sq => {
+                                if (sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey || sq.quoteNumber === acceptedData.quoteNumber) {
+                                  return { ...sq, ...acceptedData };
+                                }
+                                return sq;
+                              });
+                              if (!nextList.some(sq => sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey || sq.quoteNumber === acceptedData.quoteNumber)) {
+                                nextList.unshift(acceptedData);
                               }
-                              return sq;
-                            });
-                            if (!nextList.some(sq => sq.id === acceptedData.id || sq.shareKey === acceptedData.shareKey)) {
-                              nextList.unshift(acceptedData);
+                              localStorage.setItem(k, JSON.stringify(nextList));
+                            } catch (e) {}
+                          });
+
+                          // Direct cloud update to Supabase
+                          try {
+                            const upData = {
+                              status: nextStatus,
+                              accepted_at: nowIso,
+                              converted_invoice_id: invId,
+                              converted_invoice_number: invNum
+                            };
+                            if (acceptedData.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedData.id)) {
+                              supabase.from('quotations').update(upData).eq('id', acceptedData.id).then();
                             }
-                            localStorage.setItem('gym_quotes', JSON.stringify(nextList));
+                            if (acceptedData.shareKey) {
+                              supabase.from('quotations').update(upData).eq('share_key', acceptedData.shareKey).then();
+                            }
+                            if (acceptedData.quoteNumber) {
+                              supabase.from('quotations').update(upData).eq('quote_number', acceptedData.quoteNumber).then();
+                            }
                           } catch (e) {}
 
                           setShowGratitude(true);

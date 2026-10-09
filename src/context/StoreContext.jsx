@@ -661,20 +661,11 @@ export default function StoreContextProvider({ children }) {
     const activeId = getInitialActiveBusinessId();
     try {
       if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`);
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_quotes`) || localStorage.getItem('gym_quotes');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.filter(q => {
-            if (String(q.id).startsWith('q-10')) return false;
-            return true;
-          });
-          return sanitized.map(q => {
-            if ((q.id === 'q-102' || q.quoteNumber === 'QT-1002') && (q.status === 'Accepted' || q.status === 'Converted to Invoice') && !q.convertedAt) {
-              return { ...q, status: 'Sent', sentAt: q.sentAt || '2026-07-25T10:00:00Z', convertedInvoiceNumber: undefined, convertedInvoiceId: undefined };
-            }
-            return q;
-          });
+          return parsed.filter(q => q && !String(q.id).startsWith('q-10'));
         }
       }
     } catch (e) {}
@@ -3246,7 +3237,9 @@ export default function StoreContextProvider({ children }) {
             prospectAddress: quoteAddress,
             address: quoteAddress,
             amount: Number(q.amount) || 0,
-            status: q.status || localMatch?.status || 'Pending',
+            status: (['Converted to Invoice', 'Accepted'].includes(localMatch?.status))
+              ? localMatch.status
+              : (matchedInv ? 'Converted to Invoice' : (q.status || localMatch?.status || 'Pending')),
             items: q.items || localMatch?.items || [],
             validUntil: q.valid_until || localMatch?.validUntil || null,
             agreementTerms: q.agreement_terms || localMatch?.agreementTerms || '',
@@ -4641,7 +4634,13 @@ export default function StoreContextProvider({ children }) {
       const updated = prev.some(q => q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber)
         ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber) ? finalQuote : q)
         : [finalQuote, ...prev];
-      try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
+      try { 
+        localStorage.setItem('gym_quotes', JSON.stringify(updated));
+        if (typeof activeBusinessId !== 'undefined' && activeBusinessId) {
+          localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(updated));
+        }
+        localStorage.setItem('biz_data_biz_main_quotes', JSON.stringify(updated));
+      } catch(e) {}
       return updated;
     });
 
@@ -4977,7 +4976,13 @@ export default function StoreContextProvider({ children }) {
       const updated = exists
         ? prev.map(q => (q.id === quote.id || q.shareKey === quote.shareKey || q.quoteNumber === quote.quoteNumber) ? updatedQuote : q)
         : [updatedQuote, ...prev];
-      try { localStorage.setItem('gym_quotes', JSON.stringify(updated)); } catch(e) {}
+      try { 
+        localStorage.setItem('gym_quotes', JSON.stringify(updated));
+        if (typeof activeBusinessId !== 'undefined' && activeBusinessId) {
+          localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(updated));
+        }
+        localStorage.setItem('biz_data_biz_main_quotes', JSON.stringify(updated));
+      } catch(e) {}
       return updated;
     });
     syncQuoteToSupabase(updatedQuote);
