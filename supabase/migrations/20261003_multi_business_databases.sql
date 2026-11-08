@@ -1,8 +1,6 @@
 -- =========================================================================
--- MULTI-BUSINESS DUAL-DATABASE ARCHITECTURE & PARTITIONING MIGRATION
--- Enables Strict Data Isolation between:
--- 1. Seynex Enterprises ('biz_main')
--- 2. Royal Hair Pin Industries ('biz_hairpins')
+-- SEYNEX ENTERPRISES DEDICATED DATABASE ARCHITECTURE MIGRATION
+-- Enterprise single-business setup for Seynex Enterprises ('biz_main')
 -- =========================================================================
 
 -- Enable UUID extension
@@ -42,45 +40,7 @@ ALTER TABLE IF EXISTS activity_logs
 ALTER TABLE IF EXISTS user_profiles 
     ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 
--- 2. CREATE MANUFACTURING & PROCUREMENT TABLES (IF NOT ALREADY PRESENT)
-
--- Bill of Materials (BOM) Table
-CREATE TABLE IF NOT EXISTS boms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
-    user_id UUID,
-    name TEXT NOT NULL,
-    output_product_id TEXT,
-    output_qty NUMERIC DEFAULT 1,
-    output_unit TEXT DEFAULT 'Card (10 Pins)',
-    estimated_labor_cost NUMERIC DEFAULT 0,
-    estimated_overhead_cost NUMERIC DEFAULT 0,
-    components JSONB DEFAULT '[]'::jsonb,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- Production Orders (Manufacturing MO) Table
-CREATE TABLE IF NOT EXISTS production_orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_hairpins',
-    user_id UUID,
-    mo_number TEXT NOT NULL,
-    bom_id UUID,
-    bom_name TEXT,
-    target_qty NUMERIC DEFAULT 100,
-    produced_qty NUMERIC DEFAULT 0,
-    status TEXT DEFAULT 'Scheduled', -- Scheduled, In Production, Completed, Cancelled
-    start_date DATE,
-    due_date DATE,
-    completion_date DATE,
-    unit_cost NUMERIC DEFAULT 0,
-    total_cost NUMERIC DEFAULT 0,
-    assigned_worker TEXT,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+-- 2. CREATE PROCUREMENT TABLES (IF NOT ALREADY PRESENT)
 
 -- Suppliers Table
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -126,13 +86,10 @@ CREATE INDEX IF NOT EXISTS idx_payments_biz_id ON payments (business_id, created
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_biz_id ON fixed_assets (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_biz_id ON tasks (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_biz_id ON activity_logs (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_boms_biz_id ON boms (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_production_orders_biz_id ON production_orders (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_biz_id ON purchase_orders (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_suppliers_biz_id ON suppliers (business_id, created_at DESC);
 
 -- 4. ROW-LEVEL SECURITY (RLS) POLICIES
--- Enables optional strict multi-tenant isolation even when hosted in a single Supabase project
 ALTER TABLE IF EXISTS customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS invoices ENABLE ROW LEVEL SECURITY;

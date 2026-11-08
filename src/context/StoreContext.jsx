@@ -439,69 +439,6 @@ export default function StoreContextProvider({ children }) {
     { id: 'mjl-8', journalEntryId: 'mje-4', accountId: '1020', debit: 0, credit: 85000 }
   ];
 
-  const sampleMainBOMs = [
-    {
-      id: 'mbom-1',
-      code: 'BOM-2001',
-      productSku: 'SYS-CLD-ERP',
-      name: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
-      productName: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
-      productCategory: 'Turnkey Solutions',
-      outputUnit: 'Packages',
-      batchYield: 1,
-      components: [
-        { name: 'Commercial Network Security Gateway', materialName: 'Commercial Network Security Gateway', materialSku: 'HW-SEC-01', quantity: 1, unit: 'unit', unitCost: 98000, totalCost: 98000 },
-        { name: 'Enterprise Cloud ERP License (Annual)', materialName: 'Enterprise Cloud ERP License (Annual)', materialSku: 'SW-LIC-01', quantity: 1, unit: 'license', unitCost: 65000, totalCost: 65000 },
-        { name: 'Cloud Automated Backup Storage 1TB', materialName: 'Cloud Automated Backup Storage 1TB', materialSku: 'CLD-BKP-01', quantity: 1, unit: 'service', unitCost: 14000, totalCost: 14000 }
-      ],
-      laborHours: 8,
-      laborRatePerHour: 2500,
-      laborCost: 20000,
-      overheadCost: 15000,
-      machineOverhead: 15000,
-      materialCostPerUnit: 177000,
-      totalCost: 212000,
-      totalCostPerUnit: 212000,
-      suggestedPrice: 325000,
-      suggestedRetailPrice: 325000,
-      marginPercent: 35,
-      routing: ['Hardware Provisioning & Hardening', 'ERP Instance Cloud Staging', 'VPN & SSL Security Setup', 'Client User Onboarding & Handover'],
-      notes: 'Ready-to-deploy enterprise on-premise + cloud hybrid bundle.'
-    }
-  ];
-
-  const sampleMainProductionOrders = [
-    {
-      id: 'mmo-1',
-      orderNumber: 'SYS-2026-001',
-      bomId: 'mbom-1',
-      productName: 'Turnkey Cloud ERP Deployment Kit (Server + License + SLA)',
-      productSku: 'SYS-CLD-ERP',
-      quantity: 1,
-      quantityToProduce: 1,
-      status: 'Completed',
-      priority: 'High',
-      startDate: '2026-09-18',
-      dueDate: '2026-09-20',
-      assignedTo: 'Cloud DevOps Team',
-      supervisor: 'Senior Solutions Architect',
-      workstation: 'Staging Lab 1',
-      materialCost: 177000,
-      laborCost: 20000,
-      overheadCost: 15000,
-      totalCost: 212000,
-      totalBatchCost: 212000,
-      costPerUnit: 212000,
-      unitCost: 212000,
-      batchNumber: 'DEPLOY-2026-01',
-      components: sampleMainBOMs[0].components,
-      qcPassedQty: 1,
-      qcRejectedQty: 0,
-      qcInspector: 'Principal Architect',
-      notes: 'Successfully deployed and certified for Apex Global Technologies.'
-    }
-  ];
-
   const DEFAULT_MAIN_SMS_CONFIG = {
     apiKey: '2179165276941c4e5eb994053957585',
     email: 'info@seynex.lk',
@@ -556,19 +493,7 @@ export default function StoreContextProvider({ children }) {
 
   const DEFAULT_SMS_CONFIG = DEFAULT_MAIN_SMS_CONFIG;
 
-  const [businesses, setBusinesses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('app_businesses');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter(b => b.id === 'biz_main');
-          if (filtered.length > 0) return filtered;
-        }
-      }
-    } catch (e) {}
-    return DEFAULT_BUSINESSES;
-  });
+  const [businesses, setBusinesses] = useState(DEFAULT_BUSINESSES);
 
   const getInitialActiveBusinessId = () => 'biz_main';
 
@@ -585,9 +510,6 @@ export default function StoreContextProvider({ children }) {
           const sanitized = parsed.filter(c => {
             if (!c) return false;
             if (c.businessId && c.businessId !== 'biz_main') return false;
-            if (String(c.id).startsWith('c-10')) return false;
-            const n = (c.gymName || c.name || '').toLowerCase();
-            if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
             return true;
           });
           // Ensure clean sequential codes starting from 1 (CUST-001, CUST-002, ...)
@@ -610,17 +532,11 @@ export default function StoreContextProvider({ children }) {
     const activeId = getInitialActiveBusinessId();
     try {
       if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`);
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_inventory`) || localStorage.getItem('gym_inventory');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.filter(i => {
-            if (String(i.id).startsWith('inv-10')) return false;
-            const n = (i.name || '').toLowerCase();
-            if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
-            return true;
-          });
-          return sanitized;
+          return parsed.filter(i => !i.businessId || i.businessId === 'biz_main');
         }
       }
     } catch (e) {}
@@ -631,17 +547,11 @@ export default function StoreContextProvider({ children }) {
     const activeId = getInitialActiveBusinessId();
     try {
       if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`);
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_invoices`) || localStorage.getItem('gym_invoices');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.filter(inv => {
-            if (inv.businessId && inv.businessId !== 'biz_main') return false;
-            if (String(inv.id).startsWith('inv-20')) return false;
-            const p = (inv.prospectName || inv.customerName || '').toLowerCase();
-            if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
-            return true;
-          });
+          const sanitized = parsed.filter(inv => !inv.businessId || inv.businessId === 'biz_main');
           return sanitized.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
             const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
@@ -665,7 +575,7 @@ export default function StoreContextProvider({ children }) {
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(q => q && !String(q.id).startsWith('q-10'));
+          return parsed.filter(q => q && (!q.businessId || q.businessId === 'biz_main'));
         }
       }
     } catch (e) {}
@@ -676,15 +586,11 @@ export default function StoreContextProvider({ children }) {
     const activeId = getInitialActiveBusinessId();
     try {
       if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`);
+      const bizSaved = localStorage.getItem(`biz_data_${activeId}_leads`) || localStorage.getItem('gym_leads');
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.filter(l => {
-            if (String(l.id).startsWith('lead-')) return false;
-            return true;
-          });
-          return sanitized;
+          return parsed.filter(l => !l.businessId || l.businessId === 'biz_main');
         }
       }
     } catch (e) {}
@@ -699,15 +605,9 @@ export default function StoreContextProvider({ children }) {
     return [];
   });
 
-  const sanitizeExpensesByBiz = (list, bizId) => {
+  const sanitizeExpensesByBiz = (list) => {
     if (!Array.isArray(list)) return [];
-    return list.filter(e => {
-      if (e.businessId && e.businessId !== 'biz_main') return false;
-      if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
-      const desc = (e.description || '').toLowerCase();
-      if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
-      return true;
-    });
+    return list.filter(e => !e.businessId || e.businessId === 'biz_main');
   };
 
   const [expenses, setExpenses] = useState(() => {
@@ -786,82 +686,6 @@ export default function StoreContextProvider({ children }) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) return parsed;
       }
-    } catch (e) {}
-    return [];
-  });
-
-  // --- MANUFACTURING & PRODUCTION (BOM) ERP STATE ---
-
-  const normalizeBOM = (b) => ({
-    ...b,
-    id: b.id || `bom-${Date.now()}`,
-    code: b.code || b.productSku || 'BOM-GEN',
-    productSku: b.productSku || b.code || 'BOM-GEN',
-    name: b.name || b.productName || 'Custom Formulation',
-    productName: b.productName || b.name || 'Custom Formulation',
-    outputUnit: b.outputUnit || 'Units',
-    batchYield: Number(b.batchYield || 1),
-    totalCost: Number(b.totalCost || b.totalCostPerUnit || 0),
-    totalCostPerUnit: Number(b.totalCostPerUnit || b.totalCost || 0),
-    materialCostPerUnit: Number(b.materialCostPerUnit || 0),
-    laborCost: Number(b.laborCost || 0),
-    overheadCost: Number(b.overheadCost || b.machineOverhead || 0),
-    machineOverhead: Number(b.machineOverhead || b.overheadCost || 0),
-    suggestedPrice: Number(b.suggestedPrice || b.suggestedRetailPrice || 0),
-    suggestedRetailPrice: Number(b.suggestedRetailPrice || b.suggestedPrice || 0),
-    marginPercent: Number(b.marginPercent || 0),
-    components: (b.components || []).map(c => ({
-      ...c,
-      name: c.name || c.materialName || 'Component',
-      materialName: c.materialName || c.name || 'Component',
-      materialSku: c.materialSku || c.sku || '',
-      quantity: Number(c.quantity || 1),
-      unit: c.unit || 'pcs',
-      unitCost: Number(c.unitCost || 0),
-      totalCost: Number(c.totalCost || (Number(c.quantity || 1) * Number(c.unitCost || 0)))
-    }))
-  });
-
-  const normalizeProductionOrder = (o) => ({
-    ...o,
-    id: o.id || `mo-${Date.now()}`,
-    orderNumber: o.orderNumber || `MO-${new Date().getFullYear()}-001`,
-    bomId: o.bomId || 'bom-1',
-    productName: o.productName || o.name || 'Finished Product',
-    productSku: o.productSku || o.code || '',
-    quantity: Number(o.quantity || o.quantityToProduce || 1),
-    quantityToProduce: Number(o.quantityToProduce || o.quantity || 1),
-    status: o.status || 'Planned',
-    priority: o.priority || 'Normal',
-    batchNumber: o.batchNumber || `LOT-${new Date().getFullYear()}-01`,
-    startDate: o.startDate || new Date().toISOString().split('T')[0],
-    dueDate: o.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    assignedTo: o.assignedTo || o.supervisor || o.workstation || 'Assembly Line 1',
-    supervisor: o.supervisor || o.assignedTo || 'Line Supervisor',
-    costPerUnit: Number(o.costPerUnit || o.unitCost || 0),
-    unitCost: Number(o.unitCost || o.costPerUnit || 0),
-    totalCost: Number(o.totalCost || o.totalBatchCost || 0),
-    totalBatchCost: Number(o.totalBatchCost || o.totalCost || 0),
-    components: o.components || [],
-    notes: o.notes || ''
-  });
-
-  const [boms, setBoms] = useState(() => {
-    try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_boms`);
-      if (bizSaved) return JSON.parse(bizSaved).map(normalizeBOM);
-    } catch (e) {}
-    return [];
-  });
-
-  const [productionOrders, setProductionOrders] = useState(() => {
-    try {
-      const activeId = localStorage.getItem('active_business_id') || 'biz_main';
-      if (localStorage.getItem(`biz_data_${activeId}_erased`) === 'true') return [];
-      const bizSaved = localStorage.getItem(`biz_data_${activeId}_productionOrders`);
-      if (bizSaved) return JSON.parse(bizSaved).map(normalizeProductionOrder);
     } catch (e) {}
     return [];
   });
@@ -1100,7 +924,6 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const defaultFeatureToggles = {
-    manufacturing: true,
     procurement: true,
     hrPayroll: true,
     fixedAssets: true,
@@ -1277,8 +1100,6 @@ export default function StoreContextProvider({ children }) {
 
   useEffect(() => { localStorage.setItem('gym_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
   useEffect(() => { localStorage.setItem('gym_purchase_orders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
-  useEffect(() => { localStorage.setItem('gym_boms', JSON.stringify(boms)); }, [boms]);
-  useEffect(() => { localStorage.setItem('gym_production_orders', JSON.stringify(productionOrders)); }, [productionOrders]);
   useEffect(() => { localStorage.setItem('gym_employees', JSON.stringify(employees)); }, [employees]);
   useEffect(() => { localStorage.setItem('gym_payruns', JSON.stringify(payruns)); }, [payruns]);
   useEffect(() => { localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
@@ -1631,24 +1452,6 @@ export default function StoreContextProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('gym_boms', JSON.stringify(boms));
-      if (activeBusinessId) {
-        localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
-      }
-    } catch (e) {}
-  }, [boms, activeBusinessId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('gym_production_orders', JSON.stringify(productionOrders));
-      if (activeBusinessId) {
-        localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
-      }
-    } catch (e) {}
-  }, [productionOrders, activeBusinessId]);
-
-  useEffect(() => {
-    try {
       localStorage.setItem('gym_payments', JSON.stringify(payments));
       if (activeBusinessId) {
         localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(payments));
@@ -1674,286 +1477,81 @@ export default function StoreContextProvider({ children }) {
     } catch (e) {}
   }, [tasks, activeBusinessId]);
 
-  // Load business dataset by ID
-  const loadBusinessData = (businessId) => {
-    const isErased = localStorage.getItem(`biz_data_${businessId}_erased`) === 'true';
-
-    if (businessId === 'biz_main') {
-      const savedCust = localStorage.getItem('biz_data_biz_main_customers');
-      const savedInv = localStorage.getItem('biz_data_biz_main_inventory');
-      const savedLeads = localStorage.getItem('biz_data_biz_main_leads');
-      const savedQuotes = localStorage.getItem('biz_data_biz_main_quotes');
-      const savedInvoices = localStorage.getItem('biz_data_biz_main_invoices');
-      const savedExpenses = localStorage.getItem('biz_data_biz_main_expenses');
-      const savedPayments = localStorage.getItem('biz_data_biz_main_payments');
-      const savedFA = localStorage.getItem('biz_data_biz_main_fixedAssets');
-      const savedJE = localStorage.getItem('biz_data_biz_main_journalEntries');
-      const savedJL = localStorage.getItem('biz_data_biz_main_journalLines');
-      const savedSuppliers = localStorage.getItem('biz_data_biz_main_suppliers');
-      const savedPO = localStorage.getItem('biz_data_biz_main_purchaseOrders');
-      const savedBOM = localStorage.getItem('biz_data_biz_main_boms');
-      const savedMO = localStorage.getItem('biz_data_biz_main_productionOrders');
-      const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig');
-
-      let loadedMainCustomers = [];
-      if (savedCust) {
-        try {
-          const parsed = JSON.parse(savedCust);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(c => {
-              if (c.businessId && c.businessId !== 'biz_main') return false;
-              if (String(c.id).startsWith('c-10')) return false;
-              const n = (c.gymName || c.name || '').toLowerCase();
-              if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
-              return true;
-            });
-            loadedMainCustomers = sanitized;
-          }
-        } catch (e) {}
-      }
-
-      let loadedMainInventory = [];
-      if (savedInv) {
-        try {
-          const parsed = JSON.parse(savedInv);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(i => {
-              if (String(i.id).startsWith('inv-10')) return false;
-              const n = (i.name || '').toLowerCase();
-              if (n.includes('bobby pin') || n.includes('wave grip') || n.includes('u-pin') || n.includes('snap clip') || n.includes('wire') || n.includes('enamel')) return false;
-              return true;
-            });
-            loadedMainInventory = sanitized;
-          }
-        } catch (e) {}
-      }
-
-      let loadedMainInvoices = [];
-      if (savedInvoices) {
-        try {
-          const parsed = JSON.parse(savedInvoices);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.filter(inv => {
-              if (inv.businessId && inv.businessId !== 'biz_main') return false;
-              if (String(inv.id).startsWith('inv-20')) return false;
-              const p = (inv.prospectName || inv.customerName || '').toLowerCase();
-              if (p.includes('lanka fancy') || p.includes('bridal') || p.includes('sunil cosmetics') || p.includes('salon chamari') || p.includes('fashion corner')) return false;
-              return true;
-            });
-            loadedMainInvoices = sanitized;
-          }
-        } catch (e) {}
-      }
-
+  // Load Seynex business dataset
+  const loadBusinessData = () => {
+    const isErased = localStorage.getItem('biz_data_biz_main_erased') === 'true';
+    if (isErased) {
       return {
-        customers: loadedMainCustomers,
-        inventory: loadedMainInventory,
-        leads: savedLeads ? JSON.parse(savedLeads) : [],
-        quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
-        invoices: loadedMainInvoices,
-        expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses), 'biz_main') : [],
-        payments: savedPayments ? JSON.parse(savedPayments) : [],
-        fixedAssets: savedFA ? JSON.parse(savedFA) : [],
-        journalEntries: savedJE ? JSON.parse(savedJE) : [],
-        journalLines: savedJL ? JSON.parse(savedJL) : [],
-        suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
-        purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
-        boms: savedBOM ? JSON.parse(savedBOM).map(normalizeBOM) : [],
-        productionOrders: savedMO ? JSON.parse(savedMO).map(normalizeProductionOrder) : [],
-        smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_MAIN_SMS_CONFIG
+        customers: [],
+        inventory: [],
+        leads: [],
+        quotes: [],
+        invoices: [],
+        expenses: [],
+        payments: [],
+        fixedAssets: [],
+        journalEntries: [],
+        journalLines: [],
+        suppliers: [],
+        purchaseOrders: [],
+        boms: [],
+        productionOrders: [],
+        smsConfig: DEFAULT_MAIN_SMS_CONFIG
       };
     }
 
-    // Custom Business Profile
-    const savedCust = localStorage.getItem(`biz_data_${businessId}_customers`);
-    const savedInv = localStorage.getItem(`biz_data_${businessId}_inventory`);
-    const savedLeads = localStorage.getItem(`biz_data_${businessId}_leads`);
-    const savedQuotes = localStorage.getItem(`biz_data_${businessId}_quotes`);
-    const savedInvoices = localStorage.getItem(`biz_data_${businessId}_invoices`);
-    const savedExpenses = localStorage.getItem(`biz_data_${businessId}_expenses`);
-    const savedPayments = localStorage.getItem(`biz_data_${businessId}_payments`);
-    const savedConfig = localStorage.getItem(`biz_data_${businessId}_smsConfig`);
-
-    const bizObj = businesses.find(b => b.id === businessId) || { name: 'Custom Business' };
+    const savedCust = localStorage.getItem('biz_data_biz_main_customers') || localStorage.getItem('gym_customers');
+    const savedInv = localStorage.getItem('biz_data_biz_main_inventory') || localStorage.getItem('gym_inventory');
+    const savedLeads = localStorage.getItem('biz_data_biz_main_leads') || localStorage.getItem('gym_leads');
+    const savedQuotes = localStorage.getItem('biz_data_biz_main_quotes') || localStorage.getItem('gym_quotes');
+    const savedInvoices = localStorage.getItem('biz_data_biz_main_invoices') || localStorage.getItem('gym_invoices');
+    const savedExpenses = localStorage.getItem('biz_data_biz_main_expenses');
+    const savedPayments = localStorage.getItem('biz_data_biz_main_payments') || localStorage.getItem('gym_payments');
+    const savedFA = localStorage.getItem('biz_data_biz_main_fixedAssets');
+    const savedJE = localStorage.getItem('biz_data_biz_main_journalEntries');
+    const savedJL = localStorage.getItem('biz_data_biz_main_journalLines');
+    const savedSuppliers = localStorage.getItem('biz_data_biz_main_suppliers');
+    const savedPO = localStorage.getItem('biz_data_biz_main_purchaseOrders');
+    const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig') || localStorage.getItem('gym_sms_config');
 
     return {
-      customers: savedCust ? JSON.parse(savedCust) : [],
+      customers: savedCust ? JSON.parse(savedCust) : sampleMainCustomers,
       inventory: savedInv ? JSON.parse(savedInv) : [],
       leads: savedLeads ? JSON.parse(savedLeads) : [],
       quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
       invoices: savedInvoices ? JSON.parse(savedInvoices) : [],
-      expenses: savedExpenses ? JSON.parse(savedExpenses) : [],
+      expenses: savedExpenses ? sanitizeExpensesByBiz(JSON.parse(savedExpenses)) : [],
       payments: savedPayments ? JSON.parse(savedPayments) : [],
-      fixedAssets: [],
-      journalEntries: [],
-      journalLines: [],
-      suppliers: [],
-      purchaseOrders: [],
+      fixedAssets: savedFA ? JSON.parse(savedFA) : [],
+      journalEntries: savedJE ? JSON.parse(savedJE) : [],
+      journalLines: savedJL ? JSON.parse(savedJL) : [],
+      suppliers: savedSuppliers ? JSON.parse(savedSuppliers) : [],
+      purchaseOrders: savedPO ? JSON.parse(savedPO) : [],
       boms: [],
       productionOrders: [],
-      smsConfig: savedConfig ? JSON.parse(savedConfig) : {
-        ...DEFAULT_MAIN_SMS_CONFIG,
-        companyName: bizObj.name,
-        dashboardName: bizObj.name,
-        pdfFooterText: `Thank you for your business. ${bizObj.name}.`,
-        pdfNotes: `Computer-generated document by ${bizObj.name} Management Suite.`
-      }
+      smsConfig: savedConfig ? JSON.parse(savedConfig) : DEFAULT_MAIN_SMS_CONFIG
     };
   };
 
-  const activeBusiness = businesses.find(b => b.id === activeBusinessId) || businesses[0] || DEFAULT_BUSINESSES[0];
+  const activeBusiness = businesses[0] || DEFAULT_BUSINESSES[0];
 
-  const switchBusiness = (targetBusinessId) => {
-    if (!targetBusinessId || targetBusinessId === activeBusinessId) return;
-
-    // Strict Business Access Control: restricted users can only access their assigned business
-    if (user?.businessId && user.businessId !== 'all' && user.businessId !== targetBusinessId) {
-      const assignedBizName = user.businessName || (businesses.find(b => b.id === user.businessId)?.name) || 'your assigned business';
-      showNotification(`Access Restricted: Your account is dedicated to ${assignedBizName} only.`, 'error');
-      return;
-    }
-
-    const targetBiz = businesses.find(b => b.id === targetBusinessId);
-    if (!targetBiz) return;
-
-    // 1. Save current active business data
-    try {
-      localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(customers));
-      localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(inventory));
-      localStorage.setItem(`biz_data_${activeBusinessId}_leads`, JSON.stringify(leads));
-      localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(quotes));
-      localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(invoices));
-      localStorage.setItem(`biz_data_${activeBusinessId}_expenses`, JSON.stringify(expenses));
-      localStorage.setItem(`biz_data_${activeBusinessId}_payments`, JSON.stringify(payments));
-      localStorage.setItem(`biz_data_${activeBusinessId}_fixedAssets`, JSON.stringify(fixedAssets));
-      localStorage.setItem(`biz_data_${activeBusinessId}_journalEntries`, JSON.stringify(journalEntries));
-      localStorage.setItem(`biz_data_${activeBusinessId}_journalLines`, JSON.stringify(journalLines));
-      localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(suppliers));
-      localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(purchaseOrders));
-      localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
-      localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
-      localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
-    } catch (e) {
-      console.warn('Failed to save outgoing business data', e);
-    }
-
-    // 2. Load target business data
-    const loadedData = loadBusinessData(targetBusinessId);
-
-    // 3. Set React states
-    setCustomers(loadedData.customers);
-    setInventory(loadedData.inventory);
-    setLeads(loadedData.leads);
-    setQuotes(loadedData.quotes);
-    setInvoices(loadedData.invoices);
-    setExpenses(loadedData.expenses);
-    setPayments(loadedData.payments);
-    setFixedAssets(loadedData.fixedAssets);
-    setJournalEntries(loadedData.journalEntries);
-    setJournalLines(loadedData.journalLines);
-    setSuppliers(loadedData.suppliers);
-    setPurchaseOrders(loadedData.purchaseOrders);
-    setBoms(loadedData.boms);
-    setProductionOrders(loadedData.productionOrders);
-    setSmsConfig(loadedData.smsConfig);
-
-    // 4. Update active ID and mirror to localStorage
-    setActiveBusinessId(targetBusinessId);
-    localStorage.setItem('active_business_id', targetBusinessId);
-
-    // Mirror to gym_* for cross-compatibility
-    try {
-      localStorage.setItem('gym_customers', JSON.stringify(loadedData.customers));
-      localStorage.setItem('gym_inventory', JSON.stringify(loadedData.inventory));
-      localStorage.setItem('gym_leads', JSON.stringify(loadedData.leads));
-      localStorage.setItem('gym_quotes', JSON.stringify(loadedData.quotes));
-      localStorage.setItem('gym_invoices', JSON.stringify(loadedData.invoices));
-      localStorage.setItem('gym_payments', JSON.stringify(loadedData.payments));
-      localStorage.setItem('gym_sms_config', JSON.stringify(loadedData.smsConfig));
-    } catch (e) {}
-
-    showNotification(`Switched to "${targetBiz.name}"!`, 'success');
+  const switchBusiness = () => {
+    // Single business entity: Seynex Enterprises
   };
 
-  // Keep workspace locked to user's assigned business
-  useEffect(() => {
-    if (user?.businessId && user.businessId !== 'all') {
-      if (activeBusinessId !== user.businessId) {
-        switchBusiness(user.businessId);
-      }
-    }
-  }, [user?.businessId, activeBusinessId]);
-
-  // Listen for external business switches (e.g. from Login screen)
-  useEffect(() => {
-    const handleBizChanged = (e) => {
-      const targetId = e?.detail || localStorage.getItem('active_business_id');
-      if (user?.businessId && user.businessId !== 'all' && user.businessId !== targetId) {
-        return;
-      }
-      if (targetId && targetId !== activeBusinessId) {
-        switchBusiness(targetId);
-      }
-    };
-    window.addEventListener('active_business_changed', handleBizChanged);
-    return () => window.removeEventListener('active_business_changed', handleBizChanged);
-  }, [activeBusinessId, switchBusiness, user?.businessId]);
-
-  const addBusiness = ({ name, category, tagline, color, icon }) => {
-    const newId = `biz_${Date.now()}`;
-    const newBiz = {
-      id: newId,
-      name,
-      category: category || 'General',
-      tagline: tagline || `${name} Operations`,
-      color: color || '#4f46e5',
-      icon: icon || 'Building2',
-      createdAt: new Date().toISOString()
-    };
-    const updated = [...businesses, newBiz];
-    setBusinesses(updated);
-    localStorage.setItem('app_businesses', JSON.stringify(updated));
-
-    // Initialize clean empty data for this business
-    const emptyConfig = {
-      ...DEFAULT_SMS_CONFIG,
-      companyName: name,
-      dashboardName: name,
-      pdfFooterText: `Thank you for your business. ${name}.`,
-      pdfNotes: `Computer-generated document by ${name} Management System.`
-    };
-    try {
-      localStorage.setItem(`biz_data_${newId}_customers`, JSON.stringify([]));
-      localStorage.setItem(`biz_data_${newId}_inventory`, JSON.stringify([]));
-      localStorage.setItem(`biz_data_${newId}_leads`, JSON.stringify([]));
-      localStorage.setItem(`biz_data_${newId}_quotes`, JSON.stringify([]));
-      localStorage.setItem(`biz_data_${newId}_invoices`, JSON.stringify([]));
-      localStorage.setItem(`biz_data_${newId}_smsConfig`, JSON.stringify(emptyConfig));
-    } catch (e) {}
-
-    showNotification(`Created business profile "${name}"!`, 'success');
-    return newId;
+  const addBusiness = () => {
+    showNotification('Seynex Enterprises is the dedicated enterprise workspace.', 'info');
+    return 'biz_main';
   };
 
   const updateBusiness = (id, updates) => {
-    const updated = businesses.map(b => b.id === id ? { ...b, ...updates } : b);
+    const updated = businesses.map(b => b.id === 'biz_main' ? { ...b, ...updates } : b);
     setBusinesses(updated);
-    localStorage.setItem('app_businesses', JSON.stringify(updated));
-    showNotification('Updated business profile');
+    showNotification('Updated Seynex Enterprises profile');
   };
 
-  const deleteBusiness = (id) => {
-    if (businesses.length <= 1) {
-      showNotification('Cannot delete the only business profile', 'error');
-      return;
-    }
-    const updated = businesses.filter(b => b.id !== id);
-    setBusinesses(updated);
-    localStorage.setItem('app_businesses', JSON.stringify(updated));
-    if (activeBusinessId === id) {
-      switchBusiness(updated[0].id);
-    }
-    showNotification('Business profile deleted', 'warning');
+  const deleteBusiness = () => {
+    showNotification('Cannot delete the primary business profile', 'error');
   };
 
   // Change tracking: count actual state changes after hydration and initial cloud load
@@ -2274,8 +1872,6 @@ export default function StoreContextProvider({ children }) {
     setJournalLines(sampleMainJournalLines);
     setSuppliers(sampleMainSuppliers);
     setPurchaseOrders(sampleMainPurchaseOrders);
-    setBoms(sampleMainBOMs.map(normalizeBOM));
-    setProductionOrders(sampleMainProductionOrders.map(normalizeProductionOrder));
     setSmsConfig(DEFAULT_MAIN_SMS_CONFIG);
 
     try {
@@ -2291,8 +1887,6 @@ export default function StoreContextProvider({ children }) {
       localStorage.setItem('biz_data_biz_main_journalLines', JSON.stringify(sampleMainJournalLines));
       localStorage.setItem('biz_data_biz_main_suppliers', JSON.stringify(sampleMainSuppliers));
       localStorage.setItem('biz_data_biz_main_purchaseOrders', JSON.stringify(sampleMainPurchaseOrders));
-      localStorage.setItem('biz_data_biz_main_boms', JSON.stringify(sampleMainBOMs));
-      localStorage.setItem('biz_data_biz_main_productionOrders', JSON.stringify(sampleMainProductionOrders));
       localStorage.setItem('biz_data_biz_main_smsConfig', JSON.stringify(DEFAULT_MAIN_SMS_CONFIG));
     } catch (e) {}
 
@@ -3045,13 +2639,11 @@ export default function StoreContextProvider({ children }) {
         safeFetch('fixed_assets', activeClient.from('fixed_assets').select('*').eq('business_id', activeBusinessId), activeClient.from('fixed_assets').select('*')),
         safeFetch('activity_logs', activeClient.from('activity_logs').select('*').eq('business_id', activeBusinessId).order('created_at', { ascending: false }).limit(200), activeClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
         safeFetch('user_profiles', activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5), activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5)),
-        safeFetch('boms', activeClient.from('boms').select('*').eq('business_id', activeBusinessId), activeClient.from('boms').select('*')),
-        safeFetch('production_orders', activeClient.from('production_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('production_orders').select('*')),
         safeFetch('suppliers', activeClient.from('suppliers').select('*').eq('business_id', activeBusinessId), activeClient.from('suppliers').select('*')),
         safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*'))
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, bomData, moData, supData, poData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, supData, poData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
@@ -3071,8 +2663,6 @@ export default function StoreContextProvider({ children }) {
         setActivityLogs([]);
         setSuppliers([]);
         setPurchaseOrders([]);
-        setBoms([]);
-        setProductionOrders([]);
         setCloudSyncStatus('synced');
         setHasUnsavedChanges(false);
         setTimeout(() => {
@@ -3469,41 +3059,7 @@ export default function StoreContextProvider({ children }) {
         } catch(e) {}
       }
 
-      // 12. Bill of Materials (BOMs)
-      if (Array.isArray(bomData) && bomData.length > 0) {
-        const loadedBoms = bomData.map(b => ({
-          id: b.id,
-          name: b.name,
-          outputUnit: b.output_unit || 'Unit',
-          batchYield: Number(b.output_qty) || 1,
-          laborCost: Number(b.estimated_labor_cost) || 0,
-          overheadCost: Number(b.estimated_overhead_cost) || 0,
-          components: b.components || [],
-          notes: b.notes || ''
-        }));
-        setBoms(loadedBoms);
-        try { localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(loadedBoms)); } catch(e) {}
-      }
-
-      // 13. Production Orders
-      if (Array.isArray(moData) && moData.length > 0) {
-        const loadedMOs = moData.map(m => ({
-          id: m.id,
-          orderNumber: m.mo_number,
-          bomId: m.bom_id,
-          productName: m.bom_name,
-          quantity: Number(m.target_qty) || 100,
-          status: m.status || 'Scheduled',
-          startDate: m.start_date,
-          dueDate: m.due_date,
-          totalCost: Number(m.total_cost) || 0,
-          notes: m.notes || ''
-        }));
-        setProductionOrders(loadedMOs);
-        try { localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(loadedMOs)); } catch(e) {}
-      }
-
-      // 14. Suppliers
+      // 12. Suppliers
       if (Array.isArray(supData) && supData.length > 0) {
         const loadedSuppliers = supData.map(s => ({
           id: s.id,
@@ -3762,32 +3318,6 @@ export default function StoreContextProvider({ children }) {
         notes: po.notes || ''
       }));
 
-      const bomRecords = (boms || []).map(b => ({
-        id: toUuid(b.id),
-        user_id: effId,
-        name: b.name || 'BOM Specification',
-        output_unit: b.outputUnit || 'Unit',
-        output_qty: Number(b.batchYield) || 1,
-        estimated_labor_cost: Number(b.laborCost) || 0,
-        estimated_overhead_cost: Number(b.overheadCost) || 0,
-        components: b.components || [],
-        notes: b.notes || ''
-      }));
-
-      const prodOrderRecords = (productionOrders || []).map(mo => ({
-        id: toUuid(mo.id),
-        user_id: effId,
-        mo_number: mo.orderNumber || 'MO-1001',
-        bom_id: isUuid(mo.bomId) ? mo.bomId : null,
-        bom_name: mo.productName || '',
-        target_qty: Number(mo.quantity) || 100,
-        status: mo.status || 'Scheduled',
-        start_date: mo.startDate || null,
-        due_date: mo.dueDate || null,
-        total_cost: Number(mo.totalCost) || 0,
-        notes: mo.notes || ''
-      }));
-
       // Execute all table upserts in parallel batches for maximum speed (50x faster)
       await Promise.allSettled([
         safeUpsertBatch('customers', customerRecords),
@@ -3802,8 +3332,6 @@ export default function StoreContextProvider({ children }) {
         safeUpsertBatch('activity_logs', logRecords),
         safeUpsertBatch('suppliers', supplierRecords),
         safeUpsertBatch('purchase_orders', poRecords),
-        safeUpsertBatch('boms', bomRecords),
-        safeUpsertBatch('production_orders', prodOrderRecords),
         safeUpsertBatch('user_profiles', [{
           user_id: effId,
           config: smsConfig,
@@ -3832,8 +3360,6 @@ export default function StoreContextProvider({ children }) {
         localStorage.setItem(`biz_data_${activeBusinessId}_tasks`, JSON.stringify(tasks));
         localStorage.setItem(`biz_data_${activeBusinessId}_suppliers`, JSON.stringify(suppliers));
         localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(purchaseOrders));
-        localStorage.setItem(`biz_data_${activeBusinessId}_boms`, JSON.stringify(boms));
-        localStorage.setItem(`biz_data_${activeBusinessId}_productionOrders`, JSON.stringify(productionOrders));
         localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
       } catch (e) {}
 
@@ -3879,7 +3405,7 @@ export default function StoreContextProvider({ children }) {
         'customers', 'inventory', 'quotes', 'invoices',
         'leads', 'expenses', 'payments', 'fixedAssets',
         'tasks', 'activity_logs', 'journalEntries', 'journalLines',
-        'suppliers', 'purchaseOrders', 'boms', 'productionOrders',
+        'suppliers', 'purchaseOrders',
         'employees', 'payruns', 'attendanceLogs', 'leaveRequests',
         'salaryAdvances', 'stockTransfers', 'performanceReviews',
         'expenseClaims', 'hrLetters', 'systemNotifications'
@@ -3898,8 +3424,7 @@ export default function StoreContextProvider({ children }) {
         'gym_payment_allocations', 'gym_depreciation_schedule',
         'gym_suppliers', 'gym_purchase_orders', 'gym_employees', 'gym_payruns',
         'gym_attendance_logs', 'gym_leave_requests', 'gym_salary_advances',
-        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters',
-        'gym_boms', 'gym_production_orders'
+        'gym_stock_transfers', 'gym_performance_reviews', 'gym_expense_claims', 'gym_hr_letters'
       ];
       explicitGymKeys.forEach(k => {
         try { localStorage.setItem(k, '[]'); } catch (e) {}
@@ -3930,8 +3455,6 @@ export default function StoreContextProvider({ children }) {
     setDepreciationSchedule([]);
     setSuppliers([]);
     setPurchaseOrders([]);
-    setBoms([]);
-    setProductionOrders([]);
     setEmployees([]);
     setPayruns([]);
     setAttendanceLogs([]);
@@ -3956,8 +3479,6 @@ export default function StoreContextProvider({ children }) {
         'payments',
         'invoices',
         'quotations',
-        'production_orders',
-        'boms',
         'purchase_orders',
         'suppliers',
         'expenses',
@@ -5628,170 +5149,6 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Purchase Order #${po?.poNumber || ''} deleted.`, 'info');
   };
 
-  // --- MANUFACTURING & BILL OF MATERIALS (BOM) ERP HANDLERS ---
-  const addBOM = (bomData) => {
-    const newBom = {
-      ...bomData,
-      id: `bom-${Date.now()}`,
-      code: bomData.code || `BOM-${1000 + boms.length + 1}`
-    };
-    setBoms(prev => [newBom, ...prev]);
-    addLog('Manufacturing', `Created Bill of Materials ${newBom.code} for "${newBom.name}"`);
-    showNotification(`Bill of Materials "${newBom.name}" registered!`, 'success');
-  };
-
-  const updateBOM = (id, data) => {
-    setBoms(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
-    addLog('Manufacturing', `Updated Bill of Materials for "${data.name || id}"`);
-    showNotification('Bill of Materials updated successfully!', 'success');
-  };
-
-  const deleteBOM = (id) => {
-    const target = boms.find(b => b.id === id);
-    setBoms(prev => prev.filter(b => b.id !== id));
-    addLog('Manufacturing', `Deleted Bill of Materials ${target?.code || id}`);
-    showNotification(`BOM "${target?.name || ''}" removed.`, 'info');
-  };
-
-  const addProductionOrder = (moData) => {
-    const linkedBom = boms.find(b => b.id === moData.bomId);
-    const qty = Number(moData.quantity) || 1;
-    const materialCost = linkedBom ? (linkedBom.components || []).reduce((s, c) => s + (Number(c.totalCost || (c.quantity * c.unitCost)) || 0), 0) * qty : 0;
-    const laborCost = linkedBom ? (Number(linkedBom.laborCost) || 0) * qty : 0;
-    const overheadCost = linkedBom ? (Number(linkedBom.overheadCost) || 0) * qty : 0;
-    const totalCost = materialCost + laborCost + overheadCost;
-    const costPerUnit = qty > 0 ? Math.round(totalCost / qty) : 0;
-
-    const newMO = {
-      ...moData,
-      id: `mo-${Date.now()}`,
-      orderNumber: moData.orderNumber || `MO-${new Date().getFullYear()}-${String(productionOrders.length + 1).padStart(3, '0')}`,
-      productName: moData.productName || linkedBom?.name || 'Manufactured Item',
-      status: moData.status || 'Planned',
-      materialCost,
-      laborCost,
-      overheadCost,
-      totalCost,
-      costPerUnit,
-      batchNumber: moData.batchNumber || `BATCH-${new Date().getFullYear()}-${String(productionOrders.length + 1).padStart(3, '0')}`,
-      startDate: moData.startDate || new Date().toISOString().split('T')[0]
-    };
-
-    setProductionOrders(prev => [newMO, ...prev]);
-    addLog('Manufacturing', `Scheduled Production Order ${newMO.orderNumber}: ${newMO.quantity}x "${newMO.productName}"`);
-    showNotification(`Production Order #${newMO.orderNumber} created!`, 'success');
-  };
-
-  const updateProductionOrderStatus = (id, newStatus) => {
-    setProductionOrders(prev => prev.map(mo => {
-      if (mo.id === id) {
-        const oldStatus = mo.status;
-        const updated = { 
-          ...mo, 
-          status: newStatus,
-          completedDate: newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : mo.completedDate
-        };
-        addLog('Manufacturing', `Work Order ${mo.orderNumber} status changed from ${oldStatus} to ${newStatus}`);
-        showNotification(`Order #${mo.orderNumber} status: ${newStatus}`, 'info');
-        return updated;
-      }
-      return mo;
-    }));
-  };
-
-  const completeProductionOrder = (id, qcData = {}) => {
-    const targetOrder = productionOrders.find(mo => mo.id === id);
-    if (!targetOrder) return;
-
-    const linkedBom = boms.find(b => b.id === targetOrder.bomId);
-    const orderQty = Number(targetOrder.quantity) || 1;
-
-    // 1. Consume Raw Materials from Inventory
-    if (linkedBom?.components && Array.isArray(linkedBom.components)) {
-      setInventory(prevInventory => {
-        return prevInventory.map(invItem => {
-          const comp = linkedBom.components.find(c => c.name?.toLowerCase() === invItem.name?.toLowerCase());
-          if (comp) {
-            const consumed = (Number(comp.quantity) || 0) * orderQty;
-            const newStock = Math.max(0, (Number(invItem.stock) || 0) - consumed);
-            addLog('Inventory', `Raw material consumed for ${targetOrder.orderNumber}: ${invItem.name} (-${consumed} units). Remaining stock: ${newStock}`);
-            return { ...invItem, stock: newStock };
-          }
-          return invItem;
-        });
-      });
-    }
-
-    // 2. Add Manufactured Finished Good to Inventory
-    setInventory(prevInventory => {
-      const existing = prevInventory.find(i => i.name?.toLowerCase() === targetOrder.productName?.toLowerCase());
-      if (existing) {
-        const newStock = (Number(existing.stock) || 0) + orderQty;
-        addLog('Inventory', `Finished goods stock added from ${targetOrder.orderNumber}: ${existing.name} (+${orderQty} units). New stock: ${newStock}`);
-        return prevInventory.map(i => i.id === existing.id ? { ...i, stock: newStock, costPrice: targetOrder.costPerUnit || i.costPrice } : i);
-      } else {
-        const newItem = {
-          id: `inv-${Date.now()}`,
-          name: targetOrder.productName,
-          type: linkedBom?.productCategory || 'Equipment',
-          price: linkedBom?.suggestedPrice || Math.round((targetOrder.costPerUnit || 50000) * 1.35),
-          costPrice: targetOrder.costPerUnit || 0,
-          stock: orderQty,
-          reorderLevel: 3,
-          desc: `Manufactured in-house per ${targetOrder.orderNumber} (Batch: ${targetOrder.batchNumber})`
-        };
-        addLog('Inventory', `New finished product registered from ${targetOrder.orderNumber}: ${newItem.name} (+${orderQty} units).`);
-        return [newItem, ...prevInventory];
-      }
-    });
-
-    // 3. Post SLFRS Manufacturing Journal Voucher
-    try {
-      const matCost = Number(targetOrder.materialCost) || 0;
-      const labCost = Number(targetOrder.laborCost) || 0;
-      const ovhCost = Number(targetOrder.overheadCost) || 0;
-      const totalCOGM = Number(targetOrder.totalCost) || (matCost + labCost + ovhCost);
-
-      createJournalEntry({
-        date: new Date().toISOString().split('T')[0],
-        reference: targetOrder.orderNumber,
-        description: `Cost of Goods Manufactured (COGM) - ${orderQty}x ${targetOrder.productName} (Batch ${targetOrder.batchNumber})`,
-        lines: [
-          { accountId: '1200', debit: totalCOGM, credit: 0 },
-          { accountId: '1200', debit: 0, credit: matCost }
-        ]
-      });
-    } catch (err) {
-      console.warn('[Journal Entry Auto-Post Failed for Production Order]', err);
-    }
-
-    // 4. Update order status to Completed with QC metrics
-    setProductionOrders(prev => prev.map(mo => {
-      if (mo.id === id) {
-        return {
-          ...mo,
-          status: 'Completed',
-          completedDate: new Date().toISOString().split('T')[0],
-          qcPassedQty: qcData.passedQty !== undefined ? Number(qcData.passedQty) : orderQty,
-          qcRejectedQty: Number(qcData.rejectedQty) || 0,
-          qcInspector: qcData.inspector || user?.user_metadata?.name || 'QA Lead',
-          notes: qcData.notes || mo.notes
-        };
-      }
-      return mo;
-    }));
-
-    addLog('Manufacturing', `Completed Production Order ${targetOrder.orderNumber}: ${orderQty}x "${targetOrder.productName}" added to finished inventory.`);
-    showNotification(`Work Order #${targetOrder.orderNumber} completed! ${orderQty} units added to stock.`, 'success');
-  };
-
-  const deleteProductionOrder = (id) => {
-    const mo = productionOrders.find(p => p.id === id);
-    setProductionOrders(prev => prev.filter(p => p.id !== id));
-    addLog('Manufacturing', `Deleted Production Order ${mo?.orderNumber || id}`);
-    showNotification(`Production Order #${mo?.orderNumber || ''} deleted.`, 'info');
-  };
-
   // --- HR & PAYROLL ERP CRUD HANDLERS ---
   const addEmployee = (empData) => {
     const newEmp = {
@@ -6776,8 +6133,15 @@ export default function StoreContextProvider({ children }) {
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,
-      boms, addBOM, updateBOM, deleteBOM,
-      productionOrders, addProductionOrder, updateProductionOrderStatus, completeProductionOrder, deleteProductionOrder,
+      boms: [],
+      addBOM: () => {},
+      updateBOM: () => {},
+      deleteBOM: () => {},
+      productionOrders: [],
+      addProductionOrder: () => {},
+      updateProductionOrderStatus: () => {},
+      completeProductionOrder: () => {},
+      deleteProductionOrder: () => {},
       employees, addEmployee, updateEmployee, deleteEmployee, terminateEmployee,
       payruns, processPayrun,
       attendanceLogs, markAttendance, getMonthlyAttendanceSummary,

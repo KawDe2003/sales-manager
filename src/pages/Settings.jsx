@@ -275,7 +275,6 @@ const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { key: 'procurement', label: 'Procurement & Purchase Orders', desc: 'Supplier management, PO replenishment, and Accounts Payable automation.', category: 'Operations' },
-              { key: 'manufacturing', label: 'Manufacturing & Bill of Materials', desc: 'BOM recipe formulations, batch work orders, job routing, and production costing.', category: 'Operations' },
               { key: 'hrPayroll', label: 'HR & Staff Payroll System', desc: 'Staff directory, EPF/ETF statutory tracking, and monthly payruns.', category: 'Human Resources' },
               { key: 'fixedAssets', label: 'Fixed Assets & Depreciation', desc: 'PPE asset tracking with SLFRS/LKAS depreciation schedules.', category: 'Finance' },
               { key: 'debtors', label: 'Debtors & Collection Aging', desc: 'Outstanding balances, debtor aging buckets, and payment reminders.', category: 'Finance' },
@@ -395,27 +394,7 @@ const Settings = () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap" style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Workspace:</span>
-                {[
-                  { id: 'All', label: 'All Users' },
-                  { id: 'biz_main', label: 'Seynex Enterprises' }
-                ].map(ws => (
-                  <button 
-                    key={ws.id}
-                    type="button" 
-                    onClick={() => setWorkspaceFilter(ws.id)}
-                    style={{
-                      padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
-                      background: workspaceFilter === ws.id ? 'var(--accent-primary)' : 'transparent',
-                      color: workspaceFilter === ws.id ? 'white' : 'var(--text-secondary)',
-                      border: workspaceFilter === ws.id ? '1px solid transparent' : '1px solid var(--subtle-border)'
-                    }}
-                  >
-                    {ws.label}
-                  </button>
-                ))}
-
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginLeft: '8px' }}>Status:</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Status:</span>
                 {['All', 'Active', 'Suspended', 'Pending'].map(st => (
                   <button 
                     key={st}
@@ -808,13 +787,13 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* SIDE-BY-SIDE DATABASE CREDENTIAL CARDS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* SEYNEX ENTERPRISES CLOUD DATABASE CARD */}
+            <div className="grid grid-cols-1 gap-6 mb-6">
               
               {/* SEYNEX ENTERPRISES DATABASE CARD */}
               <div style={{
                 borderRadius: '16px',
-                border: activeBusinessId === 'biz_main' ? '2px solid rgba(99, 102, 241, 0.5)' : '1px solid var(--panel-border)',
+                border: '2px solid rgba(99, 102, 241, 0.5)',
                 background: 'rgba(255, 255, 255, 0.02)',
                 padding: '22px',
                 display: 'flex',
@@ -965,30 +944,30 @@ const Settings = () => {
 
             </div>
 
-            {/* HYBRID ARCHITECTURE THREE PILLARS */}
+            {/* ARCHITECTURE PILLARS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} color="var(--accent-primary)" /> Dual Independent Projects
+                  <ShieldCheck size={16} color="var(--accent-primary)" /> Dedicated Cloud DB
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Provide distinct Supabase URLs to achieve 100% physical data separation in two completely different cloud accounts.
+                  Secure connection to Seynex Enterprises PostgreSQL database with SSL encryption and Row-Level Security.
                 </div>
               </div>
               <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Zap size={16} color="var(--warning)" /> Dynamic Query Routing
+                  <Zap size={16} color="var(--warning)" /> Offline-First Caching
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  The app auto-detects the active session and transparently routes all CRUD operations to that business's database client.
+                  Instant zero-latency local operations backed by continuous automatic synchronization with Supabase.
                 </div>
               </div>
               <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--subtle-bg)', border: '1px solid var(--panel-border)' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Lock size={16} color="var(--success)" /> Partitioned Fallback
+                  <Lock size={16} color="var(--success)" /> Role-Based Access
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  If operating on a single database, all tables partition cleanly by <code style={{ color: 'var(--accent-emerald)' }}>business_id</code> with composite indexes.
+                  Granular permissions for Administrators, Sales Representatives, and Accountants within Seynex Enterprises.
                 </div>
               </div>
             </div>
@@ -1027,43 +1006,7 @@ ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEF
 ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS user_profiles ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 
--- 2. CREATE MANUFACTURING & PROCUREMENT TABLES
-CREATE TABLE IF NOT EXISTS boms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_main',
-    user_id UUID,
-    name TEXT NOT NULL,
-    output_product_id TEXT,
-    output_qty NUMERIC DEFAULT 1,
-    output_unit TEXT DEFAULT 'Unit',
-    estimated_labor_cost NUMERIC DEFAULT 0,
-    estimated_overhead_cost NUMERIC DEFAULT 0,
-    components JSONB DEFAULT '[]'::jsonb,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-CREATE TABLE IF NOT EXISTS production_orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_id VARCHAR(50) DEFAULT 'biz_main',
-    user_id UUID,
-    mo_number TEXT NOT NULL,
-    bom_id UUID,
-    bom_name TEXT,
-    target_qty NUMERIC DEFAULT 100,
-    produced_qty NUMERIC DEFAULT 0,
-    status TEXT DEFAULT 'Scheduled',
-    start_date DATE,
-    due_date DATE,
-    completion_date DATE,
-    unit_cost NUMERIC DEFAULT 0,
-    total_cost NUMERIC DEFAULT 0,
-    assigned_worker TEXT,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
+-- 2. CREATE PROCUREMENT TABLES
 CREATE TABLE IF NOT EXISTS suppliers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     business_id VARCHAR(50) DEFAULT 'biz_main',
@@ -1106,8 +1049,6 @@ CREATE INDEX IF NOT EXISTS idx_payments_biz_id ON payments (business_id, created
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_biz_id ON fixed_assets (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_biz_id ON tasks (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_biz_id ON activity_logs (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_boms_biz_id ON boms (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_production_orders_biz_id ON production_orders (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_biz_id ON purchase_orders (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_suppliers_biz_id ON suppliers (business_id, created_at DESC);
 
@@ -1119,7 +1060,7 @@ BEGIN
     FOR tbl IN 
         SELECT tablename FROM pg_tables 
         WHERE schemaname = 'public' 
-          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles', 'boms', 'production_orders', 'suppliers', 'purchase_orders')
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'user_profiles', 'suppliers', 'purchase_orders')
     LOOP
         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
         EXECUTE format('DROP POLICY IF EXISTS "Public access on %I" ON %I;', tbl, tbl);
@@ -1161,8 +1102,6 @@ ALTER TABLE IF EXISTS payments ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) 
 ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
-CREATE TABLE IF NOT EXISTS boms (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', name TEXT NOT NULL, ...);
-CREATE TABLE IF NOT EXISTS production_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 CREATE TABLE IF NOT EXISTS suppliers (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 -- Click 'Copy Migration SQL' above to copy full schema with RLS policies & composite indexes`}

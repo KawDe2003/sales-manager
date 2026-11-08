@@ -6,7 +6,7 @@ import {
   FileText, PlusCircle, CreditCard, Award, AlertCircle, Calendar, Plus,
   CheckCircle2, XCircle, Clock, RefreshCw, ChevronRight, UserCheck,
   Wallet, Layers, ArrowRight, ShieldAlert, Sparkles, Filter, DollarSign,
-  Percent, ArrowRightCircle, Package, Truck, Factory, ShoppingCart, Scale, Check, Building2,
+  Percent, ArrowRightCircle, Package, Truck, ShoppingCart, Scale, Check, Building2,
   Sliders, X, RotateCcw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -83,7 +83,6 @@ const Dashboard = () => {
     payments = [],
     activityLogs = [],
     inventory = [],
-    productionOrders = [],
     theme = 'dark',
     setQuickSaleOpen,
     activeBusinessId,

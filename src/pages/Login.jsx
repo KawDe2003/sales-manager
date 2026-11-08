@@ -97,7 +97,7 @@ const Login = () => {
   };
 
   const handleCopyDirectLink = () => {
-    const directUrl = `${window.location.origin}/login?biz=${activePortal.directUrlParam}`;
+    const directUrl = `${window.location.origin}/login`;
     navigator.clipboard.writeText(directUrl).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
@@ -544,7 +544,7 @@ const Login = () => {
           }}>
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <span style={{ color: '#94a3b8' }}>Direct URL: </span>
-              <code style={{ color: activePortal.color, fontFamily: 'monospace' }}>/login?biz={activePortal.directUrlParam}</code>
+              <code style={{ color: activePortal.color, fontFamily: 'monospace' }}>/login</code>
             </div>
             <button
               type="button"

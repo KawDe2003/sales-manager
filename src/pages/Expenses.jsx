@@ -50,12 +50,9 @@ const Expenses = () => {
     ...expenses.map(e => e.category).filter(Boolean)
   ]));
 
-  // Strictly isolate expenses by business domain
+  // Visible expenses for Seynex Enterprises
   const visibleExpenses = expenses.filter(e => {
     if (e.businessId && e.businessId !== 'biz_main') return false;
-    if (String(e.id).startsWith('exp-') && !String(e.id).startsWith('mexp-')) return false;
-    const desc = (e.description || '').toLowerCase();
-    if (desc.includes('wholesale delivery van') || desc.includes('forming machine') || desc.includes('factory 3-phase') || desc.includes('bobby pin')) return false;
     return true;
   });
 

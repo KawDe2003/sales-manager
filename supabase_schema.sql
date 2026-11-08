@@ -278,55 +278,8 @@ CREATE POLICY "Manage own accounts" ON accounts FOR ALL USING (auth.uid() = user
 CREATE POLICY "Manage own journal_entries" ON journal_entries FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Manage own journal_lines" ON journal_lines FOR ALL USING (auth.uid() = user_id);
 
--- 13. BILL OF MATERIALS (BOM) TABLE
-CREATE TABLE IF NOT EXISTS boms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id),
-    product_name TEXT NOT NULL,
-    product_sku TEXT,
-    output_unit TEXT DEFAULT 'Unit',
-    batch_yield NUMERIC DEFAULT 1,
-    material_cost_per_unit NUMERIC DEFAULT 0,
-    labor_hours NUMERIC DEFAULT 0,
-    labor_rate_per_hour NUMERIC DEFAULT 0,
-    labor_cost NUMERIC DEFAULT 0,
-    overhead_cost NUMERIC DEFAULT 0,
-    total_cost_per_unit NUMERIC DEFAULT 0,
-    suggested_retail_price NUMERIC DEFAULT 0,
-    components JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 14. PRODUCTION ORDERS (MO) TABLE
-CREATE TABLE IF NOT EXISTS production_orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id),
-    order_number TEXT NOT NULL,
-    bom_id TEXT,
-    product_name TEXT NOT NULL,
-    product_sku TEXT,
-    quantity_to_produce NUMERIC NOT NULL DEFAULT 1,
-    batch_number TEXT NOT NULL,
-    start_date DATE,
-    due_date DATE,
-    status TEXT DEFAULT 'Planned', -- Planned, In Progress, Quality Check, Completed, Cancelled
-    priority TEXT DEFAULT 'Normal', -- Normal, High, Urgent
-    assigned_to TEXT,
-    notes TEXT,
-    unit_cost NUMERIC DEFAULT 0,
-    total_batch_cost NUMERIC DEFAULT 0,
-    components JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-ALTER TABLE boms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE production_orders ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Manage own boms" ON boms FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Manage own production_orders" ON production_orders FOR ALL USING (auth.uid() = user_id);
-
 -- =========================================================================
--- MULTI-BUSINESS DUAL-DATABASE PARTITIONING (SEYNEX vs ROYAL HAIR PINS)
+-- SEYNEX ENTERPRISES SCHEMA INDEXES & IDENTIFIER
 -- =========================================================================
 ALTER TABLE IF EXISTS customers ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
@@ -339,8 +292,6 @@ ALTER TABLE IF EXISTS fixed_assets ADD COLUMN IF NOT EXISTS business_id VARCHAR(
 ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS activity_logs ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
 ALTER TABLE IF EXISTS user_profiles ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_main';
-ALTER TABLE IF EXISTS boms ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_hairpins';
-ALTER TABLE IF EXISTS production_orders ADD COLUMN IF NOT EXISTS business_id VARCHAR(50) DEFAULT 'biz_hairpins';
 
 CREATE INDEX IF NOT EXISTS idx_customers_biz_id ON customers (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_invoices_biz_id ON invoices (business_id, created_at DESC);
@@ -349,6 +300,4 @@ CREATE INDEX IF NOT EXISTS idx_inventory_biz_id ON inventory (business_id, creat
 CREATE INDEX IF NOT EXISTS idx_leads_biz_id ON leads (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_expenses_biz_id ON expenses (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_payments_biz_id ON payments (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_boms_biz_id ON boms (business_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_production_orders_biz_id ON production_orders (business_id, created_at DESC);
 

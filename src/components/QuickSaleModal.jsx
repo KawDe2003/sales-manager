@@ -1264,10 +1264,11 @@ const QuickSaleModal = ({ isOpen, onClose }) => {
                                   color: 'var(--text-primary)', padding: '0 4px', fontWeight: 700
                                 }}
                               >
+                                <option value="Unit">Unit</option>
+                                <option value="License">License</option>
+                                <option value="Service">Service</option>
+                                <option value="Hours">Hours</option>
                                 <option value="Pkt">Pkt</option>
-                                <option value="Dozen">Dozen</option>
-                                <option value="Gross">Gross</option>
-                                <option value="Card">Card</option>
                                 <option value="Box">Box</option>
                                 <option value="Carton">Carton</option>
                               </select>

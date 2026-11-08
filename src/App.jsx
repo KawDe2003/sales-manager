@@ -6,7 +6,7 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn, LogOut,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Factory, Zap
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Zap
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -30,12 +30,10 @@ import Expenses from './pages/Expenses';
 import CustomerPortal from './pages/CustomerPortal';
 import SmsPortal from './pages/SmsPortal';
 import Procurement from './pages/Procurement';
-import Manufacturing from './pages/Manufacturing';
 import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
 import QuickSaleModal from './components/QuickSaleModal';
-import BusinessSwitcher from './components/BusinessSwitcher';
 
 const LoadingFallback = () => {
   const { brandName, logo } = (() => {
@@ -396,7 +394,7 @@ const AppContent = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/login/:businessSlug" element={<Login />} />
+        <Route path="/login/:businessSlug" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
@@ -524,9 +522,6 @@ const AppContent = () => {
               </h1>
             </div>
           </Link>
-
-          {/* Business Profile Switcher */}
-          <BusinessSwitcher />
         </div>
 
         <div className="flex items-center gap-2">
@@ -1212,7 +1207,6 @@ const AppContent = () => {
               <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
               <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
-              <Route path="/manufacturing" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory', 'all']} userPermissions={userPermissions}><Manufacturing /></ProtectedRoute>} />
               <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
               <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
               <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
@@ -1237,9 +1231,9 @@ const AppContent = () => {
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink to="/manufacturing" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <Factory size={18} />
-            <span>Factory</span>
+          <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <Receipt size={18} />
+            <span>Invoices</span>
           </NavLink>
 
           {/* Quick Bill Center Floating Button */}

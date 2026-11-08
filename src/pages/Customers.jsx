@@ -62,9 +62,6 @@ const Customers = () => {
     return customers.filter(c => {
       if (!c) return false;
       if (c.businessId && c.businessId !== 'biz_main') return false;
-      if (String(c.id).startsWith('c-10')) return false;
-      const n = (c.gymName || c.name || '').toLowerCase();
-      if (n.includes('fancy center') || n.includes('bridal') || n.includes('cosmetics') || n.includes('salon chamari') || n.includes('fashion corner')) return false;
       return true;
     });
   }, [customers]);
