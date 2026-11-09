@@ -34,6 +34,7 @@ const Procurement = lazy(() => import('./pages/Procurement'));
 const HR = lazy(() => import('./pages/HR'));
 const Login = lazy(() => import('./pages/Login'));
 const Features = lazy(() => import('./pages/Features'));
+const CloudPushPortal = lazy(() => import('./pages/CloudPushPortal'));
 
 // Smooth, non-flickering skeleton loader for page transitions
 const RouteSkeletonLoader = () => (
@@ -1057,6 +1058,7 @@ const AppContent = () => {
             {checkPerm(['manage_invoices', 'view_invoices']) && (
               <NavItem to="/invoices" icon={<Receipt size={18} />} label="Invoices & Billing" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
+            <NavItem to="/cloud-push" icon={<Cloud size={18} />} label="Cloud Push & Active Users" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             {isFeatureEnabled('inventory') && checkPerm(['manage_inventory', 'view_inventory']) && (
               <NavItem to="/inventory" icon={<Package size={18} />} label="Products & Licenses" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
@@ -1227,6 +1229,7 @@ const AppContent = () => {
                 <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
                 <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
                 <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
+                <Route path="/cloud-push" element={<ProtectedRoute userPermissions={userPermissions}><CloudPushPortal /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
                 <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -248,7 +248,8 @@ export default function StoreContextProvider({ children }) {
     { id: 'minv-102', name: 'Annual Priority SLA & Support Contract', type: 'Service', price: 95000, costPrice: 30000, stock: 999, reorderLevel: 5, desc: '24/7 dedicated support and maintenance package' },
     { id: 'minv-103', name: 'Commercial Network Security Gateway', type: 'Hardware', price: 145000, costPrice: 98000, stock: 18, reorderLevel: 4, desc: 'Managed hardware firewall and VPN gateway' },
     { id: 'minv-104', name: 'Professional Systems Consulting (Day Rate)', type: 'Consulting', price: 45000, costPrice: 15000, stock: 50, reorderLevel: 5, desc: 'On-site senior enterprise technical advisory' },
-    { id: 'minv-105', name: 'Cloud Automated Backup Storage 1TB', type: 'Cloud Service', price: 36000, costPrice: 14000, stock: 200, reorderLevel: 20, desc: 'Encrypted off-site disaster recovery storage' }
+    { id: 'minv-105', name: 'Cloud Automated Backup Storage 1TB', type: 'Cloud Service', price: 36000, costPrice: 14000, stock: 200, reorderLevel: 20, desc: 'Encrypted off-site disaster recovery storage' },
+    { id: 'minv-106', name: 'Biometric Cloud Push Service (Annual Active User License)', type: 'Cloud Service', price: 72000, costPrice: 18000, stock: 999, reorderLevel: 10, desc: 'Monthwise biometric push synchronization per active member count' }
   ];
 
   const sampleMainLeads = [

@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'https://quicksend.lk',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quicksend/, '/Client/api.php')
+      },
+      '/api/etechno': {
+        target: 'http://83.147.38.130:666',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/etechno/, '')
       }
     }
   },

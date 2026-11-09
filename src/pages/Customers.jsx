@@ -1,10 +1,11 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { 
   Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, 
   StickyNote, Send, Clock, Cake, Download, Tag, Compass, History, 
   FileText, Receipt, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck, 
-  Phone, Mail, MapPin, DollarSign, Building, ExternalLink, Lock
+  Phone, Mail, MapPin, DollarSign, Building, ExternalLink, Lock, Cloud, Cpu, Key
 } from 'lucide-react';
 import { StoreContext, getNextSequentialCustomerCode } from '../context/StoreContext';
 import { exportToCSV } from '../utils/export';
@@ -15,6 +16,7 @@ const SEYNEX_CUSTOMER_TAGS = ['All', 'Enterprise Client', 'Corporate Client', 'C
 const LEAD_SOURCES = ['Direct Visit', 'Referral', 'Website', 'Social Media', 'Inbound Inquiry', 'Partner Network', 'Phone Call', 'Walk-in'];
 
 const Customers = () => {
+  const navigate = useNavigate();
   const { 
     customers = [], addCustomer, deleteCustomer, updateCustomer, 
     quotes = [], invoices = [], payments = [],
@@ -314,6 +316,16 @@ const Customers = () => {
                   <button 
                     type="button"
                     className="btn btn-secondary" 
+                    style={{ width: '36px', height: '36px', padding: 0, color: 'var(--accent-primary)' }} 
+                    onClick={() => navigate('/cloud-push', { state: { customerId: customer.id } })}
+                    title="Cloud Push & Active Users Statement"
+                  >
+                    <Cloud size={15} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
                     style={{ width: '36px', height: '36px', padding: 0 }} 
                     onClick={() => { setEditingCustomer(customer); setShowModal(true); }}
                     title="Edit Customer"
@@ -422,7 +434,11 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
     tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tag ? [initialData.tag] : [defaultTag]),
     leadSource: initialData?.leadSource || 'Referral',
     annualFee: initialData?.annualFee || 450000,
-    renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
+    renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+    cloudPushAcc: initialData?.cloudPushAcc || '',
+    deviceSerial: initialData?.deviceSerial || '',
+    cloudPushApiKey: initialData?.cloudPushApiKey || '',
+    ratePerUserMonth: initialData?.ratePerUserMonth || 100
   });
 
   // Lock body scroll while modal is active
@@ -644,6 +660,68 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                   options={LEAD_SOURCES.map(s => ({ value: s, label: s }))}
                   style={{ height: '44px', width: '100%' }}
                 />
+              </div>
+
+              {/* Cloud Push Device Settings (For Annual Billing) */}
+              <div className="form-group md:col-span-2" style={{
+                marginTop: '10px',
+                padding: '16px',
+                borderRadius: '10px',
+                background: 'rgba(99, 102, 241, 0.06)',
+                border: '1px solid rgba(99, 102, 241, 0.2)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    eTechno Cloud Push & Hardware Device Config (Annual Billing)
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Push Account # (push_acc)</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      style={{ height: '38px', fontSize: '0.84rem' }}
+                      placeholder="e.g. 1" 
+                      value={formData.cloudPushAcc} 
+                      onChange={e => setFormData({...formData, cloudPushAcc: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Device Serial # (terminal_serial)</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      style={{ height: '38px', fontSize: '0.84rem' }}
+                      placeholder="e.g. ZKE8012557894" 
+                      value={formData.deviceSerial} 
+                      onChange={e => setFormData({...formData, deviceSerial: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>API Key / Auth Token</label>
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      style={{ height: '38px', fontSize: '0.84rem' }}
+                      placeholder="eTechno API Key" 
+                      value={formData.cloudPushApiKey} 
+                      onChange={e => setFormData({...formData, cloudPushApiKey: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Rate / Active User / Mo (LKR)</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      style={{ height: '38px', fontSize: '0.84rem' }}
+                      placeholder="100" 
+                      value={formData.ratePerUserMonth} 
+                      onChange={e => setFormData({...formData, ratePerUserMonth: Number(e.target.value) || 0})} 
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Tags Selection */}

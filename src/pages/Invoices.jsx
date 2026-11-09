@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
-import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock, MapPin } from 'lucide-react';
+import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock, MapPin, Cloud } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
@@ -1094,7 +1094,22 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           </div>
 
           <div style={{ marginTop: '28px', padding: '20px', background: 'var(--subtle-bg)', borderRadius: '14px', border: '1px solid var(--panel-border)' }}>
-            <label className="form-label" style={{ marginBottom: '12px' }}>Dynamic Line Items</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <label className="form-label" style={{ margin: 0 }}>Dynamic Line Items</label>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => {
+                  setShowModal(false);
+                  navigate('/cloud-push', { state: { customerId: formData.customerId } });
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
+                title="Calculate monthwise active users for cloud push service"
+              >
+                <Cloud size={13} style={{ color: 'var(--accent-primary)' }} />
+                <span>Calculate Cloud Push Fee</span>
+              </button>
+            </div>
             <div className="flex gap-3 mb-4">
               <CustomSelect 
                 value={selectedInventoryId} 
