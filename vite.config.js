@@ -12,5 +12,18 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/quicksend/, '/Client/api.php')
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 850,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas']
+        }
+      }
+    }
   }
 })

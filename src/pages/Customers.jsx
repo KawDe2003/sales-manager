@@ -12,7 +12,7 @@ import { generateCustomerStatementPDF } from '../utils/pdfGenerator';
 import CustomSelect from '../components/CustomSelect';
 
 const SEYNEX_CUSTOMER_TAGS = ['All', 'Enterprise Client', 'Corporate Client', 'Commercial Client', 'SME', 'Government / NGO'];
-const LEAD_SOURCES = ['Walk-in', 'Direct Visit', 'Referral', 'Social Media', 'Website', 'Phone Call', 'Wholesale Van Delivery'];
+const LEAD_SOURCES = ['Direct Visit', 'Referral', 'Website', 'Social Media', 'Inbound Inquiry', 'Partner Network', 'Phone Call', 'Walk-in'];
 
 const Customers = () => {
   const { 

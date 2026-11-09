@@ -560,7 +560,7 @@ const CustomerPortal = () => {
           </div>
           <div>
             <div style={{ fontSize: '1.2rem', fontWeight: 850, fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-              {smsConfig.companyName || 'GymSales Pro'}
+              {smsConfig.companyName || 'Seynex Enterprises'}
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '3px' }}>
               Customer Payment Portal

@@ -682,7 +682,7 @@ export const generateStockReportPDF = (inventoryItems) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
     
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#3b82f6');
     const textColor = [40, 40, 40];
@@ -815,7 +815,7 @@ export const generatePnLReportPDF = (pnlData) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
     const companyAddress = savedConfig.companyAddress || 'Seynex Technologies';
     const companyEmail = savedConfig.companyEmail || 'seynextech@gmail.com';
     const companyPhone = savedConfig.companyPhone || '';
@@ -1138,7 +1138,7 @@ export const exportAccountLedgerPDF = ({ account, lines = [], journalEntries = [
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
 
     const primaryColor = hexToRgb(savedConfig.pdfColor || '#6366f1', [99, 102, 241]);
 
@@ -1219,7 +1219,7 @@ export const exportJournalVoucherPDF = ({ entry, lines = [], accounts = [] }) =>
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -1284,7 +1284,7 @@ export const exportTrialBalancePDF = ({ accounts = [], journalLines = [], journa
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro Enterprise';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -1368,7 +1368,7 @@ export const generatePurchaseOrderPDF = (poData) => {
   try {
     const doc = createPDFDoc();
     const savedConfig = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
-    const companyName = savedConfig.companyName || 'GymSales Pro';
+    const companyName = savedConfig.companyName || 'Seynex Enterprises';
     const companyAddress = savedConfig.companyAddress || '';
     const companyEmail = savedConfig.companyEmail || '';
     const companyPhone = savedConfig.companyPhone || '';

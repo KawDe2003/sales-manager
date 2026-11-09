@@ -547,7 +547,7 @@ const HR = () => {
     if (!emp) return;
 
     let content = '';
-    const companyName = smsConfig.companyName || 'GymSales Pro Fitness Ltd';
+    const companyName = smsConfig.companyName || 'Seynex Enterprises (Pvt) Ltd';
     const companyAddress = smsConfig.companyAddress || '42/A Galle Road, Colombo 03, Sri Lanka';
 
     if (letterForm.type === 'Salary Certificate') {
@@ -3578,7 +3578,7 @@ const HR = () => {
                   MASTER PAYROLL REGISTER & PAY SHEET
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  {smsConfig.companyName || 'GymSales Pro Ltd'} · Month of {viewingMasterSheet.month}
+                  {smsConfig.companyName || 'Seynex Enterprises Ltd'} · Month of {viewingMasterSheet.month}
                 </span>
               </div>
               <div className="no-print flex items-center gap-2">

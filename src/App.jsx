@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileText, Receipt, BarChart3, 
@@ -11,39 +11,62 @@ import {
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-import Dashboard from './pages/Dashboard';
-import Customers from './pages/Customers';
-import Quotations from './pages/Quotations';
-import Invoices from './pages/Invoices';
-import Reports from './pages/Reports';
-import Ledger from './pages/Ledger';
-import Inventory from './pages/Inventory';
-import Settings from './pages/Settings';
-import SharedDocument from './pages/SharedDocument';
-import Leads from './pages/Leads';
-import Logs from './pages/Logs';
-import Payments from './pages/Payments';
-import Debtors from './pages/Debtors';
-import FixedAssets from './pages/FixedAssets';
-import Tasks from './pages/Tasks';
-import Expenses from './pages/Expenses';
-import CustomerPortal from './pages/CustomerPortal';
-import SmsPortal from './pages/SmsPortal';
-import Procurement from './pages/Procurement';
-import HR from './pages/HR';
-import Login from './pages/Login';
-import Features from './pages/Features';
+// Route-level code-splitting: heavy pages are lazy-loaded on demand
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Quotations = lazy(() => import('./pages/Quotations'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Ledger = lazy(() => import('./pages/Ledger'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SharedDocument = lazy(() => import('./pages/SharedDocument'));
+const Leads = lazy(() => import('./pages/Leads'));
+const Logs = lazy(() => import('./pages/Logs'));
+const Payments = lazy(() => import('./pages/Payments'));
+const Debtors = lazy(() => import('./pages/Debtors'));
+const FixedAssets = lazy(() => import('./pages/FixedAssets'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
+const SmsPortal = lazy(() => import('./pages/SmsPortal'));
+const Procurement = lazy(() => import('./pages/Procurement'));
+const HR = lazy(() => import('./pages/HR'));
+const Login = lazy(() => import('./pages/Login'));
+const Features = lazy(() => import('./pages/Features'));
+
+// Smooth, non-flickering skeleton loader for page transitions
+const RouteSkeletonLoader = () => (
+  <div style={{ padding: '24px 20px', maxWidth: '1400px', margin: '0 auto', width: '100%', minHeight: '65vh' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="skeleton-shimmer" style={{ width: '220px', height: '30px', borderRadius: '8px' }} />
+        <div className="skeleton-shimmer" style={{ width: '150px', height: '14px', borderRadius: '6px' }} />
+      </div>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="skeleton-shimmer" style={{ width: '96px', height: '36px', borderRadius: '8px' }} />
+        <div className="skeleton-shimmer" style={{ width: '124px', height: '36px', borderRadius: '8px' }} />
+      </div>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '22px' }}>
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} className="skeleton-shimmer" style={{ height: '104px', borderRadius: '14px' }} />
+      ))}
+    </div>
+    <div className="skeleton-shimmer" style={{ height: '360px', borderRadius: '16px' }} />
+  </div>
+);
 
 const LoadingFallback = () => {
   const { brandName, logo } = (() => {
     try {
       const saved = JSON.parse(localStorage.getItem('gym_sms_config') || '{}');
       return {
-        brandName: saved.dashboardName || saved.companyName || 'GymSales Pro',
+        brandName: saved.dashboardName || saved.companyName || 'Seynex Enterprises',
         logo: saved.receiptLogo || saved.companyLogo || ''
       };
     } catch {
-      return { brandName: 'GymSales Pro', logo: '' };
+      return { brandName: 'Seynex Enterprises', logo: '' };
     }
   })();
 
@@ -217,7 +240,7 @@ const AppContent = () => {
     resetEverythingWithConfirmation, hasUnsavedChanges,
     activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
-  const { user, signOut } = useAuth();
+  const { user, loading: isAuthLoading, signOut } = useAuth();
   const location = useLocation();
 
   const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises';
@@ -364,11 +387,13 @@ const AppContent = () => {
   if (isCustomerPortal) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-        <Routes>
-          <Route path="/portal" element={<CustomerPortal />} />
-          <Route path="/pay" element={<CustomerPortal />} />
-          <Route path="/pay/:phone" element={<CustomerPortal />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/pay" element={<CustomerPortal />} />
+            <Route path="/pay/:phone" element={<CustomerPortal />} />
+          </Routes>
+        </Suspense>
       </div>
     );
   }
@@ -377,24 +402,40 @@ const AppContent = () => {
   if (isPublicShareView) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-        <Routes>
-          <Route path="/share/:type/:id" element={<SharedDocument />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/share/:type/:id" element={<SharedDocument />} />
+          </Routes>
+        </Suspense>
       </div>
     );
   }
 
-  // If on login page, render without layout
+  // Auth Loading Gate: While session verification is in-flight, show clean branded splash screen
+  // NEVER render the dashboard shell, header, or sidebar before authentication is verified
+  if (isAuthLoading) {
+    return <LoadingFallback />;
+  }
+
+  // If on login page, render without layout (or redirect to home if already authenticated)
   if (isLoginPage) {
     if (user) {
       return <Navigate to="/" replace />;
     }
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/login/:businessSlug" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/login/:businessSlug" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
     );
+  }
+
+  // Root Auth Protection Gate: If user is not authenticated, redirect to login IMMEDIATELY
+  // This guarantees NO dashboard elements (header, sidebar, widgets) ever mount or flash on screen
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return (
@@ -1167,28 +1208,30 @@ const AppContent = () => {
         {/* ===== MAIN CONTENT ===== */}
         <main className={`main-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <div key={location.pathname} className="page-transition-enter">
-            <Routes>
-              <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
-              <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
-              <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
-              <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
-              <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
-              <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
-              <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
-              <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
-              <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
-              <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />
-              <Route path="/debtors" element={<ProtectedRoute requiredPermission={['view_financials', 'view_debtors']} userPermissions={userPermissions}><Debtors /></ProtectedRoute>} />
-              <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
-              <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
-              <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
-              <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
-              <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
-              <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<RouteSkeletonLoader />}>
+              <Routes>
+                <Route path="/" element={<ProtectedRoute userPermissions={userPermissions}><Dashboard /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_leads']} userPermissions={userPermissions}><Leads /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute requiredPermission={['manage_clients', 'manage_tasks']} userPermissions={userPermissions}><Tasks /></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute requiredPermission={['manage_clients']} userPermissions={userPermissions}><Customers /></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Inventory /></ProtectedRoute>} />
+                <Route path="/procurement" element={<ProtectedRoute requiredPermission={['manage_inventory', 'view_inventory']} userPermissions={userPermissions}><Procurement /></ProtectedRoute>} />
+                <Route path="/hr" element={<ProtectedRoute userPermissions={userPermissions}><HR /></ProtectedRoute>} />
+                <Route path="/quotations" element={<ProtectedRoute requiredPermission={['manage_quotes']} userPermissions={userPermissions}><Quotations /></ProtectedRoute>} />
+                <Route path="/invoices" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices']} userPermissions={userPermissions}><Invoices /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute requiredPermission={['manage_invoices', 'view_invoices', 'view_financials']} userPermissions={userPermissions}><Payments /></ProtectedRoute>} />
+                <Route path="/debtors" element={<ProtectedRoute requiredPermission={['view_financials', 'view_debtors']} userPermissions={userPermissions}><Debtors /></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_expenses']} userPermissions={userPermissions}><Expenses /></ProtectedRoute>} />
+                <Route path="/assets" element={<ProtectedRoute requiredPermission={['view_financials', 'manage_assets']} userPermissions={userPermissions}><FixedAssets /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Reports /></ProtectedRoute>} />
+                <Route path="/ledger" element={<ProtectedRoute requiredPermission={['view_reports', 'view_financials']} userPermissions={userPermissions}><Ledger /></ProtectedRoute>} />
+                <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
+                <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
+                <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
 
