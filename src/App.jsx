@@ -33,7 +33,6 @@ import Procurement from './pages/Procurement';
 import HR from './pages/HR';
 import Login from './pages/Login';
 import Features from './pages/Features';
-import QuickSaleModal from './components/QuickSaleModal';
 
 const LoadingFallback = () => {
   const { brandName, logo } = (() => {
@@ -216,7 +215,6 @@ const AppContent = () => {
     inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges,
-    quickSaleOpen, setQuickSaleOpen,
     activeBusinessId, activeBusiness
   } = useContext(StoreContext) || {};
   const { user, signOut } = useAuth();
@@ -525,31 +523,6 @@ const AppContent = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Quick Instant Invoice / Quick Sale */}
-          <button
-            id="quick-sale-bill-header-btn"
-            onClick={() => setQuickSaleOpen(true)}
-            className="btn hidden-mobile"
-            style={{
-              height: '36px',
-              padding: '0 14px',
-              fontSize: '0.82rem',
-              fontWeight: 800,
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 10px rgba(59, 130, 246, 0.35)',
-              cursor: 'pointer'
-            }}
-            title="Fast Instant Invoice / Quick Sale"
-          >
-            <Sparkles size={15} /> <span>⚡ Quick Sale</span>
-          </button>
-
           {/* Quick Actions */}
           <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
             <MessageSquare size={15} /> SMS Portal
@@ -878,12 +851,6 @@ const AppContent = () => {
            </div>
         </div>
       )}
-
-      {/* ===== QUICK SALE & BILLING MODAL ===== */}
-      <QuickSaleModal 
-        isOpen={quickSaleOpen} 
-        onClose={() => setQuickSaleOpen(false)} 
-      />
 
       {/* ===== MAIN LAYOUT ===== */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
@@ -1231,37 +1198,17 @@ const AppContent = () => {
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </NavLink>
+          <NavLink to="/customers" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <Users size={18} />
+            <span>Clients</span>
+          </NavLink>
           <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
             <Receipt size={18} />
             <span>Invoices</span>
           </NavLink>
-
-          {/* Quick Bill Center Floating Button */}
-          <button 
-            type="button" 
-            onClick={() => { closeSidebar(); setQuickSaleOpen(true); }}
-            className="dock-item dock-item-highlight"
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              position: 'relative', top: '-10px', padding: 0
-            }}
-            title="⚡ Quick Sale"
-          >
-            <div style={{
-              width: '46px', height: '46px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(59, 130, 246, 0.5), 0 0 0 3px var(--bg-secondary)',
-              transition: 'transform 0.15s ease'
-            }}>
-              <Zap size={22} />
-            </div>
-            <span style={{ color: '#3b82f6', fontWeight: 800, fontSize: '0.64rem', marginTop: '2px' }}>⚡ Sale</span>
-          </button>
-
-          <NavLink to="/invoices" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
-            <Receipt size={18} />
-            <span>Invoices</span>
+          <NavLink to="/quotations" onClick={closeSidebar} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`}>
+            <FileText size={18} />
+            <span>Quotes</span>
           </NavLink>
           <button 
             type="button" 

@@ -84,7 +84,6 @@ const Dashboard = () => {
     activityLogs = [],
     inventory = [],
     theme = 'dark',
-    setQuickSaleOpen,
     activeBusinessId,
     activeBusiness,
     dashboardConfig = {},
@@ -792,28 +791,6 @@ const Dashboard = () => {
               title="Customize dashboard cards, metrics, and sales target"
             >
               <Sliders size={15} /> Customize
-            </button>
-            <button 
-              id="dashboard-quick-sale-bill-btn"
-              onClick={() => setQuickSaleOpen(true)}
-              className="btn"
-              style={{
-                padding: '8px 18px',
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)',
-                cursor: 'pointer'
-              }}
-              title="⚡ Quick Sales Billing / Instant Invoice"
-            >
-              <Sparkles size={16} /> ⚡ Quick Sale
             </button>
             <Link to="/invoices" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
               <CreditCard size={16} /> Invoices

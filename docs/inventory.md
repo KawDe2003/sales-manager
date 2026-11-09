@@ -80,7 +80,7 @@
 - **Audit Evaluation**: Fast calculation, but line items should allow instant selection from inventory rather than manual typing.
 
 ### 2.4 Invoice Form (`/invoices`)
-- **Trigger**: `Create Invoice` / `⚡ Quick Sale`.
+- **Trigger**: `Create Invoice`.
 - **Current Fields**:
   1. Customer Selector
   2. Sequential Invoice Number *(INV-xxxx)*
@@ -89,7 +89,7 @@
   5. Product/Service Line Items array (Name, SKU, Qty, Price, Line Total)
   6. Installment Schedule generator (optional)
   7. Public notes & Legal Disclaimers
-- **Audit Evaluation**: Quick Sale modal is well-optimized for 1-tap counter sales. The full invoice form has some redundant disclaimer fields that should inherit from corporate defaults.
+- **Audit Evaluation**: Fast calculation and creation of full tax invoices and recurring contracts. Line items support instant catalog selection.
 
 ---
 

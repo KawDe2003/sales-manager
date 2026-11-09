@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { Plus, Search, Trash2, Edit3, DollarSign, PieChart, Wallet, Factory, Building2 } from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, DollarSign, PieChart, Wallet, Building2 } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
 
 const Expenses = () => {

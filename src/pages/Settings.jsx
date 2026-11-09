@@ -10,7 +10,7 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Factory, Sparkles, FileText
+  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Sparkles, FileText
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion

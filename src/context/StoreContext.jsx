@@ -200,7 +200,6 @@ export default function StoreContextProvider({ children }) {
     try { return localStorage.getItem('gym_last_sync_time') || null; } catch(e) { return null; }
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const isHydratedRef = useRef(false);
   const isInitialMountRef = useRef(true);
 
@@ -510,6 +509,8 @@ export default function StoreContextProvider({ children }) {
           const sanitized = parsed.filter(c => {
             if (!c) return false;
             if (c.businessId && c.businessId !== 'biz_main') return false;
+            const gn = String(c.gymName || c.name || '').toLowerCase();
+            if (gn.includes('fancy center') || gn.includes('bridal') || gn.includes('cosmetics') || gn.includes('salon chamari') || gn.includes('fashion corner')) return false;
             return true;
           });
           // Ensure clean sequential codes starting from 1 (CUST-001, CUST-002, ...)
@@ -536,11 +537,19 @@ export default function StoreContextProvider({ children }) {
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(i => !i.businessId || i.businessId === 'biz_main');
+          const sanitized = parsed.filter(i => {
+            if (!i || (i.businessId && i.businessId !== 'biz_main')) return false;
+            const n = String(i.name || '').toLowerCase();
+            const id = String(i.id || '');
+            if (id.startsWith('inv-10')) return false;
+            if (n.includes('bobby') || n.includes('hair') || n.includes('pin') || n.includes('wave') || n.includes('wire') || n.includes('enamel') || n.includes('clip')) return false;
+            return true;
+          });
+          if (sanitized.length > 0) return sanitized;
         }
       }
     } catch (e) {}
-    return [];
+    return sampleMainInventory;
   });
 
   const [invoices, setInvoices] = useState(() => {
@@ -551,7 +560,12 @@ export default function StoreContextProvider({ children }) {
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.filter(inv => !inv.businessId || inv.businessId === 'biz_main');
+          const sanitized = parsed.filter(inv => {
+            if (!inv || (inv.businessId && inv.businessId !== 'biz_main')) return false;
+            const p = String(inv.prospectName || '').toLowerCase();
+            if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
+            return true;
+          });
           return sanitized.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
             const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
@@ -575,7 +589,12 @@ export default function StoreContextProvider({ children }) {
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(q => q && (!q.businessId || q.businessId === 'biz_main'));
+          return parsed.filter(q => {
+            if (!q || (q.businessId && q.businessId !== 'biz_main')) return false;
+            const p = String(q.prospectName || '').toLowerCase();
+            if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
+            return true;
+          });
         }
       }
     } catch (e) {}
@@ -607,7 +626,12 @@ export default function StoreContextProvider({ children }) {
 
   const sanitizeExpensesByBiz = (list) => {
     if (!Array.isArray(list)) return [];
-    return list.filter(e => !e.businessId || e.businessId === 'biz_main');
+    return list.filter(e => {
+      if (!e || (e.businessId && e.businessId !== 'biz_main')) return false;
+      const d = String(e.description || '').toLowerCase();
+      if (d.includes('delivery van') || d.includes('forming machine') || d.includes('factory 3-phase') || d.includes('bobby pin') || d.includes('hair pin') || d.includes('hairpin') || d.includes('wire') || d.includes('pin')) return false;
+      return true;
+    });
   };
 
   const [expenses, setExpenses] = useState(() => {
@@ -823,39 +847,35 @@ export default function StoreContextProvider({ children }) {
     {
       id: 'emp-5',
       employeeId: 'EMP-105',
-      name: 'Nuwan Bandara (Outsourced Tech)',
+      name: 'Nuwan Bandara (Tech Specialist)',
       nic: '199045102938',
       dob: '1990-07-18',
       gender: 'Male',
       bloodGroup: 'B+',
-      designation: 'Outsourced Assembly Specialist',
-      department: 'Manufacturing & Assembly',
-      employmentType: 'Piece-Rate',
-      compensationType: 'piece_rate',
-      pieceRate: 450,
-      pieceDescription: 'Per Equipment Unit Assembled',
-      defaultUnits: 160,
-      unitsCompleted: 160,
+      designation: 'Senior Infrastructure Field Engineer',
+      department: 'IT Infrastructure & Support',
+      employmentType: 'Full-Time',
+      compensationType: 'salary',
+      basicSalary: 85000,
+      allowance: 15000,
+      foodAllowance: 5000,
+      transportAllowance: 10000,
       shift: 'General (08:30 - 17:00)',
       phone: '0714455667',
-      email: 'nuwan.contractor@gymsales.lk',
-      address: '22 Factory Zone, Homagama',
+      email: 'nuwan.tech@gymsales.lk',
+      address: '22 Tech Zone, Homagama',
       emergencyContactName: 'Kusum Bandara',
       emergencyContactPhone: '0719988776',
       emergencyContactRelation: 'Spouse',
       joinDate: '2023-05-10',
       confirmationDate: '2023-11-10',
-      basicSalary: 72000,
-      allowance: 0,
-      foodAllowance: 4000,
-      transportAllowance: 6000,
-      epfEligible: false,
+      epfEligible: true,
       bankName: 'Sampath Bank PLC',
       bankAccount: '1100293847',
       bankBranch: 'Homagama Branch',
       bankDetails: 'Sampath Bank - 1100293847 (Homagama)',
       status: 'Active',
-      leaveBalances: { annual: 7, casual: 3, medical: 5 }
+      leaveBalances: { annual: 14, casual: 7, medical: 7 }
     },
     {
       id: 'emp-6',
@@ -2993,7 +3013,13 @@ export default function StoreContextProvider({ children }) {
 
       // 8. Expenses
       if (Array.isArray(eData)) {
-        const loadedExpenses = eData.map(e => ({
+        const filteredEData = eData.filter(e => {
+          if (e.business_id && e.business_id !== activeBusinessId) return false;
+          const d = String(e.description || '').toLowerCase();
+          if (d.includes('delivery van') || d.includes('forming machine') || d.includes('factory 3-phase') || d.includes('bobby pin') || d.includes('hair pin') || d.includes('hairpin') || d.includes('wire') || d.includes('pin')) return false;
+          return true;
+        });
+        const loadedExpenses = filteredEData.map(e => ({
           id: e.id,
           category: e.category,
           amount: Number(e.amount) || 0,
@@ -6129,7 +6155,6 @@ export default function StoreContextProvider({ children }) {
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
-      quickSaleOpen, setQuickSaleOpen,
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,

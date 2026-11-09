@@ -5,7 +5,7 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   Lock, Mail, User, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff, 
   Loader2, KeyRound, X, Shield, Briefcase, Calculator, Building2, Sparkles, 
-  Factory, Copy, Check, ArrowRight, Share2, Layers, Phone, Building
+  Copy, Check, ArrowRight, Share2, Layers, Phone, Building
 } from 'lucide-react';
 
 const BUSINESS_PORTALS = {
