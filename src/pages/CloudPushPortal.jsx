@@ -607,22 +607,40 @@ export default function CloudPushPortal() {
         {/* Error Alert */}
         {error && (
           <div style={{
-            marginTop: '16px', padding: '12px 16px', borderRadius: '10px',
-            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
-            display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.85rem', color: 'var(--text-primary)'
+            marginTop: '16px', padding: '16px', borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)',
+            display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '0.86rem', color: 'var(--text-primary)'
           }}>
-            <AlertCircle size={18} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+            <AlertCircle size={20} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
             <div style={{ flex: 1 }}>
-              <div>{error}</div>
-              <div style={{ marginTop: '8px' }}>
+              <div style={{ fontWeight: 700, color: '#ef4444', marginBottom: '4px' }}>
+                Gateway Communication Notice
+              </div>
+              <div style={{ lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                {error}
+              </div>
+
+              {(error.toLowerCase().includes('proxy') || error.toLowerCase().includes('restart') || error.includes('<!doctype') || error.includes('index.html')) ? (
+                <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.4)', fontSize: '0.8rem' }}>
+                  <strong>How to activate the proxy:</strong>
+                  <ol style={{ margin: '6px 0 0 18px', padding: 0, lineHeight: 1.6 }}>
+                    <li>Open the terminal window where your local server is running (e.g. <code>npm run dev</code>).</li>
+                    <li>Press <kbd style={{ background: 'var(--bg-secondary)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--panel-border)' }}>Ctrl + C</kbd> to stop it.</li>
+                    <li>Type <code>npm run dev</code> and press Enter to restart with the new proxy rule.</li>
+                    <li>Refresh your browser tab and click <strong>Fetch Active User Statement</strong> again!</li>
+                  </ol>
+                </div>
+              ) : null}
+
+              <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button 
                   type="button" 
                   className="btn btn-sm btn-secondary"
                   onClick={handleRunSimulated}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Sparkles size={13} />
-                  <span>Click here to test with simulated biometric punch data</span>
+                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Preview Simulated Statement Now</span>
                 </button>
               </div>
             </div>

@@ -106,12 +106,66 @@ export function chunkDateRange(startDate, endDate, maxDays = 9) {
 }
 
 /**
+ * Safely parse API response and handle HTML error pages, text/plain JSON, and eTechno auth errors
+ */
+export async function safeParseApiResponse(res, context = 'API') {
+  if (res.status === 401) {
+    throw new Error('Authentication Failed: Gateway returned HTTP 401 Unauthorized. Please verify your Push Account # and API Key / Credentials.');
+  }
+
+  const text = await res.text();
+  const trimmed = (text || '').trim();
+
+  // If response is completely empty
+  if (!trimmed) {
+    if (!res.ok) {
+      throw new Error(`${context} failed with HTTP ${res.status} (${res.statusText || 'Empty Response'})`);
+    }
+    return {};
+  }
+
+  // Detect HTML response (Vite SPA index.html fallback, 404/502 web server pages, etc.)
+  if (trimmed.startsWith('<') || trimmed.toLowerCase().startsWith('<!doctype') || trimmed.toLowerCase().startsWith('<html')) {
+    if (trimmed.includes('<div id="root">') || trimmed.includes('sales-manager') || trimmed.includes('Vite') || trimmed.includes('index.html')) {
+      throw new Error(
+        `Proxy Not Active: The request returned your app's 'index.html' web page instead of contacting the eTechno server. To fix this: Please RESTART your Vite development server (press Ctrl+C in your terminal, then run 'npm run dev') so the new '/api/etechno' proxy is activated.`
+      );
+    }
+    throw new Error(
+      `${context} error: Received an HTML webpage instead of JSON data (HTTP ${res.status}). Verify your device IP and gateway configuration.`
+    );
+  }
+
+  // Parse JSON (eTechno sends JSON with Content-Type: text/plain)
+  let parsed;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch (err) {
+    throw new Error(
+      `${context} response was not valid JSON: ${err.message}. Server replied: "${trimmed.substring(0, 140)}"`
+    );
+  }
+
+  // Handle eTechno specific embedded error messages (e.g. {"Status": "404", "Message": "Wrong Credentials..!"})
+  if (parsed && typeof parsed === 'object') {
+    if (parsed.Message && (parsed.Message.includes('Wrong Credentials') || parsed.Message.includes('Unauthorized'))) {
+      throw new Error(`eTechno Authentication Error: "${parsed.Message}". Please check your Device Serial #, Push Account #, and API Key.`);
+    }
+    if (parsed.Status && Number(parsed.Status) >= 400 && parsed.Message) {
+      throw new Error(`eTechno API Error (${parsed.Status}): ${parsed.Message}`);
+    }
+  }
+
+  return parsed;
+}
+
+/**
  * Fetch Terminal Info & Status
  */
 export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
-    'Accept': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json'
   };
   if (authHeader) headers['Authorization'] = authHeader;
@@ -120,10 +174,7 @@ export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, seria
   const url = `${baseUrl.replace(/\/$/, '')}/v2/terminal_status/?terminal_serial=${encodeURIComponent(serialNo || '')}`;
 
   const res = await fetch(url, { method: 'GET', headers });
-  if (!res.ok) {
-    throw new Error(`Terminal Status API Error: HTTP ${res.status} (${res.statusText})`);
-  }
-  return await res.json();
+  return await safeParseApiResponse(res, 'Terminal Status');
 }
 
 /**
@@ -132,7 +183,7 @@ export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, seria
 export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
-    'Accept': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json'
   };
   if (authHeader) headers['Authorization'] = authHeader;
@@ -142,16 +193,13 @@ export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serial
   const url = `${baseUrl.replace(/\/$/, '')}/v2/terminal_user/?terminal_serial=${encodeURIComponent(serialNo || '')}&push_acc=${encodeURIComponent(accNo || '1')}`;
 
   const res = await fetch(url, { method: 'GET', headers });
-  if (!res.ok) {
+  if (!res.ok && res.status !== 401) {
     // Try general user endpoint
     const fallbackUrl = `${baseUrl.replace(/\/$/, '')}/v2/user/?push_acc=${encodeURIComponent(accNo || '1')}&filter=pin&value=`;
     const fbRes = await fetch(fallbackUrl, { method: 'GET', headers });
-    if (!fbRes.ok) {
-      throw new Error(`Failed to fetch users: HTTP ${res.status}`);
-    }
-    return await fbRes.json();
+    return await safeParseApiResponse(fbRes, 'User Roster');
   }
-  return await res.json();
+  return await safeParseApiResponse(res, 'Terminal Users');
 }
 
 /**
@@ -160,7 +208,7 @@ export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serial
 export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, serialNo, fromDate, toDate, apiKey, username, password }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
-    'Accept': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json'
   };
   if (authHeader) headers['Authorization'] = authHeader;
@@ -169,10 +217,7 @@ export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, se
   const url = `${baseUrl.replace(/\/$/, '')}/v2/transaction_date/?push_acc=${encodeURIComponent(accNo || '1')}&terminal_serial=${encodeURIComponent(serialNo || '')}&pin=&from_date=${encodeURIComponent(fromDate)}&to_Date=${encodeURIComponent(toDate)}`;
 
   const res = await fetch(url, { method: 'GET', headers });
-  if (!res.ok) {
-    throw new Error(`Transaction API Error: HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await safeParseApiResponse(res, 'Transactions');
 }
 
 /**
@@ -208,6 +253,9 @@ export async function calculateMonthwiseActiveUsers({
       terminalUsers = userRes.data;
     }
   } catch (err) {
+    if (err.message && (err.message.includes('Proxy Not Active') || err.message.includes('Authentication Failed') || err.message.includes('Wrong Credentials'))) {
+      throw err;
+    }
     console.warn('Could not fetch enrolled user roster:', err.message);
   }
 
@@ -265,6 +313,9 @@ export async function calculateMonthwiseActiveUsers({
           allPunchLogs.push(t);
         });
       } catch (err) {
+        if (err.message && (err.message.includes('Proxy Not Active') || err.message.includes('Authentication Failed') || err.message.includes('Wrong Credentials'))) {
+          throw err;
+        }
         console.warn(`Chunk failed for ${chunk.from} to ${chunk.to}:`, err.message);
       }
     }

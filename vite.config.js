@@ -14,6 +14,7 @@ export default defineConfig({
       '/api/etechno': {
         target: 'http://83.147.38.130:666',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api\/etechno/, '')
       }
     }
