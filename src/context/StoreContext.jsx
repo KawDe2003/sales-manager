@@ -3176,6 +3176,10 @@ export default function StoreContextProvider({ children }) {
           }
 
           if (res.error) {
+            // Ignore missing table errors for optional modules not present in remote schema
+            if (res.error.code === 'PGRST205' || res.error.message?.includes('schema cache')) {
+              return true;
+            }
             if (res.error.code === '42501' || res.error.message?.includes('row-level security')) {
               rlsBlocked = true;
             }
@@ -3619,9 +3623,28 @@ export default function StoreContextProvider({ children }) {
     };
   }, [user, quotes]);
 
-  // Fetch from cloud on initial app startup & whenever auth changes
+  // Fetch from cloud on initial app startup & whenever auth or network status changes
   useEffect(() => {
     fetchCloudData();
+
+    const handleOnline = () => {
+      console.log('[Network] Browser came online. Syncing to cloud...');
+      setCloudSyncStatus('syncing');
+      syncAllToCloud(true);
+    };
+
+    const handleOffline = () => {
+      console.log('[Network] Browser went offline.');
+      setCloudSyncStatus('error');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [user]);
 
   // Actions

@@ -587,8 +587,16 @@ const AppContent = () => {
           </button>
 
           {/* AUTOMATIC CLOUD SYNC STATUS (NO MANUAL SAVE BUTTON REQUIRED) */}
-          <div
+          <button
+            type="button"
             id="header-cloud-sync-status"
+            onClick={() => {
+              if (syncAllToCloud) {
+                syncAllToCloud();
+              } else if (fetchCloudData) {
+                fetchCloudData();
+              }
+            }}
             style={{
               height: '32px',
               padding: '0 12px',
@@ -613,19 +621,27 @@ const AppContent = () => {
                   ? '1px solid rgba(239, 68, 68, 0.3)'
                   : '1px solid rgba(16, 185, 129, 0.25)',
               borderRadius: '20px',
-              userSelect: 'none'
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.2s ease'
             }}
-            title={cloudSyncStatus === 'syncing' ? 'Syncing changes to cloud...' : 'All data automatically saved & synced'}
+            title={
+              cloudSyncStatus === 'syncing' 
+                ? 'Syncing changes to cloud...' 
+                : cloudSyncStatus === 'error' 
+                  ? 'Cloud sync issue or offline. Click to reconnect and sync now.' 
+                  : 'All data saved to cloud. Click to sync now.'
+            }
           >
             {cloudSyncStatus === 'syncing' ? (
               <>
                 <RefreshCw size={13} className="animate-spin" />
-                <span className="hidden-mobile">Auto-Saving...</span>
+                <span className="hidden-mobile">Syncing...</span>
               </>
             ) : cloudSyncStatus === 'error' ? (
               <>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></span>
-                <span className="hidden-mobile">Offline</span>
+                <span className="hidden-mobile">Offline (Click to Sync)</span>
               </>
             ) : (
               <>
@@ -633,7 +649,7 @@ const AppContent = () => {
                 <span className="hidden-mobile">Cloud Synced</span>
               </>
             )}
-          </div>
+          </button>
 
           {/* Theme Toggle - Accessible on Mobile & Desktop */}
           <button
