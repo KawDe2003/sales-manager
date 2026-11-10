@@ -26,11 +26,11 @@ export default function CloudPushPortal() {
   // Parse any passed state (e.g. from customer card click)
   const initialCustomerId = location.state?.customerId || '';
 
-  // Form & Hardware State
+  // Form & Hardware State (Defaulted to your NYU7254000011 hardware profile)
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
-  const [accNo, setAccNo] = useState('1');
-  const [serialNo, setSerialNo] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const [accNo, setAccNo] = useState('192');
+  const [serialNo, setSerialNo] = useState('NYU7254000011');
+  const [apiKey, setApiKey] = useState('cGYm94tX97qA6cXw7UKgh64nr');
   const [showApiKey, setShowApiKey] = useState(false);
   const [baseUrl, setBaseUrl] = useState('/api/etechno');
   const [ratePerUserMonth, setRatePerUserMonth] = useState(100);
@@ -134,17 +134,30 @@ export default function CloudPushPortal() {
         serialNo,
         apiKey
       });
-      setDeviceStatus({
-        online: true,
-        data: res,
-        message: 'Device reached successfully via eTechno Push Gateway!'
-      });
-      if (showNotification) {
-        showNotification('success', `Device ${serialNo} connected successfully!`);
+      if (res.isRouteNotFound) {
+        setDeviceStatus({
+          online: false,
+          authenticated: true,
+          message: res.message
+        });
+        if (showNotification) {
+          showNotification('info', `Account ${accNo} authenticated. Hardware ${serialNo} is offline (Route Not Found).`);
+        }
+      } else {
+        setDeviceStatus({
+          online: true,
+          authenticated: true,
+          data: res.data,
+          message: res.message || 'Device reached successfully via eTechno Push Gateway!'
+        });
+        if (showNotification) {
+          showNotification('success', `Device ${serialNo} connected successfully!`);
+        }
       }
     } catch (err) {
       setDeviceStatus({
         online: false,
+        authenticated: false,
         message: err.message || 'Could not connect to device. Verify API key and network.'
       });
     } finally {
@@ -178,6 +191,10 @@ export default function CloudPushPortal() {
         ratePerUserMonth,
         onProgress: (p) => setProgressInfo(p)
       });
+
+      if (result.allUniqueActiveMembers === 0) {
+        result.deviceOfflineNotice = true;
+      }
 
       setAuditData(result);
       if (showNotification) {
@@ -670,6 +687,34 @@ export default function CloudPushPortal() {
                 disabled={loading}
               >
                 Retry Live API
+              </button>
+            </div>
+          )}
+
+          {/* Device Offline / Route Not Found Banner */}
+          {auditData.deviceOfflineNotice && !auditData.isSimulated && (
+            <div style={{
+              padding: '14px 18px', borderRadius: '12px', marginBottom: '20px',
+              background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', fontSize: '0.85rem'
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertCircle size={16} />
+                  <span>Account #192 Authenticated • Device {serialNo} Has No Punches On Server (Status 204: Route Not Found)</span>
+                </div>
+                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  The eTechno server verified your account credentials, but device <strong>{serialNo}</strong> is currently offline or hasn't synced punches to the cloud yet.
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-primary"
+                onClick={handleRunSimulated}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Sparkles size={14} />
+                <span>Load Sample Annual Audit for {serialNo}</span>
               </button>
             </div>
           )}

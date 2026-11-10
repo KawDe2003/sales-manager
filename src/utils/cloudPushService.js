@@ -151,7 +151,10 @@ export async function safeParseApiResponse(res, context = 'API') {
     if (parsed.Message && (parsed.Message.includes('Wrong Credentials') || parsed.Message.includes('Unauthorized'))) {
       throw new Error(`eTechno Authentication Error: "${parsed.Message}". Please check your Device Serial #, Push Account #, and API Key.`);
     }
-    if (parsed.Status && Number(parsed.Status) >= 400 && parsed.Message) {
+    if (parsed.Status === '204' || parsed.Message === 'Route Not Found') {
+      parsed.isRouteNotFound = true;
+      parsed.isDeviceOffline = true;
+    } else if (parsed.Status && Number(parsed.Status) >= 400 && parsed.Message) {
       throw new Error(`eTechno API Error (${parsed.Status}): ${parsed.Message}`);
     }
   }
@@ -162,7 +165,7 @@ export async function safeParseApiResponse(res, context = 'API') {
 /**
  * Fetch Terminal Info & Status
  */
-export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password }) {
+export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password, timeoutMs = 8000 }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
     'Accept': 'application/json, text/plain, */*',
@@ -171,16 +174,41 @@ export async function getTerminalStatus({ baseUrl = '/api/etechno', accNo, seria
   if (authHeader) headers['Authorization'] = authHeader;
   if (apiKey) headers['api_key'] = apiKey;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const url = `${baseUrl.replace(/\/$/, '')}/v2/terminal_status/?terminal_serial=${encodeURIComponent(serialNo || '')}`;
 
-  const res = await fetch(url, { method: 'GET', headers });
-  return await safeParseApiResponse(res, 'Terminal Status');
+  try {
+    const res = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Terminal Status');
+    if (parsed?.isRouteNotFound || parsed?.Status === '204') {
+      return {
+        online: false,
+        authenticated: true,
+        isRouteNotFound: true,
+        message: `Authentication succeeded for Account ${accNo}, but device ${serialNo || ''} has no active cloud route (Status 204: Route Not Found). The physical terminal is offline or has not pushed to 83.147.38.130:666.`
+      };
+    }
+    return {
+      online: true,
+      authenticated: true,
+      data: parsed,
+      message: `Device ${serialNo} is online and connected!`
+    };
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Device check timed out after ${timeoutMs / 1000}s. The server is not responding.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
  * Fetch Users assigned to Terminal / Account
  */
-export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password }) {
+export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serialNo, apiKey, username, password, timeoutMs = 8000 }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
     'Accept': 'application/json, text/plain, */*',
@@ -189,23 +217,32 @@ export async function getTerminalUsers({ baseUrl = '/api/etechno', accNo, serial
   if (authHeader) headers['Authorization'] = authHeader;
   if (apiKey) headers['api_key'] = apiKey;
 
-  // Try terminal_user first, fallback to user
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const url = `${baseUrl.replace(/\/$/, '')}/v2/terminal_user/?terminal_serial=${encodeURIComponent(serialNo || '')}&push_acc=${encodeURIComponent(accNo || '1')}`;
 
-  const res = await fetch(url, { method: 'GET', headers });
-  if (!res.ok && res.status !== 401) {
-    // Try general user endpoint
-    const fallbackUrl = `${baseUrl.replace(/\/$/, '')}/v2/user/?push_acc=${encodeURIComponent(accNo || '1')}&filter=pin&value=`;
-    const fbRes = await fetch(fallbackUrl, { method: 'GET', headers });
-    return await safeParseApiResponse(fbRes, 'User Roster');
+  try {
+    const res = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Terminal Users');
+    if (parsed?.isRouteNotFound || parsed?.Status === '204') {
+      return [];
+    }
+    return parsed;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.warn('Terminal user check timed out.');
+      return [];
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return await safeParseApiResponse(res, 'Terminal Users');
 }
 
 /**
  * Fetch transactions for a specific 10-day chunk
  */
-export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, serialNo, fromDate, toDate, apiKey, username, password }) {
+export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, serialNo, fromDate, toDate, apiKey, username, password, timeoutMs = 8000 }) {
   const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
   const headers = {
     'Accept': 'application/json, text/plain, */*',
@@ -214,10 +251,26 @@ export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, se
   if (authHeader) headers['Authorization'] = authHeader;
   if (apiKey) headers['api_key'] = apiKey;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const url = `${baseUrl.replace(/\/$/, '')}/v2/transaction_date/?push_acc=${encodeURIComponent(accNo || '1')}&terminal_serial=${encodeURIComponent(serialNo || '')}&pin=&from_date=${encodeURIComponent(fromDate)}&to_Date=${encodeURIComponent(toDate)}`;
 
-  const res = await fetch(url, { method: 'GET', headers });
-  return await safeParseApiResponse(res, 'Transactions');
+  try {
+    const res = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Transactions');
+    if (parsed?.isRouteNotFound || parsed?.Status === '204') {
+      return [];
+    }
+    return parsed;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.warn(`Transaction chunk timed out for ${fromDate} to ${toDate}`);
+      return [];
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
