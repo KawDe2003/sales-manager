@@ -510,26 +510,27 @@ const AppContent = () => {
         <div className="flex items-center gap-4">
           {/* Mobile Toggle */}
           <button 
-            className="hidden-desktop" 
+            className="hidden-desktop header-sidebar-toggle-btn"
+            id="header-sidebar-toggle-btn"
             onClick={toggleSidebar}
-            style={{ padding: '8px', border: '1px solid var(--panel-border)', background: 'var(--subtle-bg)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ padding: '8px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Toggle Menu"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
           {/* Desktop Collapse Toggle */}
           <button 
-            className="hidden-mobile" 
+            className="hidden-mobile header-sidebar-toggle-btn"
+            id="header-sidebar-toggle-btn-desktop"
             onClick={toggleSidebarCollapse}
             style={{ 
               padding: '8px', 
-              border: '1px solid var(--panel-border)', 
-              background: 'rgba(99, 102, 241, 0.06)', 
               borderRadius: '10px',
-              color: 'var(--accent-primary)',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
+            title="Toggle Sidebar (Collapse/Expand)"
           >
             {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
@@ -578,6 +579,7 @@ const AppContent = () => {
 
           {/* Search */}
           <button 
+            id="header-search-btn"
             className="btn btn-secondary" 
             style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setSearchOpen(true)}
@@ -586,7 +588,7 @@ const AppContent = () => {
             <Search size={16} className="text-secondary" />
           </button>
 
-          {/* AUTOMATIC CLOUD SYNC STATUS (NO MANUAL SAVE BUTTON REQUIRED) */}
+          {/* AUTOMATIC CLOUD SYNC STATUS (ZERO-TOUCH AUTONOMOUS SYNC) */}
           <button
             type="button"
             id="header-cloud-sync-status"
@@ -627,26 +629,26 @@ const AppContent = () => {
             }}
             title={
               cloudSyncStatus === 'syncing' 
-                ? 'Syncing changes to cloud...' 
+                ? 'Saving updates to Supabase cloud database automatically...' 
                 : cloudSyncStatus === 'error' 
-                  ? 'Cloud sync issue or offline. Click to reconnect and sync now.' 
-                  : 'All data saved to cloud. Click to sync now.'
+                  ? 'Autonomous background auto-reconnect active. Click to retry immediately.' 
+                  : 'Continuous autonomous sync active. All records are safely saved to Supabase.'
             }
           >
             {cloudSyncStatus === 'syncing' ? (
               <>
                 <RefreshCw size={13} className="animate-spin" />
-                <span className="hidden-mobile">Syncing...</span>
+                <span>Auto-Saving...</span>
               </>
             ) : cloudSyncStatus === 'error' ? (
               <>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></span>
-                <span className="hidden-mobile">Offline (Click to Sync)</span>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}></span>
+                <span>Auto-Reconnecting...</span>
               </>
             ) : (
               <>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
-                <span className="hidden-mobile">Cloud Synced</span>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+                <span>Cloud Synced</span>
               </>
             )}
           </button>

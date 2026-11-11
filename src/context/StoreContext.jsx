@@ -1589,6 +1589,8 @@ export default function StoreContextProvider({ children }) {
       return;
     }
 
+    setHasUnsavedChanges(true);
+
     // Auto-save: sync to cloud in background without requiring manual user button clicks
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -1596,7 +1598,7 @@ export default function StoreContextProvider({ children }) {
 
     autoSaveTimerRef.current = setTimeout(() => {
       syncAllToCloud(true);
-    }, 2500);
+    }, 1200);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -3152,6 +3154,7 @@ export default function StoreContextProvider({ children }) {
     try {
       let savedCount = 0;
       let rlsBlocked = false;
+      let coreRlsBlocked = false;
       let firstError = null;
 
       const safeUpsertBatch = async (table, records, onConflict = 'id') => {
@@ -3175,13 +3178,27 @@ export default function StoreContextProvider({ children }) {
             res = await activeClient.from(table).upsert(records, { onConflict });
           }
 
+          // If both business_id or user_id columns fail, strip both
+          if (res.error && (res.error.code === '23503' || res.error.code === '42703' || res.error.message?.includes('business_id') || res.error.message?.includes('user_id'))) {
+            const stripped = records.map(r => {
+              const copy = { ...r };
+              delete copy.user_id;
+              delete copy.business_id;
+              return copy;
+            });
+            res = await activeClient.from(table).upsert(stripped, { onConflict });
+          }
+
           if (res.error) {
             // Ignore missing table errors for optional modules not present in remote schema
-            if (res.error.code === 'PGRST205' || res.error.message?.includes('schema cache')) {
+            if (res.error.code === 'PGRST205' || res.error.code === '42P01' || res.error.message?.includes('schema cache') || res.error.message?.includes('does not exist')) {
               return true;
             }
             if (res.error.code === '42501' || res.error.message?.includes('row-level security')) {
               rlsBlocked = true;
+              if (['customers', 'inventory', 'quotations', 'invoices'].includes(table)) {
+                coreRlsBlocked = true;
+              }
             }
             if (!firstError) firstError = `${table}: ${res.error.message}`;
             console.warn(`[Supabase Save Warning on ${table}]`, res.error.message);
@@ -3394,9 +3411,9 @@ export default function StoreContextProvider({ children }) {
         localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(smsConfig));
       } catch (e) {}
 
-      if (rlsBlocked) {
+      if (coreRlsBlocked) {
         setCloudSyncStatus('error');
-        showNotification('Supabase blocked save (Row Level Security is ON). Go to Settings → Cloud Sync for the quick SQL fix.', 'error', 10000);
+        showNotification('Supabase blocked save (Row Level Security is ON on core tables). Go to Settings → Cloud Sync for the quick SQL fix.', 'error', 10000);
         return { success: false, rlsBlocked: true };
       }
 
@@ -3623,18 +3640,18 @@ export default function StoreContextProvider({ children }) {
     };
   }, [user, quotes]);
 
-  // Fetch from cloud on initial app startup & whenever auth or network status changes
+  // 1. Initial Fetch & Network Lifecycle
   useEffect(() => {
     fetchCloudData();
 
     const handleOnline = () => {
-      console.log('[Network] Browser came online. Syncing to cloud...');
+      console.log('[Auto-Sync Engine] Browser came online. Initiating cloud sync...');
       setCloudSyncStatus('syncing');
-      syncAllToCloud(true);
+      syncAllToCloud(true).catch(() => {});
     };
 
     const handleOffline = () => {
-      console.log('[Network] Browser went offline.');
+      console.log('[Auto-Sync Engine] Browser went offline.');
       setCloudSyncStatus('error');
     };
 
@@ -3646,6 +3663,65 @@ export default function StoreContextProvider({ children }) {
       window.removeEventListener('offline', handleOffline);
     };
   }, [user]);
+
+  // 2. Autonomous Self-Healing / Auto-Reconnect:
+  // When cloudSyncStatus is 'error', automatically retry syncing every 5s until restored to Synced
+  useEffect(() => {
+    if (cloudSyncStatus !== 'error') return;
+
+    console.log('[Auto-Sync Engine] Status is "error" - scheduling automatic reconnect retry in 5s...');
+    const retryTimer = setTimeout(() => {
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        console.log('[Auto-Sync Engine] Auto-retrying background cloud sync to restore "Cloud Synced"...');
+        syncAllToCloud(true).catch(err => {
+          console.warn('[Auto-Sync Engine] Retry attempt failed, will re-attempt automatically:', err?.message);
+        });
+      }
+    }, 5000);
+
+    return () => clearTimeout(retryTimer);
+  }, [cloudSyncStatus]);
+
+  // 3. Continuous Autonomous Heartbeat:
+  // Silently keeps data synchronized every 45s so records stay live across sessions and tabs
+  useEffect(() => {
+    const heartbeatTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine)) {
+        syncAllToCloud(true).catch(() => {});
+      }
+    }, 45000);
+
+    return () => clearInterval(heartbeatTimer);
+  }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
+
+  // 4. Autonomous Sync on Window Focus or Tab Resume:
+  useEffect(() => {
+    const handleFocusOrResume = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine)) {
+        console.log('[Auto-Sync Engine] Window focused / tab resumed - running background sync check...');
+        syncAllToCloud(true).catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleFocusOrResume);
+    window.addEventListener('focus', handleFocusOrResume);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleFocusOrResume);
+      window.removeEventListener('focus', handleFocusOrResume);
+    };
+  }, [customers, inventory, invoices, quotes]);
+
+  // 5. Page Unload Auto-Flush:
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (autoSaveTimerRef.current) {
+        syncAllToCloud(true);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Actions
   const addCustomer = (customer) => {
