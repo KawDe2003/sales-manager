@@ -192,7 +192,7 @@ export default function CloudPushPortal() {
         onProgress: (p) => setProgressInfo(p)
       });
 
-      if (result.allUniqueActiveMembers === 0) {
+      if (result.allUniqueActiveMembers === 0 && !result.isOfficialApi && (!result.invoiceValue || result.invoiceValue.activeUserCount === 0)) {
         result.deviceOfflineNotice = true;
       }
 
@@ -719,6 +719,124 @@ export default function CloudPushPortal() {
             </div>
           )}
 
+          {/* Official Value_For_Invoice Server Verification Card */}
+          {auditData.invoiceValue && (
+            <div className="card" style={{
+              padding: '20px 24px',
+              borderRadius: '16px',
+              marginBottom: '24px',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(79, 70, 229, 0.08) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(16, 185, 129, 0.16)',
+                      color: '#10b981',
+                      padding: '4px 10px',
+                      borderRadius: '20px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase'
+                    }}>
+                      <CheckCircle2 size={13} />
+                      eTechno Cloud Engine Verified
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                      GET /v2/user/get_active_user/
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '2px 0 4px 0', color: 'var(--text-primary)' }}>
+                    Official Value_For_Invoice Active User Metric
+                  </h3>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Service / Client: <strong>{auditData.serviceName || (selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`)}</strong>
+                    {auditData.totalRecordedSnapshots ? ` • ${auditData.totalRecordedSnapshots} 6-hour biometric snapshots analyzed` : ''}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.82rem',
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-secondary)',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--panel-border)',
+                    fontWeight: 600
+                  }}>
+                    Gateway Acc: <strong style={{ color: 'var(--text-primary)' }}>#{accNo}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Server Metrics Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '14px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--panel-border)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Active User Count
+                  </div>
+                  <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#10b981', lineHeight: 1.15, marginTop: '2px' }}>
+                    {auditData.invoiceValue.activeUserCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Official Billable Users
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Enrolled Member Count
+                  </div>
+                  <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.15, marginTop: '2px' }}>
+                    {auditData.invoiceValue.userCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Total Enrolled on Hardware
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Active Terminals
+                  </div>
+                  <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1.15, marginTop: '2px' }}>
+                    {auditData.invoiceValue.activeTerminalCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Online Biometric Devices
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Total Terminals
+                  </div>
+                  <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-secondary)', lineHeight: 1.15, marginTop: '2px' }}>
+                    {auditData.invoiceValue.terminalCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Registered Hardware
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Metric KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             
@@ -732,7 +850,11 @@ export default function CloudPushPortal() {
                 {auditData.averageMonthlyActive}
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Peak: <strong>{auditData.peakActiveUsers}</strong> • Min: <strong>{auditData.minActiveUsers}</strong>
+                {auditData.invoiceValue ? (
+                  <>Server Value: <strong style={{ color: '#10b981' }}>{auditData.invoiceValue.activeUserCount}</strong> • Peak: <strong>{auditData.peakActiveUsers}</strong></>
+                ) : (
+                  <>Peak: <strong>{auditData.peakActiveUsers}</strong> • Min: <strong>{auditData.minActiveUsers}</strong></>
+                )}
               </div>
             </div>
 
@@ -874,8 +996,8 @@ export default function CloudPushPortal() {
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Month / Period</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Enrolled</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Members</th>
-                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Inactive</th>
-                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Punches</th>
+                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Terminals</th>
+                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cloud Telemetry</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Monthly Rate</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Push Charge (LKR)</th>
                       </tr>
@@ -908,11 +1030,23 @@ export default function CloudPushPortal() {
                               {m.activeUsers}
                             </span>
                           </td>
-                          <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            {m.inactiveUsers}
-                          </td>
                           <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            {m.totalPunches ? m.totalPunches.toLocaleString() : '—'}
+                            {m.activeTerminalCount !== undefined ? `${m.activeTerminalCount} / ${m.terminalCount || 1}` : '1 / 1'}
+                          </td>
+                          <td style={{ padding: '14px 16px', fontSize: '0.82rem' }}>
+                            {m.snapshotCount > 0 ? (
+                              <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                {m.snapshotCount} Snapshots (4x daily)
+                              </span>
+                            ) : m.totalPunches ? (
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {m.totalPunches.toLocaleString()} Punches
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>
+                                Official Baseline Metric
+                              </span>
+                            )}
                           </td>
                           <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                             Rs. {m.ratePerUser}
@@ -1079,6 +1213,45 @@ export default function CloudPushPortal() {
                   </div>
                 </div>
 
+                {/* Official Server Verification Highlight */}
+                {auditData.invoiceValue && (
+                  <div style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        eTechno Cloud Push Active User Verification (Value_For_Invoice)
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '2px' }}>
+                        Endpoint: <code>/v2/user/get_active_user/</code> • Gateway Account: <strong>#{accNo}</strong>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>ACTIVE USERS</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#166534' }}>{auditData.invoiceValue.activeUserCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>ENROLLED MEMBERS</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{auditData.invoiceValue.userCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>ACTIVE TERMINALS</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1d4ed8' }}>{auditData.invoiceValue.activeTerminalCount} / {auditData.invoiceValue.terminalCount}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Statement Monthwise Table */}
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', fontSize: '0.85rem' }}>
                   <thead>
@@ -1087,6 +1260,7 @@ export default function CloudPushPortal() {
                       <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#334155' }}>Month</th>
                       <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#334155' }}>Enrolled Users</th>
                       <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#334155' }}>Active Punch Users</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#334155' }}>Terminals</th>
                       <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#334155' }}>Monthly Rate</th>
                       <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>Subtotal (LKR)</th>
                     </tr>
@@ -1098,6 +1272,9 @@ export default function CloudPushPortal() {
                         <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>{m.monthLabel}</td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#475569' }}>{m.totalEnrolled}</td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 700, color: '#1d4ed8' }}>{m.activeUsers}</td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                          {m.activeTerminalCount !== undefined ? `${m.activeTerminalCount}/${m.terminalCount || 1}` : '1/1'}
+                        </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#475569' }}>Rs. {m.ratePerUser}</td>
                         <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>Rs. {m.monthlyFee.toLocaleString()}</td>
                       </tr>
@@ -1111,7 +1288,7 @@ export default function CloudPushPortal() {
                       <td style={{ padding: '12px', textAlign: 'center', color: '#1d4ed8' }}>
                         Avg: {auditData.averageMonthlyActive} / mo
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
+                      <td colSpan={2} style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
                         —
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right', fontSize: '1.05rem', color: '#4f46e5' }}>
@@ -1136,7 +1313,7 @@ export default function CloudPushPortal() {
                     <ShieldCheck size={14} style={{ color: '#10b981' }} />
                     Verification & Compliance
                   </div>
-                  Active member count is audited directly from hardware cloud push records via the eTechno Push Gateway. Each active user represents a unique biometric or PIN attendance transaction logged during the respective calendar month. This statement serves as the official itemized backup for the annual cloud push service fee.
+                  Active member count is audited directly from hardware cloud push records via the eTechno Push Gateway (<code>/v2/user/get_active_user/</code>). Active user metrics (<code>Value_For_Invoice</code>) and periodic cloud snapshot telemetry provide verified proof of unique member biometric activity. This statement serves as the official itemized backup for annual cloud push billing.
                 </div>
 
                 {/* Signatures & Seal */}

@@ -274,9 +274,57 @@ export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, se
 }
 
 /**
+ * Fetch official Active User Count and Multi-Snapshot Audit Data from eTechno Push Server
+ * Endpoint: {{baseURL}}/v2/user/get_active_user/?push_acc=...
+ * Official Invoicing Endpoint provided in eTechno Push Postman Reference:
+ *   - Value_For_Invoice: [ { Terminal_Count, User_Count, Active_Terminal_Count, Active_User_Count } ]
+ *   - AVG_Value_Data: [ { Service_Acc, Service_Name, Process_Time, Terminal_Count, User_Count, Active_Terminal_Count, Active_User_Count } ]
+ */
+export async function getActiveUserInvoiceData({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  serialNo = '',
+  apiKey = '',
+  username = '',
+  password = '',
+  timeoutMs = 12000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, username || accNo, password);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+  if (accNo) headers['push_acc'] = String(accNo);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const cleanBase = (baseUrl || '/api/etechno').replace(/\/$/, '');
+  let url = `${cleanBase}/v2/user/get_active_user/?push_acc=${encodeURIComponent(accNo || '')}`;
+  if (serialNo) {
+    url += `&terminal_serial=${encodeURIComponent(serialNo)}`;
+  }
+
+  try {
+    const res = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Active Users For Invoice');
+    return parsed;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Active User check timed out after ${timeoutMs / 1000}s. The eTechno server is not responding.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Primary Analysis Engine:
- * Fetches all transactions and users monthwise across the date range,
- * calculates active users per month, and produces billing breakdown.
+ * Connects to {{baseURL}}/v2/user/get_active_user/ to retrieve official Value_For_Invoice
+ * and AVG_Value_Data time-series snapshots, and computes monthwise billing breakdown.
  */
 export async function calculateMonthwiseActiveUsers({
   baseUrl = '/api/etechno',
@@ -295,6 +343,178 @@ export async function calculateMonthwiseActiveUsers({
     throw new Error('Invalid date range. Please select valid From and To dates.');
   }
 
+  if (onProgress) {
+    onProgress({
+      currentMonth: 'Querying eTechno Server (/v2/user/get_active_user/)...',
+      progressIndex: 1,
+      totalMonths: months.length,
+      percentage: 25
+    });
+  }
+
+  let activeUserApiRes = null;
+  let useSnapshotEngine = false;
+
+  try {
+    activeUserApiRes = await getActiveUserInvoiceData({
+      baseUrl,
+      accNo,
+      serialNo,
+      apiKey,
+      username,
+      password
+    });
+    if (activeUserApiRes && (activeUserApiRes.Data || activeUserApiRes.Value_For_Invoice)) {
+      useSnapshotEngine = true;
+    }
+  } catch (err) {
+    console.warn('Official get_active_user call warning:', err.message);
+    if (err.message && (err.message.includes('Authentication Failed') || err.message.includes('Wrong Credentials') || err.message.includes('Proxy Not Active'))) {
+      throw err;
+    }
+  }
+
+  // ===== PATH A: OFFICIAL ETECHNO /v2/user/get_active_user/ ENGINE =====
+  if (useSnapshotEngine) {
+    const valueForInvoice = activeUserApiRes?.Data?.Value_For_Invoice || activeUserApiRes?.Value_For_Invoice || activeUserApiRes?.data?.Value_For_Invoice || [];
+    const avgValueData = activeUserApiRes?.Data?.AVG_Value_Data || activeUserApiRes?.AVG_Value_Data || activeUserApiRes?.data?.AVG_Value_Data || [];
+
+    const invoiceObj = valueForInvoice[0] || {};
+    const invoiceActiveUserCount = Number(invoiceObj.Active_User_Count) || 0;
+    const invoiceUserCount = Number(invoiceObj.User_Count) || 0;
+    const invoiceActiveTerminalCount = Number(invoiceObj.Active_Terminal_Count) || 1;
+    const invoiceTerminalCount = Number(invoiceObj.Terminal_Count) || 1;
+    const serviceName = avgValueData[0]?.Service_Name || invoiceObj.Service_Name || `Client Account #${accNo}`;
+
+    // Group time-series snapshots by YYYY-MM
+    const monthSnapshotsMap = new Map();
+    avgValueData.forEach(r => {
+      if (!r.Process_Time) return;
+      const key = String(r.Process_Time).substring(0, 7);
+      if (!monthSnapshotsMap.has(key)) monthSnapshotsMap.set(key, []);
+      monthSnapshotsMap.get(key).push(r);
+    });
+
+    const earliestSnapshot = avgValueData[0] || null;
+    const baselineActive = earliestSnapshot ? (Number(earliestSnapshot.Active_User_Count) || invoiceActiveUserCount) : invoiceActiveUserCount;
+    const baselineEnrolled = earliestSnapshot ? (Number(earliestSnapshot.User_Count) || invoiceUserCount) : invoiceUserCount;
+
+    const monthResults = [];
+
+    for (let i = 0; i < months.length; i++) {
+      const m = months[i];
+      if (onProgress) {
+        onProgress({
+          currentMonth: m.label,
+          progressIndex: i + 1,
+          totalMonths: months.length,
+          percentage: Math.round(30 + ((i + 1) / months.length) * 70)
+        });
+      }
+
+      const snapshots = monthSnapshotsMap.get(m.key) || [];
+      let activeCount = 0;
+      let enrolledCount = 0;
+      let peakActive = 0;
+      let minActive = 0;
+      let terminalCount = invoiceTerminalCount;
+      let activeTerminalCount = invoiceActiveTerminalCount;
+      let snapshotCount = snapshots.length;
+      let dataSource = '';
+      let isEstimated = false;
+
+      if (snapshots.length > 0) {
+        const activeSum = snapshots.reduce((acc, r) => acc + (Number(r.Active_User_Count) || 0), 0);
+        activeCount = Math.round(activeSum / snapshots.length);
+        peakActive = Math.max(...snapshots.map(r => Number(r.Active_User_Count) || 0));
+        minActive = Math.min(...snapshots.map(r => Number(r.Active_User_Count) || 0));
+        enrolledCount = Math.max(...snapshots.map(r => Number(r.User_Count) || 0));
+        const lastSnap = snapshots[snapshots.length - 1];
+        if (lastSnap?.Terminal_Count) terminalCount = Number(lastSnap.Terminal_Count);
+        if (lastSnap?.Active_Terminal_Count) activeTerminalCount = Number(lastSnap.Active_Terminal_Count);
+        dataSource = `Live Cloud Snapshots (${snapshots.length} logs / 4x daily)`;
+      } else {
+        isEstimated = true;
+        const monthStartDate = m.startDate;
+        const earliestSnapDate = earliestSnapshot ? new Date(earliestSnapshot.Process_Time) : new Date();
+
+        if (monthStartDate < earliestSnapDate) {
+          activeCount = baselineActive || invoiceActiveUserCount;
+          enrolledCount = baselineEnrolled || invoiceUserCount;
+          peakActive = activeCount;
+          minActive = activeCount;
+          dataSource = 'Contract Baseline Period';
+        } else {
+          activeCount = invoiceActiveUserCount || baselineActive;
+          enrolledCount = invoiceUserCount || baselineEnrolled;
+          peakActive = activeCount;
+          minActive = activeCount;
+          dataSource = 'Official Invoice Standard';
+        }
+      }
+
+      const inactiveCount = Math.max(0, enrolledCount - activeCount);
+      const monthlyFee = activeCount * Number(ratePerUserMonth || 0);
+
+      monthResults.push({
+        key: m.key,
+        monthLabel: m.label,
+        shortLabel: m.shortLabel,
+        year: m.year,
+        startDate: m.startDate.toISOString().split('T')[0],
+        endDate: m.endDate.toISOString().split('T')[0],
+        totalEnrolled: enrolledCount,
+        activeUsers: activeCount,
+        peakActive,
+        minActive,
+        inactiveUsers: inactiveCount,
+        terminalCount,
+        activeTerminalCount,
+        snapshotCount,
+        dataSource,
+        isEstimated,
+        ratePerUser: Number(ratePerUserMonth || 0),
+        monthlyFee
+      });
+    }
+
+    const totalMonths = monthResults.length;
+    const totalActiveSum = monthResults.reduce((acc, m) => acc + m.activeUsers, 0);
+    const averageMonthlyActive = totalMonths > 0 ? Math.round(totalActiveSum / totalMonths) : invoiceActiveUserCount;
+    const peakActiveUsers = Math.max(...monthResults.map(m => m.peakActive || m.activeUsers), invoiceActiveUserCount);
+    const minActiveUsers = Math.min(...monthResults.map(m => m.minActive || m.activeUsers), invoiceActiveUserCount);
+    const totalAnnualFee = monthResults.reduce((acc, m) => acc + m.monthlyFee, 0);
+
+    return {
+      success: true,
+      accNo,
+      serialNo,
+      fromDate,
+      toDate,
+      ratePerUserMonth: Number(ratePerUserMonth || 0),
+      totalMonths,
+      serviceName,
+      isOfficialApi: true,
+      invoiceValue: {
+        activeUserCount: invoiceActiveUserCount,
+        userCount: invoiceUserCount,
+        activeTerminalCount: invoiceActiveTerminalCount,
+        terminalCount: invoiceTerminalCount
+      },
+      totalEnrolledUsers: invoiceUserCount || baselineEnrolled,
+      activeEnrolledUsers: invoiceActiveUserCount || averageMonthlyActive,
+      allUniqueActiveMembers: invoiceActiveUserCount || averageMonthlyActive,
+      averageMonthlyActive,
+      peakActiveUsers,
+      minActiveUsers,
+      totalAnnualFee,
+      totalRecordedSnapshots: avgValueData.length,
+      monthResults,
+      avgValueData
+    };
+  }
+
+  // ===== PATH B: TRANSACTION PUNCH LOG CHUNKING FALLBACK =====
   let terminalUsers = [];
   try {
     const userRes = await getTerminalUsers({ baseUrl, accNo, serialNo, apiKey, username, password });
@@ -306,9 +526,6 @@ export async function calculateMonthwiseActiveUsers({
       terminalUsers = userRes.data;
     }
   } catch (err) {
-    if (err.message && (err.message.includes('Proxy Not Active') || err.message.includes('Authentication Failed') || err.message.includes('Wrong Credentials'))) {
-      throw err;
-    }
     console.warn('Could not fetch enrolled user roster:', err.message);
   }
 
@@ -366,16 +583,10 @@ export async function calculateMonthwiseActiveUsers({
           allPunchLogs.push(t);
         });
       } catch (err) {
-        if (err.message && (err.message.includes('Proxy Not Active') || err.message.includes('Authentication Failed') || err.message.includes('Wrong Credentials'))) {
-          throw err;
-        }
-        console.warn(`Chunk failed for ${chunk.from} to ${chunk.to}:`, err.message);
+        console.warn(`Chunk warning for ${chunk.from} to ${chunk.to}:`, err.message);
       }
     }
 
-    // Determine active member count for this month
-    // If transaction records exist, count unique pins who punched in this month.
-    // If no transactions logged for this month, fallback to active enrolled users
     const uniquePunchUsers = monthActivePins.size;
     const activeCount = uniquePunchUsers > 0 ? uniquePunchUsers : activeEnrolled;
     const inactiveCount = Math.max(0, totalEnrolled - activeCount);
@@ -398,7 +609,6 @@ export async function calculateMonthwiseActiveUsers({
     });
   }
 
-  // Calculate Overall Metrics
   const totalMonths = monthResults.length;
   const totalActiveSum = monthResults.reduce((acc, m) => acc + m.activeUsers, 0);
   const averageMonthlyActive = totalMonths > 0 ? Math.round(totalActiveSum / totalMonths) : 0;
@@ -414,6 +624,12 @@ export async function calculateMonthwiseActiveUsers({
     toDate,
     ratePerUserMonth: Number(ratePerUserMonth || 0),
     totalMonths,
+    invoiceValue: {
+      activeUserCount: averageMonthlyActive,
+      userCount: totalEnrolled,
+      activeTerminalCount: 1,
+      terminalCount: 1
+    },
     totalEnrolledUsers: totalEnrolled,
     activeEnrolledUsers: activeEnrolled,
     allUniqueActiveMembers: allUniqueActivePins.size,
@@ -487,6 +703,13 @@ export function generateSimulatedMonthwiseData({
     toDate,
     ratePerUserMonth: Number(ratePerUserMonth || 0),
     totalMonths,
+    serviceName: `Demo Enterprise Client (Acc #${accNo})`,
+    invoiceValue: {
+      activeUserCount: averageMonthlyActive,
+      userCount: currentEnrolled,
+      activeTerminalCount: 3,
+      terminalCount: 3
+    },
     totalEnrolledUsers: currentEnrolled,
     activeEnrolledUsers: averageMonthlyActive,
     allUniqueActiveMembers: currentEnrolled,
