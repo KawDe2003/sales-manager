@@ -437,9 +437,47 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
     renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
     cloudPushAcc: initialData?.cloudPushAcc || '',
     deviceSerial: initialData?.deviceSerial || '',
+    deviceSerials: Array.isArray(initialData?.deviceSerials) ? initialData.deviceSerials : (
+      initialData?.deviceSerial ? [{ id: 'dev-1', sn: initialData.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }] : []
+    ),
     cloudPushApiKey: initialData?.cloudPushApiKey || '',
     ratePerUserMonth: initialData?.ratePerUserMonth || 100
   });
+
+  const [newCustDeviceSn, setNewCustDeviceSn] = useState('');
+  const [newCustDeviceRole, setNewCustDeviceRole] = useState('IN');
+  const [newCustDeviceLabel, setNewCustDeviceLabel] = useState('');
+
+  const addCustDevice = () => {
+    const sn = (newCustDeviceSn || '').trim().toUpperCase();
+    if (!sn) return;
+    const currentList = Array.isArray(formData.deviceSerials) ? [...formData.deviceSerials] : [];
+    if (currentList.some(d => d.sn === sn)) return;
+    const newDev = {
+      id: `dev-${Date.now()}`,
+      sn,
+      role: newCustDeviceRole,
+      label: newCustDeviceLabel.trim() || (newCustDeviceRole === 'IN' ? 'Entrance Turnstile (IN)' : newCustDeviceRole === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile')
+    };
+    const updated = [...currentList, newDev];
+    setFormData({
+      ...formData,
+      deviceSerials: updated,
+      deviceSerial: updated[0]?.sn || ''
+    });
+    setNewCustDeviceSn('');
+    setNewCustDeviceLabel('');
+  };
+
+  const removeCustDevice = (targetSn) => {
+    const currentList = Array.isArray(formData.deviceSerials) ? [...formData.deviceSerials] : [];
+    const updated = currentList.filter(d => d.sn !== targetSn);
+    setFormData({
+      ...formData,
+      deviceSerials: updated,
+      deviceSerial: updated[0]?.sn || ''
+    });
+  };
 
   // Lock body scroll while modal is active
   useEffect(() => {
@@ -676,27 +714,48 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                     eTechno Cloud Push & Hardware Device Config (Annual Billing)
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      eTechno Cloud Push & Hardware Turnstiles Config
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--accent-primary)', fontWeight: 700, background: 'rgba(99, 102, 241, 0.12)', padding: '2px 8px', borderRadius: '10px' }}>
+                    Multi-Device IN/OUT Support
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '14px' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.78rem' }}>Push Account # (push_acc)</label>
                     <input 
                       type="text" 
                       className="form-input" 
                       style={{ height: '38px', fontSize: '0.84rem' }}
-                      placeholder="e.g. 1" 
+                      placeholder="e.g. 192" 
                       value={formData.cloudPushAcc} 
                       onChange={e => setFormData({...formData, cloudPushAcc: e.target.value})} 
                     />
                   </div>
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Device Serial # (terminal_serial)</label>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Primary Serial #</label>
                     <input 
                       type="text" 
                       className="form-input" 
                       style={{ height: '38px', fontSize: '0.84rem' }}
-                      placeholder="e.g. ZKE8012557894" 
+                      placeholder="e.g. NYU7254000011" 
                       value={formData.deviceSerial} 
-                      onChange={e => setFormData({...formData, deviceSerial: e.target.value})} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        const existing = Array.isArray(formData.deviceSerials) ? [...formData.deviceSerials] : [];
+                        if (existing.length === 0 && val) {
+                          existing.push({ id: 'dev-1', sn: val, role: 'IN', label: 'Entrance Turnstile (IN)' });
+                        } else if (existing.length > 0 && val) {
+                          existing[0] = { ...existing[0], sn: val };
+                        }
+                        setFormData({...formData, deviceSerial: val, deviceSerials: existing});
+                      }} 
                     />
                   </div>
                   <div>
@@ -720,6 +779,102 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                       value={formData.ratePerUserMonth} 
                       onChange={e => setFormData({...formData, ratePerUserMonth: Number(e.target.value) || 0})} 
                     />
+                  </div>
+                </div>
+
+                {/* Multi-Device Turnstiles List & Manager */}
+                <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--subtle-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      Gym Turnstile Fleet ({(formData.deviceSerials || []).length} Connected Serials):
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Supports multiple Entrance IN & Exit OUT readers
+                    </span>
+                  </div>
+
+                  {/* Device Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                    {(formData.deviceSerials || []).map((dev, idx) => (
+                      <div
+                        key={dev.id || dev.sn || idx}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--panel-border)',
+                          fontSize: '0.76rem'
+                        }}
+                      >
+                        <span style={{
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.2)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                          color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1'
+                        }}>
+                          {dev.role}
+                        </span>
+                        <code style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dev.sn}</code>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>({dev.label || (dev.role === 'IN' ? 'Entrance' : 'Exit')})</span>
+                        <button
+                          type="button"
+                          onClick={() => removeCustDevice(dev.sn)}
+                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+                          title="Remove this turnstile"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {(formData.deviceSerials || []).length === 0 && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No turnstiles added yet. Enter serials below.
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Add Device Inline Form */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Add SN (e.g. NYU7254000012)"
+                      value={newCustDeviceSn}
+                      onChange={e => setNewCustDeviceSn(e.target.value)}
+                      style={{ height: '32px', fontSize: '0.78rem', width: '160px', fontFamily: 'monospace' }}
+                    />
+                    <select
+                      className="form-input"
+                      value={newCustDeviceRole}
+                      onChange={e => setNewCustDeviceRole(e.target.value)}
+                      style={{ height: '32px', fontSize: '0.78rem', width: '130px' }}
+                    >
+                      <option value="IN">Turnstile IN</option>
+                      <option value="OUT">Turnstile OUT</option>
+                      <option value="IN/OUT">Two-Way (IN/OUT)</option>
+                      <option value="RECEPTION">Reception Desk</option>
+                    </select>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Label (e.g. Exit Turnstile)"
+                      value={newCustDeviceLabel}
+                      onChange={e => setNewCustDeviceLabel(e.target.value)}
+                      style={{ height: '32px', fontSize: '0.78rem', flex: 1, minWidth: '130px' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={addCustDevice}
+                      style={{ height: '32px', fontSize: '0.75rem', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Plus size={12} /> Add SN
+                    </button>
                   </div>
                 </div>
               </div>

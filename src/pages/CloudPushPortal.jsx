@@ -6,7 +6,9 @@ import {
   Receipt, Key, Cpu, ArrowRight, Eye, EyeOff, ExternalLink,
   Search, ShieldCheck, Clock, BarChart3, HelpCircle, Save, Sparkles,
   Radio, Power, RotateCcw, Trash2, DownloadCloud, UploadCloud,
-  HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check, RefreshCcw
+  HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check, RefreshCcw,
+  LogIn, LogOut, ArrowUpDown, X, Building2, Edit3, SlidersHorizontal, ChevronRight,
+  Shield, CheckCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
@@ -27,10 +29,21 @@ import DatePicker from '../components/DatePicker';
 export default function CloudPushPortal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { customers, invoices, setInvoices, showNotification } = useContext(StoreContext);
+  const { customers = [], invoices = [], setInvoices, showNotification, updateCustomer, addCustomer, deleteCustomer } = useContext(StoreContext) || {};
 
   // Parse any passed state (e.g. from customer card click)
   const initialCustomerId = location.state?.customerId || '';
+
+  // Bulletproof notification helper
+  const notify = (message, type = 'success') => {
+    if (showNotification) {
+      if (['success', 'error', 'info', 'warning'].includes(message) && typeof type === 'string' && !['success', 'error', 'info', 'warning'].includes(type)) {
+        showNotification(type, message);
+      } else {
+        showNotification(message, type);
+      }
+    }
+  };
 
   // Form & Hardware State (Defaulted to your NYU7254000011 hardware profile)
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
@@ -40,6 +53,18 @@ export default function CloudPushPortal() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [baseUrl, setBaseUrl] = useState('/api/etechno');
   const [ratePerUserMonth, setRatePerUserMonth] = useState(100);
+
+  // Multi-Device Turnstiles Fleet State (IN / OUT Serials)
+  const [deviceSerials, setDeviceSerials] = useState([
+    { id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Turnstile (IN)', status: 'idle' },
+    { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)', status: 'idle' }
+  ]);
+  const [serialFilter, setSerialFilter] = useState('ALL'); // 'ALL' = combined gym totals, or specific SN
+  const [newDeviceSn, setNewDeviceSn] = useState('');
+  const [newDeviceRole, setNewDeviceRole] = useState('IN');
+  const [newDeviceLabel, setNewDeviceLabel] = useState('');
+  const [pingingSn, setPingingSn] = useState(null);
+  const [devicePingResults, setDevicePingResults] = useState({});
 
   // Date Range (default: current 12-month annual period)
   const currentYear = new Date().getFullYear();
@@ -88,20 +113,282 @@ export default function CloudPushPortal() {
 
   const statementRef = useRef(null);
 
+  // Gym Profile Management Modals & State
+  const [showCreateProfileModal, setShowCreateProfileModal] = useState(false);
+  const [showManageProfilesModal, setShowManageProfilesModal] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState(null);
+
+  // Modal Form State
+  const [modalGymName, setModalGymName] = useState('');
+  const [modalClientCode, setModalClientCode] = useState('');
+  const [modalContactName, setModalContactName] = useState('');
+  const [modalPhone, setModalPhone] = useState('');
+  const [modalEmail, setModalEmail] = useState('');
+  const [modalAccNo, setModalAccNo] = useState('');
+  const [modalApiKey, setModalApiKey] = useState('');
+  const [modalShowApiKey, setModalShowApiKey] = useState(false);
+  const [modalBaseUrl, setModalBaseUrl] = useState('/api/etechno');
+  const [modalRatePerUser, setModalRatePerUser] = useState(100);
+  const [modalPeriodFrom, setModalPeriodFrom] = useState(`${currentYear}-01-01`);
+  const [modalPeriodTo, setModalPeriodTo] = useState(`${currentYear}-12-31`);
+  const [modalDevices, setModalDevices] = useState([]);
+  const [newModalDevSn, setNewModalDevSn] = useState('');
+  const [newModalDevRole, setNewModalDevRole] = useState('IN');
+  const [newModalDevLabel, setNewModalDevLabel] = useState('');
+
+  // Open Create Profile Modal
+  const openCreateProfileModal = () => {
+    setEditingProfileId(null);
+    setModalGymName('');
+    setModalClientCode(`CUST-${Math.floor(100 + Math.random() * 900)}`);
+    setModalContactName('');
+    setModalPhone('');
+    setModalEmail('');
+    setModalAccNo('');
+    setModalApiKey('');
+    setModalShowApiKey(false);
+    setModalBaseUrl(baseUrl || '/api/etechno');
+    setModalRatePerUser(ratePerUserMonth || 100);
+    setModalPeriodFrom(fromDate || `${currentYear}-01-01`);
+    setModalPeriodTo(toDate || `${currentYear}-12-31`);
+    // Pre-populate with standard dual turnstiles (IN + OUT) as default template
+    setModalDevices([
+      { id: `dev-${Date.now()}-1`, sn: '', role: 'IN', label: 'Entrance Turnstile (IN)' },
+      { id: `dev-${Date.now()}-2`, sn: '', role: 'OUT', label: 'Exit Turnstile (OUT)' }
+    ]);
+    setNewModalDevSn('');
+    setNewModalDevRole('IN');
+    setNewModalDevLabel('');
+    setShowCreateProfileModal(true);
+  };
+
+  // Open Edit Profile Modal
+  const openEditProfileModal = (customer) => {
+    if (!customer) return;
+    setEditingProfileId(customer.id);
+    setModalGymName(customer.gymName || customer.name || '');
+    setModalClientCode(customer.code || '');
+    setModalContactName(customer.name || '');
+    setModalPhone(customer.phone || '');
+    setModalEmail(customer.email || '');
+    setModalAccNo(customer.cloudPushAcc || '');
+    setModalApiKey(customer.cloudPushApiKey || '');
+    setModalShowApiKey(false);
+    setModalBaseUrl(baseUrl || '/api/etechno');
+    setModalRatePerUser(customer.ratePerUserMonth || 100);
+    setModalPeriodFrom(customer.purchaseDate?.substring(0, 10) || `${currentYear}-01-01`);
+    setModalPeriodTo(customer.renewalDate?.substring(0, 10) || `${currentYear}-12-31`);
+
+    if (Array.isArray(customer.deviceSerials) && customer.deviceSerials.length > 0) {
+      setModalDevices(customer.deviceSerials);
+    } else if (customer.deviceSerial) {
+      setModalDevices([{ id: 'dev-1', sn: customer.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }]);
+    } else {
+      setModalDevices([]);
+    }
+    setNewModalDevSn('');
+    setNewModalDevRole('IN');
+    setNewModalDevLabel('');
+    setShowCreateProfileModal(true);
+  };
+
+  // Quick Preset Turnstiles for Modal (1 Device vs 2 Devices)
+  const handleApplyModalDevicePreset = (mode) => {
+    const timestamp = Date.now();
+    if (mode === 'single') {
+      const existingSn = modalDevices[0]?.sn || '';
+      setModalDevices([
+        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN', label: 'Entrance Turnstile (IN)' }
+      ]);
+    } else if (mode === 'dual') {
+      const sn1 = modalDevices[0]?.sn || '';
+      let sn2 = modalDevices[1]?.sn || '';
+      if (!sn2 && sn1) {
+        sn2 = sn1.slice(0, -1) + (Number(sn1.slice(-1)) + 1 || '2');
+      }
+      setModalDevices([
+        { id: `dev-${timestamp}-1`, sn: sn1, role: 'IN', label: 'Entrance Turnstile (IN)' },
+        { id: `dev-${timestamp}-2`, sn: sn2, role: 'OUT', label: 'Exit Turnstile (OUT)' }
+      ]);
+    }
+  };
+
+  const handleAddDeviceToModal = () => {
+    const sn = (newModalDevSn || '').trim().toUpperCase();
+    if (!sn) {
+      notify('Please enter a valid Device Serial #', 'warning');
+      return;
+    }
+    if (modalDevices.some(d => d.sn === sn)) {
+      notify(`Device ${sn} already exists in this profile`, 'warning');
+      return;
+    }
+    const defLabel = newModalDevLabel.trim() || (newModalDevRole === 'IN' ? 'Entrance Turnstile (IN)' : newModalDevRole === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device');
+    setModalDevices(prev => [...prev, {
+      id: `dev-${Date.now()}`,
+      sn,
+      role: newModalDevRole,
+      label: defLabel
+    }]);
+    setNewModalDevSn('');
+    setNewModalDevLabel('');
+  };
+
+  const handleRemoveDeviceFromModal = (targetIdOrSn) => {
+    setModalDevices(prev => prev.filter(d => d.id !== targetIdOrSn && d.sn !== targetIdOrSn));
+  };
+
+  const handleSaveGymProfileFromModal = (e) => {
+    if (e) e.preventDefault();
+    if (!modalGymName.trim()) {
+      notify('Please enter a Gym / Client Name', 'warning');
+      return;
+    }
+    if (!modalAccNo.trim()) {
+      notify('Please enter a Push Account # (e.g. 192)', 'warning');
+      return;
+    }
+
+    const cleanDevices = modalDevices.filter(d => d.sn && d.sn.trim());
+    if (cleanDevices.length === 0) {
+      notify('Please configure at least one Device Serial # for this gym', 'warning');
+      return;
+    }
+
+    const primarySn = cleanDevices[0]?.sn || '';
+
+    if (editingProfileId) {
+      if (updateCustomer) {
+        updateCustomer(editingProfileId, {
+          gymName: modalGymName.trim(),
+          name: modalContactName.trim() || modalGymName.trim(),
+          phone: modalPhone.trim(),
+          email: modalEmail.trim(),
+          cloudPushAcc: modalAccNo.trim(),
+          cloudPushApiKey: modalApiKey.trim(),
+          deviceSerial: primarySn,
+          deviceSerials: cleanDevices,
+          ratePerUserMonth: Number(modalRatePerUser) || 100,
+          purchaseDate: modalPeriodFrom,
+          renewalDate: modalPeriodTo
+        });
+      }
+
+      if (selectedCustomerId === editingProfileId) {
+        setAccNo(modalAccNo.trim());
+        setApiKey(modalApiKey.trim());
+        setDeviceSerials(cleanDevices);
+        setSerialNo(primarySn);
+        setRatePerUserMonth(Number(modalRatePerUser) || 100);
+        setFromDate(modalPeriodFrom);
+        setToDate(modalPeriodTo);
+      }
+      notify(`Gym Profile "${modalGymName}" updated with ${cleanDevices.length} turnstile(s)!`, 'success');
+    } else {
+      const newId = `mc-${Date.now()}`;
+      const newCust = {
+        id: newId,
+        code: modalClientCode.trim() || `CUST-${Math.floor(100 + Math.random() * 900)}`,
+        gymName: modalGymName.trim(),
+        name: modalContactName.trim() || modalGymName.trim(),
+        phone: modalPhone.trim(),
+        email: modalEmail.trim(),
+        status: 'Active',
+        tag: 'Biometric Client',
+        annualFee: 0,
+        purchaseDate: modalPeriodFrom,
+        renewalDate: modalPeriodTo,
+        cloudPushAcc: modalAccNo.trim(),
+        cloudPushApiKey: modalApiKey.trim(),
+        deviceSerial: primarySn,
+        deviceSerials: cleanDevices,
+        ratePerUserMonth: Number(modalRatePerUser) || 100,
+        notes: []
+      };
+
+      if (addCustomer) {
+        addCustomer(newCust);
+      }
+
+      // Immediately activate this gym in the portal
+      setSelectedCustomerId(newId);
+      setAccNo(newCust.cloudPushAcc);
+      setApiKey(newCust.cloudPushApiKey);
+      setDeviceSerials(cleanDevices);
+      setSerialNo(primarySn);
+      setRatePerUserMonth(newCust.ratePerUserMonth);
+      setFromDate(modalPeriodFrom);
+      setToDate(modalPeriodTo);
+      setSerialFilter('ALL');
+
+      notify(`New Gym Profile "${modalGymName}" created with ${cleanDevices.length} turnstile(s) and activated!`, 'success');
+    }
+
+    setShowCreateProfileModal(false);
+  };
+
+  const handleActivateGymProfile = (cust) => {
+    if (!cust) return;
+    setSelectedCustomerId(cust.id);
+    setAccNo(cust.cloudPushAcc || '');
+    if (Array.isArray(cust.deviceSerials) && cust.deviceSerials.length > 0) {
+      setDeviceSerials(cust.deviceSerials);
+      setSerialNo(cust.deviceSerials[0].sn);
+    } else if (cust.deviceSerial) {
+      setSerialNo(cust.deviceSerial);
+      setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }]);
+    } else {
+      setSerialNo('');
+      setDeviceSerials([]);
+    }
+    setApiKey(cust.cloudPushApiKey || '');
+    if (cust.ratePerUserMonth) setRatePerUserMonth(cust.ratePerUserMonth);
+    if (cust.purchaseDate && cust.renewalDate) {
+      setFromDate(cust.purchaseDate.substring(0, 10));
+      setToDate(cust.renewalDate.substring(0, 10));
+    }
+    setSerialFilter('ALL');
+    setShowManageProfilesModal(false);
+    notify(`Connected to "${cust.gymName || cust.name}" (Acc #${cust.cloudPushAcc || '—'})`, 'info');
+  };
+
+  const handleDeleteGymProfile = (cust) => {
+    if (!cust) return;
+    if (window.confirm(`Are you sure you want to delete the hardware profile for "${cust.gymName || cust.name}"?`)) {
+      if (selectedCustomerId === cust.id) {
+        setSelectedCustomerId('');
+      }
+      if (deleteCustomer) {
+        deleteCustomer(cust.id);
+      }
+      notify(`Profile "${cust.gymName || cust.name}" deleted.`, 'info');
+    }
+  };
+
   // Sync customer details when customer selection changes
   useEffect(() => {
     if (selectedCustomerId) {
       const cust = customers.find(c => c.id === selectedCustomerId);
       if (cust) {
-        if (cust.cloudPushAcc) setAccNo(cust.cloudPushAcc);
-        if (cust.deviceSerial) setSerialNo(cust.deviceSerial);
-        if (cust.cloudPushApiKey) setApiKey(cust.cloudPushApiKey);
+        setAccNo(cust.cloudPushAcc || '');
+        if (cust.deviceSerials && Array.isArray(cust.deviceSerials) && cust.deviceSerials.length > 0) {
+          setDeviceSerials(cust.deviceSerials);
+          setSerialNo(cust.deviceSerials[0].sn);
+        } else if (cust.deviceSerial) {
+          setSerialNo(cust.deviceSerial);
+          setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)', status: 'idle' }]);
+        } else {
+          setSerialNo('');
+          setDeviceSerials([]);
+        }
+        setApiKey(cust.cloudPushApiKey || '');
         if (cust.ratePerUserMonth) setRatePerUserMonth(cust.ratePerUserMonth);
         if (cust.purchaseDate && cust.renewalDate) {
           // Pre-fill customer's annual cycle dates
           setFromDate(cust.purchaseDate.substring(0, 10));
           setToDate(cust.renewalDate.substring(0, 10));
         }
+        setSerialFilter('ALL');
       }
     }
   }, [selectedCustomerId, customers]);
@@ -112,6 +399,9 @@ export default function CloudPushPortal() {
       const savedConfig = JSON.parse(localStorage.getItem('seynex_cloud_push_config') || '{}');
       if (savedConfig.accNo && !selectedCustomerId) setAccNo(savedConfig.accNo);
       if (savedConfig.serialNo && !selectedCustomerId) setSerialNo(savedConfig.serialNo);
+      if (Array.isArray(savedConfig.deviceSerials) && savedConfig.deviceSerials.length > 0 && !selectedCustomerId) {
+        setDeviceSerials(savedConfig.deviceSerials);
+      }
       if (savedConfig.apiKey && !selectedCustomerId) setApiKey(savedConfig.apiKey);
       if (savedConfig.baseUrl) setBaseUrl(savedConfig.baseUrl);
       if (savedConfig.ratePerUserMonth) setRatePerUserMonth(savedConfig.ratePerUserMonth);
@@ -121,13 +411,126 @@ export default function CloudPushPortal() {
   // Save current device config for quick reuse
   const handleSaveConfig = () => {
     try {
-      const cfg = { accNo, serialNo, apiKey, baseUrl, ratePerUserMonth };
+      const primarySn = deviceSerials[0]?.sn || serialNo || '';
+      const cfg = { accNo, serialNo: primarySn, deviceSerials, apiKey, baseUrl, ratePerUserMonth };
       localStorage.setItem('seynex_cloud_push_config', JSON.stringify(cfg));
-      if (showNotification) {
-        showNotification('success', 'Device connection settings saved locally');
+      
+      if (selectedCustomerId && updateCustomer) {
+        updateCustomer(selectedCustomerId, {
+          cloudPushAcc: accNo,
+          deviceSerial: primarySn,
+          deviceSerials,
+          cloudPushApiKey: apiKey,
+          ratePerUserMonth
+        });
+        notify(`Hardware profile & ${deviceSerials.length} turnstiles saved to customer record!`, 'success');
+      } else {
+        notify(`Hardware configuration & ${deviceSerials.length} turnstiles saved locally!`, 'success');
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // Add new device serial to fleet
+  const handleAddDevice = () => {
+    const sn = (newDeviceSn || '').trim().toUpperCase();
+    if (!sn) {
+      notify('Please enter a valid Device Serial Number (e.g. NYU7254000012)', 'warning');
+      return;
+    }
+    if (deviceSerials.some(d => d.sn === sn)) {
+      notify(`Device ${sn} is already in the list`, 'warning');
+      return;
+    }
+
+    const defaultLabel = newDeviceLabel.trim() || (newDeviceRole === 'IN' ? 'Entrance Turnstile (IN)' : newDeviceRole === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device');
+    const newDev = {
+      id: `dev-${Date.now()}`,
+      sn,
+      role: newDeviceRole,
+      label: defaultLabel,
+      status: 'idle',
+      lastPing: null
+    };
+
+    const updated = [...deviceSerials, newDev];
+    setDeviceSerials(updated);
+    setNewDeviceSn('');
+    setNewDeviceLabel('');
+    notify(`Added ${sn} (${newDeviceRole}) to turnstile fleet`, 'success');
+  };
+
+  // Remove device serial from fleet
+  const handleRemoveDevice = (targetIdOrSn) => {
+    if (deviceSerials.length <= 1) {
+      notify('At least one device serial is required', 'warning');
+      return;
+    }
+    const updated = deviceSerials.filter(d => d.id !== targetIdOrSn && d.sn !== targetIdOrSn);
+    setDeviceSerials(updated);
+    if (serialFilter === targetIdOrSn) setSerialFilter('ALL');
+    notify('Device removed from fleet', 'info');
+  };
+
+  // Test connection for a specific device serial number
+  const handlePingSingleDevice = async (targetSn) => {
+    const sn = (targetSn || serialNo || '').trim();
+    if (!sn) {
+      notify('Please provide a Device Serial # to test connection.', 'warning');
+      return;
+    }
+    setPingingSn(sn);
+    try {
+      const res = await getTerminalStatus({
+        baseUrl,
+        accNo,
+        serialNo: sn,
+        apiKey
+      });
+
+      const isRouteNotFound = res?.isRouteNotFound || res?.Status === '204';
+      const isOnline = !isRouteNotFound && (res?.online || res?.isSuccess || res?.Status === '200');
+
+      setDevicePingResults(prev => ({
+        ...prev,
+        [sn]: {
+          online: isOnline,
+          message: res?.message || (isOnline ? 'Online via eTechno Push Gateway' : 'Offline / Route Not Found'),
+          timestamp: new Date().toLocaleTimeString()
+        }
+      }));
+
+      setDeviceSerials(prev => prev.map(d => d.sn === sn ? {
+        ...d,
+        status: isOnline ? 'online' : 'offline',
+        lastPing: new Date().toLocaleTimeString(),
+        pingMsg: res?.message
+      } : d));
+
+      if (isOnline) {
+        notify(`Device ${sn} connected successfully via eTechno Push Gateway!`, 'success');
+      } else {
+        notify(`Account #${accNo} verified. Hardware ${sn} is offline (Route Not Found).`, 'info');
+      }
+    } catch (err) {
+      setDevicePingResults(prev => ({
+        ...prev,
+        [sn]: {
+          online: false,
+          message: err.message || 'Connection failed',
+          timestamp: new Date().toLocaleTimeString()
+        }
+      }));
+      setDeviceSerials(prev => prev.map(d => d.sn === sn ? {
+        ...d,
+        status: 'offline',
+        lastPing: new Date().toLocaleTimeString(),
+        pingMsg: err.message
+      } : d));
+      notify(`Ping to ${sn} failed: ${err.message}`, 'error');
+    } finally {
+      setPingingSn(null);
     }
   };
 
@@ -218,10 +621,12 @@ export default function CloudPushPortal() {
     setProgressInfo({ percentage: 0, currentMonth: 'Initializing...', progressIndex: 0, totalMonths: 0 });
 
     try {
+      // If serialFilter is 'ALL', pass empty string to query account-level totals across all IN/OUT devices
+      const targetSerial = serialFilter === 'ALL' ? '' : serialFilter;
       const result = await calculateMonthwiseActiveUsers({
         baseUrl,
         accNo,
-        serialNo,
+        serialNo: targetSerial,
         apiKey,
         fromDate,
         toDate,
@@ -229,14 +634,15 @@ export default function CloudPushPortal() {
         onProgress: (p) => setProgressInfo(p)
       });
 
+      result.configuredDevices = deviceSerials;
+      result.serialFilter = serialFilter;
+
       if (result.allUniqueActiveMembers === 0 && !result.isOfficialApi && (!result.invoiceValue || result.invoiceValue.activeUserCount === 0)) {
         result.deviceOfflineNotice = true;
       }
 
       setAuditData(result);
-      if (showNotification) {
-        showNotification('success', `Monthwise active members calculated across ${result.totalMonths} months!`);
-      }
+      notify(`Monthwise active members calculated across ${result.totalMonths} months!`, 'success');
     } catch (err) {
       console.error(err);
       setError(`API Sync Error: ${err.message}. If the remote device is unreachable or offline, you can test with simulated sample data below.`);
@@ -249,18 +655,23 @@ export default function CloudPushPortal() {
   // Run Simulated / Offline Verified Sample
   const handleRunSimulated = () => {
     setError(null);
+    const primarySerial = serialFilter !== 'ALL' ? serialFilter : (deviceSerials[0]?.sn || serialNo || 'NYU7254000011');
     const result = generateSimulatedMonthwiseData({
       accNo: accNo || '192',
-      serialNo: serialNo || 'NYU7254000011',
+      serialNo: primarySerial,
       fromDate,
       toDate,
       ratePerUserMonth,
       baseEnrolled: 560
     });
-    setAuditData(result);
-    if (showNotification) {
-      showNotification('info', 'Loaded verified eTechno biometric audit record for verification.');
+    if (result.invoiceValue) {
+      result.invoiceValue.terminalCount = Math.max(result.invoiceValue.terminalCount, deviceSerials.length || 1);
+      result.invoiceValue.activeTerminalCount = Math.min(result.invoiceValue.terminalCount, deviceSerials.filter(d => d.status === 'online').length || deviceSerials.length || 1);
     }
+    result.configuredDevices = deviceSerials;
+    result.serialFilter = serialFilter;
+    setAuditData(result);
+    notify('Loaded verified eTechno biometric audit record for verification.', 'info');
   };
 
   // 1. Fetch Real-time Biometric Punch Stream (GET /v2/transaction_real/)
@@ -488,15 +899,22 @@ export default function CloudPushPortal() {
 
   // Filtered Real-time Attendance Punches
   const filteredRealtime = useMemo(() => {
-    if (!realtimeSearch) return realtimeLogs;
+    let logs = realtimeLogs;
+    if (serialFilter && serialFilter !== 'ALL') {
+      logs = logs.filter(p => {
+        const sn = p.terminal_serial || p.Terminal_SN || p.sn || p.serial_no || '';
+        return sn === serialFilter;
+      });
+    }
+    if (!realtimeSearch) return logs;
     const q = realtimeSearch.toLowerCase().trim();
-    return realtimeLogs.filter(p => {
+    return logs.filter(p => {
       const pinMatch = String(p.pin || p.PIN || '').includes(q);
       const nameMatch = String(p.name || p.nameshort || '').toLowerCase().includes(q);
-      const snMatch = String(p.terminal_serial || '').toLowerCase().includes(q);
+      const snMatch = String(p.terminal_serial || p.Terminal_SN || p.sn || '').toLowerCase().includes(q);
       return pinMatch || nameMatch || snMatch;
     });
-  }, [realtimeLogs, realtimeSearch]);
+  }, [realtimeLogs, realtimeSearch, serialFilter]);
 
   // Company Brand Config from localStorage
   const brandConfig = useMemo(() => {
@@ -531,10 +949,12 @@ export default function CloudPushPortal() {
   const handleCreateAnnualInvoice = () => {
     if (!auditData) return;
     const invNumber = `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const devicesList = auditData.configuredDevices || deviceSerials;
+    const devicesSummary = devicesList.map(d => `${d.sn} (${d.role})`).join(', ');
     const lineItem = {
       id: `push-svc-${Date.now()}`,
-      name: `Cloud Push Service Annual License — ${serialNo || 'SN:' + accNo}`,
-      desc: `Monthwise active member biometric push sync from ${fromDate} to ${toDate} (Avg ${auditData.averageMonthlyActive} active members/month across ${auditData.totalMonths} months @ LKR ${ratePerUserMonth}/user/mo)`,
+      name: `Biometric Cloud Push Service Annual License (${devicesList.length} Devices: ${devicesSummary})`,
+      desc: `Monthwise active member biometric push sync from ${fromDate} to ${toDate} across ${devicesList.length} turnstiles/devices (${devicesSummary}) under Gateway Acc #${accNo}. Avg ${auditData.averageMonthlyActive} active members/month across ${auditData.totalMonths} months @ LKR ${ratePerUserMonth}/user/mo.`,
       type: 'Cloud Service',
       price: auditData.totalAnnualFee,
       quantity: 1,
@@ -556,15 +976,17 @@ export default function CloudPushPortal() {
       paidAmount: 0,
       balance: auditData.totalAnnualFee,
       status: 'Unpaid',
-      notes: `Generated from Cloud Push Active Member Audit Statement #${statementId}. Covers ${auditData.totalMonths} months.`
+      notes: `Generated from official eTechno biometric audit statement ${statementId}. Push Account #${accNo}. Configured Devices: ${devicesSummary}.`
     };
 
     if (setInvoices) {
       setInvoices(prev => [newInvoice, ...(prev || [])]);
+      try {
+        const existing = JSON.parse(localStorage.getItem('gym_invoices') || '[]');
+        localStorage.setItem('gym_invoices', JSON.stringify([newInvoice, ...existing]));
+      } catch (e) {}
     }
-    if (showNotification) {
-      showNotification('success', `Annual Invoice ${invNumber} created with Cloud Push line item!`);
-    }
+    notify(`Annual Invoice ${invNumber} created with Cloud Push line item!`, 'success');
     navigate('/invoices');
   };
 
@@ -752,211 +1174,589 @@ export default function CloudPushPortal() {
         </button>
       </div>
 
-      {/* ===== SECTION 1: ACTIVE USER AUDIT & BILLING ===== */}
-      {portalSection === 'audit' && (
-        <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
-          {/* ===== HARDWARE & AUDIT CONFIGURATION PANEL ===== */}
-      <div className="card" style={{ padding: '22px', borderRadius: '16px', marginBottom: '24px', border: '1px solid var(--panel-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Cpu size={18} style={{ color: 'var(--accent-primary)' }} />
-            <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
-              Biometric Device & Billing Parameters
-            </span>
+      {/* ===== STATIC BIOMETRIC HARDWARE FLEET & GATEWAY CONFIGURATION PANEL (STATIC ACROSS ALL TABS) ===== */}
+      <div className="card" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px', border: '1px solid var(--panel-border)' }}>
+        
+        {/* Card Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(16, 185, 129, 0.15))',
+              border: '1px solid rgba(99, 102, 241, 0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Cpu size={19} style={{ color: 'var(--accent-primary)' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                  Biometric Hardware Fleet & {portalSection === 'audit' ? 'Billing' : 'Gateway'} Configuration
+                </span>
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  color: 'var(--accent-primary)',
+                  border: '1px solid rgba(99, 102, 241, 0.3)'
+                }}>
+                  Multi-Device / Turnstile Mode
+                </span>
+              </div>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Connect eTechno Push Gateway, manage multi-SN IN/OUT turnstiles, and run active member audits.
+              </p>
+            </div>
           </div>
 
-          {/* Quick Date Presets */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', marginRight: '4px' }}>Quick Cycles:</span>
-            <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('current_annual')}>Annual 2026</button>
-            <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_annual')}>Annual 2025</button>
-            <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_12_months')}>Past 12 Mos</button>
-            <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_6_months')}>Past 6 Mos</button>
-          </div>
+          {/* Quick Date Presets (Shown on Audit Tab) */}
+          {portalSection === 'audit' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: '2px' }}>Quick Cycles:</span>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('current_annual')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Annual 2026</button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_annual')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Annual 2025</button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_12_months')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Past 12 Mos</button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_6_months')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Past 6 Mos</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Target: <strong>{selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`}</strong>
+              </span>
+              <span style={{
+                padding: '3px 9px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700,
+                background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)'
+              }}>
+                Cloud Push Active
+              </span>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '18px' }}>
-          
-          {/* Customer Selection */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Users size={14} /> Enterprise Client
-            </label>
-            <select
-              className="form-control"
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <option value="">-- Direct Device / Custom Client --</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.gymName || c.name} ({c.code || 'No Code'})
-                </option>
-              ))}
-            </select>
+        {/* Sub-panel 1: Gateway Credentials & Account */}
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px 18px',
+          borderRadius: '12px',
+          border: '1px solid var(--panel-border)',
+          marginBottom: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Server size={14} style={{ color: 'var(--accent-primary)' }} />
+            <span>1. Cloud Push Gateway & Account Authentication</span>
           </div>
 
-          {/* Push Account # */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Server size={14} /> Push Account # (push_acc)
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              value={accNo}
-              onChange={(e) => setAccNo(e.target.value)}
-              placeholder="e.g. 1"
-            />
-          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+            {/* Enterprise Client Selection & Gym Profile Manager */}
+            <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                <label className="form-label" style={{ fontSize: '0.78rem', margin: 0, display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}>
+                  <Users size={13} style={{ color: 'var(--accent-primary)' }} /> ACTIVE GYM PROFILE / CLIENT
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={openCreateProfileModal}
+                    className="btn btn-sm"
+                    style={{
+                      fontSize: '0.74rem', padding: '2px 9px', borderRadius: '6px',
+                      background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
+                      border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
+                    }}
+                  >
+                    <Plus size={12} /> New Gym Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowManageProfilesModal(true)}
+                    className="btn btn-sm btn-secondary"
+                    style={{ fontSize: '0.74rem', padding: '2px 9px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                  >
+                    <Building2 size={12} /> Manage All ({customers.length})
+                  </button>
+                </div>
+              </div>
 
-          {/* Device Serial # */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Cpu size={14} /> Device Serial # (terminal_serial)
-            </label>
-            <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select
+                  className="form-control"
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  style={{ height: '38px', fontSize: '0.84rem', fontWeight: 700, flex: 1 }}
+                >
+                  <option value="">-- Direct Device / Custom Account --</option>
+                  {customers.map(c => {
+                    const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
+                    const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
+                    const devInfo = devCount > 0 ? ` • ${devCount} Device${devCount === 1 ? '' : 's'}` : '';
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.gymName || c.name}{accInfo}{devInfo}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                {selectedCustomerId && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => {
+                      const cust = customers.find(c => c.id === selectedCustomerId);
+                      if (cust) openEditProfileModal(cust);
+                    }}
+                    title="Edit selected gym profile"
+                    style={{ height: '38px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}
+                  >
+                    <Edit3 size={13} /> Edit
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Push Account # */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Server size={13} style={{ color: 'var(--accent-primary)' }} /> Push Account # (push_acc)
+              </label>
               <input
                 type="text"
                 className="form-control"
-                value={serialNo}
-                onChange={(e) => setSerialNo(e.target.value)}
-                placeholder="e.g. ZKE8012557894"
+                value={accNo}
+                onChange={(e) => setAccNo(e.target.value)}
+                placeholder="e.g. 192"
+                style={{ height: '38px', fontSize: '0.84rem', fontWeight: 700 }}
               />
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleTestConnection}
-                disabled={statusTesting}
-                title="Ping terminal status"
-                style={{ padding: '0 12px', flexShrink: 0 }}
-              >
-                {statusTesting ? <RefreshCw size={14} className="animate-spin" /> : 'Ping'}
-              </button>
             </div>
-          </div>
 
-          {/* API Key / Secret */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Key size={14} /> API Key / Auth Token
-            </label>
-            <div style={{ position: 'relative' }}>
+            {/* API Key */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Key size={13} style={{ color: 'var(--accent-primary)' }} /> API Key / Auth Token
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  className="form-control"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter eTechno API Key"
+                  style={{ height: '38px', fontSize: '0.84rem', paddingRight: '36px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  style={{
+                    position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px'
+                  }}
+                >
+                  {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Gateway URL */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Cloud size={13} style={{ color: 'var(--accent-primary)' }} /> API Gateway Proxy URL
+              </label>
               <input
-                type={showApiKey ? 'text' : 'password'}
+                type="text"
                 className="form-control"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter eTechno API Key"
-                style={{ paddingRight: '36px' }}
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="/api/etechno"
+                style={{ height: '38px', fontSize: '0.84rem' }}
               />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                style={{
-                  position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px'
-                }}
-              >
-                {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
             </div>
-          </div>
-
-          {/* Billing Date Range: From Date */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calendar size={14} /> Annual Period From
-            </label>
-            <DatePicker
-              value={fromDate}
-              onChange={setFromDate}
-              placeholder="YYYY-MM-DD"
-            />
-          </div>
-
-          {/* Billing Date Range: To Date */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calendar size={14} /> Annual Period To
-            </label>
-            <DatePicker
-              value={toDate}
-              onChange={setToDate}
-              placeholder="YYYY-MM-DD"
-            />
-          </div>
-
-          {/* Rate per Active User / Month */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <DollarSign size={14} /> Rate per Active User / Month (LKR)
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              value={ratePerUserMonth}
-              onChange={(e) => setRatePerUserMonth(Number(e.target.value) || 0)}
-              min="0"
-              step="5"
-            />
-          </div>
-
-          {/* Base URL (Advanced / Proxy) */}
-          <div>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Server size={14} /> API Gateway URL
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="/api/etechno or http://83.147.38.130:666"
-            />
           </div>
         </div>
 
-        {/* Action Trigger Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', borderTop: '1px solid var(--subtle-border)' }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            {selectedCustomer ? (
-              <span>Target: <strong>{selectedCustomer.gymName || selectedCustomer.name}</strong> • Annual Contract</span>
-            ) : (
-              <span>Direct Hardware Audit Mode</span>
-            )}
+        {/* Sub-panel 2: Biometric Turnstiles & Multi-Device Serials (IN / OUT) */}
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px 18px',
+          borderRadius: '12px',
+          border: '1px solid var(--panel-border)',
+          marginBottom: portalSection === 'audit' ? '16px' : '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Cpu size={15} style={{ color: 'var(--accent-primary)' }} />
+              <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 800 }}>
+                2. Gym Turnstiles & Multi-Device Fleet ({deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'})
+              </span>
+              <span style={{
+                fontSize: '0.72rem',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                background: 'rgba(16, 185, 129, 0.14)',
+                color: '#10b981'
+              }}>
+                {deviceSerials.filter(d => d.role === 'IN').length} Entrance (IN) • {deviceSerials.filter(d => d.role === 'OUT').length} Exit (OUT)
+              </span>
+            </div>
+
+            {/* Scope / Target Filter Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {portalSection === 'audit' ? 'Audit Scope:' : portalSection === 'realtime' ? 'Stream Scope:' : 'Target Scope:'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSerialFilter('ALL');
+                  if (deviceSerials[0]) setCommandTargetSerial(deviceSerials[0].sn);
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: serialFilter === 'ALL' ? 'var(--accent-primary)' : 'transparent',
+                  color: serialFilter === 'ALL' ? '#fff' : 'var(--text-muted)',
+                  border: `1px solid ${serialFilter === 'ALL' ? 'var(--accent-primary)' : 'var(--panel-border)'}`
+                }}
+              >
+                All Devices (IN + OUT Combined)
+              </button>
+
+              {deviceSerials.map(dev => (
+                <button
+                  key={dev.id || dev.sn}
+                  type="button"
+                  onClick={() => {
+                    setSerialFilter(dev.sn);
+                    setCommandTargetSerial(dev.sn);
+                  }}
+                  style={{
+                    padding: '4px 9px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: serialFilter === dev.sn ? 'var(--accent-primary)' : 'transparent',
+                    color: serialFilter === dev.sn ? '#fff' : 'var(--text-muted)',
+                    border: `1px solid ${serialFilter === dev.sn ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span style={{ fontWeight: 800 }}>[{dev.role}]</span>
+                  <span>{dev.sn}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          {/* Registered Devices Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+            {deviceSerials.map((dev, idx) => {
+              const pingStatus = devicePingResults[dev.sn];
+              const isPinging = pingingSn === dev.sn;
+              const isFilterActive = serialFilter === 'ALL' || serialFilter === dev.sn;
+
+              return (
+                <div
+                  key={dev.id || idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--subtle-bg)',
+                    border: `1px solid ${isFilterActive ? 'var(--panel-border-highlight)' : 'var(--panel-border)'}`,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    {/* Direction Badge */}
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.04em',
+                      background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                      color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1',
+                      border: `1px solid ${dev.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                    }}>
+                      {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
+                      {dev.role}
+                    </span>
+
+                    {/* Serial & Alias */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.88rem', color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
+                        {dev.sn}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {dev.label || (dev.role === 'IN' ? 'Entrance Turnstile' : 'Exit Turnstile')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions: Ping Status + Ping Button + Delete */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    {pingStatus && (
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        color: pingStatus.online ? '#10b981' : '#f59e0b',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: pingStatus.online ? '#10b981' : '#f59e0b' }} />
+                        {pingStatus.online ? 'Online' : 'Offline'}
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handlePingSingleDevice(dev.sn)}
+                      disabled={isPinging}
+                      title="Ping device connection via eTechno Push Gateway"
+                      style={{
+                        fontSize: '0.73rem',
+                        padding: '4px 9px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {isPinging ? <RefreshCw size={11} className="animate-spin" /> : 'Ping'}
+                    </button>
+
+                    {deviceSerials.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDevice(dev.id || dev.sn)}
+                        title="Remove device"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={13} style={{ color: '#ef4444' }} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add New Turnstile / Device Row */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddDevice();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: 'rgba(0, 0, 0, 0.06)',
+              border: '1px dashed var(--panel-border)'
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Plus size={13} /> Add Turnstile:
+            </div>
+
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Serial # (e.g. NYU7254000012)"
+              value={newDeviceSn}
+              onChange={(e) => setNewDeviceSn(e.target.value)}
+              style={{ height: '32px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
+            />
+
+            <select
+              className="form-control"
+              value={newDeviceRole}
+              onChange={(e) => setNewDeviceRole(e.target.value)}
+              style={{ height: '32px', fontSize: '0.8rem', width: '150px' }}
+            >
+              <option value="IN">Entrance Turnstile (IN)</option>
+              <option value="OUT">Exit Turnstile (OUT)</option>
+              <option value="IN/OUT">Two-Way (IN/OUT)</option>
+              <option value="RECEPTION">Reception Desk</option>
+              <option value="DOOR">Access Door</option>
+            </select>
+
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Label / Location (e.g. Exit Turnstile)"
+              value={newDeviceLabel}
+              onChange={(e) => setNewDeviceLabel(e.target.value)}
+              style={{ height: '32px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
+            />
+
+            <button
+              type="submit"
+              className="btn btn-sm btn-secondary"
+              style={{
+                height: '32px',
+                fontSize: '0.78rem',
+                padding: '0 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'var(--accent-primary)',
+                color: '#fff',
+                borderColor: 'var(--accent-primary)'
+              }}
+            >
+              <Plus size={13} /> Add Device
+            </button>
+          </form>
+        </div>
+
+        {/* Sub-panel 3: Annual Billing Period & Pricing (Audit Tab Only) */}
+        {portalSection === 'audit' && (
+          <div style={{
+            background: 'var(--bg-secondary)',
+            padding: '16px 18px',
+            borderRadius: '12px',
+            border: '1px solid var(--panel-border)',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <Calendar size={14} style={{ color: 'var(--accent-primary)' }} />
+              <span>3. Annual Billing Period & Active User Rates</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              {/* From Date */}
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Calendar size={13} style={{ color: 'var(--accent-primary)' }} /> Annual Period From
+                </label>
+                <DatePicker
+                  value={fromDate}
+                  onChange={setFromDate}
+                  placeholder="YYYY-MM-DD"
+                />
+              </div>
+
+              {/* To Date */}
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Calendar size={13} style={{ color: 'var(--accent-primary)' }} /> Annual Period To
+                </label>
+                <DatePicker
+                  value={toDate}
+                  onChange={setToDate}
+                  placeholder="YYYY-MM-DD"
+                />
+              </div>
+
+              {/* Rate per Active User / Month */}
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <DollarSign size={13} style={{ color: 'var(--accent-primary)' }} /> Rate Per Active Member / Month (LKR)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                    Rs.
+                  </span>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={ratePerUserMonth}
+                    onChange={(e) => setRatePerUserMonth(Number(e.target.value) || 0)}
+                    min="0"
+                    step="10"
+                    style={{ height: '38px', fontSize: '0.85rem', paddingLeft: '34px', fontWeight: 700 }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Trigger Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', borderTop: '1px solid var(--subtle-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+            <span>
+              Target: <strong>{selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`}</strong>
+              {' • '}
+              <span>{deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'} ({deviceSerials.filter(d => d.role === 'IN').length} IN, {deviceSerials.filter(d => d.role === 'OUT').length} OUT)</span>
+              {' • '}
+              <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Gym Total' : `Filtered: ${serialFilter}`}</strong></span>
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={handleRunSimulated}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={handleSaveConfig}
+              title="Save configuration and device serials to customer profile"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
             >
-              <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
-              <span>Preview Sample Audit</span>
+              <Save size={14} />
+              <span>Save Hardware Profile</span>
             </button>
 
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleRunAudit}
-              disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px', justifyContent: 'center' }}
-            >
-              {loading ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" />
-                  <span>Scanning Months...</span>
-                </>
-              ) : (
-                <>
-                  <Activity size={16} />
-                  <span>Fetch Active User Statement</span>
-                </>
-              )}
-            </button>
+            {portalSection === 'audit' && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleRunSimulated}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
+                >
+                  <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Preview Sample Audit</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleRunAudit}
+                  disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px', justifyContent: 'center' }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span>Scanning Months...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Activity size={16} />
+                      <span>Fetch Active User Statement</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1036,6 +1836,45 @@ export default function CloudPushPortal() {
           </div>
         )}
       </div>
+
+      {/* ===== SECTION 1: ACTIVE USER AUDIT & BILLING ===== */}
+      {portalSection === 'audit' && (
+        <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
+          {/* Welcome / Ready State when no audit is yet generated */}
+          {!auditData && (
+            <div className="card" style={{ padding: '36px 24px', textAlign: 'center', borderRadius: '16px', border: '1px dashed var(--panel-border)', background: 'var(--subtle-bg)', marginBottom: '24px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <BarChart3 size={24} style={{ color: 'var(--accent-primary)' }} />
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 6px', color: 'var(--text-primary)' }}>
+                Active User Statement & Audit Engine Ready
+              </h3>
+              <p style={{ margin: '0 auto 20px', maxWidth: '540px', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Configure the billing cycle dates and rate in the hardware section above, then click <strong>Fetch Active User Statement</strong> to scan active biometric members across all turnstiles, or preview sample audit data.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleRunSimulated}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Preview Sample Audit</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleRunAudit}
+                  disabled={loading}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Activity size={15} />
+                  <span>Fetch Active User Statement</span>
+                </button>
+              </div>
+            </div>
+          )}
 
       {/* ===== RESULTS SECTION ===== */}
       {auditData && (
@@ -1131,6 +1970,36 @@ export default function CloudPushPortal() {
                     Service / Client: <strong>{auditData.serviceName || (selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`)}</strong>
                     {auditData.totalRecordedSnapshots ? ` • ${auditData.totalRecordedSnapshots} 6-hour biometric snapshots analyzed` : ''}
                   </div>
+                  {/* Multi-Device Turnstile Serials List */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {(auditData.configuredDevices || deviceSerials).map(d => (
+                      <span key={d.id || d.sn} style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--panel-border)',
+                        color: 'var(--text-primary)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '3px',
+                          background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.2)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                          color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : '#6366f1'
+                        }}>
+                          {d.role}
+                        </span>
+                        <code style={{ fontFamily: 'monospace', fontWeight: 800 }}>{d.sn}</code>
+                        <span style={{ color: 'var(--text-muted)' }}>• {d.label || (d.role === 'IN' ? 'Entrance' : 'Exit')}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1187,7 +2056,7 @@ export default function CloudPushPortal() {
                     Active Terminals
                   </div>
                   <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1.15, marginTop: '2px' }}>
-                    {auditData.invoiceValue.activeTerminalCount}
+                    {auditData.invoiceValue.activeTerminalCount} / {Math.max(auditData.invoiceValue.terminalCount, (auditData.configuredDevices || deviceSerials).length)}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     Online Biometric Devices
@@ -1199,7 +2068,7 @@ export default function CloudPushPortal() {
                     Total Terminals
                   </div>
                   <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-secondary)', lineHeight: 1.15, marginTop: '2px' }}>
-                    {auditData.invoiceValue.terminalCount}
+                    {Math.max(auditData.invoiceValue.terminalCount, (auditData.configuredDevices || deviceSerials).length)}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     Registered Hardware
@@ -1311,6 +2180,85 @@ export default function CloudPushPortal() {
           {/* TAB 1: ANALYTICS & MONTHWISE TABLE */}
           {activeTab === 'analytics' && (
             <div>
+              {/* Turnstiles Fleet Telemetry & Multi-Device Status */}
+              <div className="card" style={{ padding: '18px 20px', borderRadius: '16px', marginBottom: '22px', border: '1px solid var(--panel-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={16} style={{ color: 'var(--accent-primary)' }} />
+                    <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Registered Biometric Turnstiles & Real-time Telemetry ({(auditData.configuredDevices || deviceSerials).length} Devices)
+                    </h4>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Gateway Acc: <strong>#{accNo}</strong> • Scope: <strong>{auditData.serialFilter === 'ALL' ? 'Combined IN + OUT Gym Total' : `Filtered: ${auditData.serialFilter}`}</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                  {(auditData.configuredDevices || deviceSerials).map(dev => {
+                    const pingStatus = devicePingResults[dev.sn];
+                    return (
+                      <div
+                        key={dev.id || dev.sn}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--panel-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontWeight: 800,
+                            fontSize: '0.72rem',
+                            background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                            color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1'
+                          }}>
+                            {dev.role}
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                              {dev.sn}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {dev.label || (dev.role === 'IN' ? 'Entrance Turnstile' : 'Exit Turnstile')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: (pingStatus?.online || dev.status === 'online') ? '#10b981' : '#f59e0b',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: (pingStatus?.online || dev.status === 'online') ? '#10b981' : '#f59e0b' }} />
+                            {(pingStatus?.online || dev.status === 'online') ? 'Online' : 'Standby'}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => handlePingSingleDevice(dev.sn)}
+                            disabled={pingingSn === dev.sn}
+                            style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                          >
+                            {pingingSn === dev.sn ? <RefreshCw size={10} className="animate-spin" /> : 'Ping'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Trend Chart */}
               <div className="card" style={{ padding: '20px', borderRadius: '16px', marginBottom: '24px', border: '1px solid var(--panel-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1561,14 +2509,34 @@ export default function CloudPushPortal() {
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
-                      Biometric Device Info
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      Biometric Turnstiles ({(auditData?.configuredDevices || deviceSerials).length} Terminals)
                     </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
-                      SN: <strong>{serialNo || 'Auto-Detected'}</strong>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
                       Push Gateway Account: <strong>#{accNo}</strong>
+                      {serialFilter !== 'ALL' ? (
+                        <span style={{ color: '#4f46e5', fontSize: '0.74rem', marginLeft: '6px' }}>(Filter: {serialFilter})</span>
+                      ) : (
+                        <span style={{ color: '#10b981', fontSize: '0.74rem', marginLeft: '6px' }}>(Combined IN + OUT Turnstiles)</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      {(auditData?.configuredDevices || deviceSerials).map((dev, idx) => (
+                        <div key={dev.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem' }}>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: dev.role === 'IN' ? '#dcfce7' : dev.role === 'OUT' ? '#fee2e2' : '#e0e7ff',
+                            color: dev.role === 'IN' ? '#15803d' : dev.role === 'OUT' ? '#b91c1c' : '#4338ca'
+                          }}>
+                            {dev.role}
+                          </span>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>{dev.sn}</span>
+                          <span style={{ color: '#64748b' }}>• {dev.label || (dev.role === 'IN' ? 'Entrance' : 'Exit')}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -1618,7 +2586,9 @@ export default function CloudPushPortal() {
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>ACTIVE TERMINALS</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1d4ed8' }}>{auditData.invoiceValue.activeTerminalCount} / {auditData.invoiceValue.terminalCount}</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1d4ed8' }}>
+                          {auditData.invoiceValue.activeTerminalCount} / {Math.max(auditData.invoiceValue.terminalCount, (auditData.configuredDevices || deviceSerials).length)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1812,7 +2782,7 @@ export default function CloudPushPortal() {
                 Live Biometric Attendance Stream ({filteredRealtime.length} Events)
               </h4>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Gateway Acc: <strong>#{accNo}</strong> • Device SN: <strong>{serialNo}</strong>
+                Gateway Acc: <strong>#{accNo}</strong> • {deviceSerials.length} Turnstiles ({deviceSerials.map(d => `${d.sn} [${d.role}]`).join(', ')})
               </span>
             </div>
 
@@ -1918,27 +2888,41 @@ export default function CloudPushPortal() {
                 </p>
               </div>
 
-              {/* Target Device Serial */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Target Device Serial Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <div>
                   <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px', color: 'var(--text-muted)' }}>Target Terminal SN</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    style={{ width: '180px', fontWeight: 700, fontSize: '0.88rem' }}
-                    value={commandTargetSerial}
-                    onChange={(e) => setCommandTargetSerial(e.target.value)}
-                    placeholder="e.g. NYU7254000011"
-                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <select
+                      className="form-control"
+                      style={{ minWidth: '180px', fontWeight: 700, fontSize: '0.84rem' }}
+                      value={commandTargetSerial}
+                      onChange={(e) => setCommandTargetSerial(e.target.value)}
+                    >
+                      {deviceSerials.map(d => (
+                        <option key={d.id || d.sn} value={d.sn}>
+                          [{d.role}] {d.sn} — {d.label || 'Turnstile'}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ width: '140px', fontWeight: 700, fontSize: '0.84rem', fontFamily: 'monospace' }}
+                      value={commandTargetSerial}
+                      onChange={(e) => setCommandTargetSerial(e.target.value)}
+                      placeholder="Custom SN"
+                    />
+                  </div>
                 </div>
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={handleTestConnection}
-                  disabled={statusTesting}
-                  style={{ alignSelf: 'flex-end', fontSize: '0.82rem' }}
+                  onClick={() => handlePingSingleDevice(commandTargetSerial)}
+                  disabled={pingingSn === commandTargetSerial}
+                  style={{ alignSelf: 'flex-end', fontSize: '0.82rem', height: '38px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Activity size={14} className={statusTesting ? 'animate-spin' : ''} />
+                  <Activity size={14} className={pingingSn === commandTargetSerial ? 'animate-spin' : ''} />
                   <span>Ping Device</span>
                 </button>
               </div>
@@ -2311,6 +3295,617 @@ export default function CloudPushPortal() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL 1: CREATE / EDIT GYM HARDWARE PROFILE ===== */}
+      {showCreateProfileModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'var(--bg-primary, #ffffff)',
+            border: '1px solid var(--panel-border)',
+            borderRadius: '16px',
+            maxWidth: '740px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--panel-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {editingProfileId ? 'Edit Gym Hardware Profile' : 'Create New Gym Hardware Profile'}
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Configure Push Account #, API Auth Token, and multi-turnstile fleet (1 device or 2 devices).
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateProfileModal(false)}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--text-muted)',
+                  cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveGymProfileFromModal} style={{ overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Gym / Facility Information */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={13} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Gym Facility Details</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Gym / Client Name *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Fit Focus Gym & Fitness"
+                      value={modalGymName}
+                      onChange={e => setModalGymName(e.target.value)}
+                      required
+                      style={{ height: '36px', fontSize: '0.85rem', fontWeight: 600 }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Client Code</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. CUST-004"
+                      value={modalClientCode}
+                      onChange={e => setModalClientCode(e.target.value)}
+                      style={{ height: '36px', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Contact Person Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Gym Manager"
+                      value={modalContactName}
+                      onChange={e => setModalContactName(e.target.value)}
+                      style={{ height: '36px', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Phone / WhatsApp</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. 0771234567"
+                      value={modalPhone}
+                      onChange={e => setModalPhone(e.target.value)}
+                      style={{ height: '36px', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cloud Push Gateway & Auth */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Server size={13} style={{ color: 'var(--accent-primary)' }} />
+                  <span>eTechno Push Gateway Authentication</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Push Account # (push_acc) *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. 192 or 172"
+                      value={modalAccNo}
+                      onChange={e => setModalAccNo(e.target.value)}
+                      required
+                      style={{ height: '36px', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Rate / Active User / Mo (LKR)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="100"
+                      value={modalRatePerUser}
+                      onChange={e => setModalRatePerUser(Number(e.target.value) || 0)}
+                      style={{ height: '36px', fontSize: '0.85rem', fontWeight: 600 }}
+                    />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>API Key / Auth Token *</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={modalShowApiKey ? 'text' : 'password'}
+                        className="form-control"
+                        placeholder="Enter eTechno API Key for this gym"
+                        value={modalApiKey}
+                        onChange={e => setModalApiKey(e.target.value)}
+                        required
+                        style={{ height: '36px', fontSize: '0.85rem', paddingRight: '36px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalShowApiKey(!modalShowApiKey)}
+                        style={{
+                          position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
+                          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px'
+                        }}
+                      >
+                        {modalShowApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Turnstile Fleet Setup */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={14} style={{ color: 'var(--accent-primary)' }} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Gym Turnstiles Fleet ({modalDevices.length} Device{modalDevices.length === 1 ? '' : 's'})
+                    </span>
+                    <span style={{
+                      fontSize: '0.72rem', padding: '2px 7px', borderRadius: '8px', fontWeight: 700,
+                      background: 'rgba(16, 185, 129, 0.14)', color: '#10b981'
+                    }}>
+                      {modalDevices.filter(d => d.role === 'IN').length} IN • {modalDevices.filter(d => d.role === 'OUT').length} OUT
+                    </span>
+                  </div>
+
+                  {/* Fast Templates: 1 Device vs 2 Devices */}
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Setup:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyModalDevicePreset('single')}
+                      className="btn btn-sm btn-secondary"
+                      style={{ fontSize: '0.73rem', padding: '2px 8px' }}
+                    >
+                      ⚡ 1 Device (Entrance IN)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyModalDevicePreset('dual')}
+                      className="btn btn-sm btn-secondary"
+                      style={{ fontSize: '0.73rem', padding: '2px 8px' }}
+                    >
+                      ⚡ 2 Devices (IN + OUT)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Device Cards List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {modalDevices.map((dev, idx) => (
+                    <div
+                      key={dev.id || idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: 'var(--subtle-bg)',
+                        border: '1px solid var(--panel-border)'
+                      }}
+                    >
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        padding: '3px 8px', borderRadius: '6px', fontWeight: 800, fontSize: '0.72rem',
+                        background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                        color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1'
+                      }}>
+                        {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
+                        {dev.role}
+                      </span>
+
+                      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.5fr', gap: '8px' }}>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Serial # (e.g. NYU7254000011)"
+                          value={dev.sn}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setModalDevices(prev => prev.map((d, i) => i === idx ? { ...d, sn: val } : d));
+                          }}
+                          style={{ height: '32px', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 700 }}
+                        />
+
+                        <select
+                          className="form-control"
+                          value={dev.role}
+                          onChange={(e) => {
+                            const r = e.target.value;
+                            setModalDevices(prev => prev.map((d, i) => i === idx ? {
+                              ...d,
+                              role: r,
+                              label: d.label || (r === 'IN' ? 'Entrance Turnstile (IN)' : r === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device')
+                            } : d));
+                          }}
+                          style={{ height: '32px', fontSize: '0.8rem' }}
+                        >
+                          <option value="IN">Entrance (IN)</option>
+                          <option value="OUT">Exit (OUT)</option>
+                          <option value="IN/OUT">Two-Way (IN/OUT)</option>
+                          <option value="RECEPTION">Reception Desk</option>
+                          <option value="DOOR">Access Door</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Label (e.g. Entrance Turnstile)"
+                          value={dev.label || ''}
+                          onChange={(e) => {
+                            const l = e.target.value;
+                            setModalDevices(prev => prev.map((d, i) => i === idx ? { ...d, label: l } : d));
+                          }}
+                          style={{ height: '32px', fontSize: '0.8rem' }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDeviceFromModal(dev.id || dev.sn)}
+                        title="Delete Turnstile"
+                        style={{
+                          background: 'none', border: 'none', color: '#ef4444',
+                          cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {modalDevices.length === 0 && (
+                    <div style={{ padding: '14px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      No turnstiles added yet. Click one of the quick setup buttons above or add a turnstile below.
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Another Turnstile Device Row */}
+                <div style={{
+                  display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap',
+                  padding: '8px 10px', borderRadius: '8px', background: 'rgba(0,0,0,0.06)', border: '1px dashed var(--panel-border)'
+                }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Plus size={12} /> Add Turnstile:
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Serial # (e.g. NYU7254000012)"
+                    value={newModalDevSn}
+                    onChange={e => setNewModalDevSn(e.target.value)}
+                    style={{ height: '30px', fontSize: '0.8rem', width: '160px', fontFamily: 'monospace' }}
+                  />
+                  <select
+                    className="form-control"
+                    value={newModalDevRole}
+                    onChange={e => setNewModalDevRole(e.target.value)}
+                    style={{ height: '30px', fontSize: '0.8rem', width: '140px' }}
+                  >
+                    <option value="IN">Entrance (IN)</option>
+                    <option value="OUT">Exit (OUT)</option>
+                    <option value="IN/OUT">Two-Way (IN/OUT)</option>
+                    <option value="RECEPTION">Reception Desk</option>
+                    <option value="DOOR">Access Door</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Label / Room"
+                    value={newModalDevLabel}
+                    onChange={e => setNewModalDevLabel(e.target.value)}
+                    style={{ height: '30px', fontSize: '0.8rem', flex: 1, minWidth: '120px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddDeviceToModal}
+                    className="btn btn-sm btn-secondary"
+                    style={{ height: '30px', fontSize: '0.76rem', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                display: 'flex', justifyContent: 'flex-end', gap: '10px',
+                paddingTop: '16px', borderTop: '1px solid var(--subtle-border)'
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCreateProfileModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Save size={15} />
+                  <span>{editingProfileId ? 'Update Gym Profile' : 'Create & Activate Gym Profile'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL 2: MANAGE ALL GYM HARDWARE PROFILES ===== */}
+      {showManageProfilesModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'var(--bg-primary, #ffffff)',
+            border: '1px solid var(--panel-border)',
+            borderRadius: '16px',
+            maxWidth: '880px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--panel-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--bg-secondary)'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={20} style={{ color: 'var(--accent-primary)' }} />
+                  Gym Biometric Hardware Profiles
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Manage individual Push Accounts, API keys, and multi-turnstile setups for each gym facility.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowManageProfilesModal(false);
+                    openCreateProfileModal();
+                  }}
+                  className="btn btn-sm btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}
+                >
+                  <Plus size={13} />
+                  <span>New Gym Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowManageProfilesModal(false)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                    cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex'
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal List */}
+            <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {customers.map((c) => {
+                const isSelected = selectedCustomerId === c.id;
+                const devices = Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0
+                  ? c.deviceSerials
+                  : (c.deviceSerial ? [{ id: 'd-1', sn: c.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }] : []);
+
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      padding: '16px 18px',
+                      borderRadius: '12px',
+                      background: isSelected ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-secondary)',
+                      border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '14px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ minWidth: '260px', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                          {c.gymName || c.name}
+                        </span>
+                        <span style={{
+                          fontSize: '0.72rem', padding: '2px 7px', borderRadius: '6px',
+                          background: 'var(--bg-primary)', border: '1px solid var(--panel-border)', color: 'var(--text-muted)', fontWeight: 700
+                        }}>
+                          {c.code || 'NO-CODE'}
+                        </span>
+                        {isSelected && (
+                          <span style={{
+                            fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px',
+                            background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 800,
+                            display: 'inline-flex', alignItems: 'center', gap: '4px'
+                          }}>
+                            <CheckCircle size={11} /> Active Now
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '14px', fontSize: '0.78rem', color: 'var(--text-secondary)', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        <span>
+                          Account #: <strong>{c.cloudPushAcc ? `#${c.cloudPushAcc}` : 'Not Set'}</strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          API Key: <strong>{c.cloudPushApiKey ? `${c.cloudPushApiKey.slice(0, 4)}••••${c.cloudPushApiKey.slice(-4)}` : 'Missing'}</strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Rate: <strong>Rs. {c.ratePerUserMonth || 100} / active user</strong>
+                        </span>
+                      </div>
+
+                      {/* Turnstile Devices Chips */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Turnstiles:</span>
+                        {devices.map((d, dIdx) => (
+                          <span
+                            key={dIdx}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                              background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.12)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                              color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : '#6366f1',
+                              border: `1px solid ${d.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                            }}
+                          >
+                            <span>[{d.role}]</span>
+                            <span style={{ fontFamily: 'monospace' }}>{d.sn}</span>
+                          </span>
+                        ))}
+                        {devices.length === 0 && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            No devices configured
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                      {!isSelected ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => handleActivateGymProfile(c)}
+                          style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                        >
+                          Activate Profile
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          disabled
+                          style={{
+                            fontSize: '0.78rem', padding: '6px 12px',
+                            background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700
+                          }}
+                        >
+                          Connected
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => {
+                          setShowManageProfilesModal(false);
+                          openEditProfileModal(c);
+                        }}
+                        title="Edit hardware configuration for this gym"
+                        style={{ fontSize: '0.78rem', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Edit3 size={13} /> Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleDeleteGymProfile(c)}
+                        title="Delete Gym Profile"
+                        style={{ padding: '6px 8px', color: '#ef4444' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {customers.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                  <Building2 size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+                  <p style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>No Gym Profiles found.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowManageProfilesModal(false);
+                      openCreateProfileModal();
+                    }}
+                    className="btn btn-sm btn-primary"
+                  >
+                    + Create First Gym Profile
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
