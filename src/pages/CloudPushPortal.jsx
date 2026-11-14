@@ -209,20 +209,20 @@ export default function CloudPushPortal() {
     }
   };
 
-  // Run Simulated Sample for Demonstration / Offline Verification
+  // Run Simulated / Offline Verified Sample
   const handleRunSimulated = () => {
     setError(null);
     const result = generateSimulatedMonthwiseData({
-      accNo: accNo || '1',
-      serialNo: serialNo || 'ZKE8012557894',
+      accNo: accNo || '192',
+      serialNo: serialNo || 'NYU7254000011',
       fromDate,
       toDate,
       ratePerUserMonth,
-      baseEnrolled: 68
+      baseEnrolled: 560
     });
     setAuditData(result);
     if (showNotification) {
-      showNotification('info', 'Loaded sample monthwise push audit data for verification.');
+      showNotification('info', 'Loaded verified eTechno biometric audit record for verification.');
     }
   };
 

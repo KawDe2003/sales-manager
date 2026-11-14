@@ -29,6 +29,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/etechno/(.*)",
+      "destination": "/api/etechno?subpath=$1"
+    },
+    {
+      "source": "/api/etechno",
+      "destination": "/api/etechno"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

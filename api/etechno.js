@@ -2,11 +2,17 @@
 // Works seamlessly on Vercel deployments and handles CORS & Basic Auth pass-through
 
 export default async function handler(request, response) {
-  // Extract subpath after /api/etechno
+  // Support both direct path rewrites (/api/etechno/v2/...) and query subpath (/api/etechno?subpath=v2/...)
   const urlObj = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
-  let subpath = urlObj.pathname.replace(/^\/api\/etechno\/?/, '/');
+  let subpath = (request.query && request.query.subpath) || urlObj.searchParams.get('subpath') || '';
+
+  if (!subpath) {
+    subpath = urlObj.pathname.replace(/^\/api\/etechno\/?/, '/');
+  }
   if (!subpath.startsWith('/')) subpath = '/' + subpath;
 
+  // Remove helper 'subpath' param from query forwarded to upstream server
+  urlObj.searchParams.delete('subpath');
   const queryString = urlObj.search || '';
   const targetUrl = `http://83.147.38.130:666${subpath}${queryString}`;
 
