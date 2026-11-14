@@ -996,7 +996,7 @@ export default function CloudPushPortal() {
   };
 
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="page-container cloud-push-page" style={{ maxWidth: '1400px', margin: '0 auto' }}>
       
       {/* ===== PAGE HEADER ===== */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -1073,14 +1073,7 @@ export default function CloudPushPortal() {
       </div>
 
       {/* ===== PORTAL SECTION NAVIGATION PILLS ===== */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        marginBottom: '24px',
-        overflowX: 'auto',
-        paddingBottom: '6px',
-        borderBottom: '1px solid var(--panel-border)'
-      }}>
+      <div className="cloud-portal-nav-pills">
         <button
           type="button"
           onClick={() => setPortalSection('audit')}
@@ -1175,7 +1168,7 @@ export default function CloudPushPortal() {
       </div>
 
       {/* ===== STATIC BIOMETRIC HARDWARE FLEET & GATEWAY CONFIGURATION PANEL (STATIC ACROSS ALL TABS) ===== */}
-      <div className="card" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px', border: '1px solid var(--panel-border)' }}>
+      <div className="card cloud-hardware-static-card">
         
         {/* Card Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
@@ -1236,19 +1229,13 @@ export default function CloudPushPortal() {
         </div>
 
         {/* Sub-panel 1: Gateway Credentials & Account */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px 18px',
-          borderRadius: '12px',
-          border: '1px solid var(--panel-border)',
-          marginBottom: '16px'
-        }}>
+        <div className="cloud-sub-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <Server size={14} style={{ color: 'var(--accent-primary)' }} />
             <span>1. Cloud Push Gateway & Account Authentication</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+          <div className="cloud-hardware-grid">
             {/* Enterprise Client Selection & Gym Profile Manager */}
             <div style={{ gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
@@ -1376,13 +1363,7 @@ export default function CloudPushPortal() {
         </div>
 
         {/* Sub-panel 2: Biometric Turnstiles & Multi-Device Serials (IN / OUT) */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px 18px',
-          borderRadius: '12px',
-          border: '1px solid var(--panel-border)',
-          marginBottom: portalSection === 'audit' ? '16px' : '20px'
-        }}>
+        <div className="cloud-sub-panel" style={{ marginBottom: portalSection === 'audit' ? '16px' : '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Cpu size={15} style={{ color: 'var(--accent-primary)' }} />
@@ -1456,7 +1437,7 @@ export default function CloudPushPortal() {
           </div>
 
           {/* Registered Devices Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+          <div className="cloud-turnstiles-grid">
             {deviceSerials.map((dev, idx) => {
               const pingStatus = devicePingResults[dev.sn];
               const isPinging = pingingSn === dev.sn;
@@ -1566,19 +1547,10 @@ export default function CloudPushPortal() {
 
           {/* Add New Turnstile / Device Row */}
           <form
+            className="cloud-add-turnstile-form"
             onSubmit={(e) => {
               e.preventDefault();
               handleAddDevice();
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              background: 'rgba(0, 0, 0, 0.06)',
-              border: '1px dashed var(--panel-border)'
             }}
           >
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1591,14 +1563,14 @@ export default function CloudPushPortal() {
               placeholder="Serial # (e.g. NYU7254000012)"
               value={newDeviceSn}
               onChange={(e) => setNewDeviceSn(e.target.value)}
-              style={{ height: '32px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
+              style={{ height: '34px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
             />
 
             <select
               className="form-control"
               value={newDeviceRole}
               onChange={(e) => setNewDeviceRole(e.target.value)}
-              style={{ height: '32px', fontSize: '0.8rem', width: '150px' }}
+              style={{ height: '34px', fontSize: '0.8rem', width: '150px' }}
             >
               <option value="IN">Entrance Turnstile (IN)</option>
               <option value="OUT">Exit Turnstile (OUT)</option>
@@ -1613,22 +1585,19 @@ export default function CloudPushPortal() {
               placeholder="Label / Location (e.g. Exit Turnstile)"
               value={newDeviceLabel}
               onChange={(e) => setNewDeviceLabel(e.target.value)}
-              style={{ height: '32px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
+              style={{ height: '34px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
             />
 
             <button
               type="submit"
-              className="btn btn-sm btn-secondary"
+              className="btn btn-sm btn-primary"
               style={{
-                height: '32px',
+                height: '34px',
                 fontSize: '0.78rem',
                 padding: '0 12px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                borderColor: 'var(--accent-primary)'
+                gap: '4px'
               }}
             >
               <Plus size={13} /> Add Device
@@ -1638,19 +1607,13 @@ export default function CloudPushPortal() {
 
         {/* Sub-panel 3: Annual Billing Period & Pricing (Audit Tab Only) */}
         {portalSection === 'audit' && (
-          <div style={{
-            background: 'var(--bg-secondary)',
-            padding: '16px 18px',
-            borderRadius: '12px',
-            border: '1px solid var(--panel-border)',
-            marginBottom: '20px'
-          }}>
+          <div className="cloud-sub-panel" style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <Calendar size={14} style={{ color: 'var(--accent-primary)' }} />
               <span>3. Annual Billing Period & Active User Rates</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div className="cloud-hardware-grid">
               {/* From Date */}
               <div>
                 <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1700,7 +1663,7 @@ export default function CloudPushPortal() {
         )}
 
         {/* Action Trigger Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', borderTop: '1px solid var(--subtle-border)' }}>
+        <div className="cloud-hardware-actions">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
             <span>
@@ -3302,30 +3265,8 @@ export default function CloudPushPortal() {
 
       {/* ===== MODAL 1: CREATE / EDIT GYM HARDWARE PROFILE ===== */}
       {showCreateProfileModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div style={{
-            background: 'var(--bg-primary, #ffffff)',
-            border: '1px solid var(--panel-border)',
-            borderRadius: '16px',
-            maxWidth: '740px',
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
-            overflow: 'hidden'
-          }}>
+        <div className="app-modal-backdrop cloud-modal-overlay">
+          <div className="app-modal-dialog cloud-modal-dialog">
             {/* Modal Header */}
             <div style={{
               padding: '18px 24px',
@@ -3373,7 +3314,7 @@ export default function CloudPushPortal() {
                   <Building2 size={13} style={{ color: 'var(--accent-primary)' }} />
                   <span>Gym Facility Details</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div className="cloud-modal-grid">
                   <div>
                     <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Gym / Client Name *</label>
                     <input
@@ -3684,30 +3625,8 @@ export default function CloudPushPortal() {
 
       {/* ===== MODAL 2: MANAGE ALL GYM HARDWARE PROFILES ===== */}
       {showManageProfilesModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div style={{
-            background: 'var(--bg-primary, #ffffff)',
-            border: '1px solid var(--panel-border)',
-            borderRadius: '16px',
-            maxWidth: '880px',
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
-            overflow: 'hidden'
-          }}>
+        <div className="app-modal-backdrop cloud-modal-overlay">
+          <div className="app-modal-dialog cloud-modal-dialog" style={{ maxWidth: '880px' }}>
             {/* Modal Header */}
             <div style={{
               padding: '18px 24px',
