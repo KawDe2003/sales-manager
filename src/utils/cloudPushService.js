@@ -274,6 +274,329 @@ export async function getTransactionsChunk({ baseUrl = '/api/etechno', accNo, se
 }
 
 /**
+ * Dispatch hardware remote commands to biometric terminals via eTechno Push Gateway
+ * Endpoint: POST {{baseURL}}/v2/terminal_cmd_client/
+ * Commands: Reboot_Terminal, ReSync_All, ReSync_Active, ReSync_InActive, Clear_Att_Data, Clear_Data, TRN_DOWN_07, TRN_DOWN_14, TRN_DOWN_30, USER_UPLOAD
+ */
+export async function sendTerminalCommand({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  serialNo = '',
+  apiKey = '',
+  command = 'ReSync_Active',
+  pin = '',
+  name = '',
+  timeoutMs = 15000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const payload = {
+    terminal_serial: serialNo,
+    Con_Type: 'PUSH',
+    CmD: command
+  };
+  if (pin) payload.Pin = String(pin);
+  if (name) payload.Name = String(name);
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const primaryUrl = `${cleanBase}/v2/terminal_cmd_client/`;
+
+  try {
+    const res = await fetch(primaryUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    return await safeParseApiResponse(res, `Terminal Command (${command})`);
+  } catch (err1) {
+    if (cleanBase.includes('/api/etechno') && !controller.signal.aborted) {
+      try {
+        const fallbackUrl = `/api/etechno?subpath=v2/terminal_cmd_client/`;
+        const res2 = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        return await safeParseApiResponse(res2, `Terminal Command Fallback (${command})`);
+      } catch (err2) {}
+    }
+    if (err1.name === 'AbortError') {
+      throw new Error(`Command "${command}" timed out after ${timeoutMs / 1000}s.`);
+    }
+    throw err1;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Fetch real-time attendance punch transactions logged in the last N minutes
+ * Endpoint: GET {{baseURL}}/v2/transaction_real/?push_acc=...&last_minute=...
+ */
+export async function getRealtimeTransactions({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  apiKey = '',
+  lastMinute = 60,
+  timeoutMs = 10000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const query = `push_acc=${encodeURIComponent(accNo)}&last_minute=${encodeURIComponent(lastMinute)}`;
+  const primaryUrl = `${cleanBase}/v2/transaction_real/?${query}`;
+
+  try {
+    const res = await fetch(primaryUrl, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Real-time Attendance');
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.data)) return parsed.data;
+    if (Array.isArray(parsed?.transactions)) return parsed.transactions;
+    return [];
+  } catch (err1) {
+    if (cleanBase.includes('/api/etechno') && !controller.signal.aborted) {
+      try {
+        const fallbackUrl = `/api/etechno?subpath=v2/transaction_real/&${query}`;
+        const res2 = await fetch(fallbackUrl, { method: 'GET', headers, signal: controller.signal });
+        const parsed2 = await safeParseApiResponse(res2, 'Real-time Attendance (Query Proxy)');
+        if (Array.isArray(parsed2)) return parsed2;
+        if (Array.isArray(parsed2?.data)) return parsed2.data;
+        if (Array.isArray(parsed2?.transactions)) return parsed2.transactions;
+        return [];
+      } catch (err2) {}
+    }
+    if (err1.name === 'AbortError') return [];
+    console.warn('Real-time transactions warning:', err1.message);
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Fetch all Terminals registered under the Push Account
+ * Endpoint: GET {{baseURL}}/v2/terminal/?filter=push_acc&value=...
+ */
+export async function getTerminalsByAccount({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  apiKey = '',
+  timeoutMs = 10000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const query = `filter=push_acc&value=${encodeURIComponent(accNo)}`;
+  const primaryUrl = `${cleanBase}/v2/terminal/?${query}`;
+
+  try {
+    const res = await fetch(primaryUrl, { method: 'GET', headers, signal: controller.signal });
+    const parsed = await safeParseApiResponse(res, 'Terminal Fleet');
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.data)) return parsed.data;
+    if (Array.isArray(parsed?.terminal_list)) return parsed.terminal_list;
+    return [];
+  } catch (err1) {
+    if (cleanBase.includes('/api/etechno') && !controller.signal.aborted) {
+      try {
+        const fallbackUrl = `/api/etechno?subpath=v2/terminal/&${query}`;
+        const res2 = await fetch(fallbackUrl, { method: 'GET', headers, signal: controller.signal });
+        const parsed2 = await safeParseApiResponse(res2, 'Terminal Fleet (Query Proxy)');
+        if (Array.isArray(parsed2)) return parsed2;
+        if (Array.isArray(parsed2?.data)) return parsed2.data;
+        if (Array.isArray(parsed2?.terminal_list)) return parsed2.terminal_list;
+        return [];
+      } catch (err2) {}
+    }
+    console.warn('Terminal list lookup warning:', err1.message);
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Register / Bind a new Hardware Terminal Serial Number to the Push Account
+ * Endpoint: PUT {{baseURL}}/v2/terminal/
+ * Body: { "terminal_serial": "..." }
+ */
+export async function addTerminalToAccount({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  serialNo = '',
+  apiKey = '',
+  timeoutMs = 12000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const payload = { terminal_serial: serialNo };
+
+  try {
+    const res = await fetch(`${cleanBase}/v2/terminal/`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    return await safeParseApiResponse(res, 'Add Terminal Serial');
+  } catch (err1) {
+    if (cleanBase.includes('/api/etechno') && !controller.signal.aborted) {
+      try {
+        const res2 = await fetch(`/api/etechno?subpath=v2/terminal/`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        return await safeParseApiResponse(res2, 'Add Terminal Serial Fallback');
+      } catch (err2) {}
+    }
+    throw err1;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Search user info by PIN
+ * Endpoint: GET {{baseURL}}/v2/user/?push_acc=...&filter=pin&value=...
+ */
+export async function getUserByPin({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  apiKey = '',
+  pin = '',
+  timeoutMs = 8000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const query = `push_acc=${encodeURIComponent(accNo)}&filter=pin&value=${encodeURIComponent(pin)}`;
+
+  try {
+    const res = await fetch(`${cleanBase}/v2/user/?${query}`, { method: 'GET', headers, signal: controller.signal });
+    return await safeParseApiResponse(res, 'User by PIN');
+  } catch (err) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Get Template Info (Fingerprint / Face / Palm) for a User PIN
+ * Endpoint: GET {{baseURL}}/v2/template/?push_acc=...&sub=Info&pin=...
+ */
+export async function getTemplateInfo({
+  baseUrl = '/api/etechno',
+  accNo = '1',
+  apiKey = '',
+  pin = '',
+  timeoutMs = 8000
+}) {
+  const authHeader = createBasicAuthHeader(apiKey, accNo);
+  const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json'
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+  if (apiKey) headers['api_key'] = apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let effectiveBase = baseUrl || '/api/etechno';
+  if (typeof window !== 'undefined' && effectiveBase.includes('83.147.38.130')) {
+    effectiveBase = '/api/etechno';
+  }
+
+  const cleanBase = effectiveBase.replace(/\/$/, '');
+  const query = `push_acc=${encodeURIComponent(accNo)}&sub=Info&pin=${encodeURIComponent(pin)}`;
+
+  try {
+    const res = await fetch(`${cleanBase}/v2/template/?${query}`, { method: 'GET', headers, signal: controller.signal });
+    return await safeParseApiResponse(res, 'Template Info');
+  } catch (err) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Fetch official Active User Count and Multi-Snapshot Audit Data from eTechno Push Server
  * Endpoint: {{baseURL}}/v2/user/get_active_user/?push_acc=...
  * Official Invoicing Endpoint provided in eTechno Push Postman Reference:
