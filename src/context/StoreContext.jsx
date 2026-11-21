@@ -4,6 +4,7 @@ import { supabase, getSupabaseClient, getBusinessDbConfig, saveBusinessDbConfig,
 import { useAuth } from './AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { sendNotification } from '../utils/notificationService';
+import { isPeriodLocked, validatePeriodLock, createReversalJournalEntry } from '../utils/slfrsEngine';
 
 export const StoreContext = createContext();
 
@@ -1146,7 +1147,10 @@ export default function StoreContextProvider({ children }) {
     
     { id: '2010', code: '2010', name: 'Accounts Payable', type: 'liability', statement_category: 'trade_payables', is_current: true, parentId: null },
     { id: '2020', code: '2020', name: 'Tax Payable', type: 'liability', statement_category: 'tax_payable', is_current: true, parentId: null },
+    { id: '2025', code: '2025', name: 'APIT / EPF / ETF Payable', type: 'liability', statement_category: 'tax_payable', is_current: true, parentId: null },
     { id: '2030', code: '2030', name: 'Short-Term Borrowings', type: 'liability', statement_category: 'short_term_borrowings', is_current: true, parentId: null },
+    { id: '2035', code: '2035', name: 'Output VAT Payable (18%)', type: 'liability', statement_category: 'tax_payable', is_current: true, parentId: null },
+    { id: '2040', code: '2040', name: 'SSCL Payable (2.5%)', type: 'liability', statement_category: 'tax_payable', is_current: true, parentId: null },
     { id: '2500', code: '2500', name: 'Long-Term Loans', type: 'liability', statement_category: 'long_term_loans', is_current: false, parentId: null },
     
     { id: '3010', code: '3010', name: "Owner's Equity / Stated Capital", type: 'equity', statement_category: 'stated_capital', is_current: false, parentId: null },
@@ -1620,9 +1624,49 @@ export default function StoreContextProvider({ children }) {
       try {
         localStorage.setItem('gym_theme', next);
         document.documentElement.setAttribute('data-theme', next);
+        document.documentElement.dataset.theme = next;
       } catch (e) {}
       return next;
     });
+  };
+
+  // Accounting Period Locking State
+  const [closedBeforeDate, setClosedBeforeDateState] = useState(() => {
+    try {
+      return localStorage.getItem('accounting_closed_before_date') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const setClosedBeforeDate = (dateStr) => {
+    setClosedBeforeDateState(dateStr || '');
+    try {
+      if (dateStr) {
+        localStorage.setItem('accounting_closed_before_date', dateStr);
+      } else {
+        localStorage.removeItem('accounting_closed_before_date');
+      }
+    } catch {}
+  };
+
+  const reverseJournalEntry = (entryId, reversalDate = new Date().toISOString().substring(0, 10), reason = 'Period adjustment reversal') => {
+    const originalEntry = journalEntries.find(j => j.id === entryId || j.entryNumber === entryId);
+    if (!originalEntry) {
+      if (showNotification) showNotification('Original journal entry not found', 'error');
+      return null;
+    }
+    const linesForEntry = journalLines.filter(l => l.journalEntryId === originalEntry.id || l.journal_entry_id === originalEntry.id);
+    const entryWithLines = { ...originalEntry, lines: (originalEntry.lines && originalEntry.lines.length > 0) ? originalEntry.lines : linesForEntry };
+    try {
+      const revEntry = createReversalJournalEntry(entryWithLines, reversalDate, reason);
+      createJournalEntry(revEntry);
+      if (showNotification) showNotification(`Reversal voucher ${revEntry.entryNumber} created successfully`, 'success');
+      return revEntry;
+    } catch (err) {
+      if (showNotification) showNotification(err.message, 'error');
+      return null;
+    }
   };
 
   const [notification, setNotification] = useState(null);
@@ -1883,8 +1927,11 @@ export default function StoreContextProvider({ children }) {
 
   // Save theme to localStorage (UI Preference only)
   useEffect(() => { 
-    localStorage.setItem('gym_theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('gym_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.dataset.theme = theme;
+    } catch {}
   }, [theme]);
 
   const seedDummyData = () => {
@@ -6256,6 +6303,7 @@ export default function StoreContextProvider({ children }) {
       payments, recordCashDeposit, recordEnhancedPayment, generateRenewalInvoice,
       accounts, journalEntries, journalLines, paymentAllocations, depreciationSchedule,
       createJournalEntry, addAccount, updateAccount, deleteAccount, deleteJournalEntry, getInvoicePaymentSummary, processMonthlyDepreciation,
+      closedBeforeDate, setClosedBeforeDate, reverseJournalEntry, createReversalJournalEntry, isPeriodLocked, validatePeriodLock,
       activityLogs, addLog, recordAuditLog, clearActivityLogs,
       addCustomerNote,
       deleteInvoice, deleteQuote,

@@ -221,3 +221,139 @@ export const generateCashFlowStatement = ({ accounts = [], journalEntries = [], 
     cashDiscrepancy
   };
 };
+
+// 4. TRIAL BALANCE COMPUTATION ENGINE WITH ORPHAN LINE DETECTION
+/**
+ * Computes Trial Balance from accounts and journalLines.
+ * Explicitly flags any orphaned journal_lines whose accountId does not exist in accounts.
+ */
+export const calculateTrialBalance = (accounts = [], journalLines = [], journalEntries = [], asOfDate = null) => {
+  const accountMap = new Map((accounts || []).map(a => [a.id, a]));
+  const entryDateMap = new Map((journalEntries || []).map(e => [e.id, e.date]));
+  
+  const accountTotals = new Map();
+  (accounts || []).forEach(a => accountTotals.set(a.id, { debit: 0, credit: 0 }));
+
+  const orphanedLines = [];
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  (journalLines || []).forEach(line => {
+    if (asOfDate) {
+      const entryDate = entryDateMap.get(line.journalEntryId);
+      if (entryDate && entryDate > asOfDate) return;
+    }
+
+    const d = Number(line.debit || 0);
+    const c = Number(line.credit || 0);
+    totalDebits += d;
+    totalCredits += c;
+
+    if (!accountMap.has(line.accountId)) {
+      orphanedLines.push({
+        ...line,
+        entryDate: entryDateMap.get(line.journalEntryId) || 'Unknown'
+      });
+      return;
+    }
+
+    const acc = accountTotals.get(line.accountId);
+    if (acc) {
+      acc.debit += d;
+      acc.credit += c;
+    }
+  });
+
+  const rows = (accounts || []).map(account => {
+    const raw = accountTotals.get(account.id) || { debit: 0, credit: 0 };
+    let netDebit = 0;
+    let netCredit = 0;
+
+    if (account.type === 'asset' || account.type === 'expense') {
+      const net = raw.debit - raw.credit;
+      if (net >= 0) netDebit = net;
+      else netCredit = Math.abs(net);
+    } else {
+      const net = raw.credit - raw.debit;
+      if (net >= 0) netCredit = net;
+      else netDebit = Math.abs(net);
+    }
+
+    return {
+      ...account,
+      rawDebit: raw.debit,
+      rawCredit: raw.credit,
+      netDebit,
+      netCredit
+    };
+  });
+
+  const sumNetDebit = rows.reduce((s, r) => s + r.netDebit, 0);
+  const sumNetCredit = rows.reduce((s, r) => s + r.netCredit, 0);
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+  const isNetBalanced = Math.abs(sumNetDebit - sumNetCredit) < 0.01;
+  const discrepancy = totalDebits - totalCredits;
+
+  return {
+    rows,
+    totalDebits,
+    totalCredits,
+    sumNetDebit,
+    sumNetCredit,
+    isBalanced,
+    isNetBalanced,
+    discrepancy,
+    orphanedLines,
+    hasOrphanedLines: orphanedLines.length > 0
+  };
+};
+
+// 5. ACCOUNTING PERIOD LOCKING & REVERSAL VOUCHERS
+/**
+ * Checks if a transaction date falls in a closed accounting period.
+ */
+export const isPeriodLocked = (transactionDate, closedBeforeDate) => {
+  if (!transactionDate || !closedBeforeDate) return false;
+  return transactionDate <= closedBeforeDate;
+};
+
+/**
+ * Asserts that a transaction does not fall in a closed accounting period.
+ */
+export const validatePeriodLock = (transactionDate, closedBeforeDate, actionName = 'modify') => {
+  if (isPeriodLocked(transactionDate, closedBeforeDate)) {
+    throw new Error(
+      `Accounting Period Locked: Cannot ${actionName} transaction dated ${transactionDate}. Period is closed on or before ${closedBeforeDate}. Issue a Credit Note or Reversal Voucher instead.`
+    );
+  }
+};
+
+/**
+ * Generates an exact double-entry Reversal Voucher for a posted journal entry.
+ */
+export const createReversalJournalEntry = (originalEntry, reversalDate, reason = 'Correction of prior period entry') => {
+  if (!originalEntry || !Array.isArray(originalEntry.lines)) {
+    throw new Error('Invalid original journal entry to reverse.');
+  }
+
+  const reversedLines = originalEntry.lines.map(line => ({
+    id: `jline_rev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    accountId: line.accountId,
+    description: `Reversal: ${line.description || reason}`,
+    debit: Number(line.credit || 0),
+    credit: Number(line.debit || 0)
+  }));
+
+  return {
+    id: `je_rev_${Date.now()}`,
+    entryNumber: `REV-${originalEntry.entryNumber || Date.now()}`,
+    date: reversalDate || new Date().toISOString().split('T')[0],
+    description: `[REVERSAL] ${reason} — Original Voucher #${originalEntry.entryNumber || originalEntry.id}`,
+    reference: `REV-OF-${originalEntry.id}`,
+    lines: reversedLines,
+    status: 'Posted',
+    isReversal: true,
+    reversedEntryId: originalEntry.id,
+    createdAt: new Date().toISOString()
+  };
+};

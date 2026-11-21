@@ -434,7 +434,7 @@ const Payments = () => {
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Latest {recentPayments.length} entries</span>
         </div>
 
-        <div className="table-container">
+        <div className="table-container hidden-mobile">
           <table>
             <thead>
               <tr>
@@ -537,6 +537,89 @@ const Payments = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE RESPONSIVE PAYMENT CARDS (<768px) */}
+        <div className="hidden-desktop" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {recentPayments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+              No payments recorded yet.
+            </div>
+          ) : (
+            recentPayments.map(p => {
+              const cust = customers.find(c => c.id === p.customerId);
+              const inv = invoices.find(i => i.id === p.documentId);
+              return (
+                <div 
+                  key={p.id}
+                  className="card"
+                  style={{
+                    background: 'var(--subtle-bg)',
+                    border: '1px solid var(--panel-border)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>{cust?.gymName || 'Valued Client'}</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{new Date(p.timestamp).toLocaleDateString()} • {p.recordedBy || 'Staff'}</div>
+                    </div>
+                    <span style={{ fontWeight: 850, fontSize: '0.95rem', color: 'var(--success)', fontFamily: 'var(--font-display)' }}>
+                      LKR {(Number(p.amount) || 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.78rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--accent-primary)', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--panel-border)' }}>
+                      {p.receiptNumber || 'REC'}
+                    </span>
+                    <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
+                      {p.method || 'Cash'}
+                    </span>
+                    {p.reference && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        Ref: {p.reference}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--panel-border)', paddingTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '6px 12px', height: '34px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => generatePaymentReceiptPDF(p, inv || {}, cust || { gymName: 'Valued Client' })}
+                    >
+                      <Download size={13} /> PDF
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ padding: '6px 12px', height: '34px', fontSize: '0.75rem', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => {
+                        const msg = buildReceiptMessage(p, cust, inv, p.remainingBalance);
+                        openWhatsApp(cust?.phone || '', msg);
+                      }}
+                    >
+                      <MessageCircle size={13} /> WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ padding: '6px 12px', height: '34px', fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => handleSendReceiptSMS(p, cust, inv, p.remainingBalance, cust?.phone)}
+                    >
+                      <Smartphone size={13} /> SMS
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

@@ -26,6 +26,28 @@ export function createBasicAuthHeader(apiKey, username = '', password = '') {
   }
 }
 
+// In-memory cache for completed historical months to avoid re-polling hardware
+export const historicalAuditCache = new Map();
+
+/**
+ * Executes async operations using a bounded concurrency pool (e.g. max 3-4 parallel promises)
+ */
+export async function runWithConcurrency(items, limit, asyncFn) {
+  const results = [];
+  const executing = new Set();
+  for (const item of items) {
+    const p = Promise.resolve().then(() => asyncFn(item));
+    results.push(p);
+    executing.add(p);
+    const clean = () => executing.delete(p);
+    p.then(clean, clean);
+    if (executing.size >= limit) {
+      await Promise.race(executing);
+    }
+  }
+  return Promise.all(results);
+}
+
 /**
  * Format Date to API requirement: 'YYYY-MM-DD HH:mm:ss'
  */
@@ -894,39 +916,70 @@ export async function calculateMonthwiseActiveUsers({
     const monthActivePins = new Set();
     let monthPunchCount = 0;
 
-    for (const chunk of chunks) {
-      try {
-        const transRes = await getTransactionsChunk({
-          baseUrl,
-          accNo,
-          serialNo,
-          fromDate: chunk.from,
-          toDate: chunk.to,
-          apiKey,
-          username,
-          password
-        });
+    const isHistoricalMonth = m.endDate < new Date();
+    const cacheKey = `${accNo}_${serialNo || 'ALL'}_${m.key}`;
 
-        let transactions = [];
-        if (Array.isArray(transRes)) {
-          transactions = transRes;
-        } else if (transRes?.data && Array.isArray(transRes.data)) {
-          transactions = transRes.data;
-        } else if (transRes?.transactions && Array.isArray(transRes.transactions)) {
-          transactions = transRes.transactions;
-        }
+    if (isHistoricalMonth && historicalAuditCache.has(cacheKey)) {
+      const cached = historicalAuditCache.get(cacheKey);
+      cached.monthActivePins.forEach(pin => {
+        monthActivePins.add(pin);
+        allUniqueActivePins.add(pin);
+      });
+      monthPunchCount = cached.monthPunchCount;
+    } else {
+      // Bounded concurrency pool: limit to max 3 concurrent chunk queries with retry backoff
+      await runWithConcurrency(chunks, 3, async (chunk) => {
+        let attempts = 0;
+        let success = false;
+        while (attempts < 2 && !success) {
+          try {
+            attempts++;
+            const transRes = await getTransactionsChunk({
+              baseUrl,
+              accNo,
+              serialNo,
+              fromDate: chunk.from,
+              toDate: chunk.to,
+              apiKey,
+              username,
+              password
+            });
 
-        transactions.forEach(t => {
-          const pin = t.pin || t.PIN || t.user_id || t.userId;
-          if (pin !== undefined && pin !== null && String(pin).trim() !== '') {
-            monthActivePins.add(String(pin));
-            allUniqueActivePins.add(String(pin));
+            let transactions = [];
+            if (Array.isArray(transRes)) {
+              transactions = transRes;
+            } else if (transRes?.data && Array.isArray(transRes.data)) {
+              transactions = transRes.data;
+            } else if (transRes?.transactions && Array.isArray(transRes.transactions)) {
+              transactions = transRes.transactions;
+            }
+
+            transactions.forEach(t => {
+              const pin = t.pin || t.PIN || t.user_id || t.userId;
+              if (pin !== undefined && pin !== null && String(pin).trim() !== '') {
+                monthActivePins.add(String(pin));
+                allUniqueActivePins.add(String(pin));
+              }
+              monthPunchCount++;
+              allPunchLogs.push(t);
+            });
+            success = true;
+          } catch (err) {
+            if (attempts >= 2) {
+              console.warn(`Chunk warning for ${chunk.from} to ${chunk.to}:`, err.message);
+            } else {
+              await new Promise(r => setTimeout(r, 400));
+            }
           }
-          monthPunchCount++;
-          allPunchLogs.push(t);
+        }
+      });
+
+      if (isHistoricalMonth) {
+        historicalAuditCache.set(cacheKey, {
+          monthActivePins: Array.from(monthActivePins),
+          monthPunchCount,
+          uniquePunchUsers: monthActivePins.size
         });
-      } catch (err) {
-        console.warn(`Chunk warning for ${chunk.from} to ${chunk.to}:`, err.message);
       }
     }
 

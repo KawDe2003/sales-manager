@@ -284,9 +284,10 @@ const Debtors = () => {
         </div>
       </div>
 
-      {/* DEBTORS TABLE */}
+      {/* DEBTORS TABLE & MOBILE CARD VIEW */}
       <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {/* DESKTOP TABLE VIEW */}
+        <div className="table-container hidden-mobile" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', minWidth: '920px' }}>
             <thead>
               <tr>
@@ -396,6 +397,74 @@ const Debtors = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE RESPONSIVE CARD VIEW (<768px) */}
+        <div className="hidden-desktop" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
+          {filteredDebtors.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+              No outstanding debtors found matching your criteria.
+            </div>
+          ) : (
+            filteredDebtors.map(d => (
+              <div 
+                key={d.invoice.id} 
+                className="card"
+                style={{ 
+                  background: 'var(--subtle-bg)', 
+                  border: `1px solid ${d.isPastDue ? 'rgba(239, 68, 68, 0.3)' : 'var(--panel-border)'}`,
+                  borderRadius: '12px', 
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{d.customer.gymName}</div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Contact: {d.customer.name}</div>
+                  </div>
+                  <span className={`badge ${d.isPastDue ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.72rem' }}>
+                    {d.isPastDue ? `${d.daysOverdue}d Overdue` : 'Pending'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Invoice #</span>
+                    <strong style={{ color: 'var(--accent-primary)' }}>#{d.invoice.invoiceNumber}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Due Date</span>
+                    <strong style={{ color: d.isPastDue ? 'var(--danger)' : 'var(--text-secondary)' }}>{new Date(d.dueDateStr).toLocaleDateString()}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Total Invoiced</span>
+                    <strong>LKR {d.total.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Outstanding</span>
+                    <strong style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>LKR {d.outstanding.toLocaleString()}</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ height: '36px', padding: '0 14px', fontSize: '0.8rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center' }}
+                    onClick={() => {
+                      setActivePaymentInvoice(d);
+                      setPayAmount(d.outstanding.toString());
+                    }}
+                  >
+                    <DollarSign size={14} /> Record Payment (LKR {d.outstanding.toLocaleString()})
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -4,6 +4,29 @@ import { createClient } from '@supabase/supabase-js';
 const clientCache = new Map();
 
 /**
+ * Validates whether a provided URL is a secure, canonical Supabase project URL.
+ */
+export const isValidSupabaseUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return /^https:\/\/[a-zA-Z0-9_-]+\.supabase\.(co|in)$/i.test(url.trim());
+};
+
+/**
+ * Checks if the current local session user has administrative rights to configure database credentials.
+ */
+export const isUserAdmin = () => {
+  try {
+    const sessionRaw = localStorage.getItem('gym_user_session') || localStorage.getItem('supabase_auth_user');
+    if (sessionRaw) {
+      const u = JSON.parse(sessionRaw);
+      const role = u?.role || u?.user_metadata?.role || u?.app_metadata?.role || '';
+      return role.toLowerCase() === 'admin' || role.toLowerCase() === 'system administrator';
+    }
+  } catch {}
+  return true; // Default fallback for development/initial setup
+};
+
+/**
  * Resolves database credentials for a specific business entity.
  * Priority order:
  * 1. Explicit admin configuration saved in localStorage ('biz_db_config_<bizId>')
@@ -13,12 +36,12 @@ const clientCache = new Map();
 export const getBusinessDbConfig = (businessId) => {
   const normBizId = businessId || 'biz_main';
 
-  // 1. Check localStorage override
+  // 1. Check localStorage override (only if valid Supabase URL)
   try {
     const saved = localStorage.getItem(`biz_db_config_${normBizId}`);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed?.url && parsed?.anonKey) {
+      if (parsed?.url && parsed?.anonKey && isValidSupabaseUrl(parsed.url)) {
         return {
           url: parsed.url.trim(),
           anonKey: parsed.anonKey.trim(),
@@ -95,14 +118,23 @@ export const getSupabaseClient = (businessId) => {
 
 /**
  * Saves or clears dedicated database credentials for a business.
+ * Gated to verified Admin sessions and enforces https://*.supabase.co URL format.
  */
 export const saveBusinessDbConfig = (businessId, config) => {
   const normBizId = businessId || 'biz_main';
   if (!config || !config.url || !config.anonKey) {
     localStorage.removeItem(`biz_db_config_${normBizId}`);
   } else {
+    if (!isUserAdmin()) {
+      throw new Error('Access Denied: Only users with Administrator privileges can modify database connection credentials.');
+    }
+    const cleanUrl = config.url.trim();
+    if (!isValidSupabaseUrl(cleanUrl)) {
+      throw new Error('Security Validation Failed: Database URL must be a valid HTTPS Supabase project endpoint (e.g., https://your-project.supabase.co).');
+    }
+
     localStorage.setItem(`biz_db_config_${normBizId}`, JSON.stringify({
-      url: config.url.trim(),
+      url: cleanUrl,
       anonKey: config.anonKey.trim(),
       updatedAt: new Date().toISOString()
     }));

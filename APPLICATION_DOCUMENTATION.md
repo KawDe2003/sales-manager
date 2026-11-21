@@ -296,7 +296,10 @@ Financial statements are generated strictly from double-entry journal entries gr
 | **1510** | Office Equipment & Turnstiles | Non-Current Assets | Property, Plant & Equipment | Debit |
 | **1520** | Accumulated Depreciation | Non-Current Assets | Contra-Asset | Credit |
 | **2010** | Accounts Payable (Creditors) | Current Liabilities | Trade & Other Payables | Credit |
-| **2020** | EPF / ETF Payable | Current Liabilities | Statutory Payables | Credit |
+| **2020** | Customer Advances & Deposits | Current Liabilities | Contract Liabilities | Credit |
+| **2025** | APIT / EPF / ETF Payable | Current Liabilities | Statutory Payables | Credit |
+| **2035** | Output VAT Payable (18%) | Current Liabilities | Statutory Tax Liabilities | Credit |
+| **2040** | SSCL Payable (2.5%) | Current Liabilities | Statutory Tax Liabilities | Credit |
 | **3010** | Stated Capital | Equity | Equity Capital | Credit |
 | **3020** | Retained Earnings | Equity | Retained Earnings | Credit |
 | **4010** | Cloud Push Software License Revenue | Revenue | Operating Revenue | Credit |
@@ -307,6 +310,13 @@ Financial statements are generated strictly from double-entry journal entries gr
 | **6030** | ETF Employer Contribution (3%) | Expenses | Administrative Expenses | Debit |
 | **6040** | Server Hosting & SMS Costs | Expenses | Operating Expenses | Debit |
 | **6050** | Depreciation Expense (LKAS 16) | Expenses | Administrative Expenses | Debit |
+
+### 6.3 Accounting Period Locking & Reversal Vouchers
+- **Period Cut-off (`closed_before_date`)**: Configurable in **Settings > Bank & Payments**. Any journal entries, invoices, or payment transactions dated on or before this cut-off cannot be modified or hard-deleted.
+- **LKAS 1 Audit Traceability**: Corrections to closed periods require generating double-entry **Reversal Vouchers** (`createReversalJournalEntry`) or issuing formalized Credit Notes, maintaining an unbroken financial audit trail.
+
+### 6.4 Trial Balance & Orphaned Line Audit
+- **Orphan Line Detection**: The `calculateTrialBalance` engine inspects every journal line against the active Chart of Accounts. Any line with an unresolved `accountId` is surfaced as an orphaned voucher alert banner in `/ledger`, preventing hidden accounting discrepancies.
 
 ---
 

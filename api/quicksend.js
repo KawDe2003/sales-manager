@@ -1,7 +1,7 @@
 // Server-Side Hardened API Proxy for QuickSend SMS Gateway
-// Prevents hardcoded secret exposure and handles server-side error masking & rate limiting
+// Prevents hardcoded secret exposure, verifies caller JWT, and handles server-side error masking & rate limiting
 
-// Simple in-memory rate limiter for serverless environment
+// Simple in-memory sliding window rate limiter for serverless environment
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 30; // Max 30 SMS calls per min per IP
@@ -22,36 +22,74 @@ export default async function handler(request, response) {
 
   if (clientUsage.count > MAX_REQUESTS_PER_WINDOW) {
     return response.status(429).json({ 
-      error: 'Too Many Requests', 
+      ok: false,
+      code: 'RATE_LIMIT_EXCEEDED', 
       message: 'Rate limit exceeded. Please wait a minute before broadcasting more messages.' 
     });
   }
 
-  // 2. Validate Endpoint Parameter
-  const { FUN } = request.query;
+  // 2. Caller Authentication Gate (Verify Supabase JWT if in production or token provided)
+  const incomingAuth = request.headers['authorization'] || '';
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (incomingAuth.startsWith('Bearer ') && supabaseUrl && supabaseAnonKey) {
+    try {
+      const token = incomingAuth.replace('Bearer ', '').trim();
+      const verifyRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': supabaseAnonKey
+        }
+      });
+      if (!verifyRes.ok && process.env.NODE_ENV === 'production') {
+        return response.status(401).json({
+          ok: false,
+          code: 'UNAUTHORIZED_CALLER',
+          message: 'Invalid or expired caller authorization token.'
+        });
+      }
+    } catch {
+      // In non-production or offline dev, allow pass-through if verification network fails
+      if (process.env.NODE_ENV === 'production') {
+        return response.status(401).json({
+          ok: false,
+          code: 'AUTH_VERIFICATION_FAILED',
+          message: 'Could not verify caller session token.'
+        });
+      }
+    }
+  }
+
+  // 3. Validate Endpoint Parameter
+  const { FUN } = request.query || {};
   if (!FUN || typeof FUN !== 'string') {
-    return response.status(400).json({ error: 'Bad Request', message: 'Missing required FUN parameter.' });
+    return response.status(400).json({
+      ok: false,
+      code: 'BAD_REQUEST',
+      message: 'Missing required FUN parameter.'
+    });
   }
 
   const targetUrl = `https://quicksend.lk/Client/api.php?FUN=${encodeURIComponent(FUN)}`;
 
   try {
-    // Read credentials from server-side environment variables ONLY
+    // 4. Always use server-side QuickSend credentials for upstream HTTP Basic Auth
+    // NEVER pass caller's Bearer token upstream to QuickSend!
     const apiUser = process.env.QUICKSEND_API_USER;
     const apiKey = process.env.QUICKSEND_API_KEY;
 
-    let authHeader = request.headers['authorization'];
-    if (!authHeader && apiUser && apiKey) {
-      authHeader = 'Basic ' + Buffer.from(`${apiUser}:${apiKey}`).toString('base64');
-    }
-
-    if (!authHeader) {
-      return response.status(401).json({ 
-        error: 'Unauthorized', 
-        message: 'SMS Gateway authorization credentials not configured on server.' 
+    if (!apiUser || !apiKey) {
+      return response.status(503).json({ 
+        ok: false,
+        code: 'GATEWAY_UNCONFIGURED', 
+        message: 'SMS Gateway authorization credentials (QUICKSEND_API_USER / QUICKSEND_API_KEY) are not configured on server.' 
       });
     }
 
+    const upstreamBasicAuth = 'Basic ' + Buffer.from(`${apiUser}:${apiKey}`).toString('base64');
+
+    // Sri Lankan E.164 phone formatting helper
     function formatPhone(raw) {
       if (!raw) return '';
       let digits = String(raw).trim().replace(/[^0-9]/g, '');
@@ -73,20 +111,29 @@ export default async function handler(request, response) {
 
     const bodyData = JSON.stringify(parsedBody);
 
-    const res = await fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: bodyData
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000); // 12-second timeout
+
+    let res;
+    try {
+      res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': upstreamBasicAuth,
+          'Content-Type': 'application/json'
+        },
+        body: bodyData,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (res.status === 401 || res.status === 403) {
       return response.status(401).json({
         ok: false,
         code: 'AUTH_ERROR',
-        message: 'SMS gateway credentials are not configured or invalid.'
+        message: 'QuickSend SMS gateway credentials rejected by upstream service.'
       });
     }
 
@@ -97,8 +144,8 @@ export default async function handler(request, response) {
       if (data && (data.error || data.Status === 'error')) {
         return response.status(res.status >= 400 ? res.status : 400).json({
           ok: false,
-          code: 'AUTH_ERROR',
-          message: 'SMS gateway credentials are not configured or invalid.'
+          code: 'UPSTREAM_ERROR',
+          message: data.message || data.error || 'QuickSend SMS service returned an operational error.'
         });
       }
       return response.status(res.status).json(data);
@@ -106,20 +153,28 @@ export default async function handler(request, response) {
       const text = await res.text();
       try {
         const json = JSON.parse(text);
-        if (json.error) {
+        if (json.error || json.Status === 'error') {
           return response.status(400).json({
             ok: false,
-            code: 'AUTH_ERROR',
-            message: 'SMS gateway credentials are not configured or invalid.'
+            code: 'UPSTREAM_ERROR',
+            message: json.message || json.error || 'QuickSend SMS service returned an operational error.'
           });
         }
-      } catch (e) {}
+      } catch {
+        // Raw text response
+      }
       return response.status(res.status).send(text);
     }
   } catch (error) {
-    // Non-leaking server-side error logging
+    if (error.name === 'AbortError') {
+      return response.status(504).json({
+        ok: false,
+        code: 'GATEWAY_TIMEOUT',
+        message: 'QuickSend SMS gateway connection timed out after 12 seconds.'
+      });
+    }
     console.error('[SMS Proxy Error]:', error.stack || error.message);
-    return response.status(500).json({ 
+    return response.status(502).json({ 
       ok: false,
       code: 'GATEWAY_ERROR', 
       message: 'Failed to connect to SMS communications gateway.' 

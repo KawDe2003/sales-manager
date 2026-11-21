@@ -74,7 +74,8 @@ const Settings = () => {
     resetEverythingWithConfirmation, hasUnsavedChanges,
     customers = [], quotes = [], invoices = [], inventory = [], leads = [],
     businesses = [], activeBusinessId, activeBusiness, switchBusiness,
-    getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient
+    getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient,
+    closedBeforeDate = '', setClosedBeforeDate
   } = useContext(StoreContext) || {};
   const { user } = useAuth();
   const isUserRestricted = Boolean(user?.businessId && user.businessId !== 'all');
@@ -2373,6 +2374,69 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
               <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Automatically logout the user after the specified period of inactivity to safeguard financial data.
               </p>
+            </div>
+          </div>
+
+          {/* Accounting Period Locking & LKAS / SLFRS Compliance */}
+          <div className="glass-panel">
+            <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+              <div style={{ padding: '10px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+                <Lock size={22} color="var(--accent-primary)" />
+              </div>
+              <div>
+                <h2 className="h2" style={{ margin: 0 }}>Accounting Period Locking</h2>
+                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Prevent retroactive alterations to closed financial periods per LKAS 1 / SLFRS audit standards.</p>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Closed Accounting Period Cut-off Date</span>
+                {closedBeforeDate && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', fontWeight: 700 }}>
+                    LOCKED THROUGH {closedBeforeDate}
+                  </span>
+                )}
+              </label>
+              <input
+                type="date"
+                className="form-input"
+                value={closedBeforeDate || ''}
+                onChange={e => {
+                  if (setClosedBeforeDate) setClosedBeforeDate(e.target.value);
+                  if (showNotification) showNotification(e.target.value ? `Accounting period locked on or before ${e.target.value}` : 'Accounting period lock removed', 'info');
+                }}
+              />
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 }}>
+                Invoices, journal entries, and payments dated on or before this date cannot be modified or deleted. To adjust a closed period, issue a reversal voucher or credit note.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const today = new Date().toISOString().substring(0, 10);
+                  if (setClosedBeforeDate) setClosedBeforeDate(today);
+                  if (showNotification) showNotification(`Accounting period locked through today (${today})`, 'success');
+                }}
+              >
+                Lock Through Today
+              </button>
+              {closedBeforeDate && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    if (setClosedBeforeDate) setClosedBeforeDate('');
+                    if (showNotification) showNotification('Accounting period lock cleared', 'info');
+                  }}
+                  style={{ color: 'var(--danger)' }}
+                >
+                  Clear Period Lock
+                </button>
+              )}
             </div>
           </div>
 

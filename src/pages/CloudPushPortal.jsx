@@ -393,6 +393,16 @@ export default function CloudPushPortal() {
     }
   }, [selectedCustomerId, customers]);
 
+  // Auto-detect matching customer profile on load if not explicitly selected
+  useEffect(() => {
+    if (!selectedCustomerId && customers && customers.length > 0) {
+      const match = customers.find(c => c.cloudPushAcc && String(c.cloudPushAcc) === String(accNo));
+      if (match) {
+        setSelectedCustomerId(match.id);
+      }
+    }
+  }, [customers, accNo, selectedCustomerId]);
+
   // Load saved configuration from localStorage if available
   useEffect(() => {
     try {
@@ -1230,43 +1240,43 @@ export default function CloudPushPortal() {
 
         {/* Sub-panel 1: Gateway Credentials & Account */}
         <div className="cloud-sub-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Server size={14} style={{ color: 'var(--accent-primary)' }} />
-            <span>1. Cloud Push Gateway & Account Authentication</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <Server size={14} style={{ color: 'var(--accent-primary)' }} />
+              <span>1. Cloud Push Gateway & Account Authentication</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={openCreateProfileModal}
+                className="btn btn-sm"
+                style={{
+                  fontSize: '0.74rem', padding: '3px 10px', borderRadius: '6px',
+                  background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
+                  border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
+                }}
+              >
+                <Plus size={12} /> New Gym Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowManageProfilesModal(true)}
+                className="btn btn-sm btn-secondary"
+                style={{ fontSize: '0.74rem', padding: '3px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+              >
+                <Building2 size={12} /> Manage All ({customers.length})
+              </button>
+            </div>
           </div>
 
           <div className="cloud-hardware-grid">
-            {/* Enterprise Client Selection & Gym Profile Manager */}
-            <div style={{ gridColumn: 'span 2' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', margin: 0, display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}>
-                  <Users size={13} style={{ color: 'var(--accent-primary)' }} /> ACTIVE GYM PROFILE / CLIENT
-                </label>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={openCreateProfileModal}
-                    className="btn btn-sm"
-                    style={{
-                      fontSize: '0.74rem', padding: '2px 9px', borderRadius: '6px',
-                      background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
-                      border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
-                    }}
-                  >
-                    <Plus size={12} /> New Gym Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowManageProfilesModal(true)}
-                    className="btn btn-sm btn-secondary"
-                    style={{ fontSize: '0.74rem', padding: '2px 9px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
-                  >
-                    <Building2 size={12} /> Manage All ({customers.length})
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Enterprise Client Selection */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}>
+                <Users size={13} style={{ color: 'var(--accent-primary)' }} /> ENTERPRISE CLIENT
+              </label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <select
                   className="form-control"
                   value={selectedCustomerId}
@@ -1295,9 +1305,9 @@ export default function CloudPushPortal() {
                       if (cust) openEditProfileModal(cust);
                     }}
                     title="Edit selected gym profile"
-                    style={{ height: '38px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}
+                    style={{ height: '38px', padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', flexShrink: 0 }}
                   >
-                    <Edit3 size={13} /> Edit
+                    <Edit3 size={13} />
                   </button>
                 )}
               </div>

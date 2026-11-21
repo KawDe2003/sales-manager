@@ -288,6 +288,7 @@ const AppContent = () => {
       if (e.key === 'Escape') {
         setSearchOpen(false);
         setNotificationsOpen(false);
+        setSidebarOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);

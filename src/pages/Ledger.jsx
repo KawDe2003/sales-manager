@@ -8,6 +8,7 @@ import {
 import * as XLSX from 'xlsx';
 import { StoreContext } from '../context/StoreContext';
 import { exportAccountLedgerPDF, exportJournalVoucherPDF, exportTrialBalancePDF } from '../utils/pdfGenerator';
+import { calculateTrialBalance } from '../utils/slfrsEngine';
 import CustomSelect from '../components/CustomSelect';
 
 const Ledger = () => {
@@ -121,14 +122,10 @@ const Ledger = () => {
     return map;
   }, [accounts, journalLines]);
 
-  // System-wide trial balance totals
+  // System-wide trial balance totals per LKAS/SLFRS with orphaned line audit
   const overallTotals = useMemo(() => {
-    const totalDebits = journalLines.reduce((s, l) => s + Number(l.debit || 0), 0);
-    const totalCredits = journalLines.reduce((s, l) => s + Number(l.credit || 0), 0);
-    const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
-    const discrepancy = totalDebits - totalCredits;
-    return { totalDebits, totalCredits, isBalanced, discrepancy };
-  }, [journalLines]);
+    return calculateTrialBalance(accounts, journalLines, journalEntries);
+  }, [accounts, journalLines, journalEntries]);
 
   // Filtered CoA list
   const filteredAccounts = useMemo(() => {
@@ -1612,6 +1609,26 @@ const Ledger = () => {
               </button>
             </div>
           </div>
+
+          {overallTotals.hasOrphanedLines && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#fca5a5',
+              padding: '12px 18px',
+              borderRadius: '12px',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              fontSize: '0.85rem'
+            }}>
+              <AlertTriangle size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <div>
+                <strong>Orphaned Journal Lines Detected:</strong> {overallTotals.orphanedLines?.length || 0} journal lines reference missing account IDs. Please review or adjust these vouchers to restore double-entry balance.
+              </div>
+            </div>
+          )}
 
           <div style={{ 
             overflowX: 'auto', 
