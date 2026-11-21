@@ -1929,23 +1929,87 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   }}>
                     Prepaid Wallet Balance
                   </h3>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ 
-                      fontSize: '2.2rem', 
-                      fontWeight: 900, 
-                      color: smsConfig.balance === 'Error' ? 'var(--danger)' : '#10b981', 
-                      fontFamily: 'var(--font-display)',
-                      lineHeight: 1
-                    }}>
-                      {smsConfig.balance !== undefined ? smsConfig.balance : '0.00'}
-                    </span>
-                    <span style={{ 
-                      fontSize: '0.88rem', 
-                      color: 'var(--text-primary)', 
-                      fontWeight: 700 
-                    }}>
-                      SMS Credits
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                    {(() => {
+                      const b = smsConfig.balance;
+                      const str = String(b || '').trim();
+                      const isUnconfigured = str === 'Unconfigured' || str.startsWith('{') || str.includes('GATEWAY_UNCONFIGURED');
+                      const isError = str === 'Error' || str.toLowerCase().includes('error') || str.includes('AUTH_ERROR');
+
+                      if (isUnconfigured) {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ 
+                              fontSize: '1.45rem', 
+                              fontWeight: 800, 
+                              color: 'var(--warning, #f59e0b)', 
+                              fontFamily: 'var(--font-display)',
+                              lineHeight: 1
+                            }}>
+                              Not Configured
+                            </span>
+                            <span style={{ 
+                              fontSize: '0.74rem', 
+                              fontWeight: 700, 
+                              color: 'var(--text-muted)',
+                              background: 'rgba(245, 158, 11, 0.1)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                              padding: '3px 8px',
+                              borderRadius: '6px'
+                            }}>
+                              Enter Gateway Username & API Key above
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      if (isError) {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ 
+                              fontSize: '1.45rem', 
+                              fontWeight: 800, 
+                              color: 'var(--danger, #ef4444)', 
+                              fontFamily: 'var(--font-display)',
+                              lineHeight: 1
+                            }}>
+                              Connection Error
+                            </span>
+                            <span style={{ 
+                              fontSize: '0.74rem', 
+                              fontWeight: 600, 
+                              color: 'var(--text-muted)'
+                            }}>
+                              {smsConfig.balanceError || 'Check credentials'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      const num = Number(b);
+                      const displayVal = !isNaN(num) ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (b || '0.00');
+
+                      return (
+                        <>
+                          <span style={{ 
+                            fontSize: '2.2rem', 
+                            fontWeight: 900, 
+                            color: '#10b981', 
+                            fontFamily: 'var(--font-display)',
+                            lineHeight: 1
+                          }}>
+                            {displayVal}
+                          </span>
+                          <span style={{ 
+                            fontSize: '0.88rem', 
+                            color: 'var(--text-primary)', 
+                            fontWeight: 700 
+                          }}>
+                            SMS Credits
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
                 <button

@@ -5990,6 +5990,11 @@ export default function StoreContextProvider({ children }) {
   };
 
   const fetchSmsBalance = async () => {
+    if (!smsConfig.email && !smsConfig.apiKey) {
+      setSmsConfig(prev => ({ ...prev, balance: 'Unconfigured', balanceError: 'Credentials required' }));
+      return;
+    }
+
     try {
       const response = await fetch('/api/quicksend?FUN=CHECK_BALANCE', {
         method: 'POST',
@@ -6000,24 +6005,35 @@ export default function StoreContextProvider({ children }) {
         body: JSON.stringify({})
       });
 
-      // Quicksend returns plain text (a number) for CHECK_BALANCE, not JSON
       const rawText = await response.text();
 
-      // Try to parse as JSON first, fallback to plain text
-      let balanceVal;
       try {
         const parsed = JSON.parse(rawText);
-        balanceVal = parsed.balance ?? parsed.Balance ?? parsed.credit ?? rawText;
+        if (parsed.ok === false || parsed.error || parsed.code || !response.ok) {
+          const isUnconfigured = parsed.code === 'GATEWAY_UNCONFIGURED';
+          setSmsConfig(prev => ({
+            ...prev,
+            balance: isUnconfigured ? 'Unconfigured' : 'Error',
+            balanceError: parsed.message || parsed.code || 'Failed to fetch balance'
+          }));
+          return;
+        }
+        const balanceVal = parsed.balance ?? parsed.Balance ?? parsed.credit ?? rawText.trim();
+        setSmsConfig(prev => ({ ...prev, balance: balanceVal, balanceError: null }));
+        return;
       } catch {
-        balanceVal = rawText.trim();
+        // Plain text response from QuickSend (e.g. "1250.00")
       }
 
-      // Update the stored balance in state — this will reflect live in the UI
-      setSmsConfig(prev => ({ ...prev, balance: balanceVal }));
-
+      const trimmed = rawText.trim();
+      if (!response.ok || trimmed.startsWith('{') || trimmed.toLowerCase().includes('error') || trimmed.includes('GATEWAY_')) {
+        setSmsConfig(prev => ({ ...prev, balance: 'Unconfigured', balanceError: trimmed }));
+      } else {
+        setSmsConfig(prev => ({ ...prev, balance: trimmed, balanceError: null }));
+      }
     } catch (e) {
       console.error('Balance fetch error:', e);
-      setSmsConfig(prev => ({ ...prev, balance: 'Error' }));
+      setSmsConfig(prev => ({ ...prev, balance: 'Error', balanceError: e.message }));
     }
   };
 

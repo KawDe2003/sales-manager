@@ -220,7 +220,7 @@ const SmsPortal = () => {
                 {(() => {
                   const b = smsConfig.balance;
                   const str = String(b || '').trim();
-                  const isError = str.includes('error') || str.includes('Invalid') || str.startsWith('{') || str.includes('AUTH_ERROR') || str.includes('Unauthorized');
+                  const isError = str === 'Unconfigured' || str === 'Error' || str.includes('error') || str.includes('Invalid') || str.startsWith('{') || str.includes('AUTH_ERROR') || str.includes('Unauthorized') || str.includes('GATEWAY_');
                   if (isError) {
                     return (
                       <span style={{ 

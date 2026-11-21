@@ -2224,9 +2224,51 @@ tbody tr:hover td {
   box-shadow: 0 0 14px rgba(245, 158, 11, 0.5) !important;
 }
 
+[data-theme='dark'] #notification-bell-btn {
+  background: rgba(148, 163, 184, 0.12) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] #notification-bell-btn:hover {
+  background: rgba(148, 163, 184, 0.22) !important;
+  border-color: rgba(165, 180, 252, 0.5) !important;
+}
+
 [data-theme='dark'] #header-theme-toggle-btn .theme-toggle-icon,
 [data-theme='light'] #header-theme-toggle-btn .theme-toggle-icon {
   color: inherit !important;
+}
+
+/* Header Action Icon Buttons - Standardized 40px touch targets with prominent 20px icons */
+.header-action-icon-btn,
+#header-search-btn,
+#header-theme-toggle-btn,
+#notification-bell-btn,
+#header-sidebar-toggle-btn,
+#header-sidebar-toggle-btn-desktop {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+}
+
+.header-action-icon-btn svg,
+#header-search-btn svg,
+#header-theme-toggle-btn svg,
+#notification-bell-btn svg,
+#header-sidebar-toggle-btn svg,
+#header-sidebar-toggle-btn-desktop svg {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  stroke-width: 2.2px !important;
 }
 
 /* ===== LAYOUT: SIDEBAR ===== */

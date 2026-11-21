@@ -74,16 +74,30 @@ export default async function handler(request, response) {
   const targetUrl = `https://quicksend.lk/Client/api.php?FUN=${encodeURIComponent(FUN)}`;
 
   try {
-    // 4. Always use server-side QuickSend credentials for upstream HTTP Basic Auth
-    // NEVER pass caller's Bearer token upstream to QuickSend!
-    const apiUser = process.env.QUICKSEND_API_USER;
-    const apiKey = process.env.QUICKSEND_API_KEY;
+    // 4. Resolve QuickSend upstream Basic Auth credentials:
+    // Priority 1: Server environment variables (QUICKSEND_API_USER / QUICKSEND_API_KEY)
+    // Priority 2: Client Basic Auth credentials forwarded from UI settings
+    let clientUser = '';
+    let clientKey = '';
+    if (incomingAuth.startsWith('Basic ')) {
+      try {
+        const decoded = Buffer.from(incomingAuth.replace('Basic ', '').trim(), 'base64').toString('utf8');
+        const colonIdx = decoded.indexOf(':');
+        if (colonIdx !== -1) {
+          clientUser = decoded.substring(0, colonIdx).trim();
+          clientKey = decoded.substring(colonIdx + 1).trim();
+        }
+      } catch {}
+    }
+
+    const apiUser = process.env.QUICKSEND_API_USER || clientUser;
+    const apiKey = process.env.QUICKSEND_API_KEY || clientKey;
 
     if (!apiUser || !apiKey) {
       return response.status(503).json({ 
         ok: false,
         code: 'GATEWAY_UNCONFIGURED', 
-        message: 'SMS Gateway authorization credentials (QUICKSEND_API_USER / QUICKSEND_API_KEY) are not configured on server.' 
+        message: 'QuickSend SMS Gateway credentials (Username and API Key) are not configured.' 
       });
     }
 

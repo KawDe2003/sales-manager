@@ -585,12 +585,13 @@ const AppContent = () => {
           {/* Search */}
           <button
             id="header-search-btn"
-            className="btn btn-secondary"
-            style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="btn btn-secondary header-action-icon-btn"
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
             onClick={() => setSearchOpen(true)}
             title="Search (Ctrl+K)"
+            aria-label="Search"
           >
-            <Search size={16} className="text-secondary" />
+            <Search size={20} strokeWidth={2.2} style={{ color: 'var(--text-primary)' }} />
           </button>
 
           {/* AUTOMATIC CLOUD SYNC STATUS (ZERO-TOUCH AUTONOMOUS SYNC) */}
@@ -605,13 +606,13 @@ const AppContent = () => {
               }
             }}
             style={{
-              height: '32px',
-              padding: '0 12px',
-              fontSize: '0.74rem',
+              height: '36px',
+              padding: '0 14px',
+              fontSize: '0.78rem',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '7px',
               background: cloudSyncStatus === 'syncing'
                 ? 'rgba(99, 102, 241, 0.15)'
                 : cloudSyncStatus === 'error'
@@ -642,17 +643,17 @@ const AppContent = () => {
           >
             {cloudSyncStatus === 'syncing' ? (
               <>
-                <RefreshCw size={13} className="animate-spin" />
+                <RefreshCw size={14} className="animate-spin" />
                 <span>Auto-Saving...</span>
               </>
             ) : cloudSyncStatus === 'error' ? (
               <>
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}></span>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}></span>
                 <span>Auto-Reconnecting...</span>
               </>
             ) : (
               <>
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
                 <span>Cloud Synced</span>
               </>
             )}
@@ -661,25 +662,26 @@ const AppContent = () => {
           {/* Theme Toggle - Accessible on Mobile & Desktop */}
           <button
             id="header-theme-toggle-btn"
-            className="btn btn-secondary"
-            style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="btn btn-secondary header-action-icon-btn"
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={17} className="theme-toggle-icon" /> : <Moon size={17} className="theme-toggle-icon" />}
+            {theme === 'dark' ? <Sun size={20} strokeWidth={2.2} className="theme-toggle-icon" /> : <Moon size={20} strokeWidth={2.2} className="theme-toggle-icon" />}
           </button>
 
           {/* In-App Notifications Feed (Section 9 Requirement) */}
           <div style={{ position: 'relative' }}>
             <button
               id="notification-bell-btn"
-              className="btn btn-secondary"
-              style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+              className="btn btn-secondary header-action-icon-btn"
+              style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', borderRadius: '10px' }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               title="Recent Activity Alerts"
+              aria-label="Recent Activity Alerts"
             >
-              <Bell size={16} className="text-secondary" />
+              <Bell size={20} strokeWidth={2.2} style={{ color: 'var(--text-primary)' }} />
               {systemNotifications?.length > 0 && (
                 <span style={{
                   position: 'absolute', top: '-3px', right: '-3px',
