@@ -285,13 +285,13 @@ Thank you for your business!`;
 
       {/* ===== SEARCH & FILTER TOOLBAR ===== */}
       <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+        <div className="search-box-wrapper">
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input"
-            placeholder="Search invoices by gym name or invoice #..."
-            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
+            placeholder="Search invoices by client name or invoice #..."
+            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -326,15 +326,36 @@ Thank you for your business!`;
       {/* ===== INVOICE LIST ===== */}
       <div className="flex flex-col gap-4">
         {(() => {
+          if (invoices.length === 0) {
+            return (
+              <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px 20px', textAlign: 'center' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', marginBottom: '24px', justifyContent: 'center' }}>
+                  <Receipt size={36} style={{ color: 'var(--accent-primary)' }} />
+                </div>
+                <h3 className="h2" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>No Invoices Yet</h3>
+                <p className="text-secondary" style={{ fontSize: '0.95rem', maxWidth: '420px', marginBottom: '20px' }}>
+                  Generate your first client invoice or convert an approved quotation to begin tracking receivables.
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={() => { setEditingInvoice(null); setShowModal(true); }}
+                  style={{ padding: '10px 22px', fontSize: '0.9rem' }}
+                >
+                  <Plus size={16} /> Create First Invoice
+                </button>
+              </div>
+            );
+          }
           const filteredInvoices = getFilteredInvoices();
           if (filteredInvoices.length === 0) {
             return (
-              <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px 0', textAlign: 'center' }}>
+              <div className="glass-panel flex flex-col items-center justify-center" style={{ padding: '80px 20px', textAlign: 'center' }}>
                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--subtle-bg)', display: 'flex', alignItems: 'center', marginBottom: '24px', justifyContent: 'center' }}>
                   <Search size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
                 </div>
-                <h3 className="h2" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>No Results Found</h3>
-                <p className="text-secondary" style={{ fontSize: '0.95rem' }}>We couldn't find any invoices matching your search query.</p>
+                <h3 className="h2" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>No Matching Invoices Found</h3>
+                <p className="text-secondary" style={{ fontSize: '0.95rem' }}>No invoices match your current search query or filter criteria.</p>
               </div>
             );
           }
@@ -793,12 +814,6 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
 };
 
 const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCustomerName }) => {
-  const plan = invoice?.installmentPlan;
-  if (!plan) return null;
-
-  const totalInvoiceAmount = invoice.amount || 0;
-  const totalPaidSoFar = payments.filter(p => p.documentId === invoice.id).reduce((s, p) => s + p.amount, 0);
-
   // Lock body scroll while modal is active
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -807,6 +822,12 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
       document.body.style.overflow = originalOverflow;
     };
   }, []);
+
+  const plan = invoice?.installmentPlan;
+  if (!plan) return null;
+
+  const totalInvoiceAmount = invoice.amount || 0;
+  const totalPaidSoFar = payments.filter(p => p.documentId === invoice.id).reduce((s, p) => s + p.amount, 0);
 
   if (typeof document === 'undefined') return null;
 

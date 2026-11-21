@@ -32,10 +32,6 @@ const Debtors = () => {
   // --- LOGIC: AGGREGATE DEBTORS (ALL INVOICES WITH OUTSTANDING > 0) ---
   const debtorList = useMemo(() => {
     const now = new Date();
-    todayStart: {
-      const d = new Date(now);
-      d.setHours(0, 0, 0, 0);
-    }
     const todayStr = now.toISOString().split('T')[0];
 
     // Compute end of week
@@ -223,13 +219,13 @@ const Debtors = () => {
       {/* SEARCH & FILTERS BAR */}
       <div className="glass-panel mb-6" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+          <div className="search-box-wrapper">
             <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Search by customer name, owner, or invoice number (INV-XXXX)..." 
-              style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
+              placeholder="Search by client name, owner, or invoice number (INV-XXXX)..." 
+              style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)', width: '100%' }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />

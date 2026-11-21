@@ -218,12 +218,48 @@ const SmsPortal = () => {
               <span style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--success)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
                 {(() => {
                   const b = smsConfig.balance;
+                  const str = String(b || '').trim();
+                  const isError = str.includes('error') || str.includes('Invalid') || str.startsWith('{') || str.includes('AUTH_ERROR') || str.includes('Unauthorized');
+                  if (isError) {
+                    return (
+                      <span style={{ 
+                        fontSize: '0.85rem', 
+                        fontWeight: 700, 
+                        color: 'var(--warning, #f59e0b)',
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <AlertCircle size={15} color="#f59e0b" />
+                        Credentials Unverified
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('templates')}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-primary)',
+                            cursor: 'pointer',
+                            fontSize: '0.78rem',
+                            textDecoration: 'underline',
+                            marginLeft: '4px',
+                            fontWeight: 800
+                          }}
+                        >
+                          Check Gateway Settings
+                        </button>
+                      </span>
+                    );
+                  }
                   if (b === undefined || b === null || b === '') return 'LKR 2,450.00';
                   if (typeof b === 'number') return `LKR ${b.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                  const str = String(b).trim();
                   if (str.startsWith('LKR')) return str;
                   const parsed = parseFloat(str);
-                  return !isNaN(parsed) ? `LKR ${parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : str;
+                  return !isNaN(parsed) ? `LKR ${parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'LKR 0.00';
                 })()}
               </span>
             </div>

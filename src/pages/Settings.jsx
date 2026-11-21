@@ -381,15 +381,15 @@ const Settings = () => {
 
             {/* SEARCH & FILTER BAR */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" style={{ background: 'var(--subtle-bg)', padding: '14px 18px', borderRadius: '14px', border: '1px solid var(--subtle-border)' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
+              <div className="search-box-wrapper" style={{ position: 'relative' }}>
                 <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input 
                   type="text" 
                   className="form-input" 
-                  placeholder="Search accounts by name, email or department..." 
+                  placeholder="Search members by name, email, role..." 
                   value={searchMemberQuery} 
                   onChange={e => setSearchMemberQuery(e.target.value)} 
-                  style={{ height: '38px', paddingLeft: '40px', fontSize: '0.86rem' }}
+                  style={{ height: '38px', paddingLeft: '40px', fontSize: '0.86rem', width: '100%' }}
                 />
               </div>
 
@@ -413,7 +413,7 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="table-container" style={{ background: 'transparent', width: '100%', overflowX: 'auto' }}>
+            <div className="table-responsive table-container" style={{ background: 'transparent', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table style={{ fontSize: '0.9rem', width: '100%', minWidth: '760px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>

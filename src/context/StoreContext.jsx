@@ -238,8 +238,9 @@ export default function StoreContextProvider({ children }) {
   ];
 
   const sampleMainCustomers = [
-    { id: 'mc-1', code: 'CUST-001', gymName: 'Fit Focus Gym & Fitness', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', address: 'No. 128, Galle Road, Colombo 03, Sri Lanka', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2026-01-01', renewalDate: '2026-12-31', notes: [], cloudPushAcc: '192', deviceSerial: 'NYU7254000011', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Turnstile (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)' }], cloudPushApiKey: 'cGYm94tX97qA6cXw7UKgh64nr', ratePerUserMonth: 100 },
-    { id: 'mc-2', code: 'CUST-002', gymName: 'PowerZone Fitness Club', name: 'Samantha Silva', email: 'samantha@powerzone.lk', phone: '0714567890', address: 'Level 4, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 120 },
+    { id: 'mc-1', code: 'CUST-001', gymName: 'Fit Focus Gym & Fitness (2 Devices)', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', address: 'No. 128, Galle Road, Colombo 03, Sri Lanka', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2026-01-01', renewalDate: '2026-12-31', notes: [], cloudPushAcc: '192', deviceSerial: 'NYU7254000011', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Turnstile (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)' }], cloudPushApiKey: 'cGYm94tX97qA6cXw7UKgh64nr', ratePerUserMonth: 100 },
+    { id: 'mc-2', code: 'CUST-002', gymName: 'PowerZone Fitness Club (2 Devices)', name: 'Samantha Silva', email: 'samantha@powerzone.lk', phone: '0714567890', address: 'Level 4, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 120 },
+    { id: 'mc-2b', code: 'CUST-002B', gymName: 'PowerZone Express (1 Device)', name: 'Samantha Silva', email: 'express@powerzone.lk', phone: '0714567891', address: 'Tower B, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 240000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 100 },
     { id: 'mc-3', code: 'CUST-003', gymName: 'IronCore Athletic Center', name: 'Nishan Mendis', email: 'nishan@ironcore.lk', phone: '0765678901', address: 'No. 45, Alfred House Gardens, Colombo 03, Sri Lanka', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [], cloudPushAcc: '185', deviceSerial: 'NYU7254000030', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000030', role: 'IN', label: 'Main Entrance (IN)' }, { id: 'dev-2', sn: 'NYU7254000031', role: 'OUT', label: 'Member Exit Turnstile (OUT)' }], cloudPushApiKey: 'k9LmP2xQ89vB5yZ12WqRt33po', ratePerUserMonth: 100 }
   ];
 
@@ -1613,7 +1614,16 @@ export default function StoreContextProvider({ children }) {
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('gym_theme', next);
+        document.documentElement.setAttribute('data-theme', next);
+      } catch (e) {}
+      return next;
+    });
+  };
 
   const [notification, setNotification] = useState(null);
   

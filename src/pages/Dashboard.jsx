@@ -729,12 +729,12 @@ const Dashboard = () => {
         count: paidCount,
         value: paidValue,
         icon: Award,
-        color: isDark ? '#22d3ee' : '#0891b2',
+        color: isDark ? '#10b981' : '#059669',
         gradient: isDark
-          ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.22) 0%, rgba(6, 182, 212, 0.05) 100%)'
-          : 'linear-gradient(135deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0.02) 100%)',
-        border: isDark ? 'rgba(34, 211, 238, 0.45)' : 'rgba(8, 145, 178, 0.35)',
-        glow: isDark ? 'rgba(34, 211, 238, 0.35)' : 'rgba(8, 145, 178, 0.15)',
+          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.05) 100%)'
+          : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.02) 100%)',
+        border: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(5, 150, 105, 0.35)',
+        glow: isDark ? 'rgba(16, 185, 129, 0.25)' : 'rgba(5, 150, 105, 0.12)',
         convRate: invoices.length > 0 ? Math.min(100, Math.round((paidCount / Math.max(1, invoices.length)) * 100)) : 0,
         convLabel: 'Realization %'
       }
@@ -1301,48 +1301,63 @@ const Dashboard = () => {
           </div>
 
           {/* Card 5: Net Operating Profit (Bottom Line) */}
-          <div className="glass-panel hover-lift" style={{ 
-            padding: '18px', 
-            borderRadius: '16px',
-            border: netProfit >= 0 
-              ? (isDark ? '1.5px solid rgba(34, 211, 238, 0.55)' : '1.5px solid rgba(8, 145, 178, 0.45)')
-              : (isDark ? '1.5px solid rgba(239, 68, 68, 0.55)' : '1.5px solid rgba(225, 29, 72, 0.45)'),
-            background: netProfit >= 0
-              ? (isDark 
-                  ? 'radial-gradient(circle at 85% 15%, rgba(34, 211, 238, 0.28) 0%, transparent 60%), linear-gradient(145deg, rgba(22, 60, 80, 0.92) 0%, rgba(16, 46, 64, 0.96) 100%)' 
-                  : 'radial-gradient(circle at 85% 15%, rgba(8, 145, 178, 0.14) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #ecfeff 100%)')
-              : (isDark 
-                  ? 'radial-gradient(circle at 85% 15%, rgba(239, 68, 68, 0.25) 0%, transparent 60%), linear-gradient(145deg, rgba(60, 26, 36, 0.92) 0%, rgba(42, 18, 26, 0.96) 100%)' 
-                  : 'radial-gradient(circle at 85% 15%, rgba(225, 29, 72, 0.14) 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #fff1f2 100%)'),
-            boxShadow: isDark
-              ? '0 12px 28px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 25px rgba(34, 211, 238, 0.25)'
-              : '0 10px 24px rgba(8, 145, 178, 0.12)'
-          }}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626') }}>
-                Net Operating Profit
-              </span>
-              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: netProfit >= 0 ? '#0891b2' : '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.25)', boxShadow: '0 4px 14px rgba(8, 145, 178, 0.4)' }}>
-                <Award size={16} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
-              LKR {netProfit.toLocaleString()}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-              <span style={{ 
-                fontSize: '0.7rem', fontWeight: 800, 
-                color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626'), 
-                background: netProfit >= 0 ? (isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(8, 145, 178, 0.12)') : 'rgba(239, 68, 68, 0.2)', 
-                padding: '2px 7px', borderRadius: '5px' 
+          {(() => {
+            const isBreakEven = Math.abs(netProfit) < 0.01;
+            const isProfitable = netProfit > 0.01;
+            const statusColor = isBreakEven ? '#94a3b8' : isProfitable ? (isDark ? '#34d399' : '#059669') : (isDark ? '#f87171' : '#dc2626');
+            const statusBg = isBreakEven 
+              ? (isDark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(148, 163, 184, 0.12)')
+              : isProfitable
+                ? (isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.1)')
+                : (isDark ? 'rgba(239, 68, 68, 0.16)' : 'rgba(239, 68, 68, 0.1)');
+            const statusBorder = isBreakEven
+              ? (isDark ? '1px solid rgba(148, 163, 184, 0.3)' : '1px solid rgba(148, 163, 184, 0.25)')
+              : isProfitable
+                ? (isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(5, 150, 105, 0.25)')
+                : (isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(220, 38, 38, 0.25)');
+            const cardBg = isBreakEven
+              ? (isDark ? '#1a1e28' : '#ffffff')
+              : isProfitable
+                ? (isDark ? '#162320' : '#ffffff')
+                : (isDark ? '#26191c' : '#ffffff');
+
+            return (
+              <div className="glass-panel hover-lift" style={{ 
+                padding: '18px', 
+                borderRadius: '16px',
+                border: statusBorder,
+                background: cardBg,
+                boxShadow: isDark
+                  ? '0 8px 24px -4px rgba(0, 0, 0, 0.45)'
+                  : '0 4px 18px rgba(0, 0, 0, 0.06)'
               }}>
-                {netMarginPct}% Net Margin
-              </span>
-              <span style={{ fontSize: '0.68rem', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
-                {netProfit >= 0 ? '✓ Profitable' : 'Deficit'}
-              </span>
-            </div>
-          </div>
+                <div className="flex justify-between items-start mb-2">
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: statusColor }}>
+                    Net Operating Profit
+                  </span>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: isBreakEven ? '#64748b' : isProfitable ? '#10b981' : '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                    <Award size={16} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+                  LKR {netProfit.toLocaleString()}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ 
+                    fontSize: '0.7rem', fontWeight: 800, 
+                    color: statusColor, 
+                    background: statusBg, 
+                    padding: '2px 7px', borderRadius: '5px' 
+                  }}>
+                    {isBreakEven ? '0.0% Net Margin' : `${netMarginPct}% Net Margin`}
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: statusColor, fontWeight: 700 }}>
+                    {isBreakEven ? 'Break-Even' : isProfitable ? '✓ Profitable' : 'Deficit'}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
 
@@ -1496,12 +1511,16 @@ const Dashboard = () => {
 
               {/* Net Profit Line */}
               <div className="flex justify-between items-center py-2 px-3 rounded-lg mt-2" style={{ 
-                background: netProfit >= 0 
-                  ? (isDark ? 'rgba(34, 211, 238, 0.15)' : 'rgba(8, 145, 178, 0.12)') 
-                  : (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)'),
-                border: netProfit >= 0 
-                  ? (isDark ? '2px solid rgba(34, 211, 238, 0.35)' : '2px solid rgba(8, 145, 178, 0.3)')
-                  : (isDark ? '2px solid rgba(239, 68, 68, 0.35)' : '2px solid rgba(225, 29, 72, 0.3)')
+                background: Math.abs(netProfit) < 0.01
+                  ? (isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.1)')
+                  : netProfit > 0
+                    ? (isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)') 
+                    : (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(225, 29, 72, 0.12)'),
+                border: Math.abs(netProfit) < 0.01
+                  ? (isDark ? '1.5px solid rgba(148, 163, 184, 0.3)' : '1.5px solid rgba(148, 163, 184, 0.25)')
+                  : netProfit > 0 
+                    ? (isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid rgba(5, 150, 105, 0.3)')
+                    : (isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '2px solid rgba(225, 29, 72, 0.3)')
               }}>
                 <div>
                   <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
@@ -1513,10 +1532,10 @@ const Dashboard = () => {
                 </div>
                 <span style={{ 
                   fontWeight: 900, fontSize: '1.05rem', 
-                  color: netProfit >= 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? '#f87171' : '#dc2626'), 
+                  color: Math.abs(netProfit) < 0.01 ? '#94a3b8' : netProfit > 0 ? (isDark ? '#34d399' : '#059669') : (isDark ? '#f87171' : '#dc2626'), 
                   fontFamily: 'var(--font-mono, monospace)' 
                 }}>
-                  LKR {netProfit.toLocaleString()} ({netMarginPct}%)
+                  LKR {netProfit.toLocaleString()} ({Math.abs(netProfit) < 0.01 ? '0.0%' : `${netMarginPct}%`})
                 </span>
               </div>
             </div>
@@ -1592,8 +1611,8 @@ const Dashboard = () => {
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
                       </linearGradient>
                       <linearGradient id="nmGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.0}/>
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)'} />
@@ -1602,7 +1621,7 @@ const Dashboard = () => {
                     <Tooltip content={<ModernGlassTooltip isPercent currency="%" isDark={isDark} />} />
                     <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '10px' }} />
                     <Area type="monotone" dataKey="grossMarginPct" name="Gross Margin %" stroke="#10b981" fillOpacity={1} fill="url(#gmGrad)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="netMarginPct" name="Net Margin %" stroke="#22d3ee" fillOpacity={1} fill="url(#nmGrad)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="netMarginPct" name="Net Margin %" stroke="#6366f1" fillOpacity={1} fill="url(#nmGrad)" strokeWidth={2} />
                   </AreaChart>
                 )}
               </ResponsiveContainer>

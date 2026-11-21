@@ -1,8 +1,8 @@
 import React, { useContext, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, FileText, Receipt, BarChart3, 
-  Settings as SettingsIcon, Package, CheckCircle, AlertCircle, 
+import {
+  LayoutDashboard, Users, FileText, Receipt, BarChart3,
+  Settings as SettingsIcon, Package, CheckCircle, AlertCircle,
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn, LogOut,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
@@ -72,8 +72,8 @@ const LoadingFallback = () => {
   })();
 
   return (
-    <div style={{ 
-      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       height: '100vh', width: '100%', background: 'var(--bg-primary)',
       position: 'fixed', top: 0, left: 0, zIndex: 9999
     }}>
@@ -91,11 +91,11 @@ const LoadingFallback = () => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <div style={{ 
-            fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', 
-            letterSpacing: '0.15em', textTransform: 'uppercase' 
+          <div style={{
+            fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)',
+            letterSpacing: '0.15em', textTransform: 'uppercase'
           }}>
-            {brandName} Enterprise
+            {brandName.toLowerCase().includes('enterprise') ? brandName : `${brandName} Enterprise`}
           </div>
           <div className="loader-track">
             <div className="loader-bar"></div>
@@ -142,17 +142,17 @@ class GlobalErrorBoundary extends React.Component {
               {this.state.error?.message || 'An unexpected error occurred while loading this page.'}
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button 
-                onClick={() => window.location.reload()} 
+              <button
+                onClick={() => window.location.reload()}
                 style={{ padding: '10px 20px', borderRadius: '10px', background: 'var(--accent-primary)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
               >
                 Reload Page
               </button>
-              <button 
+              <button
                 onClick={() => {
                   localStorage.clear();
                   window.location.href = '/';
-                }} 
+                }}
                 style={{ padding: '10px 20px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: '#f8fafc', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}
               >
                 Reset Local Cache
@@ -231,10 +231,10 @@ const ProtectedRoute = ({ children, requiredPermission, userPermissions }) => {
 };
 
 const AppContent = () => {
-  const { 
-    notification, theme, toggleTheme, smsConfig = {}, showNotification, 
-    isStoreLoading, systemNotifications = [], markNotificationsRead, markNotificationRead, 
-    customers = [], invoices = [], leads = [], teamMembers = [], 
+  const {
+    notification, theme, toggleTheme, smsConfig = {}, showNotification,
+    isStoreLoading, systemNotifications = [], markNotificationsRead, markNotificationRead,
+    customers = [], invoices = [], leads = [], teamMembers = [],
     customRoles = [], featureToggles = {},
     inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
@@ -243,6 +243,7 @@ const AppContent = () => {
   } = useContext(StoreContext) || {};
   const { user, loading: isAuthLoading, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises';
 
@@ -251,9 +252,9 @@ const AppContent = () => {
   // Determine user role & permission set
   const currentMember = teamMembers.find(m => m.email?.toLowerCase() === user?.email?.toLowerCase());
   const userRoleTitle = currentMember?.role || user?.user_metadata?.role || 'Admin';
-  
+
   const roleObj = customRoles.find(r => r.title?.toLowerCase() === userRoleTitle?.toLowerCase());
-  
+
   let userPermissions = roleObj?.permissions;
   if (!userPermissions) {
     if (userRoleTitle === 'Admin') {
@@ -298,7 +299,7 @@ const AppContent = () => {
     if (sidebarOpen) {
       const origBodyOverflow = document.body.style.overflow;
       const origHtmlOverflow = document.documentElement.style.overflow;
-      
+
       document.body.classList.add('sidebar-open-locked');
       document.documentElement.classList.add('sidebar-open-locked');
       document.body.style.overflow = 'hidden';
@@ -391,8 +392,10 @@ const AppContent = () => {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/portal/:shareToken" element={<CustomerPortal />} />
             <Route path="/pay" element={<CustomerPortal />} />
             <Route path="/pay/:phone" element={<CustomerPortal />} />
+            <Route path="/pay/token/:shareToken" element={<CustomerPortal />} />
           </Routes>
         </Suspense>
       </div>
@@ -406,6 +409,7 @@ const AppContent = () => {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/share/:type/:id" element={<SharedDocument />} />
+            <Route path="/share/token/:shareToken" element={<SharedDocument />} />
           </Routes>
         </Suspense>
       </div>
@@ -440,10 +444,10 @@ const AppContent = () => {
   }
 
   return (
-    <div className={sidebarOpen ? "sidebar-open" : ""} style={{ 
-      display: 'flex', 
+    <div className={sidebarOpen ? "sidebar-open" : ""} style={{
+      display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh', 
+      minHeight: '100vh',
       position: 'relative',
       width: '100%'
     }}>
@@ -454,17 +458,17 @@ const AppContent = () => {
           top: '24px',
           right: '24px',
           zIndex: 999999999,
-          padding: '14px 18px', 
+          padding: '14px 18px',
           borderRadius: '12px',
-          background: notification.type === 'error' 
-            ? '#dc2626' 
+          background: notification.type === 'error'
+            ? '#dc2626'
             : notification.type === 'warning' || notification.type === 'info'
-            ? '#d97706' 
-            : '#059669',
+              ? '#d97706'
+              : '#059669',
           color: '#ffffff',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.25)',
-          display: 'flex', 
-          alignItems: 'center', 
+          display: 'flex',
+          alignItems: 'center',
           gap: '12px',
           animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           pointerEvents: 'auto',
@@ -488,10 +492,10 @@ const AppContent = () => {
           <span style={{ flex: 1, fontWeight: '600', fontSize: '0.86rem', lineHeight: 1.35, letterSpacing: '-0.01em' }}>
             {notification.message}
           </span>
-          <button 
+          <button
             onClick={() => showNotification && showNotification(null)}
-            style={{ 
-              background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', 
+            style={{
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
               cursor: 'pointer', padding: '4px', borderRadius: '6px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all 0.15s ease'
@@ -509,23 +513,24 @@ const AppContent = () => {
       <header className="layout-header">
         <div className="flex items-center gap-4">
           {/* Mobile Toggle */}
-          <button 
+          <button
             className="hidden-desktop header-sidebar-toggle-btn"
             id="header-sidebar-toggle-btn"
             onClick={toggleSidebar}
-            style={{ padding: '8px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ minWidth: '44px', minHeight: '44px', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Toggle Menu"
+            aria-label="Toggle Navigation Drawer"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
           {/* Desktop Collapse Toggle */}
-          <button 
+          <button
             className="hidden-mobile header-sidebar-toggle-btn"
             id="header-sidebar-toggle-btn-desktop"
             onClick={toggleSidebarCollapse}
-            style={{ 
-              padding: '8px', 
+            style={{
+              padding: '8px',
               borderRadius: '10px',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -534,10 +539,10 @@ const AppContent = () => {
           >
             {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
-          
+
           <Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
-            <div style={{ 
-              width: '38px', height: '38px', borderRadius: '11px', 
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '11px',
               background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
               border: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -546,10 +551,10 @@ const AppContent = () => {
               flexShrink: 0
             }}>
               {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
-                <img 
-                  src={smsConfig.receiptLogo || smsConfig.companyLogo} 
-                  alt={brandName} 
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }} 
+                <img
+                  src={smsConfig.receiptLogo || smsConfig.companyLogo}
+                  alt={brandName}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }}
                 />
               ) : (
                 <span style={{ color: 'white', fontWeight: '900', fontSize: '18px', fontFamily: 'var(--font-display)' }}>
@@ -578,9 +583,9 @@ const AppContent = () => {
           </Link>
 
           {/* Search */}
-          <button 
+          <button
             id="header-search-btn"
-            className="btn btn-secondary" 
+            className="btn btn-secondary"
             style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setSearchOpen(true)}
             title="Search (Ctrl+K)"
@@ -607,13 +612,13 @@ const AppContent = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              background: cloudSyncStatus === 'syncing' 
-                ? 'rgba(99, 102, 241, 0.15)' 
+              background: cloudSyncStatus === 'syncing'
+                ? 'rgba(99, 102, 241, 0.15)'
                 : cloudSyncStatus === 'error'
                   ? 'rgba(239, 68, 68, 0.12)'
                   : 'rgba(16, 185, 129, 0.12)',
-              color: cloudSyncStatus === 'syncing' 
-                ? 'var(--accent-primary)' 
+              color: cloudSyncStatus === 'syncing'
+                ? 'var(--accent-primary)'
                 : cloudSyncStatus === 'error'
                   ? '#ef4444'
                   : '#10b981',
@@ -628,10 +633,10 @@ const AppContent = () => {
               transition: 'all 0.2s ease'
             }}
             title={
-              cloudSyncStatus === 'syncing' 
-                ? 'Saving updates to Supabase cloud database automatically...' 
-                : cloudSyncStatus === 'error' 
-                  ? 'Autonomous background auto-reconnect active. Click to retry immediately.' 
+              cloudSyncStatus === 'syncing'
+                ? 'Saving updates to Supabase cloud database automatically...'
+                : cloudSyncStatus === 'error'
+                  ? 'Autonomous background auto-reconnect active. Click to retry immediately.'
                   : 'Continuous autonomous sync active. All records are safely saved to Supabase.'
             }
           >
@@ -662,14 +667,14 @@ const AppContent = () => {
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={16} style={{ color: '#f59e0b' }} /> : <Moon size={16} style={{ color: '#818cf8' }} />}
+            {theme === 'dark' ? <Sun size={17} className="theme-toggle-icon" /> : <Moon size={17} className="theme-toggle-icon" />}
           </button>
 
           {/* In-App Notifications Feed (Section 9 Requirement) */}
           <div style={{ position: 'relative' }}>
-            <button 
+            <button
               id="notification-bell-btn"
-              className="btn btn-secondary" 
+              className="btn btn-secondary"
               style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               title="Recent Activity Alerts"
@@ -684,10 +689,10 @@ const AppContent = () => {
                 }}>{systemNotifications.length}</span>
               )}
             </button>
-            
+
             {notificationsOpen && (
               <>
-                <div 
+                <div
                   className="notification-backdrop"
                   onClick={() => setNotificationsOpen(false)}
                   style={{
@@ -705,31 +710,31 @@ const AppContent = () => {
                 />
                 <div className="glass-panel notification-dropdown" style={{ zIndex: 10001 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
-                     <div className="flex items-center gap-2">
-                       <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
-                       {systemNotifications?.length > 0 && (
-                         <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
-                           {systemNotifications.length} new
-                         </span>
-                       )}
-                     </div>
-                     <div className="flex items-center gap-3">
-                       {systemNotifications?.length > 0 && (
-                         <button 
-                           onClick={() => { markNotificationsRead && markNotificationsRead(); }} 
-                           style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, padding: '4px' }}
-                         >
-                           Mark all read
-                         </button>
-                       )}
-                       <button
-                         onClick={() => setNotificationsOpen(false)}
-                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                         title="Close activity feed"
-                       >
-                         <X size={16} />
-                       </button>
-                     </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
+                      {systemNotifications?.length > 0 && (
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
+                          {systemNotifications.length} new
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {systemNotifications?.length > 0 && (
+                        <button
+                          onClick={() => { markNotificationsRead && markNotificationsRead(); }}
+                          style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, padding: '4px' }}
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setNotificationsOpen(false)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Close activity feed"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div style={{ maxHeight: 'min(380px, calc(100dvh - 200px))', overflowY: 'auto' }}>
                     {(!systemNotifications || systemNotifications.length === 0) ? (
@@ -739,9 +744,9 @@ const AppContent = () => {
                       </div>
                     ) : (
                       systemNotifications.slice(0, 20).map(n => (
-                        <div 
-                          key={n.id} 
-                          style={{ 
+                        <div
+                          key={n.id}
+                          style={{
                             display: 'flex', gap: '12px', padding: '12px 18px', borderBottom: '1px solid var(--subtle-border)',
                             cursor: n.link ? 'pointer' : 'default',
                             transition: 'background 0.15s ease',
@@ -756,8 +761,8 @@ const AppContent = () => {
                             }
                           }}
                         >
-                          <div style={{ 
-                            width: '10px', height: '10px', borderRadius: '50%', marginTop: '5px', flexShrink: 0, 
+                          <div style={{
+                            width: '10px', height: '10px', borderRadius: '50%', marginTop: '5px', flexShrink: 0,
                             background: n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : n.type === 'info' ? 'var(--info)' : 'var(--danger)',
                             boxShadow: `0 0 8px ${n.type === 'success' ? 'var(--success)' : n.type === 'warning' ? 'var(--warning)' : 'var(--danger)'}`
                           }}></div>
@@ -771,11 +776,11 @@ const AppContent = () => {
                               {n.message}
                             </div>
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>{new Date(n.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span>{n.time ? new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
                               {n.link && <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>• View Details</span>}
                             </div>
                           </div>
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               if (markNotificationRead) markNotificationRead(n.id);
@@ -801,9 +806,9 @@ const AppContent = () => {
           </div>
 
           {/* Settings */}
-          <Link 
-            to="/settings" 
-            className="btn btn-secondary hidden-mobile" 
+          <Link
+            to="/settings"
+            className="btn btn-secondary hidden-mobile"
             style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={closeSidebar}
           >
@@ -812,8 +817,8 @@ const AppContent = () => {
 
           {/* Logout */}
           {user && (
-            <button 
-              className="btn btn-secondary hidden-mobile" 
+            <button
+              className="btn btn-secondary hidden-mobile"
               style={{ color: 'var(--danger)', height: '36px', padding: '0 12px', fontSize: '0.8rem' }}
               onClick={() => {
                 signOut();
@@ -829,8 +834,8 @@ const AppContent = () => {
 
       {/* ===== GLOBAL SEARCH MODAL ===== */}
       {searchOpen && (
-        <div 
-          className="global-search-backdrop" 
+        <div
+          className="global-search-backdrop"
           onClick={() => setSearchOpen(false)}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => {
@@ -840,83 +845,83 @@ const AppContent = () => {
           }}
           style={{ overscrollBehavior: 'contain' }}
         >
-           <div style={{ 
-             width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
-             border: '1px solid var(--panel-border)', borderRadius: 'var(--radius-lg)',
-             boxShadow: '0 25px 60px rgba(0,0,0,0.6)', overflow: 'hidden',
-             animation: 'fadeIn 0.2s ease-out'
-           }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--subtle-border)', gap: '12px' }}>
-                 <Search size={20} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                 <input 
-                   autoFocus
-                   type="text" 
-                   placeholder="Search clients, leads, invoices..." 
-                   value={searchQuery}
-                   onChange={e => setSearchQuery(e.target.value)}
-                   style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.05rem', outline: 'none', fontFamily: 'var(--font-family)' }}
-                 />
-                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--panel-border)' }}>ESC</div>
-              </div>
-              <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
-                 {searchQuery.length < 2 ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Type to search across your data...</div>
-                 ) : (
-                   (() => {
-                     const q = searchQuery.toLowerCase();
-                     const foundCustomers = customers.filter(c => c.gymName?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q)).slice(0, 3);
-                     const foundLeads = leads.filter(l => l.gymName?.toLowerCase().includes(q)).slice(0, 3);
-                     const foundInvoices = invoices.filter(i => i.invoiceNumber?.toLowerCase().includes(q) || i.prospectName?.toLowerCase().includes(q)).slice(0, 3);
-                     const foundPOs = (purchaseOrders || []).filter(po => po.poNumber?.toLowerCase().includes(q) || po.supplierName?.toLowerCase().includes(q)).slice(0, 3);
-                     
-                     const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0 || foundPOs.length > 0;
-                     
-                     return !hasResults ? (
-                        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>No results for "{searchQuery}"</div>
-                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                           {foundCustomers.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Clients</div>}
-                           {foundCustomers.map(c => (
-                             <Link key={c.id} to="/customers" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={15} style={{ color: 'var(--accent-primary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{c.gymName}</span></div>
-                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                             </Link>
-                           ))}
-                           {foundLeads.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Leads</div>}
-                           {foundLeads.map(l => (
-                             <Link key={l.id} to="/leads" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Target size={15} style={{ color: 'var(--warning)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{l.gymName}</span></div>
-                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                             </Link>
-                           ))}
-                           {foundInvoices.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Invoices</div>}
-                           {foundInvoices.map(i => (
-                             <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Receipt size={15} style={{ color: 'var(--success)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{i.invoiceNumber} — {i.prospectName}</span></div>
-                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                             </Link>
-                           ))}
-                           {foundPOs.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Purchase Orders</div>}
-                           {foundPOs.map(po => (
-                             <Link key={po.id} to="/procurement" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><ShoppingBag size={15} style={{ color: 'var(--accent-secondary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{po.poNumber} — {po.supplierName}</span></div>
-                               <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                             </Link>
-                           ))}
-                        </div>
-                     )
-                   })()
-                 )}
-              </div>
-           </div>
+          <div style={{
+            width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
+            border: '1px solid var(--panel-border)', borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)', overflow: 'hidden',
+            animation: 'fadeIn 0.2s ease-out'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--subtle-border)', gap: '12px' }}>
+              <Search size={20} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search clients, leads, invoices..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.05rem', outline: 'none', fontFamily: 'var(--font-family)' }}
+              />
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--subtle-bg)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--panel-border)' }}>ESC</div>
+            </div>
+            <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+              {searchQuery.length < 2 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>Type to search across your data...</div>
+              ) : (
+                (() => {
+                  const q = searchQuery.toLowerCase();
+                  const foundCustomers = customers.filter(c => c.gymName?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q)).slice(0, 3);
+                  const foundLeads = leads.filter(l => l.gymName?.toLowerCase().includes(q)).slice(0, 3);
+                  const foundInvoices = invoices.filter(i => i.invoiceNumber?.toLowerCase().includes(q) || i.prospectName?.toLowerCase().includes(q)).slice(0, 3);
+                  const foundPOs = (purchaseOrders || []).filter(po => po.poNumber?.toLowerCase().includes(q) || po.supplierName?.toLowerCase().includes(q)).slice(0, 3);
+
+                  const hasResults = foundCustomers.length > 0 || foundLeads.length > 0 || foundInvoices.length > 0 || foundPOs.length > 0;
+
+                  return !hasResults ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>No results for "{searchQuery}"</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {foundCustomers.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Clients</div>}
+                      {foundCustomers.map(c => (
+                        <Link key={c.id} to="/customers" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={15} style={{ color: 'var(--accent-primary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{c.gymName}</span></div>
+                          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                        </Link>
+                      ))}
+                      {foundLeads.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Leads</div>}
+                      {foundLeads.map(l => (
+                        <Link key={l.id} to="/leads" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Target size={15} style={{ color: 'var(--warning)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{l.gymName}</span></div>
+                          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                        </Link>
+                      ))}
+                      {foundInvoices.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Invoices</div>}
+                      {foundInvoices.map(i => (
+                        <Link key={i.id} to="/invoices" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Receipt size={15} style={{ color: 'var(--success)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{i.invoiceNumber} — {i.prospectName}</span></div>
+                          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                        </Link>
+                      ))}
+                      {foundPOs.length > 0 && <div style={{ padding: '8px 12px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Purchase Orders</div>}
+                      {foundPOs.map(po => (
+                        <Link key={po.id} to="/procurement" onClick={() => setSearchOpen(false)} className="search-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.15s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><ShoppingBag size={15} style={{ color: 'var(--accent-secondary)' }} /> <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{po.poNumber} — {po.supplierName}</span></div>
+                          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                        </Link>
+                      ))}
+                    </div>
+                  )
+                })()
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* ===== MAIN LAYOUT ===== */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         {/* Sidebar Overlay (Mobile) */}
-        <div 
-          className="sidebar-overlay" 
+        <div
+          className="sidebar-overlay"
           onClick={closeSidebar}
           onTouchMove={(e) => {
             if (e.cancelable) e.preventDefault();
@@ -924,7 +929,7 @@ const AppContent = () => {
         ></div>
 
         {/* ===== SIDEBAR ===== */}
-        <aside className={`app-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{ 
+        <aside className={`app-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{
           display: 'flex',
           flexDirection: 'column',
           padding: isSidebarCollapsed ? '20px 8px' : '20px 0'
@@ -942,7 +947,7 @@ const AppContent = () => {
               </div>
               <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>{brandName}</span>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Mobile Drawer Theme Toggle */}
               <button
@@ -968,7 +973,7 @@ const AppContent = () => {
                 <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
               </button>
 
-              <button 
+              <button
                 onClick={closeSidebar}
                 style={{
                   background: 'var(--subtle-bg)',
@@ -1014,7 +1019,7 @@ const AppContent = () => {
                 {!isSidebarCollapsed && (
                   <div style={{ flex: 1, overflow: 'hidden' }}>
                     <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {user?.user_metadata?.name || user?.email?.split('@')[0]}
+                      {(user?.user_metadata?.name === 'System Administrator' || user?.email?.startsWith('admin@')) ? 'System Admin' : (user?.user_metadata?.name || user?.email?.split('@')[0] || 'System Admin')}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       {userRoleTitle}
@@ -1127,9 +1132,9 @@ const AppContent = () => {
           </nav>
 
           {/* Sidebar Footer with Theme Switcher & Logout */}
-          <div style={{ 
-            marginTop: 'auto', 
-            padding: isSidebarCollapsed ? '16px 8px' : '16px 14px', 
+          <div style={{
+            marginTop: 'auto',
+            padding: isSidebarCollapsed ? '16px 8px' : '16px 14px',
             borderTop: '1px solid var(--panel-border)',
             display: 'flex',
             flexDirection: 'column',
@@ -1163,13 +1168,13 @@ const AppContent = () => {
                 {!isSidebarCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
               </div>
               {!isSidebarCollapsed && (
-                <span style={{ 
-                  fontSize: '0.68rem', 
+                <span style={{
+                  fontSize: '0.68rem',
                   fontWeight: 700,
                   padding: '2px 6px',
                   borderRadius: '4px',
                   background: 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-muted)' 
+                  color: 'var(--text-muted)'
                 }}>
                   {theme === 'dark' ? 'Dark' : 'Light'}
                 </span>
@@ -1274,9 +1279,9 @@ const AppContent = () => {
             <FileText size={18} />
             <span>Quotes</span>
           </NavLink>
-          <button 
-            type="button" 
-            onClick={toggleSidebar} 
+          <button
+            type="button"
+            onClick={toggleSidebar}
             className={`dock-item ${sidebarOpen ? 'active' : ''}`}
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
@@ -1291,15 +1296,15 @@ const AppContent = () => {
 
 // Sidebar Section Header
 const SidebarSection = ({ label, collapsed }) => (
-  <div style={{ 
-    padding: collapsed ? '12px 14px 4px 14px' : '16px 24px 4px', 
-    textAlign: collapsed ? 'center' : 'left' 
+  <div style={{
+    padding: collapsed ? '12px 14px 4px 14px' : '16px 24px 4px',
+    textAlign: collapsed ? 'center' : 'left'
   }}>
     {collapsed ? (
       <div style={{ height: '1px', background: 'var(--panel-border)', opacity: 0.5, margin: '4px 0' }} />
     ) : (
-      <span style={{ 
-        fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', 
+      <span style={{
+        fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)',
         textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.7
       }}>
         {label}
@@ -1323,11 +1328,11 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
         padding: collapsed ? '10px 0' : '10px 14px',
         borderRadius: '10px',
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-        background: isActive 
-          ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' 
+        background: isActive
+          ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)'
           : 'transparent',
-        border: isActive 
-          ? '1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent)' 
+        border: isActive
+          ? '1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent)'
           : '1px solid transparent',
         fontWeight: isActive ? '700' : '500',
         transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
@@ -1355,9 +1360,9 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
               boxShadow: '0 0 8px var(--accent-primary)'
             }} />
           )}
-          <span style={{ 
-            color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)', 
-            display: 'flex', 
+          <span style={{
+            color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+            display: 'flex',
             flexShrink: 0,
             transition: 'color 0.22s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
             transform: isActive ? 'scale(1.12) rotate(-2deg)' : 'scale(1) rotate(0deg)'

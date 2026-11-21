@@ -224,9 +224,11 @@ const Ledger = () => {
   const voucherTotals = useMemo(() => {
     const debits = voucherForm.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
     const credits = voucherForm.lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
-    const isBalanced = Math.abs(debits - credits) < 0.01 && debits > 0;
+    const hasValues = debits > 0 || credits > 0;
     const difference = debits - credits;
-    return { debits, credits, isBalanced, difference };
+    const isBalanced = hasValues && Math.abs(difference) < 0.01;
+    const isUnbalanced = hasValues && Math.abs(difference) >= 0.01;
+    return { debits, credits, difference, hasValues, isBalanced, isUnbalanced };
   }, [voucherForm.lines]);
 
   // Handle Journal Voucher Submit
@@ -646,7 +648,7 @@ const Ledger = () => {
       </div>
 
       {/* TABS NAVIGATION BAR */}
-      <div style={{ 
+      <div className="horizontal-pill-bar" style={{ 
         display: 'flex', 
         background: 'rgba(15, 23, 42, 0.65)', 
         padding: '6px', 
@@ -654,7 +656,10 @@ const Ledger = () => {
         border: '1px solid rgba(255, 255, 255, 0.08)',
         marginBottom: '24px',
         gap: '6px',
-        flexWrap: 'wrap'
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none'
       }}>
         {[
           { id: 'coa', label: `Chart of Accounts (${accounts.length})`, icon: BookOpen },
@@ -1924,27 +1929,59 @@ const Ledger = () => {
                   <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'rgba(15, 23, 42, 0.95)', color: '#94a3b8' }}>
-                        <th style={{ padding: '10px 14px', textAlign: 'left' }}>Account</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', width: '160px' }}>Debit (LKR)</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', width: '160px' }}>Credit (LKR)</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', minWidth: '180px' }}>Account</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', minWidth: '160px' }}>Line Description / Memo</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', width: '140px' }}>Debit (LKR)</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', width: '140px' }}>Credit (LKR)</th>
                         <th style={{ padding: '10px 14px', textAlign: 'center', width: '50px' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {voucherForm.lines.map((line, idx) => (
                         <tr key={idx} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                          <td style={{ padding: '10px' }}>
-                            <CustomSelect
+                          <td style={{ padding: '8px 10px' }}>
+                            <select
                               value={line.accountId}
-                              onChange={(val) => updateVoucherLine(idx, 'accountId', val)}
-                              options={accounts.map(a => ({
-                                value: a.id,
-                                label: `[${a.code}] ${a.name} (${a.type.toUpperCase()})`
-                              }))}
+                              onChange={(e) => updateVoucherLine(idx, 'accountId', e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '8px 10px',
+                                background: 'rgba(15, 23, 42, 0.85)',
+                                border: '1px solid rgba(255, 255, 255, 0.16)',
+                                borderRadius: '10px',
+                                color: '#ffffff',
+                                fontSize: '0.82rem',
+                                fontWeight: 600
+                              }}
+                            >
+                              <option value="">-- Select Account --</option>
+                              {accounts.map(a => (
+                                <option key={a.id} value={a.id}>
+                                  [{a.code}] {a.name} ({a.type?.toUpperCase()})
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          <td style={{ padding: '8px 10px' }}>
+                            <input
+                              type="text"
+                              placeholder="Line description / reference..."
+                              value={line.memo || ''}
+                              onChange={(e) => updateVoucherLine(idx, 'memo', e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                background: 'rgba(15, 23, 42, 0.85)',
+                                border: '1px solid rgba(255, 255, 255, 0.14)',
+                                borderRadius: '10px',
+                                color: '#ffffff',
+                                fontSize: '0.82rem'
+                              }}
                             />
                           </td>
 
-                          <td style={{ padding: '10px' }}>
+                          <td style={{ padding: '8px 10px' }}>
                             <input 
                               type="number" 
                               step="0.01"
@@ -1955,7 +1992,7 @@ const Ledger = () => {
                             />
                           </td>
 
-                          <td style={{ padding: '10px' }}>
+                          <td style={{ padding: '8px 10px' }}>
                             <input 
                               type="number" 
                               step="0.01"
@@ -1966,7 +2003,7 @@ const Ledger = () => {
                             />
                           </td>
 
-                          <td style={{ padding: '10px', textAlign: 'center' }}>
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                             <button 
                               type="button" 
                               onClick={() => removeVoucherLine(idx)}
@@ -1986,30 +2023,58 @@ const Ledger = () => {
               <div style={{ 
                 padding: '16px 20px', 
                 borderRadius: '16px', 
-                background: voucherTotals.isBalanced ? 'rgba(16, 185, 129, 0.14)' : 'rgba(244, 63, 94, 0.14)',
-                border: `1px solid ${voucherTotals.isBalanced ? 'rgba(16, 185, 129, 0.35)' : 'rgba(244, 63, 94, 0.35)'}`,
+                background: voucherTotals.isBalanced 
+                  ? 'rgba(16, 185, 129, 0.14)' 
+                  : voucherTotals.isUnbalanced 
+                    ? 'rgba(244, 63, 94, 0.14)' 
+                    : 'rgba(148, 163, 184, 0.08)',
+                border: `1px solid ${
+                  voucherTotals.isBalanced 
+                    ? 'rgba(16, 185, 129, 0.35)' 
+                    : voucherTotals.isUnbalanced 
+                      ? 'rgba(244, 63, 94, 0.35)' 
+                      : 'rgba(148, 163, 184, 0.2)'
+                }`,
                 display: 'flex', 
-                justify: 'space-between', 
+                justifyContent: 'space-between', 
                 alignItems: 'center',
-                marginBottom: '28px'
+                marginBottom: '28px',
+                flexWrap: 'wrap',
+                gap: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {voucherTotals.isBalanced ? (
                     <CheckCircle2 size={22} style={{ color: '#34d399' }} />
-                  ) : (
+                  ) : voucherTotals.isUnbalanced ? (
                     <AlertTriangle size={22} style={{ color: '#fb7185' }} />
+                  ) : (
+                    <Layers size={22} style={{ color: '#94a3b8' }} />
                   )}
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: voucherTotals.isBalanced ? '#34d399' : '#fb7185' }}>
-                      {voucherTotals.isBalanced ? 'Voucher is Perfectly Balanced' : 'Unbalanced Journal Voucher'}
+                    <div style={{ 
+                      fontWeight: 900, 
+                      fontSize: '0.9rem', 
+                      color: voucherTotals.isBalanced 
+                        ? '#34d399' 
+                        : voucherTotals.isUnbalanced 
+                          ? '#fb7185' 
+                          : '#94a3b8' 
+                    }}>
+                      {voucherTotals.isBalanced 
+                        ? 'Voucher is Perfectly Balanced' 
+                        : voucherTotals.isUnbalanced 
+                          ? 'Unbalanced Journal Voucher' 
+                          : 'Draft Journal Lines (Minimum 2 Balanced Lines Required)'}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                      Total Debits: LKR {voucherTotals.debits.toLocaleString('en-US', { minimumFractionDigits: 2 })} | Total Credits: LKR {voucherTotals.credits.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      <span>Total Debits: <strong style={{ color: '#ffffff' }}>LKR {voucherTotals.debits.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
+                      <span>Total Credits: <strong style={{ color: '#ffffff' }}>LKR {voucherTotals.credits.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
+                      <span>Diff: <strong style={{ color: voucherTotals.isUnbalanced ? '#fb7185' : '#34d399' }}>LKR {Math.abs(voucherTotals.difference).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
                     </div>
                   </div>
                 </div>
 
-                {!voucherTotals.isBalanced && (
+                {voucherTotals.isUnbalanced && (
                   <div style={{ fontFamily: 'monospace', fontWeight: 900, color: '#fb7185', fontSize: '0.9rem' }}>
                     Diff: LKR {Math.abs(voucherTotals.difference).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>

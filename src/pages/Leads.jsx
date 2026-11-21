@@ -431,12 +431,12 @@ const Leads = () => {
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           
           {/* Search Input */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <div className="search-box-wrapper" style={{ position: 'relative' }}>
             <Search size={16} style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               className="form-input leads-search-input"
-              placeholder="Search by client gym, contact person, mobile, or comment text..."
+              placeholder="Search by client, contact person, phone, or notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -505,6 +505,8 @@ const Leads = () => {
             display: 'flex',
             gap: '16px',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x mandatory',
             paddingBottom: '20px',
             alignItems: 'flex-start'
           }}
@@ -518,9 +520,10 @@ const Leads = () => {
                 key={stage}
                 className="pipeline-column"
                 style={{
-                  flex: '1 0 310px',
-                  minWidth: '290px',
+                  flex: '1 0 300px',
+                  minWidth: '280px',
                   maxWidth: '360px',
+                  scrollSnapAlign: 'start',
                   background: 'var(--subtle-bg)',
                   border: '1px solid var(--subtle-border)',
                   borderRadius: '16px',

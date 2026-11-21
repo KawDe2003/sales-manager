@@ -42,6 +42,7 @@ const Login = () => {
   const { switchBusiness } = useContext(StoreContext) || {};
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const isDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
   const [selectedBizId, setSelectedBizId] = useState('biz_main');
   const [name, setName] = useState('');
@@ -419,7 +420,7 @@ const Login = () => {
                 <input
                   type="email"
                   id="login-email-input"
-                  placeholder="admin@seynex.lk"
+                  placeholder="name@company.com"
                   value={email}
                   onChange={e => handleEmailChange(e.target.value)}
                   required
@@ -529,47 +530,49 @@ const Login = () => {
 
           </form>
 
-          {/* Shareable Direct Portal Link */}
-          <div style={{
-            marginTop: '16px',
-            padding: '10px 12px',
-            borderRadius: '9px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '0.72rem',
-            color: '#64748b'
-          }}>
-            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#94a3b8' }}>Direct URL: </span>
-              <code style={{ color: activePortal.color, fontFamily: 'monospace' }}>/login</code>
+          {/* Shareable Direct Portal Link (Gated behind Demo Mode) */}
+          {isDemoMode && (
+            <div style={{
+              marginTop: '16px',
+              padding: '10px 12px',
+              borderRadius: '9px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.72rem',
+              color: '#64748b'
+            }}>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ color: '#94a3b8' }}>Direct URL: </span>
+                <code style={{ color: activePortal.color, fontFamily: 'monospace' }}>/login</code>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyDirectLink}
+                title="Copy direct portal URL for this business"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: copiedLink ? '#34d399' : '#94a3b8',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  padding: '2px 6px',
+                  borderRadius: '5px'
+                }}>
+                {copiedLink ? (
+                  <><Check size={13} color="#34d399" /> Copied</>
+                ) : (
+                  <><Copy size={13} /> Copy Link</>
+                )}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyDirectLink}
-              title="Copy direct portal URL for this business"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: copiedLink ? '#34d399' : '#94a3b8',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                padding: '2px 6px',
-                borderRadius: '5px'
-              }}>
-              {copiedLink ? (
-                <><Check size={13} color="#34d399" /> Copied</>
-              ) : (
-                <><Copy size={13} /> Copy Link</>
-              )}
-            </button>
-          </div>
+          )}
 
         </div>
 
@@ -588,28 +591,32 @@ const Login = () => {
       }}>
         <ShieldCheck size={14} color="#10b981" />
         <span>Enterprise 256-bit TLS Encrypted</span>
-        <span style={{ color: '#334155' }}>·</span>
-        <button
-          type="button"
-          id="toggle-demo-credentials-btn"
-          onClick={() => setShowDemo(!showDemo)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#cbd5e1',
-            fontSize: '0.72rem',
-            cursor: 'pointer',
-            fontWeight: 600,
-            padding: 0,
-            fontFamily: 'inherit',
-            textDecoration: 'underline'
-          }}>
-          {showDemo ? 'Hide Demo Logins' : `Show ${activePortal.shortName} Demo Logins`}
-        </button>
+        {isDemoMode && (
+          <>
+            <span style={{ color: '#334155' }}>·</span>
+            <button
+              type="button"
+              id="toggle-demo-credentials-btn"
+              onClick={() => setShowDemo(!showDemo)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#cbd5e1',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: 0,
+                fontFamily: 'inherit',
+                textDecoration: 'underline'
+              }}>
+              {showDemo ? 'Hide Demo Logins' : `Show ${activePortal.shortName} Demo Logins`}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Demo Quick-Fill Credentials Card */}
-      {showDemo && (
+      {showDemo && isDemoMode && (
         <div style={{
           marginTop: '12px',
           width: '100%',

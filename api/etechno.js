@@ -16,6 +16,16 @@ export default async function handler(request, response) {
   const queryString = urlObj.search || '';
   const targetUrl = `http://83.147.38.130:666${subpath}${queryString}`;
 
+  // Require API credentials to prevent open unauthenticated proxy abuse
+  const authHeader = request.headers['authorization'];
+  const apiKeyHeader = request.headers['api_key'];
+  if (!authHeader && !apiKeyHeader && process.env.NODE_ENV === 'production') {
+    return response.status(401).json({
+      error: 'Unauthorized',
+      message: 'Missing required authentication token or API key for eTechno Gateway proxy.'
+    });
+  }
+
   const headers = {
     'Accept': 'application/json, text/plain, */*'
   };

@@ -770,103 +770,119 @@ const HR = () => {
 
       {/* ===== TABS NAVIGATION BAR ===== */}
       <div className="glass-panel mb-6" style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', background: 'var(--subtle-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--subtle-border)' }}>
-            {[
-              { id: 'directory', label: `Staff Directory (${employees.length})` },
-              { id: 'attendance', label: 'Shift Attendance' },
-              { id: 'leaves', label: `Leave Approvals (${leaveRequests.length})` },
-              { id: 'payruns', label: `Payroll Payruns (${payruns.length})` },
-              { id: 'advances', label: `Salary Advances (${salaryAdvances.length})` },
-              { id: 'letters', label: `HR Letters (${hrLetters.length})` },
-              { id: 'appraisals', label: `KPI Appraisals (${performanceReviews.length})` },
-              { id: 'claims', label: `Expense Claims (${expenseClaims.length})` }
-            ].map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: '8px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer',
-                  background: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
-                  color: activeTab === tab.id ? 'var(--accent-primary)' : 'var(--text-muted)',
-                  boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  transition: 'all 0.18s ease'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* Row 1: Full-width Horizontally Scrollable 8 Sub-Navigation Tabs */}
+        <div 
+          className="horizontal-pill-bar" 
+          style={{ 
+            display: 'flex', 
+            overflowX: 'auto', 
+            whiteSpace: 'nowrap', 
+            gap: '8px', 
+            padding: '6px', 
+            background: 'var(--subtle-bg)', 
+            borderRadius: '12px', 
+            border: '1px solid var(--subtle-border)',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            width: '100%'
+          }}
+        >
+          {[
+            { id: 'directory', label: `Staff Directory (${employees.length})` },
+            { id: 'attendance', label: 'Shift Attendance' },
+            { id: 'leaves', label: `Leave Approvals (${leaveRequests.length})` },
+            { id: 'payruns', label: `Payroll Payruns (${payruns.length})` },
+            { id: 'advances', label: `Salary Advances (${salaryAdvances.length})` },
+            { id: 'letters', label: `HR Letters (${hrLetters.length})` },
+            { id: 'appraisals', label: `KPI Appraisals (${performanceReviews.length})` },
+            { id: 'claims', label: `Expense Claims (${expenseClaims.length})` }
+          ].map(tab => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                padding: '8px 16px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
+                color: activeTab === tab.id ? 'var(--accent-primary)' : 'var(--text-muted)',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                transition: 'all 0.18s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-              <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="Search staff, designation, phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: '34px', height: '36px', fontSize: '0.84rem' }}
-              />
-            </div>
-            {activeTab === 'directory' && (
-          <div className="flex items-center gap-2">
-                <CustomSelect 
-                  value={deptFilter}
-                  onChange={setDeptFilter}
-                  options={[
-                    { value: 'All', label: 'All Departments' },
-                    { value: 'Fitness & Training', label: 'Fitness & Training' },
-                    { value: 'Management', label: 'Management' },
-                    { value: 'Operations & Front Desk', label: 'Operations & Front Desk' },
-                    { value: 'Maintenance', label: 'Maintenance' },
-                    { value: 'Finance & Accounts', label: 'Finance & Accounts' }
-                  ]}
-                  style={{ height: '36px', minWidth: '160px' }}
-                />
-                <CustomSelect
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={[
-                    { value: 'All', label: 'All Statuses' },
-                    { value: 'Active', label: 'Active' },
-                    { value: 'On Leave', label: 'On Leave' },
-                    { value: 'Resigned', label: 'Resigned' },
-                    { value: 'Inactive', label: 'Inactive' }
-                  ]}
-                  style={{ height: '36px', minWidth: '130px' }}
-                />
-                <CustomSelect
-                  value={typeFilter}
-                  onChange={setTypeFilter}
-                  options={[
-                    { value: 'All', label: 'All Work Types' },
-                    { value: 'Full-Time', label: 'Full-Time Staff' },
-                    { value: 'Outsourced', label: 'Outsourced / Piece-Rate' },
-                    { value: 'Contract', label: 'Contract Basis' }
-                  ]}
-                  style={{ height: '36px', minWidth: '165px' }}
-                />
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowAnalyticsPanel(prev => !prev)}
-                  title="Toggle Department Analytics Panel"
-                  style={{ padding: '8px 12px' }}
-                >
-                  <TrendingUp size={15} /> Analytics
-                </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setDirectoryViewMode(prev => prev === 'table' ? 'cards' : 'table')}
-                  title="Toggle Table or Cards view"
-                  style={{ padding: '8px 12px' }}
-                >
-                  <Layers size={15} /> {directoryViewMode === 'table' ? 'Cards' : 'Table'}
-                </button>
-              </div>
-            )}
+        {/* Row 2: Search & Filter Toolbar */}
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+          <div className="search-box-wrapper" style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search staff, designation, phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: '34px', height: '38px', fontSize: '0.84rem', width: '100%' }}
+            />
           </div>
+          {activeTab === 'directory' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <CustomSelect 
+                value={deptFilter}
+                onChange={setDeptFilter}
+                options={[
+                  { value: 'All', label: 'All Departments' },
+                  { value: 'Fitness & Training', label: 'Fitness & Training' },
+                  { value: 'Management', label: 'Management' },
+                  { value: 'Operations & Front Desk', label: 'Operations & Front Desk' },
+                  { value: 'Maintenance', label: 'Maintenance' },
+                  { value: 'Finance & Accounts', label: 'Finance & Accounts' }
+                ]}
+                style={{ height: '38px', minWidth: '150px' }}
+              />
+              <CustomSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'All', label: 'All Statuses' },
+                  { value: 'Active', label: 'Active' },
+                  { value: 'On Leave', label: 'On Leave' },
+                  { value: 'Resigned', label: 'Resigned' },
+                  { value: 'Inactive', label: 'Inactive' }
+                ]}
+                style={{ height: '38px', minWidth: '120px' }}
+              />
+              <CustomSelect
+                value={typeFilter}
+                onChange={setTypeFilter}
+                options={[
+                  { value: 'All', label: 'All Work Types' },
+                  { value: 'Full-Time', label: 'Full-Time Staff' },
+                  { value: 'Outsourced', label: 'Outsourced / Piece-Rate' },
+                  { value: 'Contract', label: 'Contract Basis' }
+                ]}
+                style={{ height: '38px', minWidth: '155px' }}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowAnalyticsPanel(prev => !prev)}
+                title="Toggle Department Analytics Panel"
+                style={{ padding: '8px 14px', flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <TrendingUp size={15} /> <span>Analytics</span>
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setDirectoryViewMode(prev => prev === 'table' ? 'cards' : 'table')}
+                title="Toggle Table or Cards view"
+                style={{ padding: '8px 14px', flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Layers size={15} /> <span>{directoryViewMode === 'table' ? 'Cards' : 'Table'}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

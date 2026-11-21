@@ -82,20 +82,46 @@ export default async function handler(request, response) {
       body: bodyData
     });
 
-    const contentType = res.headers.get('content-type');
+    if (res.status === 401 || res.status === 403) {
+      return response.status(401).json({
+        ok: false,
+        code: 'AUTH_ERROR',
+        message: 'SMS gateway credentials are not configured or invalid.'
+      });
+    }
+
+    const contentType = res.headers.get('content-type') || '';
     
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType.includes('application/json')) {
       const data = await res.json();
+      if (data && (data.error || data.Status === 'error')) {
+        return response.status(res.status >= 400 ? res.status : 400).json({
+          ok: false,
+          code: 'AUTH_ERROR',
+          message: 'SMS gateway credentials are not configured or invalid.'
+        });
+      }
       return response.status(res.status).json(data);
     } else {
       const text = await res.text();
+      try {
+        const json = JSON.parse(text);
+        if (json.error) {
+          return response.status(400).json({
+            ok: false,
+            code: 'AUTH_ERROR',
+            message: 'SMS gateway credentials are not configured or invalid.'
+          });
+        }
+      } catch (e) {}
       return response.status(res.status).send(text);
     }
   } catch (error) {
     // Non-leaking server-side error logging
     console.error('[SMS Proxy Error]:', error.stack || error.message);
     return response.status(500).json({ 
-      error: 'Internal Server Error', 
+      ok: false,
+      code: 'GATEWAY_ERROR', 
       message: 'Failed to connect to SMS communications gateway.' 
     });
   }

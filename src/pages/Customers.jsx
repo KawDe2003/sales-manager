@@ -136,13 +136,13 @@ const Customers = () => {
 
       {/* Styled Search & Filter Toolbar */}
       <div className="glass-panel flex flex-col md:flex-row gap-4 mb-6" style={{ padding: '16px 24px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+        <div className="search-box-wrapper">
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search by company name, contact person, ID (CUST-XXXX), or phone..."
-            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
+            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
