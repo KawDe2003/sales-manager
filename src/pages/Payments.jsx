@@ -206,7 +206,7 @@ const Payments = () => {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Search active gyms..." 
+              placeholder="Search active clients..." 
               style={{ paddingLeft: '36px', height: '36px', fontSize: '0.85rem' }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}

@@ -173,8 +173,20 @@ const Customers = () => {
         {filteredCustomers.length === 0 ? (
           <div className="lg:col-span-3 glass-panel flex flex-col items-center justify-center" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <User size={48} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: '16px' }} />
-            <h3 className="h3" style={{ marginBottom: '8px' }}>No Customers Found</h3>
-            <p className="text-secondary" style={{ maxWidth: '400px' }}>Try adjusting your search query, status, or tag filter.</p>
+            <h3 className="h3" style={{ marginBottom: '8px' }}>{customers.length === 0 ? 'No Clients Registered Yet' : 'No Clients Found'}</h3>
+            <p className="text-secondary" style={{ maxWidth: '400px' }}>
+              {customers.length === 0 ? 'Start registering client organizations to generate quotations, invoices, and manage biometric access.' : 'Try adjusting your search query, status, or tag filter.'}
+            </p>
+            {customers.length === 0 && (
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                onClick={handleOpenAddModal}
+              >
+                <Plus size={18} /> New Client
+              </button>
+            )}
           </div>
         ) : (
           filteredCustomers.map((customer, idx) => {
@@ -364,6 +376,7 @@ const Customers = () => {
             if (editingCustomer) updateCustomer(editingCustomer.id, payload);
             else addCustomer(payload);
           }}
+          initialData={editingCustomer}
           nextCustomerCode={getNextSequentialCustomerCode(customers)}
           customerTags={customerTags}
         />

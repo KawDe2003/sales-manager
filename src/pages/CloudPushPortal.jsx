@@ -1570,7 +1570,7 @@ export default function CloudPushPortal() {
               className="form-control"
               value={newDeviceRole}
               onChange={(e) => setNewDeviceRole(e.target.value)}
-              style={{ height: '34px', fontSize: '0.8rem', width: '150px' }}
+              style={{ height: '34px', fontSize: '0.8rem', width: '185px', minWidth: '175px' }}
             >
               <option value="IN">Entrance Turnstile (IN)</option>
               <option value="OUT">Exit Turnstile (OUT)</option>

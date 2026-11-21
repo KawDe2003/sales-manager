@@ -676,7 +676,9 @@ const Ledger = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`tab-btn ${isActive ? 'active' : ''}`}
               style={{
-                flex: '1 1 auto',
+                flex: '0 0 auto',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
                 padding: '12px 18px',
                 background: isActive ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(79, 70, 229, 0.4))' : 'transparent',
                 border: isActive ? '1px solid rgba(99, 102, 241, 0.55)' : '1px solid transparent',

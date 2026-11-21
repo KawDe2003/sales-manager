@@ -3975,8 +3975,15 @@ body.sidebar-open-locked .app-sidebar {
   gap: 10px;
   margin-bottom: 24px;
   overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--panel-border);
+}
+
+.cloud-portal-nav-pills button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cloud-hardware-static-card {
@@ -4062,6 +4069,14 @@ body.sidebar-open-locked .app-sidebar {
   align-items: center;
   gap: 8px;
   width: 100%;
+  flex-wrap: wrap;
+}
+
+.kanban-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 768px) {

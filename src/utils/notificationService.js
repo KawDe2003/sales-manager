@@ -22,6 +22,7 @@ export const interpolateTemplate = (template, data = {}, config = {}) => {
 
   const replacements = {
     '{name}': data.name || data.contactPerson || data.prospectName || 'Valued Client',
+    '{client}': data.gymName || data.companyName || data.prospectName || 'Your Business',
     '{gym}': data.gymName || data.companyName || data.prospectName || 'Your Business',
     '{companyName}': config.companyName || config.dashboardName || 'Seynex Technology',
     '{amount}': data.amount !== undefined ? Number(data.amount).toLocaleString('en-US') : '0',

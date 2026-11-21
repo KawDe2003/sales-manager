@@ -499,18 +499,19 @@ const Leads = () => {
 
       {/* VIEW 1: KANBAN BOARD */}
       {viewMode === 'kanban' && (
-        <div 
-          className="pipeline-board-container"
-          style={{
-            display: 'flex',
-            gap: '16px',
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollSnapType: 'x mandatory',
-            paddingBottom: '20px',
-            alignItems: 'flex-start'
-          }}
-        >
+        <div className="kanban-scroll" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div 
+            className="pipeline-board-container"
+            style={{
+              display: 'flex',
+              gap: '16px',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              scrollSnapType: 'x mandatory',
+              paddingBottom: '20px',
+              alignItems: 'flex-start'
+            }}
+          >
           {PIPELINE_STATUSES.map(stage => {
             const stageLeads = filteredLeads.filter(l => l.status === stage);
             const stageConfig = getStageConfig(stage);
@@ -643,6 +644,7 @@ const Leads = () => {
             );
           })}
         </div>
+      </div>
       )}
 
       {/* VIEW 2: THEME-MATCHED INTERACTIVE CRM CALENDAR VIEW */}
@@ -878,8 +880,22 @@ const Leads = () => {
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
                       <Target size={48} style={{ opacity: 0.25, margin: '0 auto 12px auto' }} />
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Matching Prospects Found</div>
-                      <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Try adjusting your filters or search keywords.</p>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {leads.length === 0 ? 'No Prospects in Pipeline Yet' : 'No Matching Prospects Found'}
+                      </div>
+                      <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                        {leads.length === 0 ? 'Start tracking your sales pipeline by adding your first enterprise prospect.' : 'Try adjusting your filters or search keywords.'}
+                      </p>
+                      {leads.length === 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          style={{ marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          onClick={() => { setEditingLead(null); setShowAddModal(true); }}
+                        >
+                          <Plus size={15} /> Add First Prospect
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}

@@ -286,8 +286,8 @@ const Debtors = () => {
 
       {/* DEBTORS TABLE */}
       <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-container">
-          <table>
+        <div className="table-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: '920px' }}>
             <thead>
               <tr>
                 <th>Customer</th>

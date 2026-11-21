@@ -206,7 +206,7 @@ Thank you for your business!`;
             </h1>
             <p className="text-secondary" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: overdueCount > 0 ? 'var(--danger)' : 'var(--success)', boxShadow: `0 0 10px ${overdueCount > 0 ? 'var(--danger)' : 'var(--success)'}`, flexShrink: 0 }}></span>
-              Billing &amp; Collections · Software Licenses · Gym Invoices
+              Billing &amp; Collections · Software Licenses · Client Invoices
               {overdueCount > 0 && (
                 <span style={{ marginLeft: '4px', background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '8px', padding: '1px 8px', fontSize: '0.7rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                   <AlertCircle size={11} /> {overdueCount} Overdue
@@ -214,12 +214,12 @@ Thank you for your business!`;
               )}
             </p>
           </div>
-          <div className="flex gap-3" style={{ flexShrink: 0 }}>
+          <div className="flex gap-2 flex-wrap items-center">
             <button 
               className="btn btn-secondary" 
               onClick={generateRecurringInvoices} 
               style={{ padding: '10px 18px', fontSize: '0.85rem', color: 'var(--accent-secondary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
-              title="Auto-generate monthly subscription invoices for active gym accounts"
+              title="Auto-generate monthly subscription invoices for active client accounts"
             >
               <CalendarDays size={16} />
               <span>Run Auto-Renewals</span>
@@ -1071,7 +1071,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               <input required type="text" className="form-input" style={{ height: '44px' }} value={formData.invoiceNumber} onChange={e => setFormData({ ...formData, invoiceNumber: e.target.value })} />
             </div>
             <div className="form-group">
-              <label className="form-label">Client / Local Gym</label>
+              <label className="form-label">Client / Organization</label>
               <CustomSelect 
                 value={formData.customerId} 
                 onChange={val => {

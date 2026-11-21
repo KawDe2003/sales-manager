@@ -444,12 +444,14 @@ const AppContent = () => {
   }
 
   return (
-    <div className={sidebarOpen ? "sidebar-open" : ""} style={{
+    <div className={`app-shell ${sidebarOpen ? "sidebar-open" : ""}`} data-theme={theme} style={{
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
       position: 'relative',
-      width: '100%'
+      width: '100%',
+      background: 'var(--bg-color)',
+      color: 'var(--text-primary)'
     }}>
       {/* ===== GLOBAL TOAST NOTIFICATION ===== */}
       {notification && (
@@ -577,9 +579,6 @@ const AppContent = () => {
           </Link>
           <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-emerald)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
             <CreditCard size={15} /> Invoice
-          </Link>
-          <Link to="/customers" className="btn btn-primary hidden-mobile" style={{ height: '36px', padding: '0 14px', fontSize: '0.8rem', boxShadow: '0 2px 10px rgba(16, 185, 129, 0.25)' }}>
-            <PlusCircle size={15} /> New Client
           </Link>
 
           {/* Search */}

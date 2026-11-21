@@ -6140,7 +6140,8 @@ export default function StoreContextProvider({ children }) {
 
     msg = msg
       .replace(/{name}/g, 'John Doe')
-      .replace(/{gym}/g, 'FitLife Gym')
+      .replace(/{client}/g, 'FitLife Enterprise')
+      .replace(/{gym}/g, 'FitLife Enterprise')
       .replace(/{companyName}/g, smsConfig.companyName || 'Seynex Technology')
       .replace(/{amount}/g, '15,000')
       .replace(/{date}/g, new Date().toLocaleDateString())
@@ -6180,6 +6181,7 @@ export default function StoreContextProvider({ children }) {
 
     msg = templateWithBranding
       .replace(/{name}/g, cName)
+      .replace(/{client}/g, cGym)
       .replace(/{gym}/g, cGym)
       .replace(/{companyName}/g, smsConfig.companyName || 'Seynex Enterprises')
       .replace(/{amount}/g, (documentData?.amount || customer?.annualFee || 0).toLocaleString())

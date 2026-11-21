@@ -116,6 +116,7 @@ const SmsPortal = () => {
 
     return msg
       .replace(/{name}/g, rName)
+      .replace(/{client}/g, rGym)
       .replace(/{gym}/g, rGym)
       .replace(/{companyName}/g, smsConfig.companyName || 'Seynex Sales Pro')
       .replace(/{amount}/g, '15,000')
@@ -352,7 +353,7 @@ const SmsPortal = () => {
                     cursor: 'pointer'
                   }}
                 >
-                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: targetAudience === 'active_gyms' ? 'var(--accent-primary)' : 'var(--text-primary)' }}>Active Gyms</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: targetAudience === 'active_gyms' ? 'var(--accent-primary)' : 'var(--text-primary)' }}>Active Clients</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{customers.filter(c => c.status === 'Active' && c.phone).length} Accounts</div>
                 </button>
 
@@ -457,7 +458,7 @@ const SmsPortal = () => {
               {/* Dynamic Tag Quick Insert */}
               <div className="mb-3 flex items-center gap-2 flex-wrap">
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Insert Tag:</span>
-                {['{name}', '{gym}', '{amount}', '{date}', '{invoiceNumber}', '{companyName}', '{link}'].map(tag => (
+                {['{name}', '{client}', '{amount}', '{date}', '{invoiceNumber}', '{companyName}', '{link}'].map(tag => (
                   <button 
                     key={tag}
                     type="button" 
@@ -542,7 +543,7 @@ const SmsPortal = () => {
 
               <div style={{ marginTop: '20px', padding: '14px', background: 'var(--subtle-bg)', borderRadius: '12px', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Info size={16} style={{ flexShrink: 0, color: '#0ea5e9' }} />
-                <span><strong>Tip:</strong> Variables like <code>{'{name}'}</code> and <code>{'{gym}'}</code> automatically replace with each customer's specific details upon dispatch.</span>
+                <span><strong>Tip:</strong> Variables like <code>{'{name}'}</code> and <code>{'{client}'}</code> automatically replace with each customer's specific details upon dispatch.</span>
               </div>
             </div>
           </div>
@@ -603,7 +604,7 @@ const SmsPortal = () => {
             {/* Tag Buttons */}
             <div className="mb-3 flex items-center gap-2 flex-wrap">
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Insert Tag:</span>
-              {['{name}', '{gym}', '{companyName}', '{amount}'].map(tag => (
+              {['{name}', '{client}', '{companyName}', '{amount}'].map(tag => (
                 <button 
                   key={tag}
                   type="button" 

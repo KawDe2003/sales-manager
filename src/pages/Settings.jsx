@@ -414,13 +414,13 @@ const Settings = () => {
             </div>
 
             <div className="table-responsive table-container" style={{ background: 'transparent', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table style={{ fontSize: '0.9rem', width: '100%', minWidth: '760px' }}>
+              <table style={{ fontSize: '0.9rem', width: '100%', minWidth: '980px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <th style={{ padding: '12px 16px', opacity: 0.7, minWidth: '220px' }}>Team Member Details</th>
                     <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '150px' }}>Assigned Workspace</th>
                     <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '130px' }}>Department</th>
-                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '130px' }}>System Role</th>
+                    <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '230px' }}>System Role</th>
                     <th style={{ padding: '12px 14px', opacity: 0.7, minWidth: '120px' }}>Account Status</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right', opacity: 0.7, minWidth: '160px' }}>Actions & Security</th>
                   </tr>
@@ -478,7 +478,7 @@ const Settings = () => {
                           <Building size={11} /> {member.department || 'General'}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ minWidth: '230px' }}>
                         <CustomSelect 
                           size="sm"
                           style={{ width: '210px' }}
@@ -2240,7 +2240,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               <VariableTag tag="{name}" desc="Recipient's Name" />
-              <VariableTag tag="{gym}" desc="Client's Business Name" />
+              <VariableTag tag="{client}" desc="Client / Business Name" />
+              <VariableTag tag="{gym}" desc="Legacy Client Name Alias" />
               <VariableTag tag="{companyName}" desc="Your Identity Name" />
               <VariableTag tag="{amount}" desc="Total Amount (LKR)" />
               <VariableTag tag="{date}" desc="Due Date" />
