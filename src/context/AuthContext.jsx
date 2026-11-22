@@ -282,7 +282,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // 3. Try Supabase Auth if user not found in team members
-    if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
+    if (supabase?.auth) {
       try {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
         if (!res.error && res.data?.user) {
@@ -457,7 +457,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Attempt Supabase cloud auth registration in background
-    if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
+    if (supabase?.auth) {
       supabase.auth.signUp({
         email: cleanEmail,
         password: cleanPassword,

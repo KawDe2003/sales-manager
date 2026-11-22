@@ -99,8 +99,8 @@ const Settings = () => {
   // Database Credentials & Connection Testing State
   const seynexInitialCfg = getBusinessDbConfig ? getBusinessDbConfig('biz_main') : { url: '', anonKey: '' };
 
-  const [seynexDbUrl, setSeynexDbUrl] = useState(() => seynexInitialCfg.url || '');
-  const [seynexDbKey, setSeynexDbKey] = useState(() => seynexInitialCfg.anonKey || '');
+  const [seynexDbUrl, setSeynexDbUrl] = useState(() => (seynexInitialCfg.url && !seynexInitialCfg.url.includes('your-project-url')) ? seynexInitialCfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co');
+  const [seynexDbKey, setSeynexDbKey] = useState(() => (seynexInitialCfg.anonKey && seynexInitialCfg.anonKey !== 'your-anon-key') ? seynexInitialCfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
   const [showSeynexKey, setShowSeynexKey] = useState(false);
   const [seynexTesting, setSeynexTesting] = useState(false);
   const [seynexTestResult, setSeynexTestResult] = useState(null);
@@ -108,13 +108,20 @@ const Settings = () => {
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
   const [copiedRpcSql, setCopiedRpcSql] = useState(false);
 
-  // Sync state if database configuration updates
+  // Sync state if database configuration updates and purge any stale placeholder config
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('biz_db_config_biz_main');
+      if (saved && (saved.includes('your-project-url') || saved.includes('xyz.supabase.co') || saved.includes('fallback'))) {
+        localStorage.removeItem('biz_db_config_biz_main');
+      }
+    } catch (e) {}
+
     const handleDbUpdated = () => {
       if (getBusinessDbConfig) {
         const sCfg = getBusinessDbConfig('biz_main');
-        setSeynexDbUrl(sCfg.url || '');
-        setSeynexDbKey(sCfg.anonKey || '');
+        setSeynexDbUrl((sCfg.url && !sCfg.url.includes('your-project-url')) ? sCfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co');
+        setSeynexDbKey((sCfg.anonKey && sCfg.anonKey !== 'your-anon-key') ? sCfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
       }
     };
     window.addEventListener('business_db_config_updated', handleDbUpdated);
@@ -143,6 +150,10 @@ const Settings = () => {
 
   const handleSaveSeynexDb = () => {
     if (!saveBusinessDbConfig) return;
+    if (seynexDbUrl && seynexDbUrl.includes('your-project-url')) {
+      showNotification('Cannot save placeholder URL. Please enter a valid Supabase project URL.', 'error');
+      return;
+    }
     saveBusinessDbConfig('biz_main', { url: seynexDbUrl, anonKey: seynexDbKey });
     showNotification('Seynex Enterprises database connection saved successfully.');
     handleTestSeynexConnection();
@@ -153,8 +164,8 @@ const Settings = () => {
     saveBusinessDbConfig('biz_main', null);
     if (getBusinessDbConfig) {
       const cfg = getBusinessDbConfig('biz_main');
-      setSeynexDbUrl(cfg.url || '');
-      setSeynexDbKey(cfg.anonKey || '');
+      setSeynexDbUrl((cfg.url && !cfg.url.includes('your-project-url')) ? cfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co');
+      setSeynexDbKey((cfg.anonKey && cfg.anonKey !== 'your-anon-key') ? cfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
     }
     setSeynexTestResult(null);
     showNotification('Seynex Enterprises database reset to environment defaults.');

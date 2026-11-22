@@ -3,12 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 // Cache for active Supabase client instances per business
 const clientCache = new Map();
 
+export const CANONICAL_SUPABASE_URL = 'https://cavehtshlvorbzlgqmxs.supabase.co';
+export const CANONICAL_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI';
+
 /**
  * Validates whether a provided URL is a secure, canonical Supabase project URL.
  */
 export const isValidSupabaseUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
-  return /^https:\/\/[a-zA-Z0-9_-]+\.supabase\.(co|in)$/i.test(url.trim());
+  const clean = url.trim();
+  if (clean.includes('your-project-url') || clean.includes('xyz.supabase.co') || clean.includes('fallback') || clean.includes('example')) return false;
+  return /^https:\/\/[a-zA-Z0-9_-]+\.supabase\.(co|in)$/i.test(clean);
 };
 
 /**
@@ -49,6 +54,9 @@ export const getBusinessDbConfig = (businessId) => {
           isConfigured: true,
           source: 'custom_storage'
         };
+      } else {
+        // Automatically purge invalid or placeholder configurations
+        localStorage.removeItem(`biz_db_config_${normBizId}`);
       }
     }
   } catch (e) {
@@ -59,7 +67,7 @@ export const getBusinessDbConfig = (businessId) => {
   if (normBizId === 'biz_main') {
     const seynexUrl = import.meta.env.VITE_SUPABASE_URL_SEYNEX;
     const seynexKey = import.meta.env.VITE_SUPABASE_ANON_KEY_SEYNEX;
-    if (seynexUrl && seynexKey) {
+    if (seynexUrl && seynexKey && isValidSupabaseUrl(seynexUrl)) {
       return {
         url: seynexUrl.trim(),
         anonKey: seynexKey.trim(),
@@ -70,20 +78,19 @@ export const getBusinessDbConfig = (businessId) => {
     }
   }
 
-  // 3. Fallback to shared primary project
-  const fallbackUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
-  const fallbackKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-  const isFallbackConfigured = Boolean(
-    import.meta.env.VITE_SUPABASE_URL && 
-    !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')
-  );
+  // 3. Fallback to primary env or canonical Seynex production project
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+
+  const fallbackUrl = isValidSupabaseUrl(envUrl) ? envUrl : CANONICAL_SUPABASE_URL;
+  const fallbackKey = (envKey && envKey !== 'your-anon-key') ? envKey : CANONICAL_SUPABASE_ANON_KEY;
 
   return {
     url: fallbackUrl.trim(),
     anonKey: fallbackKey.trim(),
     isDedicated: false,
-    isConfigured: isFallbackConfigured,
-    source: isFallbackConfigured ? 'env_shared' : 'unconfigured'
+    isConfigured: true,
+    source: isValidSupabaseUrl(envUrl) ? 'env_shared' : 'canonical_default'
   };
 };
 
@@ -157,7 +164,7 @@ export const testDatabaseConnection = async (businessId) => {
   const normBizId = businessId || 'biz_main';
   const config = getBusinessDbConfig(normBizId);
 
-  if (!config.isConfigured || config.url.includes('your-project-url')) {
+  if (!config.isConfigured || !isValidSupabaseUrl(config.url)) {
     return {
       success: false,
       latencyMs: 0,
