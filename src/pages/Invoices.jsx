@@ -216,19 +216,30 @@ Thank you for your business!`;
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <button 
+              type="button"
               className="btn btn-secondary" 
               onClick={generateRecurringInvoices} 
-              style={{ padding: '10px 18px', fontSize: '0.85rem', color: 'var(--accent-secondary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+              style={{ padding: '10px 18px', fontSize: '0.85rem', color: 'var(--accent-secondary)', border: '1px solid rgba(99, 102, 241, 0.3)', position: 'relative', zIndex: 2 }}
               title="Auto-generate monthly subscription invoices for active client accounts"
             >
               <CalendarDays size={16} />
               <span>Run Auto-Renewals</span>
             </button>
-            <button className="btn btn-secondary" onClick={handleExport} style={{ padding: '10px 18px', fontSize: '0.85rem' }}>
+            <button 
+              type="button"
+              className="btn btn-secondary" 
+              onClick={handleExport} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem', position: 'relative', zIndex: 2 }}
+            >
               <Download size={16} />
               <span className="sm-hidden">Export CSV</span>
             </button>
-            <button className="btn btn-primary" onClick={() => { setEditingInvoice(null); setShowModal(true); }} style={{ padding: '10px 18px', fontSize: '0.85rem' }}>
+            <button 
+              type="button"
+              className="btn btn-primary" 
+              onClick={() => { setEditingInvoice(null); setShowModal(true); }} 
+              style={{ padding: '10px 18px', fontSize: '0.85rem', position: 'relative', zIndex: 2 }}
+            >
               <Plus size={16} /> Create Invoice
             </button>
           </div>

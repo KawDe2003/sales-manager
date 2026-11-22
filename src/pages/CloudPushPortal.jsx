@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { 
   Cloud, Server, Activity, Users, CheckCircle2, AlertCircle, 
   Calendar, DollarSign, Printer, Download, RefreshCw, FileText, 
@@ -1100,7 +1101,9 @@ export default function CloudPushPortal() {
             alignItems: 'center',
             gap: '8px',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <BarChart3 size={17} />
@@ -1123,7 +1126,9 @@ export default function CloudPushPortal() {
             alignItems: 'center',
             gap: '8px',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <Radio size={17} style={{ color: portalSection === 'realtime' ? '#fff' : '#10b981' }} />
@@ -1146,7 +1151,9 @@ export default function CloudPushPortal() {
             alignItems: 'center',
             gap: '8px',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <Terminal size={17} style={{ color: portalSection === 'commands' ? '#fff' : '#f59e0b' }} />
@@ -1169,7 +1176,9 @@ export default function CloudPushPortal() {
             alignItems: 'center',
             gap: '8px',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <HardDrive size={17} style={{ color: portalSection === 'fleet' ? '#fff' : '#6366f1' }} />
@@ -3274,8 +3283,8 @@ export default function CloudPushPortal() {
       )}
 
       {/* ===== MODAL 1: CREATE / EDIT GYM HARDWARE PROFILE ===== */}
-      {showCreateProfileModal && (
-        <div className="app-modal-backdrop cloud-modal-overlay">
+      {showCreateProfileModal && typeof document !== 'undefined' && createPortal(
+        <div className="app-modal-backdrop cloud-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="app-modal-dialog cloud-modal-dialog">
             {/* Modal Header */}
             <div style={{
@@ -3630,12 +3639,13 @@ export default function CloudPushPortal() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===== MODAL 2: MANAGE ALL GYM HARDWARE PROFILES ===== */}
-      {showManageProfilesModal && (
-        <div className="app-modal-backdrop cloud-modal-overlay">
+      {showManageProfilesModal && typeof document !== 'undefined' && createPortal(
+        <div className="app-modal-backdrop cloud-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="app-modal-dialog cloud-modal-dialog" style={{ maxWidth: '880px' }}>
             {/* Modal Header */}
             <div style={{
@@ -3837,7 +3847,8 @@ export default function CloudPushPortal() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

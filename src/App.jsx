@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileText, Receipt, BarChart3,
@@ -517,30 +518,34 @@ const AppContent = () => {
         <div className="flex items-center gap-4">
           {/* Mobile Toggle */}
           <button
+            type="button"
             className="hidden-desktop header-sidebar-toggle-btn"
             id="header-sidebar-toggle-btn"
             onClick={toggleSidebar}
-            style={{ minWidth: '44px', minHeight: '44px', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}
             title="Toggle Menu"
             aria-label="Toggle Navigation Drawer"
           >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            {sidebarOpen ? <X size={21} strokeWidth={2.3} /> : <Menu size={21} strokeWidth={2.3} />}
           </button>
 
           {/* Desktop Collapse Toggle */}
           <button
+            type="button"
             className="hidden-mobile header-sidebar-toggle-btn"
             id="header-sidebar-toggle-btn-desktop"
             onClick={toggleSidebarCollapse}
             style={{
-              padding: '8px',
+              width: '40px', height: '40px', minWidth: '40px', minHeight: '40px',
+              padding: 0,
               borderRadius: '10px',
               cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', zIndex: 2
             }}
             title="Toggle Sidebar (Collapse/Expand)"
           >
-            {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            {isSidebarCollapsed ? <PanelLeftOpen size={21} strokeWidth={2.3} /> : <PanelLeftClose size={21} strokeWidth={2.3} />}
           </button>
 
           <Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
@@ -584,14 +589,15 @@ const AppContent = () => {
 
           {/* Search */}
           <button
+            type="button"
             id="header-search-btn"
             className="btn btn-secondary header-action-icon-btn"
-            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', position: 'relative', zIndex: 2 }}
             onClick={() => setSearchOpen(true)}
             title="Search (Ctrl+K)"
             aria-label="Search"
           >
-            <Search size={20} strokeWidth={2.2} style={{ color: 'var(--text-primary)' }} />
+            <Search size={21} strokeWidth={2.3} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
           </button>
 
           {/* AUTOMATIC CLOUD SYNC STATUS (ZERO-TOUCH AUTONOMOUS SYNC) */}
@@ -631,7 +637,9 @@ const AppContent = () => {
               borderRadius: '20px',
               cursor: 'pointer',
               userSelect: 'none',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              zIndex: 2
             }}
             title={
               cloudSyncStatus === 'syncing'
@@ -643,17 +651,17 @@ const AppContent = () => {
           >
             {cloudSyncStatus === 'syncing' ? (
               <>
-                <RefreshCw size={14} className="animate-spin" />
+                <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
                 <span>Auto-Saving...</span>
               </>
             ) : cloudSyncStatus === 'error' ? (
               <>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)' }}></span>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)', flexShrink: 0 }}></span>
                 <span>Auto-Reconnecting...</span>
               </>
             ) : (
               <>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', flexShrink: 0 }}></span>
                 <span>Cloud Synced</span>
               </>
             )}
@@ -661,27 +669,29 @@ const AppContent = () => {
 
           {/* Theme Toggle - Accessible on Mobile & Desktop */}
           <button
+            type="button"
             id="header-theme-toggle-btn"
             className="btn btn-secondary header-action-icon-btn"
-            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', position: 'relative', zIndex: 2 }}
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={20} strokeWidth={2.2} className="theme-toggle-icon" /> : <Moon size={20} strokeWidth={2.2} className="theme-toggle-icon" />}
+            {theme === 'dark' ? <Sun size={21} strokeWidth={2.3} className="theme-toggle-icon" style={{ flexShrink: 0 }} /> : <Moon size={21} strokeWidth={2.3} className="theme-toggle-icon" style={{ flexShrink: 0 }} />}
           </button>
 
           {/* In-App Notifications Feed (Section 9 Requirement) */}
           <div style={{ position: 'relative' }}>
             <button
+              type="button"
               id="notification-bell-btn"
               className="btn btn-secondary header-action-icon-btn"
-              style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', borderRadius: '10px' }}
+              style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', borderRadius: '10px', zIndex: 2 }}
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               title="Recent Activity Alerts"
               aria-label="Recent Activity Alerts"
             >
-              <Bell size={20} strokeWidth={2.2} style={{ color: 'var(--text-primary)' }} />
+              <Bell size={21} strokeWidth={2.3} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
               {systemNotifications?.length > 0 && (
                 <span style={{
                   position: 'absolute', top: '-3px', right: '-3px',
@@ -835,7 +845,7 @@ const AppContent = () => {
       </header>
 
       {/* ===== GLOBAL SEARCH MODAL ===== */}
-      {searchOpen && (
+      {searchOpen && typeof document !== 'undefined' && createPortal(
         <div
           className="global-search-backdrop"
           onClick={() => setSearchOpen(false)}
@@ -845,7 +855,12 @@ const AppContent = () => {
               e.preventDefault();
             }
           }}
-          style={{ overscrollBehavior: 'contain' }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            overscrollBehavior: 'contain'
+          }}
         >
           <div style={{
             width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)',
@@ -916,7 +931,8 @@ const AppContent = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===== MAIN LAYOUT ===== */}

@@ -1344,6 +1344,11 @@ export default function StoreContextProvider({ children }) {
       if (bizSaved) {
         const parsed = JSON.parse(bizSaved);
         if (parsed && typeof parsed === 'object') {
+          // Sanitize corrupted JSON string balance values from previous versions
+          const rawBal = typeof parsed.balance === 'object' ? JSON.stringify(parsed.balance) : String(parsed.balance || '');
+          if (rawBal.startsWith('{') || rawBal.includes('GATEWAY_') || rawBal.toLowerCase().includes('unconfigured') || rawBal.includes('CREDENTIALS')) {
+            parsed.balance = 'Unconfigured';
+          }
           return { ...DEFAULT_MAIN_SMS_CONFIG, ...parsed };
         }
       }
@@ -3814,15 +3819,23 @@ export default function StoreContextProvider({ children }) {
   };
 
   const updateCustomer = (id, updatedData) => {
-    setCustomers(prev => prev.map(c => {
-      if (c.id === id) {
-        const updated = { ...c, ...updatedData, businessId: c.businessId || activeBusinessId };
-        syncCustomerToSupabase(updated);
-        showNotification(`Client "${updated.gymName || 'Client'}" updated!`, 'success');
-        return updated;
-      }
-      return c;
-    }));
+    setCustomers(prev => {
+      const updatedList = prev.map(c => {
+        if (String(c.id) === String(id)) {
+          const updated = { ...c, ...updatedData, businessId: c.businessId || activeBusinessId || 'biz_main' };
+          syncCustomerToSupabase(updated);
+          showNotification(`Client "${updated.gymName || 'Client'}" updated!`, 'success');
+          return updated;
+        }
+        return c;
+      });
+      try {
+        localStorage.setItem('gym_customers', JSON.stringify(updatedList));
+        const activeId = activeBusinessId || 'biz_main';
+        localStorage.setItem(`biz_data_${activeId}_customers`, JSON.stringify(updatedList));
+      } catch (e) {}
+      return updatedList;
+    });
   };
   
   const addCustomerNote = (customerId, text, authorName = null) => {
@@ -6014,12 +6027,16 @@ export default function StoreContextProvider({ children }) {
           setSmsConfig(prev => ({
             ...prev,
             balance: isUnconfigured ? 'Unconfigured' : 'Error',
-            balanceError: parsed.message || parsed.code || 'Failed to fetch balance'
+            balanceError: parsed.error || parsed.message || parsed.code || 'Failed to fetch balance'
           }));
           return;
         }
-        const balanceVal = parsed.balance ?? parsed.Balance ?? parsed.credit ?? rawText.trim();
-        setSmsConfig(prev => ({ ...prev, balance: balanceVal, balanceError: null }));
+        const balanceVal = parsed.balance ?? parsed.Balance ?? parsed.credit ?? null;
+        if (balanceVal !== null && !String(balanceVal).startsWith('{')) {
+          setSmsConfig(prev => ({ ...prev, balance: balanceVal, balanceError: null }));
+          return;
+        }
+        setSmsConfig(prev => ({ ...prev, balance: 'Unconfigured', balanceError: 'Gateway response incomplete' }));
         return;
       } catch {
         // Plain text response from QuickSend (e.g. "1250.00")

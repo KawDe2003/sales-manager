@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
@@ -375,7 +376,7 @@ const Settings = () => {
                   <h2 className="h2" style={{ margin: 0, fontSize: '1.4rem' }}>Team & User Account Management</h2>
                 </div>
               </div>
-              <button className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem', gap: '8px' }} onClick={() => setShowAddUserModal(true)}>
+              <button type="button" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.9rem', gap: '8px', position: 'relative', zIndex: 2 }} onClick={() => setShowAddUserModal(true)}>
                 <UserPlus size={18} /> + Provision User Account
               </button>
             </div>
@@ -1917,8 +1918,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
               border: '1px solid var(--panel-border)',
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
             }}>
-              <div className="flex justify-between items-end" style={{ marginBottom: '20px' }}>
-                <div>
+              <div className="flex justify-between items-end gap-3" style={{ marginBottom: '20px' }}>
+                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <h3 style={{ 
                     margin: '0 0 6px 0', 
                     fontSize: '0.75rem', 
@@ -1932,9 +1933,9 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
                     {(() => {
                       const b = smsConfig.balance;
-                      const str = String(b || '').trim();
-                      const isUnconfigured = str === 'Unconfigured' || str.startsWith('{') || str.includes('GATEWAY_UNCONFIGURED');
-                      const isError = str === 'Error' || str.toLowerCase().includes('error') || str.includes('AUTH_ERROR');
+                      const str = typeof b === 'object' ? JSON.stringify(b) : String(b || '').trim();
+                      const isUnconfigured = !b || str === 'Unconfigured' || str.startsWith('{') || str.includes('GATEWAY_') || str.toLowerCase().includes('unconfigured') || str.includes('CREDENTIALS') || !smsConfig.email || !smsConfig.apiKey;
+                      const isError = !isUnconfigured && (str === 'Error' || str.toLowerCase().includes('error') || str.includes('AUTH_ERROR'));
 
                       if (isUnconfigured) {
                         return (
@@ -1987,7 +1988,10 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                       }
 
                       const num = Number(b);
-                      const displayVal = !isNaN(num) ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (b || '0.00');
+                      let displayVal = !isNaN(num) ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (b || '0.00');
+                      if (String(displayVal).startsWith('{') || String(displayVal).includes('GATEWAY_')) {
+                        displayVal = '0.00';
+                      }
 
                       return (
                         <>
@@ -2018,6 +2022,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   disabled={balanceLoading}
                   className="btn btn-secondary"
                   style={{ 
+                    flexShrink: 0,
                     animation: balanceLoading ? 'pulse 1s infinite' : 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -2640,11 +2645,11 @@ const AddUserModal = ({ onClose, onSave, customRoles = [], activeBusinessId = 'b
     setTimeout(() => setCopiedCredentials(false), 2200);
   };
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -2831,8 +2836,9 @@ const AddUserModal = ({ onClose, onSave, customRoles = [], activeBusinessId = 'b
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };
 
 const EditUserModal = ({ user, onClose, onSave, customRoles = [], businesses = [] }) => {
@@ -2847,11 +2853,11 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [], businesses = [
     businessId: user.businessId || 'biz_main'
   });
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -2964,8 +2970,9 @@ const EditUserModal = ({ user, onClose, onSave, customRoles = [], businesses = [
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };
 
 const CreateRoleModal = ({ initialRole = null, onClose, onSave }) => {
@@ -3023,11 +3030,11 @@ const CreateRoleModal = ({ initialRole = null, onClose, onSave }) => {
     }
   };
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', padding: 0, overflow: 'hidden', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
@@ -3100,8 +3107,9 @@ const CreateRoleModal = ({ initialRole = null, onClose, onSave }) => {
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };
 
 const VariableTag = ({ tag, desc }) => (
@@ -3155,11 +3163,11 @@ const ResetPasswordModal = ({ member, onClose, onReset }) => {
     onClose();
   };
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
       padding: '24px'
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -3273,8 +3281,9 @@ const ResetPasswordModal = ({ member, onClose, onReset }) => {
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };
 
 export default Settings;

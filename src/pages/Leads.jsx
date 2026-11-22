@@ -310,7 +310,13 @@ const Leads = () => {
               <button 
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`leads-view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+                className={`leads-view-btn ${(viewMode === 'kanban' || viewMode === 'board') ? 'active' : ''}`}
+                style={{
+                  background: (viewMode === 'kanban' || viewMode === 'board') ? 'var(--accent-primary)' : 'transparent',
+                  color: (viewMode === 'kanban' || viewMode === 'board') ? '#ffffff' : 'var(--text-secondary)',
+                  position: 'relative',
+                  zIndex: 2
+                }}
               >
                 <LayoutGrid size={13} /> Board
               </button>
@@ -319,6 +325,12 @@ const Leads = () => {
                 type="button"
                 onClick={() => setViewMode('calendar')}
                 className={`leads-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+                style={{
+                  background: viewMode === 'calendar' ? 'var(--accent-primary)' : 'transparent',
+                  color: viewMode === 'calendar' ? '#ffffff' : 'var(--text-secondary)',
+                  position: 'relative',
+                  zIndex: 2
+                }}
               >
                 <CalendarDays size={13} /> Calendar
               </button>
@@ -327,14 +339,22 @@ const Leads = () => {
                 type="button"
                 onClick={() => setViewMode('list')}
                 className={`leads-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                style={{
+                  background: viewMode === 'list' ? 'var(--accent-primary)' : 'transparent',
+                  color: viewMode === 'list' ? '#ffffff' : 'var(--text-secondary)',
+                  position: 'relative',
+                  zIndex: 2
+                }}
               >
                 <List size={13} /> List
               </button>
             </div>
 
             <button 
+              type="button"
               className="btn btn-primary leads-add-btn" 
               onClick={() => { setEditingLead(null); setShowAddModal(true); }}
+              style={{ position: 'relative', zIndex: 2 }}
             >
               <Plus size={15} /> <span><span className="hidden-mobile">New </span>Prospect</span>
             </button>

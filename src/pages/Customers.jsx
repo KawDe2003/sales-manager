@@ -20,7 +20,8 @@ const Customers = () => {
   const { 
     customers = [], addCustomer, deleteCustomer, updateCustomer, 
     quotes = [], invoices = [], payments = [],
-    sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit
+    sendDirectSMS, smsConfig = {}, showNotification, confirmAction, checkPlanLimit,
+    activeBusinessId = 'biz_main'
   } = useContext(StoreContext) || {};
 
   const customerTags = SEYNEX_CUSTOMER_TAGS;
@@ -124,8 +125,9 @@ const Customers = () => {
               <span className="sm-hidden">Export CSV</span>
             </button>
             <button 
+              type="button"
               className="btn btn-primary" 
-              style={{ padding: '12px 24px' }} 
+              style={{ padding: '12px 24px', position: 'relative', zIndex: 2 }} 
               onClick={handleOpenAddModal}
             >
               <Plus size={18} /> New Client
@@ -372,7 +374,7 @@ const Customers = () => {
         <CustomerModal 
           onClose={() => { setShowModal(false); setEditingCustomer(null); }}
           onSave={(data) => {
-            const payload = { ...data, businessId: activeBusinessId };
+            const payload = { ...data, businessId: activeBusinessId || 'biz_main' };
             if (editingCustomer) updateCustomer(editingCustomer.id, payload);
             else addCustomer(payload);
           }}
@@ -432,6 +434,7 @@ const parseSalutationAndName = (rawName = '', defaultSalutation = 'Mr.') => {
 
 // ADD / EDIT CUSTOMER MODAL COMPONENT
 const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, customerTags = [] }) => {
+  const { showNotification } = useContext(StoreContext) || {};
   const defaultTag = 'Enterprise Client';
   const parsedContact = parseSalutationAndName(initialData?.name || '', initialData?.salutation || 'Mr.');
   const [formData, setFormData] = useState({
@@ -510,6 +513,51 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
     }
   };
 
+  const handleSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanGymName = (formData.gymName || '').trim();
+    if (!cleanGymName) {
+      if (typeof showNotification === 'function') showNotification('Customer / Company name is required.', 'warning');
+      return;
+    }
+
+    const cleanContact = (formData.name || '').trim();
+    if (!cleanContact) {
+      if (typeof showNotification === 'function') showNotification('Contact person name is required.', 'warning');
+      return;
+    }
+
+    const cleanPhone = (formData.phone || '').trim();
+    if (!cleanPhone) {
+      if (typeof showNotification === 'function') showNotification('Mobile number (07X-XXXXXXX) is required.', 'warning');
+      return;
+    }
+
+    const formattedName = cleanContact 
+      ? `${formData.salutation || 'Mr.'} ${cleanContact}` 
+      : '';
+
+    try {
+      onSave({
+        ...formData,
+        gymName: cleanGymName,
+        salutation: formData.salutation || 'Mr.',
+        name: formattedName,
+        phone: cleanPhone,
+        email: (formData.email || '').trim(),
+        address: (formData.address || '').trim(),
+        taxNumber: (formData.taxNumber || '').trim(),
+        cloudPushAcc: (formData.cloudPushAcc || '').trim(),
+        deviceSerial: (formData.deviceSerial || '').trim(),
+        cloudPushApiKey: (formData.cloudPushApiKey || '').trim()
+      });
+      onClose();
+    } catch (err) {
+      console.error('[CustomerModal Submit Error]:', err);
+      if (typeof showNotification === 'function') showNotification(`Failed to save: ${err.message}`, 'error');
+    }
+  };
+
   if (typeof document === 'undefined') return null;
 
   return createPortal(
@@ -566,18 +614,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
 
         {/* Scrollable Form Body with Pinned Actions */}
         <form 
-          onSubmit={(e) => { 
-            e.preventDefault(); 
-            const formattedName = formData.name.trim() 
-              ? `${formData.salutation || 'Mr.'} ${formData.name.trim()}` 
-              : '';
-            onSave({
-              ...formData,
-              salutation: formData.salutation || 'Mr.',
-              name: formattedName
-            }); 
-            onClose(); 
-          }} 
+          onSubmit={handleSubmit} 
           style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
           <div className="modal-body" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '22px 24px' }}>
@@ -942,15 +979,16 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
             <button 
               type="button" 
               className="btn btn-secondary" 
-              style={{ minWidth: '100px', height: '42px', fontWeight: 600 }}
+              style={{ minWidth: '100px', height: '42px', fontWeight: 600, position: 'relative', zIndex: 2 }}
               onClick={onClose}
             >
               Cancel
             </button>
             <button 
-              type="submit" 
+              type="button" 
               className="btn btn-primary"
-              style={{ minWidth: '180px', height: '42px', fontWeight: 600 }}
+              style={{ minWidth: '180px', height: '42px', fontWeight: 600, position: 'relative', zIndex: 2 }}
+              onClick={handleSubmit}
             >
               Save Customer Record
             </button>

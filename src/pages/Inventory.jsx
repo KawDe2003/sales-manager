@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { 
   Package, Plus, Trash2, Edit2, X, Monitor, Server, 
@@ -139,22 +140,25 @@ const Inventory = () => {
         </div>
         <div className="flex gap-3">
           <button 
+            type="button"
             className="btn btn-secondary" 
-            style={{ padding: '12px 20px', height: '44px', color: 'var(--success)' }}
+            style={{ padding: '12px 20px', height: '44px', color: 'var(--success)', position: 'relative', zIndex: 2 }}
             onClick={handleExportStockExcel}
           >
             <FileSpreadsheet size={18} /> Excel Report
           </button>
           <button 
+            type="button"
             className="btn btn-secondary" 
-            style={{ padding: '12px 20px', height: '44px' }}
+            style={{ padding: '12px 20px', height: '44px', position: 'relative', zIndex: 2 }}
             onClick={() => generateStockReportPDF(inventory)}
           >
             <Download size={18} /> PDF Report
           </button>
           <button 
+            type="button"
             className="btn btn-primary" 
-            style={{ padding: '12px 24px', height: '44px' }} 
+            style={{ padding: '12px 24px', height: '44px', position: 'relative', zIndex: 2 }} 
             onClick={() => { setEditingItem(null); setShowModal(true); }}
           >
             <Plus size={18} /> Register Item
@@ -237,58 +241,64 @@ const Inventory = () => {
         border: '1px solid var(--panel-border)'
       }}>
         <button 
+          type="button"
           onClick={() => setActiveTab('catalog')}
           style={{
             padding: '10px 24px',
             borderRadius: '10px',
             fontSize: '0.9rem',
             fontWeight: 700,
-            transition: 'all 0.3s ease',
             background: activeTab === 'catalog' ? 'var(--accent-primary)' : 'transparent',
             color: activeTab === 'catalog' ? 'white' : 'var(--text-muted)',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <Package size={16} /> Product Catalog
         </button>
         <button 
+          type="button"
           onClick={() => setActiveTab('stock')}
           style={{
             padding: '10px 24px',
             borderRadius: '10px',
             fontSize: '0.9rem',
             fontWeight: 700,
-            transition: 'all 0.3s ease',
             background: activeTab === 'stock' ? 'var(--accent-primary)' : 'transparent',
             color: activeTab === 'stock' ? 'white' : 'var(--text-muted)',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <TrendingUp size={16} /> Stock & Valuation Table
         </button>
         <button 
+          type="button"
           onClick={() => setActiveTab('transfers')}
           style={{
             padding: '10px 24px',
             borderRadius: '10px',
             fontSize: '0.9rem',
             fontWeight: 700,
-            transition: 'all 0.3s ease',
             background: activeTab === 'transfers' ? 'var(--accent-primary)' : 'transparent',
             color: activeTab === 'transfers' ? 'white' : 'var(--text-muted)',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            position: 'relative',
+            zIndex: 2
           }}
         >
           <Layers size={16} /> Multi-Branch Transfers ({stockTransfers.length})
@@ -325,7 +335,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      {activeTab === 'catalog' ? (
+      {activeTab === 'catalog' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredInventory.length === 0 ? (
             <EmptyState message="No products matching your search criteria." />
@@ -353,7 +363,9 @@ const Inventory = () => {
             ))
           )}
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'stock' && (
         <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="overflow-x-auto">
             <table className="app-table">
@@ -504,11 +516,11 @@ const Inventory = () => {
       )}
 
       {/* MODAL: NEW STOCK TRANSFER */}
-      {showSTModal && (
+      {showSTModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999,
           padding: '20px', animation: 'backdropFade 0.14s ease-out'
         }}>
           <div className="glass-panel" style={{
@@ -599,7 +611,8 @@ const Inventory = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -847,8 +860,10 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
   const calculatedMargin = sellingPrice - costPrice;
   const calculatedMarginPct = sellingPrice > 0 ? Math.round((calculatedMargin / sellingPrice) * 100) : 0;
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="modal-backdrop app-modal-backdrop" style={{ zIndex: 999999 }} onClick={onClose}>
       <div className="modal-card" style={{ maxWidth: '580px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
            <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>{initialData ? 'Update Specifications' : 'Register Product Item'}</h2>
@@ -1020,7 +1035,8 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

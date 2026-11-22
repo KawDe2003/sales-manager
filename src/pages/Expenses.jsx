@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Search, Trash2, Edit3, DollarSign, PieChart, Wallet, Building2 } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
@@ -133,8 +134,9 @@ const Expenses = () => {
           </p>
         </div>
         <button 
+          type="button"
           className="btn btn-primary" 
-          style={{ padding: '10px 22px' }} 
+          style={{ padding: '10px 22px', position: 'relative', zIndex: 2 }} 
           onClick={handleOpenNew}
         >
           <Plus size={18} /> Record Expense
@@ -262,8 +264,12 @@ const Expenses = () => {
       </div>
 
       {/* Expense Modal */}
-      {showModal && (
-        <div className="modal-overlay app-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
+      {showModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="modal-overlay app-modal-backdrop" 
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
+        >
           <div 
             className="modal-content glass-panel app-modal-dialog" 
             style={{ 
@@ -331,7 +337,8 @@ const Expenses = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

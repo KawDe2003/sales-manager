@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Users, DollarSign, Calendar, Plus, Search, CheckCircle2, FileText, 
   Trash2, Edit, X, Calculator, ShieldCheck, Printer, Download, UserPlus,
@@ -799,15 +800,18 @@ const HR = () => {
           ].map(tab => (
             <button 
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               style={{
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
                 padding: '8px 16px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer',
-                background: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
-                color: activeTab === tab.id ? 'var(--accent-primary)' : 'var(--text-muted)',
-                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                transition: 'all 0.18s ease'
+                background: activeTab === tab.id ? 'var(--accent-primary)' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : 'var(--text-muted)',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none',
+                transition: 'all 0.18s ease',
+                position: 'relative',
+                zIndex: 2
               }}
             >
               {tab.label}
@@ -2061,9 +2065,11 @@ const HR = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ===== MODAL: EMPLOYEE 360° PROFILE DRAWER ============================== */}
+      {/* ===== HR MODALS & DRAWERS (PORTALLED TO DOCUMENT.BODY) =================== */}
       {/* ========================================================================= */}
-      {profileEmployee && (
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {profileEmployee && (
         <div 
           className="modal-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setProfileEmployee(null); }}
@@ -4052,6 +4058,9 @@ const HR = () => {
             </form>
           </div>
         </div>
+      )}
+        </>,
+        document.body
       )}
 
     </div>

@@ -2264,11 +2264,13 @@ tbody tr:hover td {
 #notification-bell-btn svg,
 #header-sidebar-toggle-btn svg,
 #header-sidebar-toggle-btn-desktop svg {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  stroke-width: 2.2px !important;
+  width: 21px !important;
+  height: 21px !important;
+  min-width: 21px !important;
+  min-height: 21px !important;
+  stroke-width: 2.3px !important;
+  display: block !important;
+  flex-shrink: 0 !important;
 }
 
 /* ===== LAYOUT: SIDEBAR ===== */
