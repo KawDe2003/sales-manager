@@ -11,7 +11,8 @@ import {
   Settings2, Info, Layout, Users, UserPlus, Shield, Trash2, X, Check,
   Key, Eye, EyeOff, Copy, Edit3, Search, Filter, Lock, Calendar, Building,
   AlertTriangle, CheckCircle2, Sliders, ToggleLeft, Upload, Image as ImageIcon,
-  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Sparkles, FileText
+  Cloud, CloudUpload, Database, RotateCcw, Clock, Radio, Receipt, Sparkles, FileText,
+  ShieldAlert
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
@@ -733,6 +734,112 @@ const Settings = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* QUICK SQL FIX FOR ROW LEVEL SECURITY (RLS) */}
+          <div className="glass-panel" style={{
+            padding: '24px 28px',
+            borderRadius: '16px',
+            background: 'rgba(245, 158, 11, 0.06)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div className="flex justify-between items-start gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div style={{
+                  width: '42px', height: '42px', borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)',
+                  flexShrink: 0
+                }}>
+                  <ShieldAlert size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Quick SQL Fix: Row Level Security (RLS) Permission Denied
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    If you see <em>"Supabase blocked save (Row Level Security is ON on core tables)"</em>, run this script in your Supabase SQL Editor to grant full read/write access to both authenticated staff and anon sync client.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const rlsFixSql = `-- =========================================================================
+-- QUICK FIX: PERMISSIVE ROW LEVEL SECURITY FOR SEYNEX SALES MANAGER
+-- Grants full read/write access to both authenticated and anon roles
+-- Run this in Supabase SQL Editor -> Run
+-- =========================================================================
+
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables 
+        WHERE schemaname = 'public' 
+          AND tablename IN (
+            'customers', 'quotations', 'invoices', 'inventory', 'leads', 
+            'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 
+            'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications',
+            'agent_rules', 'agent_queue', 'agent_execution_logs'
+          )
+    LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
+        EXECUTE format('DROP POLICY IF EXISTS "Full access on %I" ON %I;', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Full access on %I" ON %I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);', tbl, tbl);
+    END LOOP;
+END $$;`;
+                    navigator.clipboard.writeText(rlsFixSql);
+                    showNotification('Quick RLS Fix SQL copied to clipboard! Paste it into Supabase SQL Editor and click Run.', 'success');
+                  }}
+                  style={{
+                    height: '36px',
+                    fontSize: '0.82rem',
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    border: 'none',
+                    fontWeight: 700
+                  }}
+                >
+                  <Copy size={15} /> Copy Quick RLS Fix SQL
+                </button>
+              </div>
+            </div>
+
+            <pre style={{
+              background: 'rgba(0, 0, 0, 0.45)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              fontSize: '0.78rem',
+              fontFamily: 'monospace',
+              color: '#fbbf24',
+              overflowX: 'auto',
+              lineHeight: 1.45,
+              margin: 0
+            }}>
+{`-- Quick 1-Click Fix for Supabase SQL Editor:
+DO $$
+DECLARE tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables WHERE schemaname = 'public' 
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications', 'agent_rules', 'agent_queue', 'agent_execution_logs')
+    LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
+        EXECUTE format('DROP POLICY IF EXISTS "Full access on %I" ON %I;', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Full access on %I" ON %I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);', tbl, tbl);
+    END LOOP;
+END $$;`}
+            </pre>
           </div>
 
           {/* Sync Metrics Grid */}
