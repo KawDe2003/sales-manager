@@ -788,8 +788,7 @@ BEGIN
           AND tablename IN (
             'customers', 'quotations', 'invoices', 'inventory', 'leads', 
             'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 
-            'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications',
-            'agent_rules', 'agent_queue', 'agent_execution_logs'
+            'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications'
           )
     LOOP
         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
@@ -832,7 +831,7 @@ DECLARE tbl text;
 BEGIN
     FOR tbl IN 
         SELECT tablename FROM pg_tables WHERE schemaname = 'public' 
-          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications', 'agent_rules', 'agent_queue', 'agent_execution_logs')
+          AND tablename IN ('customers', 'quotations', 'invoices', 'inventory', 'leads', 'expenses', 'payments', 'fixed_assets', 'tasks', 'activity_logs', 'suppliers', 'purchase_orders', 'user_profiles', 'system_notifications')
     LOOP
         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', tbl);
         EXECUTE format('DROP POLICY IF EXISTS "Full access on %I" ON %I;', tbl, tbl);
