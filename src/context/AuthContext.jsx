@@ -140,47 +140,79 @@ export const AuthProvider = ({ children }) => {
 
     const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-    // 1. Check local team members array stored in localStorage
-    const savedMembers = localStorage.getItem('gym_team_members');
-    let teamMembers = [];
-    if (savedMembers) {
-      try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
-    }
+    let matchedMember = null;
 
-    const defaultMembers = Array.isArray(DEFAULT_APP_TEAM_MEMBERS) && DEFAULT_APP_TEAM_MEMBERS.length > 0
-      ? DEFAULT_APP_TEAM_MEMBERS
-      : [
-          { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' }
-        ];
+    // 1. PRIMARY: Query Supabase team_members table in the database
+    if (supabase) {
+      try {
+        const { data: dbUser, error: dbErr } = await supabase
+          .from('team_members')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
 
-    // Filter out any non-enterprise accounts
-    if (teamMembers && teamMembers.length > 0) {
-      teamMembers = teamMembers.filter(m => m.businessId === 'biz_main' || !m.businessId);
-    }
-
-    // Ensure default members exist in teamMembers
-    if (!teamMembers || teamMembers.length === 0) {
-      teamMembers = [...defaultMembers];
-      try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
-    } else {
-      let updated = false;
-      defaultMembers.forEach(def => {
-        const found = teamMembers.find(m => m.email?.trim().toLowerCase() === def.email.toLowerCase());
-        if (!found) {
-          teamMembers.push(def);
-          updated = true;
-        } else if (!found.password || !found.businessId) {
-          found.password = found.password || def.password;
-          found.businessId = found.businessId || def.businessId;
-          updated = true;
+        if (!dbErr && dbUser) {
+          matchedMember = {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: dbUser.role || 'Sales Representative',
+            department: dbUser.department || 'General',
+            phone: dbUser.phone || '',
+            status: dbUser.status || 'Active',
+            password: dbUser.password,
+            businessId: dbUser.business_id || 'biz_main',
+            mustChangePassword: !!dbUser.must_change_password,
+            expiryDate: dbUser.expiry_date
+          };
+          console.log('[Auth signIn] Successfully retrieved member from Supabase database:', matchedMember.email);
         }
-      });
-      if (updated) {
-        try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
+      } catch (err) {
+        console.warn('[Auth signIn] Database team_members query failed (offline fallback):', err.message);
       }
     }
 
-    const matchedMember = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
+    // 2. FALLBACK: Check local storage team members array
+    if (!matchedMember) {
+      const savedMembers = localStorage.getItem('gym_team_members');
+      let teamMembers = [];
+      if (savedMembers) {
+        try { teamMembers = JSON.parse(savedMembers); } catch(e) {}
+      }
+
+      const defaultMembers = Array.isArray(DEFAULT_APP_TEAM_MEMBERS) && DEFAULT_APP_TEAM_MEMBERS.length > 0
+        ? DEFAULT_APP_TEAM_MEMBERS
+        : [
+            { id: '76bb4580-2006-464f-aab8-64029dbe9540', name: 'Seynex Administrator', email: 'admin@seynex.lk', role: 'Admin', status: 'Active', password: 'seynex2026', businessId: 'biz_main' }
+          ];
+
+      if (teamMembers && teamMembers.length > 0) {
+        teamMembers = teamMembers.filter(m => m.businessId === 'biz_main' || !m.businessId);
+      }
+
+      if (!teamMembers || teamMembers.length === 0) {
+        teamMembers = [...defaultMembers];
+        try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
+      } else {
+        let updated = false;
+        defaultMembers.forEach(def => {
+          const found = teamMembers.find(m => m.email?.trim().toLowerCase() === def.email.toLowerCase());
+          if (!found) {
+            teamMembers.push(def);
+            updated = true;
+          } else if (!found.password || !found.businessId) {
+            found.password = found.password || def.password;
+            found.businessId = found.businessId || def.businessId;
+            updated = true;
+          }
+        });
+        if (updated) {
+          try { localStorage.setItem('gym_team_members', JSON.stringify(teamMembers)); } catch(e) {}
+        }
+      }
+
+      matchedMember = teamMembers.find(m => m.email?.trim().toLowerCase() === cleanEmail);
+    }
 
     console.log('[Auth signIn] Matched member:', matchedMember ? `${matchedMember.name} (${matchedMember.email}), role: ${matchedMember.role}, biz: ${matchedMember.businessId}` : 'NOT FOUND');
 
@@ -227,9 +259,17 @@ export const AuthProvider = ({ children }) => {
           }
         };
 
-        // Activate business partition immediately
+        // Cache in localStorage for offline access
         localStorage.setItem('gym_auth_user', JSON.stringify(authUser));
         localStorage.setItem('active_business_id', resolvedBizId);
+
+        // Update local team members cache
+        try {
+          const cached = JSON.parse(localStorage.getItem('gym_team_members') || '[]');
+          const filtered = cached.filter(m => m.email?.toLowerCase() !== cleanEmail);
+          localStorage.setItem('gym_team_members', JSON.stringify([matchedMember, ...filtered]));
+        } catch(e) {}
+
         window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
         setUser(authUser);
 
@@ -241,7 +281,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // 2. Try Supabase Auth if user not found in local team members
+    // 3. Try Supabase Auth if user not found in team members
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
       try {
         const res = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
@@ -264,7 +304,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // 3. Fallback check for seynex / company admin
+    // 4. Fallback check for seynex / company admin
     if (cleanEmail === 'admin@company.com' || cleanEmail === 'admin@seynex.lk') {
       const authUser = {
         id: '76bb4580-2006-464f-aab8-64029dbe9540',
@@ -376,7 +416,28 @@ export const AuthProvider = ({ children }) => {
     window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
     setUser(authUser);
 
-    // Attempt Supabase cloud registration in background
+    // Sync to Supabase team_members table in database
+    if (supabase) {
+      try {
+        await supabase.from('team_members').upsert({
+          id: newMember.id,
+          business_id: resolvedBizId,
+          name: newMember.name,
+          email: cleanEmail,
+          role: newMember.role,
+          department: newMember.department,
+          status: newMember.status,
+          password: cleanPassword,
+          created_at: newMember.addedAt,
+          updated_at: new Date().toISOString()
+        });
+        console.log('[Auth signUp] Synced new registration to database team_members table:', cleanEmail);
+      } catch (err) {
+        console.warn('[Auth signUp] team_members database sync error:', err.message);
+      }
+    }
+
+    // Attempt Supabase cloud auth registration in background
     if (supabase?.auth && import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project-url')) {
       supabase.auth.signUp({
         email: cleanEmail,

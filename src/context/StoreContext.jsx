@@ -1827,12 +1827,12 @@ export default function StoreContextProvider({ children }) {
     showNotification(`Deleted custom role`, 'warning');
   };
 
-  const addTeamMember = (data) => {
+  const addTeamMember = async (data) => {
     const cleanEmail = (data.email || '').trim().toLowerCase();
     const cleanPassword = (data.password || 'password123').trim();
     const assignedBusinessId = data.businessId || activeBusinessId || 'biz_main';
     const newMember = {
-      id: Date.now().toString(),
+      id: data.id || `member-${Date.now()}`,
       name: (data.name || '').trim() || cleanEmail.split('@')[0],
       email: cleanEmail,
       role: data.role || 'Sales Representative',
@@ -1857,15 +1857,33 @@ export default function StoreContextProvider({ children }) {
       return updated;
     });
 
-    // NOTE: We intentionally do NOT call supabase.auth.signUp() here because it
-    // would hijack the current admin's Supabase session via onAuthStateChange.
-    // Team members are managed locally via localStorage. Cloud auth registration
-    // happens separately if the user signs up through the login page.
+    // Sync to Supabase team_members table in database
+    try {
+      const client = getSupabaseClient(assignedBusinessId);
+      await client.from('team_members').upsert({
+        id: newMember.id,
+        business_id: assignedBusinessId,
+        name: newMember.name,
+        email: newMember.email,
+        role: newMember.role,
+        department: newMember.department,
+        phone: newMember.phone,
+        status: newMember.status,
+        password: newMember.password,
+        must_change_password: newMember.mustChangePassword,
+        expiry_date: newMember.expiryDate,
+        created_at: newMember.addedAt,
+        updated_at: new Date().toISOString()
+      });
+      console.log('[Supabase Sync] Successfully saved team member to database:', newMember.email);
+    } catch (err) {
+      console.warn('[Supabase Sync] Error saving team member to database:', err.message);
+    }
 
     showNotification(`Added team member ${newMember.name} as ${newMember.role}`);
   };
 
-  const updateTeamMember = (id, updatedData) => {
+  const updateTeamMember = async (id, updatedData) => {
     setTeamMembers(prev => {
       const updated = prev.map(m => m.id === id ? { ...m, ...updatedData } : m);
       try {
@@ -1873,13 +1891,32 @@ export default function StoreContextProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      const payload = {};
+      if (updatedData.name !== undefined) payload.name = updatedData.name;
+      if (updatedData.role !== undefined) payload.role = updatedData.role;
+      if (updatedData.department !== undefined) payload.department = updatedData.department;
+      if (updatedData.phone !== undefined) payload.phone = updatedData.phone;
+      if (updatedData.status !== undefined) payload.status = updatedData.status;
+      if (updatedData.password !== undefined) payload.password = updatedData.password;
+      if (updatedData.mustChangePassword !== undefined) payload.must_change_password = updatedData.mustChangePassword;
+      if (updatedData.expiryDate !== undefined) payload.expiry_date = updatedData.expiryDate;
+      payload.updated_at = new Date().toISOString();
+
+      await client.from('team_members').update(payload).eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase Sync] updateTeamMember DB error:', err.message);
+    }
+
     showNotification(`Updated user account details for ${updatedData.name || 'user'}`);
     if (typeof addLog === 'function') {
       addLog('Access', `Admin updated user account details for: ${updatedData.name || id}`);
     }
   };
 
-  const toggleTeamMemberStatus = (id) => {
+  const toggleTeamMemberStatus = async (id) => {
     let newStatus = 'Active';
     setTeamMembers(prev => {
       const updated = prev.map(m => {
@@ -1894,10 +1931,18 @@ export default function StoreContextProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('team_members').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase Sync] toggleTeamMemberStatus DB error:', err.message);
+    }
+
     showNotification(`User account status changed to ${newStatus}`);
   };
 
-  const updateTeamMemberRole = (id, newRole) => {
+  const updateTeamMemberRole = async (id, newRole) => {
     setTeamMembers(prev => {
       const updated = prev.map(m => m.id === id ? { ...m, role: newRole } : m);
       try {
@@ -1905,10 +1950,18 @@ export default function StoreContextProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('team_members').update({ role: newRole, updated_at: new Date().toISOString() }).eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase Sync] updateTeamMemberRole DB error:', err.message);
+    }
+
     showNotification(`Updated user role to ${newRole}`);
   };
 
-  const deleteTeamMember = (id) => {
+  const deleteTeamMember = async (id) => {
     setTeamMembers(prev => {
       const updated = prev.filter(m => m.id !== id);
       try {
@@ -1916,10 +1969,18 @@ export default function StoreContextProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('team_members').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase Sync] deleteTeamMember DB error:', err.message);
+    }
+
     showNotification(`Removed team member`, 'warning');
   };
 
-  const resetUserPassword = (id, newPassword) => {
+  const resetUserPassword = async (id, newPassword) => {
     let targetName = 'User';
     const cleanPass = (newPassword || '').trim();
     setTeamMembers(prev => {
@@ -1939,6 +2000,14 @@ export default function StoreContextProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('team_members').update({ password: cleanPass, updated_at: new Date().toISOString() }).eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase Sync] resetUserPassword DB error:', err.message);
+    }
+
     showNotification(`Password updated successfully for ${targetName}`);
     if (typeof addLog === 'function') {
       addLog('Security', `Admin reset password for user: ${targetName}`);
@@ -2861,10 +2930,11 @@ export default function StoreContextProvider({ children }) {
         safeFetch('activity_logs', activeClient.from('activity_logs').select('*').eq('business_id', activeBusinessId).order('created_at', { ascending: false }).limit(200), activeClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
         safeFetch('user_profiles', activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5), activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5)),
         safeFetch('suppliers', activeClient.from('suppliers').select('*').eq('business_id', activeBusinessId), activeClient.from('suppliers').select('*')),
-        safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*'))
+        safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*')),
+        safeFetch('team_members', activeClient.from('team_members').select('*'), activeClient.from('team_members').select('*'))
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, supData, poData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, supData, poData, teamData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
@@ -3321,6 +3391,26 @@ export default function StoreContextProvider({ children }) {
         }));
         setPurchaseOrders(loadedPOs);
         try { localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(loadedPOs)); } catch(e) {}
+      }
+
+      // 14. Team Members & Logins Data Hydration
+      if (Array.isArray(teamData) && teamData.length > 0) {
+        const loadedMembers = teamData.map(m => ({
+          id: m.id,
+          businessId: m.business_id || 'biz_main',
+          name: m.name,
+          email: m.email,
+          role: m.role || 'Sales Representative',
+          department: m.department || 'General',
+          phone: m.phone || '',
+          status: m.status || 'Active',
+          password: m.password || 'password123',
+          mustChangePassword: !!m.must_change_password,
+          expiryDate: m.expiry_date || '',
+          addedAt: m.created_at || m.added_at || new Date().toISOString()
+        }));
+        setTeamMembers(loadedMembers);
+        try { localStorage.setItem('gym_team_members', JSON.stringify(loadedMembers)); } catch(e) {}
       }
 
       const syncTimeStr = new Date().toISOString();
