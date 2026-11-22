@@ -867,10 +867,27 @@ button:focus,
   border-radius: 10px;
 }
 
+.btn-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+  min-width: 17px !important;
+  min-height: 17px !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  stroke-width: 2.2px !important;
+}
+
 .btn-icon.btn-sm {
   width: 32px;
   height: 32px;
   min-height: 32px;
+}
+
+.btn-icon.btn-sm svg {
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  min-height: 15px !important;
 }
 
 /* ===== DEDICATED CONTEXTUAL BUTTON COLORS IN DARK MODE ===== */
@@ -3815,28 +3832,34 @@ body.sidebar-open-locked .app-sidebar {
     gap: 8px !important;
   }
 
-  /* Entity Card Lists (Customers, Invoices, Leads) MUST be 1-column on mobile */
+  /* Entity Card Lists (Customers, Invoices, Leads, Quotes) MUST be 1-column on mobile */
   .customers-grid,
   .leads-card-grid,
-  .invoices-card-grid {
+  .invoices-card-grid,
+  .quotes-card-grid {
+    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 16px !important;
+    width: 100% !important;
   }
 
   .customers-grid .customer-card {
     padding: 18px 16px !important;
+    width: 100% !important;
   }
 
   .customer-card-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
     flex-wrap: nowrap !important;
+    width: 100% !important;
   }
 
   .customer-card-actions .action-history-btn {
     flex: 1 1 auto !important;
-    min-width: 0 !important;
+    min-width: 85px !important;
     height: 38px !important;
     padding: 0 10px !important;
     font-size: 0.8rem !important;
@@ -3846,6 +3869,7 @@ body.sidebar-open-locked .app-sidebar {
     justify-content: center !important;
     gap: 6px !important;
     border-radius: 9px !important;
+    overflow: hidden !important;
   }
 
   .customer-card-actions .btn-icon {
@@ -3868,6 +3892,7 @@ body.sidebar-open-locked .app-sidebar {
     min-height: 17px !important;
     display: block !important;
     flex-shrink: 0 !important;
+    stroke-width: 2.2px !important;
   }
 
   /* Metric cards compact typography */

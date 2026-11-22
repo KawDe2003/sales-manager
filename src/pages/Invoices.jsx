@@ -37,7 +37,9 @@ const Invoices = () => {
   };
 
   const getInvoiceShareUrl = (invoice) => {
-    return `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey || invoice.invoiceNumber}`;
+    const bizParam = (invoice.businessId || activeBusinessId) ? `?biz=${encodeURIComponent(invoice.businessId || activeBusinessId)}` : '';
+    const shareToken = invoice.shareToken || invoice.shareKey || invoice.id || invoice.invoiceNumber;
+    return `${window.location.origin}/share/invoice/${shareToken}${bizParam}`;
   };
 
   const formatPhoneForWhatsApp = (rawPhone) => {
@@ -583,8 +585,11 @@ Thank you for your business!`;
 };
 
 const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, onEdit, onRecordPayment, onViewInstallments, onSendWhatsApp, onSendSms, onDownload, onDelete }) => {
-  const shareLink = `${window.location.origin}/share/invoice/${invoice.id || invoice.shareKey}`;
-  const previewLink = `${shareLink}?preview=true`;
+  const { verifyAndGetShareLink, activeBusinessId, showNotification } = useContext(StoreContext) || {};
+  const bizParam = (invoice.businessId || activeBusinessId) ? `?biz=${encodeURIComponent(invoice.businessId || activeBusinessId)}` : '';
+  const shareToken = invoice.shareToken || invoice.shareKey || invoice.id;
+  const shareLink = `${window.location.origin}/share/invoice/${shareToken}${bizParam}`;
+  const previewLink = `${shareLink}${bizParam ? '&' : '?'}preview=true`;
   const customer = customers.find(c => 
     (invoice.customerId && c.id === invoice.customerId) ||
     (invoice.customer_id && c.id === invoice.customer_id) ||
@@ -768,9 +773,18 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
             <Eye size={16} className="text-accent" />
           </a>
           <button
+            type="button"
             className="btn btn-secondary"
             style={{ width: '40px', height: '40px', padding: 0 }}
-            onClick={() => { navigator.clipboard.writeText(shareLink); }}
+            onClick={async () => {
+              let finalLink = shareLink;
+              if (typeof verifyAndGetShareLink === 'function') {
+                const res = await verifyAndGetShareLink('invoice', invoice);
+                if (res && res.shareUrl) finalLink = res.shareUrl;
+              }
+              navigator.clipboard.writeText(finalLink);
+              showNotification && showNotification('Public invoice share link copied to clipboard!', 'success');
+            }}
             title="Share Link"
           >
             <LinkIcon size={16} />

@@ -153,9 +153,11 @@ const Quotations = () => {
 
 const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, onSendSms, onDownload }) => {
   const navigate = useNavigate();
-  const shareLink = `${window.location.origin}/share/quote/${quote.id || quote.shareKey}`;
-  const previewLink = `${shareLink}?preview=true`;
-  const { smsConfig = {}, invoices = [], customers = [] } = useContext(StoreContext) || {};
+  const { smsConfig = {}, invoices = [], customers = [], verifyAndGetShareLink, activeBusinessId, showNotification } = useContext(StoreContext) || {};
+  const bizParam = (quote.businessId || activeBusinessId) ? `?biz=${encodeURIComponent(quote.businessId || activeBusinessId)}` : '';
+  const shareToken = quote.shareToken || quote.shareKey || quote.id;
+  const shareLink = `${window.location.origin}/share/quote/${shareToken}${bizParam}`;
+  const previewLink = `${shareLink}&preview=true`;
   const customer = customers.find(c => 
     (quote.customerId && c.id === quote.customerId) ||
     (quote.customer_id && c.id === quote.customer_id) ||
@@ -206,8 +208,13 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
     ? (String(rawInvoiceNumber).startsWith('#') ? rawInvoiceNumber : `#${rawInvoiceNumber}`) 
     : '';
 
-  const handleWhatsAppShare = () => {
-    const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${shareLink}\n\nThank you!`;
+  const handleWhatsAppShare = async () => {
+    let finalLink = shareLink;
+    if (typeof verifyAndGetShareLink === 'function') {
+      const res = await verifyAndGetShareLink('quote', quote);
+      if (res && res.shareUrl) finalLink = res.shareUrl;
+    }
+    const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${finalLink}\n\nThank you!`;
     openWhatsApp({
       phone: quote.prospectPhone || '',
       text
@@ -417,11 +424,17 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
             <MessageCircle size={16} />
           </button>
           <button 
+            type="button"
             className="btn btn-secondary" 
             style={{ width: '40px', height: '40px', padding: 0 }} 
-            onClick={() => {
-              navigator.clipboard.writeText(shareLink);
-              showNotification && showNotification('Link copied!', 'success');
+            onClick={async () => {
+              let finalLink = shareLink;
+              if (typeof verifyAndGetShareLink === 'function') {
+                const res = await verifyAndGetShareLink('quote', quote);
+                if (res && res.shareUrl) finalLink = res.shareUrl;
+              }
+              navigator.clipboard.writeText(finalLink);
+              showNotification && showNotification('Public quotation share link copied to clipboard!', 'success');
             }}
             title="Share Link"
           >

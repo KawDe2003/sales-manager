@@ -241,8 +241,8 @@ export default function StoreContextProvider({ children }) {
   const sampleMainCustomers = [
     { id: 'mc-1', code: 'CUST-001', gymName: 'Fit Focus Gym & Fitness (2 Devices)', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', address: 'No. 128, Galle Road, Colombo 03, Sri Lanka', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2026-01-01', renewalDate: '2026-12-31', notes: [], cloudPushAcc: '192', deviceSerial: 'NYU7254000011', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Turnstile (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)' }], cloudPushApiKey: 'cGYm94tX97qA6cXw7UKgh64nr', ratePerUserMonth: 100 },
     { id: 'mc-2', code: 'CUST-002', gymName: 'PowerZone Fitness Club (2 Devices)', name: 'Samantha Silva', email: 'samantha@powerzone.lk', phone: '0714567890', address: 'Level 4, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 120 },
-    { id: 'mc-2b', code: 'CUST-002B', gymName: 'PowerZone Express (1 Device)', name: 'Samantha Silva', email: 'express@powerzone.lk', phone: '0714567891', address: 'Tower B, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 240000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 100 },
-    { id: 'mc-3', code: 'CUST-003', gymName: 'IronCore Athletic Center', name: 'Nishan Mendis', email: 'nishan@ironcore.lk', phone: '0765678901', address: 'No. 45, Alfred House Gardens, Colombo 03, Sri Lanka', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [], cloudPushAcc: '185', deviceSerial: 'NYU7254000030', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000030', role: 'IN', label: 'Main Entrance (IN)' }, { id: 'dev-2', sn: 'NYU7254000031', role: 'OUT', label: 'Member Exit Turnstile (OUT)' }], cloudPushApiKey: 'k9LmP2xQ89vB5yZ12WqRt33po', ratePerUserMonth: 100 }
+    { id: 'mc-2b', code: 'CUST-003', gymName: 'PowerZone Express (1 Device)', name: 'Samantha Silva', email: 'express@powerzone.lk', phone: '0714567891', address: 'Tower B, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 240000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Turnstile (IN)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 100 },
+    { id: 'mc-3', code: 'CUST-004', gymName: 'IronCore Athletic Center', name: 'Nishan Mendis', email: 'nishan@ironcore.lk', phone: '0765678901', address: 'No. 45, Alfred House Gardens, Colombo 03, Sri Lanka', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [], cloudPushAcc: '185', deviceSerial: 'NYU7254000030', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000030', role: 'IN', label: 'Main Entrance (IN)' }, { id: 'dev-2', sn: 'NYU7254000031', role: 'OUT', label: 'Member Exit Turnstile (OUT)' }], cloudPushApiKey: 'k9LmP2xQ89vB5yZ12WqRt33po', ratePerUserMonth: 100 }
   ];
 
   const sampleMainInventory = [
@@ -516,14 +516,15 @@ export default function StoreContextProvider({ children }) {
             if (gn.includes('fancy center') || gn.includes('bridal') || gn.includes('cosmetics') || gn.includes('salon chamari') || gn.includes('fashion corner')) return false;
             return true;
           });
-          // Ensure clean sequential codes starting from 1 (CUST-001, CUST-002, ...)
+          // Ensure clean unique sequential codes starting from 1 (CUST-001, CUST-002, ...)
+          const usedCodes = new Set();
           return sanitized.map((c, idx) => {
             let code = c.code;
-            const numMatch = code ? code.match(/^CUST-(\d+)$/i) : null;
-            const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
-            if (!code || isNaN(num) || num >= 1000 || code.match(/^CUST-[0-9a-f]{4}$/i) || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined')) {
+            const validPattern = code ? code.match(/^CUST-(\d+)[A-Z]?$/i) : null;
+            if (!code || !validPattern || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined') || usedCodes.has(code.toUpperCase())) {
               code = `CUST-${String(idx + 1).padStart(3, '0')}`;
             }
+            usedCodes.add(code.toUpperCase());
             return { ...c, code, businessId: 'biz_main' };
           });
         }
@@ -2044,11 +2045,14 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
+      const token = quote.shareToken || quote.shareKey || generateShareKey();
       const fullQuotePayload = {
         id: toUuid(quote.id),
         user_id: effId,
-        share_key: quote.shareKey || generateShareKey(),
-        quote_number: quote.quoteNumber || 'QT-1001',
+        business_id: quote.businessId || activeBusinessId || 'biz_main',
+        share_key: token,
+        share_token: token,
+        quote_number: quote.quoteNumber || quote.quote_number || 'QT-1001',
         customer_id: isUuid(quote.customerId) ? quote.customerId : null,
         date: quote.date || new Date().toISOString().split('T')[0],
         prospect_name: quote.prospectName || '',
@@ -2065,27 +2069,33 @@ export default function StoreContextProvider({ children }) {
         accepted_at: quote.acceptedAt || null
       };
 
-      let { error } = await supabase
+      const targetClient = getSupabaseClient(quote.businessId || activeBusinessId) || supabase;
+      let { error } = await targetClient
         .from('quotations')
         .upsert(fullQuotePayload, { onConflict: 'id' });
 
       if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column'))) {
-        const { prospect_address, address, customer_id, ...coreQuote } = fullQuotePayload;
-        const fallbackRes = await supabase.from('quotations').upsert(coreQuote, { onConflict: 'id' });
+        const { share_token, prospect_address, address, customer_id, ...coreQuote } = fullQuotePayload;
+        const fallbackRes = await targetClient.from('quotations').upsert(coreQuote, { onConflict: 'id' });
         error = fallbackRes.error;
       }
 
       if (error) {
         console.warn('[Supabase Sync] Quote Warning:', error.message);
         setCloudSyncStatus('error');
+        showNotification(`Cloud sync warning: ${error.message}`, 'warning');
+        return { success: false, error: error.message };
       } else {
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toISOString());
         setHasUnsavedChanges(false);
+        return { success: true, shareToken: token };
       }
     } catch (err) {
       console.warn('[Supabase Sync] Quote Exception:', err.message);
       setCloudSyncStatus('error');
+      showNotification(`Cloud sync error: ${err.message}`, 'error');
+      return { success: false, error: err.message };
     }
   };
 
@@ -2093,13 +2103,16 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
+      const token = invoice.shareToken || invoice.shareKey || generateShareKey();
 
       // Clean core payload strictly matching columns verified in remote Supabase
       const cleanCorePayload = {
         id: toUuid(invoice.id),
         user_id: effId,
-        share_key: invoice.shareKey || generateShareKey(),
-        invoice_number: invoice.invoiceNumber || 'INV-1001',
+        business_id: invoice.businessId || activeBusinessId || 'biz_main',
+        share_key: token,
+        share_token: token,
+        invoice_number: invoice.invoiceNumber || invoice.invoice_number || 'INV-1001',
         date: invoice.date || new Date().toISOString().split('T')[0],
         due_date: invoice.dueDate || null,
         customer_id: isUuid(invoice.customerId) ? invoice.customerId : null,
@@ -2122,30 +2135,71 @@ export default function StoreContextProvider({ children }) {
         quotation_id: isUuid(invoice.quotationId) ? invoice.quotationId : null
       };
 
-      let { error } = await supabase
+      const targetClient = getSupabaseClient(invoice.businessId || activeBusinessId) || supabase;
+      let { error } = await targetClient
         .from('invoices')
         .upsert(extendedPayload, { onConflict: 'id' });
 
       // If extended columns do not exist in the remote database, immediately fallback to clean core schema
       if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
-        const cleanRes = await supabase
+        const { share_token, ...fallbackCore } = cleanCorePayload;
+        const cleanRes = await targetClient
           .from('invoices')
-          .upsert(cleanCorePayload, { onConflict: 'id' });
+          .upsert(fallbackCore, { onConflict: 'id' });
         error = cleanRes.error;
       }
 
       if (error) {
         console.warn('[Supabase Sync] Invoice Warning:', error.message);
         setCloudSyncStatus('error');
+        showNotification(`Cloud sync warning: ${error.message}`, 'warning');
+        return { success: false, error: error.message };
       } else {
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toISOString());
         setHasUnsavedChanges(false);
+        return { success: true, shareToken: token };
       }
     } catch (err) {
       console.warn('[Supabase Sync] Invoice Exception:', err.message);
       setCloudSyncStatus('error');
+      showNotification(`Cloud sync error: ${err.message}`, 'error');
+      return { success: false, error: err.message };
     }
+  };
+
+  /**
+   * Verified Share Link Generator:
+   * Guarantees that the document is successfully persisted to the cloud before
+   * exposing/copying the public link. If cloud sync fails, surfaces an error toast.
+   */
+  const verifyAndGetShareLink = async (type, document) => {
+    if (!document) return { success: false, link: null };
+    const cleanType = (type === 'quote' || type === 'quotation') ? 'quote' : 'invoice';
+    const bizId = document.businessId || activeBusinessId || 'biz_main';
+    const token = document.shareToken || document.shareKey || generateShareKey();
+
+    const preparedDoc = {
+      ...document,
+      shareToken: token,
+      shareKey: token,
+      businessId: bizId
+    };
+
+    let syncRes = null;
+    if (cleanType === 'quote') {
+      syncRes = await syncQuoteToSupabase(preparedDoc);
+    } else {
+      syncRes = await syncInvoiceToSupabase(preparedDoc);
+    }
+
+    if (syncRes && syncRes.success === false) {
+      showNotification(`Failed to verify cloud persistence: ${syncRes.error}. Public link may fail on external devices.`, 'error');
+      return { success: false, link: null, error: syncRes.error };
+    }
+
+    const shareUrl = `${window.location.origin}/share/${cleanType}/${token}?biz=${encodeURIComponent(bizId)}`;
+    return { success: true, link: shareUrl, shareToken: token };
   };
 
   const syncCustomerToSupabase = async (customer) => {
@@ -2815,13 +2869,14 @@ export default function StoreContextProvider({ children }) {
         });
 
         if (filteredCData.length > 0) {
+          const usedCodes = new Set();
           const loadedCustomers = filteredCData.map((c, idx) => {
             let code = c.code;
-            const numMatch = code ? code.match(/^CUST-(\d+)$/i) : null;
-            const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
-            if (!code || isNaN(num) || num >= 1000 || code.match(/^CUST-[0-9a-f]{4}$/i) || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined')) {
+            const validPattern = code ? code.match(/^CUST-(\d+)[A-Z]?$/i) : null;
+            if (!code || !validPattern || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined') || usedCodes.has(code.toUpperCase())) {
               code = `CUST-${String(idx + 1).padStart(3, '0')}`;
             }
+            usedCodes.add(code.toUpperCase());
             return {
               id: c.id,
               code,
@@ -3787,7 +3842,8 @@ export default function StoreContextProvider({ children }) {
 
   // Actions
   const addCustomer = (customer) => {
-    const custCode = customer.code && !customer.code.match(/^CUST-[0-9a-f]{4}$/i) && !customer.code.includes('undefined')
+    const validPattern = customer.code ? customer.code.match(/^CUST-(\d+)[A-Z]?$/i) : null;
+    const custCode = customer.code && validPattern && !customer.code.includes('undefined')
       ? customer.code
       : getNextSequentialCustomerCode(customers);
     const newCustomer = { 
@@ -6027,7 +6083,7 @@ export default function StoreContextProvider({ children }) {
           setSmsConfig(prev => ({
             ...prev,
             balance: isUnconfigured ? 'Unconfigured' : 'Error',
-            balanceError: parsed.error || parsed.message || parsed.code || 'Failed to fetch balance'
+            balanceError: isUnconfigured ? 'QuickSend Gateway credentials required' : (parsed.error || parsed.message || 'Failed to fetch balance')
           }));
           return;
         }
@@ -6044,7 +6100,7 @@ export default function StoreContextProvider({ children }) {
 
       const trimmed = rawText.trim();
       if (!response.ok || trimmed.startsWith('{') || trimmed.toLowerCase().includes('error') || trimmed.includes('GATEWAY_')) {
-        setSmsConfig(prev => ({ ...prev, balance: 'Unconfigured', balanceError: trimmed }));
+        setSmsConfig(prev => ({ ...prev, balance: 'Unconfigured', balanceError: trimmed.startsWith('{') ? 'Gateway not configured' : trimmed }));
       } else {
         setSmsConfig(prev => ({ ...prev, balance: trimmed, balanceError: null }));
       }
@@ -6276,11 +6332,12 @@ export default function StoreContextProvider({ children }) {
         const isPayment = type.toLowerCase() === 'cashreceived' || type.toLowerCase() === 'payment';
         const route = isQuote ? 'quote' : isPayment ? 'receipt' : 'invoice';
         const token = isQuote 
-          ? (documentData.id || documentData.shareKey || documentData.quoteNumber || documentData.quote_number)
+          ? (documentData.shareToken || documentData.shareKey || documentData.id || documentData.quoteNumber || documentData.quote_number)
           : isPayment
-          ? (documentData.receiptNumber || documentData.id || documentData.shareKey)
-          : (documentData.id || documentData.shareKey || documentData.invoiceNumber || documentData.invoice_number);
-        return `${window.location.origin}/share/${route}/${token}`;
+          ? (documentData.receiptNumber || documentData.shareToken || documentData.shareKey || documentData.id)
+          : (documentData.shareToken || documentData.shareKey || documentData.id || documentData.invoiceNumber || documentData.invoice_number);
+        const bizParam = `?biz=${encodeURIComponent(documentData.businessId || activeBusinessId || 'biz_main')}`;
+        return `${window.location.origin}/share/${route}/${token}${bizParam}`;
       })
       .replace(/{renewalDate}/g, customer?.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : (documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : new Date().toLocaleDateString()))
       .replace(/{dueDate}/g, documentData?.dueDate ? new Date(documentData.dueDate).toLocaleDateString() : '')
@@ -6329,6 +6386,7 @@ export default function StoreContextProvider({ children }) {
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
       invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
       quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice, acceptQuote, proposeBudget, rejectQuote, checkQuotationExpirations,
+      verifyAndGetShareLink,
       leads, addLead, updateLead, deleteLead, addLeadComment, deleteLeadComment,
       expenses, addExpense, updateExpense, deleteExpense,
       tasks, addTask, updateTask, deleteTask,

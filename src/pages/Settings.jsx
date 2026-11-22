@@ -105,6 +105,7 @@ const Settings = () => {
   const [seynexTestResult, setSeynexTestResult] = useState(null);
 
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
+  const [copiedRpcSql, setCopiedRpcSql] = useState(false);
 
   // Sync state if database configuration updates
   useEffect(() => {
@@ -1108,6 +1109,129 @@ CREATE TABLE IF NOT EXISTS suppliers (id UUID PRIMARY KEY DEFAULT uuid_generate_
 CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), business_id VARCHAR(50) DEFAULT 'biz_main', ...);
 -- Click 'Copy Migration SQL' above to copy full schema with RLS policies & composite indexes`}
               </pre>
+
+              {/* SECURE PUBLIC SHARE RPC SCRIPT */}
+              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--panel-border)' }}>
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Public Document Sharing (SECURITY DEFINER RPC)
+                    </span>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Allows external clients (unauthenticated) to securely view shared quotes & invoices without exposing full tables.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      const rpcSql = `-- 1. Ensure share_token column exists on quotations & invoices
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS share_token UUID DEFAULT gen_random_uuid();
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS share_key TEXT;
+ALTER TABLE IF EXISTS quotations ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS share_token UUID DEFAULT gen_random_uuid();
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS share_key TEXT;
+ALTER TABLE IF EXISTS invoices ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+
+-- 2. Create the SECURITY DEFINER RPC function for public share pages
+CREATE OR REPLACE FUNCTION public.get_shared_document(
+    p_doc_type text,
+    p_token text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_clean_type text := lower(trim(p_doc_type));
+    v_token text := trim(p_token);
+    v_result jsonb := NULL;
+BEGIN
+    IF v_clean_type IN ('quote', 'quotation', 'quotes', 'quotations') THEN
+        SELECT jsonb_build_object(
+            'id', q.id,
+            'docType', 'quote',
+            'quoteNumber', q.quote_number,
+            'date', q.created_at,
+            'validUntil', q.valid_until,
+            'prospectName', q.prospect_name,
+            'prospectPhone', q.prospect_phone,
+            'prospectEmail', q.prospect_email,
+            'amount', q.amount,
+            'totalAmount', q.total_amount,
+            'discount', q.discount,
+            'items', q.items,
+            'status', q.status,
+            'notes', q.notes,
+            'businessId', q.business_id,
+            'shareToken', q.share_token,
+            'expiresAt', q.expires_at
+        )
+        INTO v_result
+        FROM public.quotations q
+        WHERE (
+            q.share_token::text = v_token
+            OR q.share_key = v_token
+            OR q.id::text = v_token
+            OR q.quote_number = v_token
+        )
+        AND (q.expires_at IS NULL OR q.expires_at > NOW())
+        LIMIT 1;
+
+    ELSIF v_clean_type IN ('invoice', 'invoices', 'inv') THEN
+        SELECT jsonb_build_object(
+            'id', i.id,
+            'docType', 'invoice',
+            'invoiceNumber', i.invoice_number,
+            'date', i.created_at,
+            'dueDate', i.due_date,
+            'prospectName', COALESCE(i.prospect_name, i.customer_name),
+            'customerName', COALESCE(i.customer_name, i.prospect_name),
+            'prospectPhone', i.prospect_phone,
+            'billingAddress', COALESCE(i.billing_address, i.address),
+            'amount', i.amount,
+            'totalAmount', i.total_amount,
+            'taxRate', i.tax_rate,
+            'taxAmount', i.tax_amount,
+            'discount', i.discount,
+            'items', i.items,
+            'status', i.status,
+            'notes', i.notes,
+            'businessId', i.business_id,
+            'shareToken', i.share_token,
+            'expiresAt', i.expires_at
+        )
+        INTO v_result
+        FROM public.invoices i
+        WHERE (
+            i.share_token::text = v_token
+            OR i.share_key = v_token
+            OR i.id::text = v_token
+            OR i.invoice_number = v_token
+        )
+        AND (i.expires_at IS NULL OR i.expires_at > NOW())
+        LIMIT 1;
+    END IF;
+
+    RETURN v_result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authenticated;`;
+                      navigator.clipboard.writeText(rpcSql);
+                      setCopiedRpcSql(true);
+                      showNotification('Secure Share RPC SQL copied to clipboard! Paste it into Supabase SQL Editor.', 'success');
+                      setTimeout(() => setCopiedRpcSql(false), 3000);
+                    }}
+                    style={{ height: '32px', fontSize: '0.78rem', gap: '6px' }}
+                  >
+                    {copiedRpcSql ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
+                    {copiedRpcSql ? 'Copied to Clipboard!' : 'Copy Share Page RPC SQL'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1918,7 +2042,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
               border: '1px solid var(--panel-border)',
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
             }}>
-              <div className="flex justify-between items-end gap-3" style={{ marginBottom: '20px' }}>
+              <div className="flex justify-between items-start gap-4" style={{ marginBottom: '20px' }}>
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <h3 style={{ 
                     margin: '0 0 6px 0', 
@@ -1933,8 +2057,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
                     {(() => {
                       const b = smsConfig.balance;
-                      const str = typeof b === 'object' ? JSON.stringify(b) : String(b || '').trim();
-                      const isUnconfigured = !b || str === 'Unconfigured' || str.startsWith('{') || str.includes('GATEWAY_') || str.toLowerCase().includes('unconfigured') || str.includes('CREDENTIALS') || !smsConfig.email || !smsConfig.apiKey;
+                      const str = typeof b === 'object' ? JSON.stringify(b) : String(b != null ? b : '').trim();
+                      const isUnconfigured = (b === undefined || b === null || b === '' || str === 'Unconfigured' || str.startsWith('{') || str.includes('GATEWAY_') || str.toLowerCase().includes('unconfigured') || str.includes('CREDENTIALS') || !smsConfig.email || !smsConfig.apiKey);
                       const isError = !isUnconfigured && (str === 'Error' || str.toLowerCase().includes('error') || str.includes('AUTH_ERROR'));
 
                       if (isUnconfigured) {
@@ -1965,6 +2089,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                       }
 
                       if (isError) {
+                        const safeError = smsConfig.balanceError && !smsConfig.balanceError.startsWith('{') && !smsConfig.balanceError.includes('GATEWAY_') ? smsConfig.balanceError : 'Check credentials or network connection';
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span style={{ 
@@ -1981,7 +2106,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (id UUID PRIMARY KEY DEFAULT uuid_gen
                               fontWeight: 600, 
                               color: 'var(--text-muted)'
                             }}>
-                              {smsConfig.balanceError || 'Check credentials'}
+                              {safeError}
                             </span>
                           </div>
                         );

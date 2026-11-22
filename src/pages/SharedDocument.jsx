@@ -1,13 +1,15 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
-import { supabase } from '../lib/supabase';
+import { supabase, getSupabaseClient } from '../lib/supabase';
 import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
 import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin, Cpu, Monitor, Wrench } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
   const [searchParams] = useSearchParams();
+  const bizId = searchParams.get('biz') || 'biz_main';
+  const activeClient = getSupabaseClient(bizId) || supabase;
   const isPreview = searchParams.get('preview') === 'true';
   const { 
     quotes = [], invoices = [], customers = [], 
@@ -37,7 +39,26 @@ const SharedDocument = () => {
       try {
         setLoading(true);
         let foundDoc = null;
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        const cleanType = String(type || '').toLowerCase().trim();
+        const searchKey = String(id || '').trim();
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchKey);
+
+        // --- 1. ATTEMPT SECURE SECURITY DEFINER RPC (Allows unauthenticated public clients without opening table RLS) ---
+        try {
+          const { data: rpcData, error: rpcError } = await activeClient.rpc('get_shared_document', {
+            p_doc_type: cleanType,
+            p_token: searchKey
+          });
+
+          if (rpcData && !rpcError) {
+            setDocData(rpcData);
+            setCustomerName(rpcData.customerName || rpcData.prospectName || (cleanType === 'po' ? rpcData.supplierName : 'Valued Client'));
+            setLoading(false);
+            return;
+          }
+        } catch (rpcErr) {
+          console.warn('[SharedDocument] RPC query notice:', rpcErr?.message || rpcErr);
+        }
 
         if (type === 'po') {
           // Check in StoreContext purchaseOrders or localStorage
@@ -107,7 +128,7 @@ const SharedDocument = () => {
           // 3. Supabase authoritative quote candidate
           let cloudQuote = null;
           try {
-            const query = supabase.from('quotations').select('*');
+            const query = activeClient.from('quotations').select('*');
             if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
             else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
             const { data, error } = await query.maybeSingle();
@@ -233,13 +254,13 @@ const SharedDocument = () => {
                   converted_invoice_number: foundDoc.convertedInvoiceNumber || null
                 };
                 if (isUUID) {
-                  supabase.from('quotations').update(upData).eq('id', foundDoc.id).then();
+                  activeClient.from('quotations').update(upData).eq('id', foundDoc.id).then();
                 }
                 if (foundDoc.shareKey) {
-                  supabase.from('quotations').update(upData).eq('share_key', foundDoc.shareKey).then();
+                  activeClient.from('quotations').update(upData).eq('share_key', foundDoc.shareKey).then();
                 }
                 if (foundDoc.quoteNumber) {
-                  supabase.from('quotations').update(upData).eq('quote_number', foundDoc.quoteNumber).then();
+                  activeClient.from('quotations').update(upData).eq('quote_number', foundDoc.quoteNumber).then();
                 }
               } catch (e) {}
             }
@@ -256,7 +277,7 @@ const SharedDocument = () => {
           let payMatch = allPayments.find(p => p.id === id || p.receiptNumber === id || String(p.receiptNumber).toLowerCase() === String(id).toLowerCase());
 
           if (!payMatch && isUUID) {
-            const { data } = await supabase.from('payments').select('*').eq('id', id).maybeSingle();
+            const { data } = await activeClient.from('payments').select('*').eq('id', id).maybeSingle();
             if (data) {
               payMatch = {
                 ...data,
@@ -291,7 +312,7 @@ const SharedDocument = () => {
             // Fallback: search in invoices
             foundDoc = invoices.find(item => item.id === id || item.shareKey === id || item.invoiceNumber === id);
             if (!foundDoc) {
-              const query = supabase.from('invoices').select('*');
+              const query = activeClient.from('invoices').select('*');
               if (isUUID) query.or(`id.eq.${id},share_key.eq.${id}`);
               else query.eq('share_key', id);
               const { data } = await query.single();
@@ -335,7 +356,7 @@ const SharedDocument = () => {
             } catch (e) {}
           }
           if (!foundDoc) {
-            const query = supabase.from('invoices').select('*');
+            const query = activeClient.from('invoices').select('*');
             if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
             else query.or(`share_key.eq.${searchKey},invoice_number.eq.${searchKey},invoice_number.ilike.${searchKey}`);
 
@@ -1402,13 +1423,13 @@ const SharedDocument = () => {
                               converted_invoice_number: invNum
                             };
                             if (acceptedData.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedData.id)) {
-                              supabase.from('quotations').update(upData).eq('id', acceptedData.id).then();
+                              activeClient.from('quotations').update(upData).eq('id', acceptedData.id).then();
                             }
                             if (acceptedData.shareKey) {
-                              supabase.from('quotations').update(upData).eq('share_key', acceptedData.shareKey).then();
+                              activeClient.from('quotations').update(upData).eq('share_key', acceptedData.shareKey).then();
                             }
                             if (acceptedData.quoteNumber) {
-                              supabase.from('quotations').update(upData).eq('quote_number', acceptedData.quoteNumber).then();
+                              activeClient.from('quotations').update(upData).eq('quote_number', acceptedData.quoteNumber).then();
                             }
                           } catch (e) {}
 

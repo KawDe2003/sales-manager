@@ -260,11 +260,13 @@ const Dashboard = () => {
     }, 0);
   }, [invoices]);
 
-  // 9. Upcoming Renewals (Next 30 Days)
+  // 9. Upcoming Renewals (Next 30 Days) - Only for customers with active annual renewal contracts
   const upcomingRenewalsCount = useMemo(() => {
     return customers.filter(c => {
-      if (!c.nextRenewalDate || c.renewalFrequency === 'One Time') return false;
-      const rDate = new Date(c.nextRenewalDate);
+      if (c.billingType === 'One-Time' || c.billingType === 'None' || c.renewalFrequency === 'One Time' || c.renewalFrequency === 'None' || !c.annualFee) return false;
+      const rDateStr = c.renewalDate || c.nextRenewalDate;
+      if (!rDateStr) return false;
+      const rDate = new Date(rDateStr);
       const diffDays = Math.ceil((rDate - now) / (1000 * 60 * 60 * 24));
       return diffDays >= 0 && diffDays <= 30;
     }).length;

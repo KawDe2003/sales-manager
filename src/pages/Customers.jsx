@@ -90,7 +90,7 @@ const Customers = () => {
 
   const handleExport = () => {
     const exportData = filteredCustomers.map((c, idx) => ({
-      'Customer ID': c.code && !c.code.match(/^CUST-[0-9a-f]{4}$/i) && !c.code.startsWith('SNX-') ? c.code : `CUST-${String(idx + 1).padStart(3, '0')}`,
+      'Customer ID': c.code || `CUST-${String(idx + 1).padStart(3, '0')}`,
       'Company / Enterprise Name': c.gymName,
       'Contact Person': c.name,
       'Mobile Phone': c.phone,
@@ -200,9 +200,7 @@ const Customers = () => {
             const totalPaid = custPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
             const outstanding = Math.max(0, totalInvoiced - totalPaid);
 
-            const displayCode = customer.code && !customer.code.match(/^CUST-[0-9a-f]{4}$/i) && !customer.code.startsWith('SNX-')
-              ? customer.code
-              : `CUST-${String(idx + 1).padStart(3, '0')}`;
+            const displayCode = customer.code || `CUST-${String(idx + 1).padStart(3, '0')}`;
 
             return (
               <div 
@@ -292,11 +290,34 @@ const Customers = () => {
                     </div>
                     {customer.phone && <div className="flex items-center gap-2"><Phone size={12} /> {customer.phone}</div>}
                     {customer.email && <div className="flex items-center gap-2"><Mail size={12} /> {customer.email}</div>}
-                    {customer.renewalFrequency && customer.renewalFrequency !== 'None' && (
-                      <div className="flex items-center gap-2" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
-                        <Clock size={12} /> {customer.renewalFrequency} Renewal: {customer.renewalDate ? new Date(customer.renewalDate).toLocaleDateString() : 'Pending'}
-                      </div>
-                    )}
+                    {/* Subscription / Cloud Fee Badge */}
+                    <div style={{ marginTop: '4px' }}>
+                      {(() => {
+                        const bType = customer.billingType || (customer.renewalFrequency === 'One Time' || customer.renewalFrequency === 'None' || (!customer.annualFee && !customer.renewalDate) ? 'One-Time' : (customer.ratePerUserMonth && !customer.annualFee ? 'Monthly' : 'Annual'));
+                        if (bType === 'One-Time' || bType === 'None' || (!customer.annualFee && customer.annualFee !== 0 && !customer.renewalDate)) {
+                          return (
+                            <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>
+                              <ShieldCheck size={13} style={{ color: '#94a3b8' }} />
+                              <span>One-Time Purchase (No Annual Cloud Fee)</span>
+                            </div>
+                          );
+                        }
+                        if (bType === 'Monthly') {
+                          return (
+                            <div className="flex items-center gap-2" style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 700 }}>
+                              <Clock size={13} />
+                              <span>Monthly Active-User Billing (LKR {customer.ratePerUserMonth || 100}/user)</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex items-center gap-2" style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <Clock size={13} />
+                            <span>Annual Cloud: LKR {(Number(customer.annualFee) || 0).toLocaleString()}/yr {customer.renewalDate ? `· Renews ${new Date(customer.renewalDate).toLocaleDateString()}` : ''}</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
 
@@ -305,7 +326,7 @@ const Customers = () => {
                   <button 
                     type="button"
                     className="btn btn-secondary action-history-btn" 
-                    style={{ flex: 1, minWidth: 0, height: '38px', fontSize: '0.8rem', fontWeight: 700, gap: '6px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ flex: 1, minWidth: '85px', height: '38px', fontSize: '0.8rem', fontWeight: 700, gap: '6px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                     onClick={() => setTimelineCustomer(customer)}
                     title="View 360 History and Transaction Timeline"
                   >
@@ -345,7 +366,7 @@ const Customers = () => {
                     onClick={() => { setEditingCustomer(customer); setShowModal(true); }}
                     title="Edit Customer"
                   >
-                    <Edit2 size={16} style={{ flexShrink: 0 }} />
+                    <Edit2 size={17} style={{ flexShrink: 0 }} />
                   </button>
 
                   <button 
@@ -361,7 +382,7 @@ const Customers = () => {
                     }}
                     title="Delete Customer"
                   >
-                    <Trash2 size={16} style={{ flexShrink: 0 }} />
+                    <Trash2 size={17} style={{ flexShrink: 0 }} />
                   </button>
                 </div>
               </div>
@@ -438,6 +459,10 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
   const { showNotification } = useContext(StoreContext) || {};
   const defaultTag = 'Enterprise Client';
   const parsedContact = parseSalutationAndName(initialData?.name || '', initialData?.salutation || 'Mr.');
+  const initialBillingType = initialData?.billingType 
+    || (initialData?.renewalFrequency === 'One Time' || initialData?.renewalFrequency === 'None' || (initialData && !initialData.annualFee && !initialData.renewalDate) ? 'One-Time' 
+    : (initialData?.ratePerUserMonth && !initialData?.annualFee ? 'Monthly' : 'Annual'));
+
   const [formData, setFormData] = useState({
     code: initialData?.code || nextCustomerCode || 'CUST-001',
     gymName: initialData?.gymName || '',
@@ -450,15 +475,17 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
     status: initialData?.status || 'Active',
     tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tag ? [initialData.tag] : [defaultTag]),
     leadSource: initialData?.leadSource || 'Referral',
-    annualFee: initialData?.annualFee || 450000,
-    renewalDate: initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+    billingType: initialBillingType,
+    renewalFrequency: initialData?.renewalFrequency || (initialBillingType === 'Annual' ? 'Annual' : (initialBillingType === 'Monthly' ? 'Monthly' : 'One Time')),
+    annualFee: initialBillingType === 'One-Time' || initialBillingType === 'None' ? 0 : (initialData?.annualFee ?? 450000),
+    renewalDate: initialBillingType === 'One-Time' || initialBillingType === 'None' ? '' : (initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]),
     cloudPushAcc: initialData?.cloudPushAcc || '',
     deviceSerial: initialData?.deviceSerial || '',
     deviceSerials: Array.isArray(initialData?.deviceSerials) ? initialData.deviceSerials : (
       initialData?.deviceSerial ? [{ id: 'dev-1', sn: initialData.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }] : []
     ),
     cloudPushApiKey: initialData?.cloudPushApiKey || '',
-    ratePerUserMonth: initialData?.ratePerUserMonth || 100
+    ratePerUserMonth: initialData?.ratePerUserMonth ?? 100
   });
 
   const [newCustDeviceSn, setNewCustDeviceSn] = useState('');
@@ -539,6 +566,8 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
       : '';
 
     try {
+      const isAnnual = formData.billingType === 'Annual';
+      const isOneTime = formData.billingType === 'One-Time' || formData.billingType === 'None';
       onSave({
         ...formData,
         gymName: cleanGymName,
@@ -548,6 +577,10 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
         email: (formData.email || '').trim(),
         address: (formData.address || '').trim(),
         taxNumber: (formData.taxNumber || '').trim(),
+        billingType: formData.billingType || (isOneTime ? 'One-Time' : 'Annual'),
+        renewalFrequency: isAnnual ? 'Annual' : (formData.billingType === 'Monthly' ? 'Monthly' : 'One Time'),
+        annualFee: isOneTime ? 0 : (Number(formData.annualFee) || 0),
+        renewalDate: isOneTime ? '' : (formData.renewalDate || ''),
         cloudPushAcc: (formData.cloudPushAcc || '').trim(),
         deviceSerial: (formData.deviceSerial || '').trim(),
         cloudPushApiKey: (formData.cloudPushApiKey || '').trim()
@@ -751,7 +784,119 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                 />
               </div>
 
-              {/* Cloud Push Device Settings (For Annual Billing) */}
+              {/* Cloud Subscription & Billing Model */}
+              <div className="form-group md:col-span-2" style={{
+                marginTop: '10px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.25)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Receipt size={16} style={{ color: 'var(--accent-primary)' }} />
+                    <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                      Cloud Subscription & Billing Profile
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600 }}>
+                    Configure annual cloud fee, monthly user billing, or one-time license
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Billing Model / License Type</label>
+                    <CustomSelect
+                      value={formData.billingType}
+                      onChange={val => {
+                        let newAnnual = formData.annualFee;
+                        let newRenewal = formData.renewalDate;
+                        if (val === 'One-Time' || val === 'None') {
+                          newAnnual = 0;
+                          newRenewal = '';
+                        } else if (val === 'Annual' && (!newAnnual || newAnnual === 0)) {
+                          newAnnual = 450000;
+                          newRenewal = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
+                        }
+                        setFormData({
+                          ...formData,
+                          billingType: val,
+                          annualFee: newAnnual,
+                          renewalDate: newRenewal,
+                          renewalFrequency: val === 'Annual' ? 'Annual' : (val === 'Monthly' ? 'Monthly' : 'One Time')
+                        });
+                      }}
+                      options={[
+                        { value: 'Annual', label: 'Annual Cloud Subscription (Recurring Fee)' },
+                        { value: 'Monthly', label: 'Monthly Active-User Billing (Per User/Mo)' },
+                        { value: 'One-Time', label: 'One-Time / Hardware Purchase Only (No Cloud Fee)' },
+                        { value: 'None', label: 'Exempt / No Recurring Cloud Fee' }
+                      ]}
+                      style={{ height: '40px', width: '100%' }}
+                    />
+                  </div>
+
+                  {formData.billingType === 'Annual' && (
+                    <>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem' }}>Annual Cloud Fee (LKR) *</label>
+                        <input 
+                          type="number" 
+                          className="form-input" 
+                          style={{ height: '40px', fontSize: '0.86rem' }}
+                          placeholder="e.g. 450000" 
+                          value={formData.annualFee} 
+                          onChange={e => setFormData({...formData, annualFee: Number(e.target.value) || 0})} 
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem' }}>Next Annual Renewal Date</label>
+                        <input 
+                          type="date" 
+                          className="form-input" 
+                          style={{ height: '40px', fontSize: '0.86rem' }}
+                          value={formData.renewalDate || ''} 
+                          onChange={e => setFormData({...formData, renewalDate: e.target.value})} 
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.billingType === 'Monthly' && (
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>Rate / Active User / Month (LKR)</label>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        style={{ height: '40px', fontSize: '0.86rem' }}
+                        placeholder="100" 
+                        value={formData.ratePerUserMonth} 
+                        onChange={e => setFormData({...formData, ratePerUserMonth: Number(e.target.value) || 0})} 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {(formData.billingType === 'One-Time' || formData.billingType === 'None') && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(148, 163, 184, 0.08)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    fontSize: '0.78rem',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <ShieldCheck size={14} style={{ color: '#10b981' }} />
+                    <span>This client is not charged an annual cloud fee. No renewal reminders or recurring invoices will be scheduled.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cloud Push & Hardware Device Config */}
               <div className="form-group md:col-span-2" style={{
                 marginTop: '10px',
                 padding: '16px',
@@ -759,12 +904,6 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                 background: 'rgba(99, 102, 241, 0.06)',
                 border: '1px solid rgba(99, 102, 241, 0.2)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    eTechno Cloud Push & Hardware Device Config (Annual Billing)
-                  </span>
-                </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />

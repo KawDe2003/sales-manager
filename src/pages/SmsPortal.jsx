@@ -219,8 +219,8 @@ const SmsPortal = () => {
               <span style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--success)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
                 {(() => {
                   const b = smsConfig.balance;
-                  const str = String(b || '').trim();
-                  const isError = str === 'Unconfigured' || str === 'Error' || str.includes('error') || str.includes('Invalid') || str.startsWith('{') || str.includes('AUTH_ERROR') || str.includes('Unauthorized') || str.includes('GATEWAY_');
+                  const str = typeof b === 'object' ? JSON.stringify(b) : String(b != null ? b : '').trim();
+                  const isError = (b === undefined || b === null || b === '' || str === 'Unconfigured' || str === 'Error' || str.includes('error') || str.includes('Invalid') || str.startsWith('{') || str.includes('AUTH_ERROR') || str.includes('Unauthorized') || str.includes('GATEWAY_') || !smsConfig.email || !smsConfig.apiKey);
                   if (isError) {
                     return (
                       <span style={{ 
@@ -256,7 +256,6 @@ const SmsPortal = () => {
                       </span>
                     );
                   }
-                  if (b === undefined || b === null || b === '') return 'LKR 2,450.00';
                   if (typeof b === 'number') return `LKR ${b.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   if (str.startsWith('LKR')) return str;
                   const parsed = parseFloat(str);
