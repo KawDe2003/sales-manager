@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+
 import { 
   Users, DollarSign, Calendar, Plus, Search, CheckCircle2, FileText, 
   Trash2, Edit, X, Calculator, ShieldCheck, Printer, Download, UserPlus,
@@ -2065,11 +2065,9 @@ const HR = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ===== HR MODALS & DRAWERS (PORTALLED TO DOCUMENT.BODY) =================== */}
+      {/* ===== HR MODALS & DRAWERS =============================================== */}
       {/* ========================================================================= */}
-      {typeof document !== 'undefined' && createPortal(
-        <div id="hr-modals-portal">
-          {profileEmployee && (
+      {profileEmployee && (
         <div 
           className="modal-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setProfileEmployee(null); }}
@@ -4058,9 +4056,6 @@ const HR = () => {
             </form>
           </div>
         </div>
-      )}
-        </div>,
-        document.body
       )}
 
     </div>

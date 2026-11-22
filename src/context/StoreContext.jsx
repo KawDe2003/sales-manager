@@ -2146,11 +2146,12 @@ export default function StoreContextProvider({ children }) {
   const syncQuoteToSupabase = async (quote) => {
     try {
       setCloudSyncStatus('syncing');
-      const effId = getEffectiveUserId();
+      const isAuthUser = user?.id && isUuid(user.id) && user.id !== '76bb4580-2006-464f-aab8-64029dbe9540';
+      const safeUserId = isAuthUser ? user.id : null;
       const token = quote.shareToken || quote.shareKey || generateShareKey();
       const fullQuotePayload = {
         id: toUuid(quote.id),
-        user_id: effId,
+        user_id: safeUserId,
         business_id: quote.businessId || activeBusinessId || 'biz_main',
         share_key: token,
         share_token: token,
@@ -2165,7 +2166,7 @@ export default function StoreContextProvider({ children }) {
         status: quote.status || 'Pending',
         items: Array.isArray(quote.items) ? quote.items : [],
         // Explicit invoice link fields — critical for SharedDocument status resolution
-        converted_invoice_id: quote.convertedInvoiceId || null,
+        converted_invoice_id: isUuid(quote.convertedInvoiceId) ? quote.convertedInvoiceId : null,
         converted_invoice_number: quote.convertedInvoiceNumber || null,
         sent_at: quote.sentAt || null,
         accepted_at: quote.acceptedAt || null
@@ -2176,11 +2177,18 @@ export default function StoreContextProvider({ children }) {
         .from('quotations')
         .upsert(fullQuotePayload, { onConflict: 'id' });
 
+      // Immediate retry if foreign key constraint failed on user_id
+      if (error && error.code === '23503') {
+        const noUserPayload = { ...fullQuotePayload, user_id: null };
+        const retryRes = await targetClient.from('quotations').upsert(noUserPayload, { onConflict: 'id' });
+        error = retryRes.error;
+      }
+
       // Clean core fallback: strictly match columns verified in remote quotations table
       if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
         const coreQuote = {
           id: fullQuotePayload.id,
-          user_id: effId,
+          user_id: safeUserId,
           share_key: token,
           quote_number: fullQuotePayload.quote_number,
           date: fullQuotePayload.date,
@@ -2223,13 +2231,14 @@ export default function StoreContextProvider({ children }) {
   const syncInvoiceToSupabase = async (invoice) => {
     try {
       setCloudSyncStatus('syncing');
-      const effId = getEffectiveUserId();
+      const isAuthUser = user?.id && isUuid(user.id) && user.id !== '76bb4580-2006-464f-aab8-64029dbe9540';
+      const safeUserId = isAuthUser ? user.id : null;
       const token = invoice.shareToken || invoice.shareKey || generateShareKey();
 
       // Extended payload including optional relational and address fields
       const extendedPayload = {
         id: toUuid(invoice.id),
-        user_id: effId,
+        user_id: safeUserId,
         business_id: invoice.businessId || activeBusinessId || 'biz_main',
         share_key: token,
         share_token: token,
@@ -2256,11 +2265,19 @@ export default function StoreContextProvider({ children }) {
         .from('invoices')
         .upsert(extendedPayload, { onConflict: 'id' });
 
+      // Immediate retry if foreign key constraint failed on user_id or customer_id
+      if (error && error.code === '23503') {
+        const noFkPayload = { ...extendedPayload, user_id: null };
+        if (noFkPayload.customer_id) noFkPayload.customer_id = null;
+        const retryRes = await targetClient.from('invoices').upsert(noFkPayload, { onConflict: 'id' });
+        error = retryRes.error;
+      }
+
       // Clean core fallback: strictly match columns verified in remote invoices table
       if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
         const fallbackCore = {
           id: extendedPayload.id,
-          user_id: effId,
+          user_id: safeUserId,
           share_key: token,
           invoice_number: extendedPayload.invoice_number,
           date: extendedPayload.date,
@@ -2923,16 +2940,17 @@ export default function StoreContextProvider({ children }) {
         }
       };
       
+      const bizOrNullFilter = `business_id.eq.${activeBusinessId},business_id.is.null`;
       const fetchResults = await Promise.all([
-        safeFetch('customers', activeClient.from('customers').select('*').eq('business_id', activeBusinessId), activeClient.from('customers').select('*')),
-        safeFetch('inventory', activeClient.from('inventory').select('*').eq('business_id', activeBusinessId), activeClient.from('inventory').select('*')),
-        safeFetch('quotations', activeClient.from('quotations').select('*').eq('business_id', activeBusinessId), activeClient.from('quotations').select('*')),
-        safeFetch('invoices', activeClient.from('invoices').select('*').eq('business_id', activeBusinessId), activeClient.from('invoices').select('*')),
-        safeFetch('leads', activeClient.from('leads').select('*').eq('business_id', activeBusinessId), activeClient.from('leads').select('*')),
-        safeFetch('expenses', activeClient.from('expenses').select('*').eq('business_id', activeBusinessId), activeClient.from('expenses').select('*')),
-        safeFetch('payments', activeClient.from('payments').select('*').eq('business_id', activeBusinessId), activeClient.from('payments').select('*')),
-        safeFetch('tasks', activeClient.from('tasks').select('*').eq('business_id', activeBusinessId), activeClient.from('tasks').select('*')),
-        safeFetch('fixed_assets', activeClient.from('fixed_assets').select('*').eq('business_id', activeBusinessId), activeClient.from('fixed_assets').select('*')),
+        safeFetch('customers', activeClient.from('customers').select('*').or(bizOrNullFilter), activeClient.from('customers').select('*')),
+        safeFetch('inventory', activeClient.from('inventory').select('*').or(bizOrNullFilter), activeClient.from('inventory').select('*')),
+        safeFetch('quotations', activeClient.from('quotations').select('*').or(bizOrNullFilter), activeClient.from('quotations').select('*')),
+        safeFetch('invoices', activeClient.from('invoices').select('*').or(bizOrNullFilter), activeClient.from('invoices').select('*')),
+        safeFetch('leads', activeClient.from('leads').select('*').or(bizOrNullFilter), activeClient.from('leads').select('*')),
+        safeFetch('expenses', activeClient.from('expenses').select('*').or(bizOrNullFilter), activeClient.from('expenses').select('*')),
+        safeFetch('payments', activeClient.from('payments').select('*').or(bizOrNullFilter), activeClient.from('payments').select('*')),
+        safeFetch('tasks', activeClient.from('tasks').select('*').or(bizOrNullFilter), activeClient.from('tasks').select('*')),
+        safeFetch('fixed_assets', activeClient.from('fixed_assets').select('*').or(bizOrNullFilter), activeClient.from('fixed_assets').select('*')),
         safeFetch('activity_logs', activeClient.from('activity_logs').select('*').eq('business_id', activeBusinessId).order('created_at', { ascending: false }).limit(200), activeClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
         safeFetch('user_profiles', activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5), activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5)),
         safeFetch('suppliers', activeClient.from('suppliers').select('*').eq('business_id', activeBusinessId), activeClient.from('suppliers').select('*')),
@@ -3444,6 +3462,8 @@ export default function StoreContextProvider({ children }) {
     setCloudSyncStatus('syncing');
     if (!isSilent) showNotification(`Saving ${activeBusiness?.name || 'Workspace'} records to cloud database...`, 'info');
     const effId = getEffectiveUserId();
+    const isAuthUser = user?.id && isUuid(user.id) && user.id !== '76bb4580-2006-464f-aab8-64029dbe9540';
+    const safeUserId = isAuthUser ? user.id : null;
     const activeClient = getSupabaseClient(activeBusinessId);
 
     try {
@@ -3566,7 +3586,7 @@ export default function StoreContextProvider({ children }) {
 
       const quoteRecords = (quotes || []).map(q => ({
         id: toUuid(q.id),
-        user_id: effId,
+        user_id: safeUserId,
         share_key: q.shareKey || generateShareKey(),
         quote_number: q.quoteNumber || 'QT-1001',
         customer_id: isUuid(q.customerId) ? q.customerId : null,
@@ -3582,7 +3602,7 @@ export default function StoreContextProvider({ children }) {
 
       const invoiceRecords = (invoices || []).map(inv => ({
         id: toUuid(inv.id),
-        user_id: effId,
+        user_id: safeUserId,
         share_key: inv.shareKey || generateShareKey(),
         invoice_number: inv.invoiceNumber || 'INV-1001',
         date: inv.date || new Date().toISOString().split('T')[0],
