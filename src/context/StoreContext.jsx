@@ -268,6 +268,53 @@ export const sampleMainInvoices = [
   }
 ];
 
+export const DEFAULT_AGENT_RULES = [
+  {
+    id: 'rule-renewal',
+    agent_key: 'renewal_agent',
+    name: 'Annual Cloud Renewal Agent',
+    description: 'Scans customer subscription expiry at 30-day, 7-day, and 1-day milestones to send automated SMS warnings and draft renewal invoices.',
+    enabled: true,
+    mode: 'approval_queue',
+    schedule_cron: '0 3 * * *',
+    config_json: { milestones: [30, 7, 1], auto_invoice: true },
+    last_run_at: null
+  },
+  {
+    id: 'rule-debtors',
+    agent_key: 'debtors_agent',
+    name: 'Overdue Debtors Recovery Agent',
+    description: 'Tracks unpaid invoices at 7, 14, and 30 days overdue. Dispatches SMS payment reminders containing tokenized public share links.',
+    enabled: true,
+    mode: 'approval_queue',
+    schedule_cron: '0 3 * * *',
+    config_json: { milestones: [7, 14, 30], include_share_link: true },
+    last_run_at: null
+  },
+  {
+    id: 'rule-crm',
+    agent_key: 'crm_agent',
+    name: 'CRM Lead Follow-Up Agent',
+    description: 'Monitors active sales leads untouched for more than 3 days. Generates follow-up tasks and calendar reminders.',
+    enabled: true,
+    mode: 'approval_queue',
+    schedule_cron: '0 3 * * *',
+    config_json: { inactivity_days: 3, priority: 'High' },
+    last_run_at: null
+  },
+  {
+    id: 'rule-ops',
+    agent_key: 'ops_watchdog',
+    name: 'Ops & Fleet Watchdog Agent',
+    description: 'Monitors low inventory stock below reorder thresholds and detects offline turnstiles to push real-time alerts.',
+    enabled: true,
+    mode: 'approval_queue',
+    schedule_cron: '0 3 * * *',
+    config_json: { low_stock_threshold: 5 },
+    last_run_at: null
+  }
+];
+
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(false);
@@ -1744,6 +1791,171 @@ export default function StoreContextProvider({ children }) {
     try { localStorage.removeItem('gym_system_notifications'); } catch (e) {}
   };
 
+  // --- Autonomous Agents & Reminders System State ---
+  const [agentRules, setAgentRules] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_agent_rules');
+      return saved ? JSON.parse(saved) : DEFAULT_AGENT_RULES;
+    } catch {
+      return DEFAULT_AGENT_RULES;
+    }
+  });
+
+  const [agentQueue, setAgentQueue] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_agent_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [agentLogs, setAgentLogs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gym_agent_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_agent_rules', JSON.stringify(agentRules));
+    } catch (e) {}
+  }, [agentRules]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_agent_queue', JSON.stringify(agentQueue));
+    } catch (e) {}
+  }, [agentQueue]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gym_agent_logs', JSON.stringify(agentLogs.slice(0, 200)));
+    } catch (e) {}
+  }, [agentLogs]);
+
+  const updateAgentRule = async (agentKey, updates) => {
+    setAgentRules(prev => prev.map(r => r.agent_key === agentKey ? { ...r, ...updates, updated_at: new Date().toISOString() } : r));
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('agent_rules').update(updates).eq('agent_key', agentKey);
+    } catch (err) {
+      console.warn('[Supabase Sync] updateAgentRule warning:', err.message);
+    }
+  };
+
+  const approveQueueItem = async (itemId) => {
+    const item = agentQueue.find(q => q.id === itemId);
+    if (!item) return;
+
+    const payload = item.payload_json || {};
+
+    try {
+      if (item.proposed_action === 'send_sms') {
+        const phone = payload.phone;
+        const message = payload.message;
+        if (phone && message) {
+          await sendDirectSMS(phone, message);
+        }
+      } else if (item.proposed_action === 'create_task') {
+        await addTask({
+          title: payload.title || item.title,
+          description: payload.description || item.summary,
+          priority: payload.priority || 'High',
+          dueDate: payload.dueDate || new Date().toISOString().split('T')[0],
+          relatedTo: 'Lead',
+          relatedId: payload.leadId
+        });
+      } else if (item.proposed_action === 'alert') {
+        addNotification({
+          type: 'warning',
+          title: item.title,
+          message: item.summary
+        });
+      }
+    } catch (err) {
+      console.warn('[Queue Approve Error]:', err);
+    }
+
+    const executedAt = new Date().toISOString();
+    setAgentQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'executed', executed_at: executedAt } : q));
+
+    const newLog = {
+      id: uuidv4(),
+      agent_key: item.agent_key,
+      entity_id: String(item.entity_id),
+      milestone_key: `${item.entity_id}_manual_approved_${Date.now()}`,
+      status: 'executed',
+      details: { executedBy: 'UserApproval', action: item.proposed_action, title: item.title },
+      executed_at: executedAt
+    };
+    setAgentLogs(prev => [newLog, ...prev].slice(0, 200));
+
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('agent_queue').update({ status: 'executed', executed_at: executedAt }).eq('id', itemId);
+      await client.from('agent_execution_logs').insert(newLog);
+    } catch (e) {
+      console.warn('[Supabase Sync] Error syncing approved queue item:', e.message);
+    }
+
+    showNotification(`Executed action for "${item.title}" successfully!`, 'success');
+  };
+
+  const dismissQueueItem = async (itemId) => {
+    setAgentQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'dismissed' } : q));
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('agent_queue').update({ status: 'dismissed' }).eq('id', itemId);
+    } catch (e) {}
+    showNotification('Action item dismissed.', 'info');
+  };
+
+  const approveAllQueueItems = async () => {
+    const pendings = agentQueue.filter(q => q.status === 'pending');
+    for (const item of pendings) {
+      await approveQueueItem(item.id);
+    }
+  };
+
+  const dismissAllQueueItems = async () => {
+    setAgentQueue(prev => prev.map(q => q.status === 'pending' ? { ...q, status: 'dismissed' } : q));
+    try {
+      const client = getSupabaseClient(activeBusinessId);
+      await client.from('agent_queue').update({ status: 'dismissed' }).eq('status', 'pending');
+    } catch (e) {}
+    showNotification('All pending items dismissed.', 'info');
+  };
+
+  const runDailySweepManual = async () => {
+    setCloudSyncStatus('syncing');
+    try {
+      const res = await fetch('/api/agents/daily-sweep', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        showNotification(data.message || 'Daily sweep completed successfully!', 'success');
+        const client = getSupabaseClient(activeBusinessId);
+        const [qRes, lRes, rRes] = await Promise.all([
+          client.from('agent_queue').select('*').order('created_at', { ascending: false }),
+          client.from('agent_execution_logs').select('*').order('executed_at', { ascending: false }).limit(200),
+          client.from('agent_rules').select('*')
+        ]);
+        if (qRes.data && Array.isArray(qRes.data)) setAgentQueue(qRes.data);
+        if (lRes.data && Array.isArray(lRes.data)) setAgentLogs(lRes.data);
+        if (rRes.data && Array.isArray(rRes.data) && rRes.data.length > 0) setAgentRules(rRes.data);
+      } else {
+        showNotification(data.message || 'Sweep returned warnings.', 'warning');
+      }
+    } catch (err) {
+      showNotification(`Daily sweep trigger failed: ${err.message}`, 'error');
+    } finally {
+      setCloudSyncStatus('synced');
+    }
+  };
+
   const [teamMembers, setTeamMembers] = useState(() => {
     const saved = localStorage.getItem('gym_team_members');
     if (saved) {
@@ -2861,10 +3073,13 @@ export default function StoreContextProvider({ children }) {
         safeFetch('activity_logs', activeClient.from('activity_logs').select('*').eq('business_id', activeBusinessId).order('created_at', { ascending: false }).limit(200), activeClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200)),
         safeFetch('user_profiles', activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5), activeClient.from('user_profiles').select('config, user_id, updated_at').order('updated_at', { ascending: false }).limit(5)),
         safeFetch('suppliers', activeClient.from('suppliers').select('*').eq('business_id', activeBusinessId), activeClient.from('suppliers').select('*')),
-        safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*'))
+        safeFetch('purchase_orders', activeClient.from('purchase_orders').select('*').eq('business_id', activeBusinessId), activeClient.from('purchase_orders').select('*')),
+        safeFetch('agent_rules', activeClient.from('agent_rules').select('*'), activeClient.from('agent_rules').select('*')),
+        safeFetch('agent_queue', activeClient.from('agent_queue').select('*').order('created_at', { ascending: false }), activeClient.from('agent_queue').select('*').order('created_at', { ascending: false })),
+        safeFetch('agent_execution_logs', activeClient.from('agent_execution_logs').select('*').order('executed_at', { ascending: false }).limit(200), activeClient.from('agent_execution_logs').select('*').order('executed_at', { ascending: false }).limit(200))
       ]);
 
-      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, supData, poData] = fetchResults;
+      const [cData, invData, qData, iData, lData, eData, pData, tData, faData, logData, profData, supData, poData, agRulesData, agQueueData, agLogsData] = fetchResults;
 
       console.log('[Supabase Sync] Fetch results - Customers:', cData?.length ?? 'N/A', '| Invoices:', iData?.length ?? 'N/A', '| Quotes:', qData?.length ?? 'N/A');
 
@@ -3321,6 +3536,20 @@ export default function StoreContextProvider({ children }) {
         }));
         setPurchaseOrders(loadedPOs);
         try { localStorage.setItem(`biz_data_${activeBusinessId}_purchaseOrders`, JSON.stringify(loadedPOs)); } catch(e) {}
+      }
+
+      // 14. Autonomous Agents & Reminders Data Hydration
+      if (Array.isArray(agRulesData) && agRulesData.length > 0) {
+        setAgentRules(agRulesData);
+        try { localStorage.setItem('gym_agent_rules', JSON.stringify(agRulesData)); } catch(e) {}
+      }
+      if (Array.isArray(agQueueData)) {
+        setAgentQueue(agQueueData);
+        try { localStorage.setItem('gym_agent_queue', JSON.stringify(agQueueData)); } catch(e) {}
+      }
+      if (Array.isArray(agLogsData)) {
+        setAgentLogs(agLogsData);
+        try { localStorage.setItem('gym_agent_logs', JSON.stringify(agLogsData)); } catch(e) {}
       }
 
       const syncTimeStr = new Date().toISOString();
@@ -6516,6 +6745,11 @@ export default function StoreContextProvider({ children }) {
       theme, toggleTheme,
       notification, showNotification,
       systemNotifications, addNotification, markNotificationRead, markNotificationsRead,
+      // Autonomous Agents & Reminders Suite
+      agentRules, updateAgentRule,
+      agentQueue, approveQueueItem, dismissQueueItem, approveAllQueueItems, dismissAllQueueItems,
+      agentLogs, runDailySweepManual,
+      pendingAgentApprovalsCount: (agentQueue || []).filter(q => q.status === 'pending').length,
       resetToSeynexDefaults, seedDummyData,
       suppliers, addSupplier, updateSupplier, deleteSupplier,
       purchaseOrders, addPurchaseOrder, updatePurchaseOrderStatus, deletePurchaseOrder,

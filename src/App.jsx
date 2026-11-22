@@ -36,6 +36,7 @@ const HR = lazy(() => import('./pages/HR'));
 const Login = lazy(() => import('./pages/Login'));
 const Features = lazy(() => import('./pages/Features'));
 const CloudPushPortal = lazy(() => import('./pages/CloudPushPortal'));
+const Agents = lazy(() => import('./pages/Agents'));
 
 // Smooth, non-flickering skeleton loader for page transitions
 const RouteSkeletonLoader = () => (
@@ -240,11 +241,14 @@ const AppContent = () => {
     inventory = [], quotes = [], purchaseOrders = [],
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
     resetEverythingWithConfirmation, hasUnsavedChanges,
-    activeBusinessId, activeBusiness
+    activeBusinessId, activeBusiness,
+    agentQueue = [], pendingAgentApprovalsCount = 0
   } = useContext(StoreContext) || {};
   const { user, loading: isAuthLoading, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const pendingAgentCount = pendingAgentApprovalsCount || (agentQueue || []).filter(q => q.status === 'pending').length;
 
   const brandName = smsConfig.dashboardName || smsConfig.companyName || activeBusiness?.name || 'Seynex Enterprises';
 
@@ -692,13 +696,13 @@ const AppContent = () => {
               aria-label="Recent Activity Alerts"
             >
               <Bell size={21} strokeWidth={2.3} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
-              {systemNotifications?.length > 0 && (
+              {((systemNotifications?.length || 0) + pendingAgentCount) > 0 && (
                 <span style={{
                   position: 'absolute', top: '-3px', right: '-3px',
-                  background: 'var(--danger)', color: 'white', fontSize: '0.62rem',
+                  background: pendingAgentCount > 0 ? '#f59e0b' : 'var(--danger)', color: 'white', fontSize: '0.62rem',
                   fontWeight: 800, minWidth: '18px', height: '18px', borderRadius: '9px',
                   padding: '0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-primary)'
-                }}>{systemNotifications.length}</span>
+                }}>{(systemNotifications?.length || 0) + pendingAgentCount}</span>
               )}
             </button>
 
@@ -724,9 +728,9 @@ const AppContent = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--subtle-border)', background: 'var(--subtle-bg)' }}>
                     <div className="flex items-center gap-2">
                       <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>Activity Feed</span>
-                      {systemNotifications?.length > 0 && (
+                      {((systemNotifications?.length || 0) + pendingAgentCount) > 0 && (
                         <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'var(--accent-primary)', color: '#fff', fontWeight: 700 }}>
-                          {systemNotifications.length} new
+                          {(systemNotifications?.length || 0) + pendingAgentCount} new
                         </span>
                       )}
                     </div>
@@ -748,6 +752,37 @@ const AppContent = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Surface Pending Autonomous Agent Approvals Banner */}
+                  {pendingAgentCount > 0 && (
+                    <div
+                      onClick={() => {
+                        navigate('/agents');
+                        setNotificationsOpen(false);
+                      }}
+                      style={{
+                        padding: '10px 14px',
+                        margin: '10px 14px 4px 14px',
+                        borderRadius: '10px',
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Zap size={15} color="#f59e0b" />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {pendingAgentCount} Agent Approval{pendingAgentCount > 1 ? 's' : ''} Pending
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800 }}>Review in AI Center →</span>
+                    </div>
+                  )}
+
                   <div style={{ maxHeight: 'min(380px, calc(100dvh - 200px))', overflowY: 'auto' }}>
                     {(!systemNotifications || systemNotifications.length === 0) ? (
                       <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -1137,6 +1172,14 @@ const AppContent = () => {
           {/* Section: SYSTEM */}
           <SidebarSection label="SYSTEM" collapsed={isSidebarCollapsed} />
           <nav style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', gap: '2px' }}>
+            <NavItem
+              to="/agents"
+              icon={<Zap size={18} />}
+              label="AI Agents & Automation"
+              badge={pendingAgentCount > 0 ? pendingAgentCount : null}
+              onClick={closeSidebar}
+              collapsed={isSidebarCollapsed}
+            />
             {isFeatureEnabled('smsPortal') && (
               <NavItem to="/sms" icon={<MessageSquare size={18} />} label="SMS Portal & Broadcast" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
@@ -1271,6 +1314,7 @@ const AppContent = () => {
                 <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
                 <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
                 <Route path="/cloud-push" element={<ProtectedRoute userPermissions={userPermissions}><CloudPushPortal /></ProtectedRoute>} />
+                <Route path="/agents" element={<ProtectedRoute userPermissions={userPermissions}><Agents /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
                 <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -1332,7 +1376,7 @@ const SidebarSection = ({ label, collapsed }) => (
 );
 
 // NavItem Component
-const NavItem = ({ to, icon, label, onClick, collapsed }) => {
+const NavItem = ({ to, icon, label, onClick, collapsed, badge }) => {
   return (
     <NavLink
       to={to}
@@ -1382,18 +1426,48 @@ const NavItem = ({ to, icon, label, onClick, collapsed }) => {
             color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
             display: 'flex',
             flexShrink: 0,
+            position: 'relative',
             transition: 'color 0.22s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
             transform: isActive ? 'scale(1.12) rotate(-2deg)' : 'scale(1) rotate(0deg)'
           }}>
             {icon}
+            {collapsed && badge && (
+              <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#f59e0b',
+                boxShadow: '0 0 6px #f59e0b'
+              }} />
+            )}
           </span>
           {!collapsed && (
             <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flex: 1,
               transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
               opacity: 1,
               transform: 'translateX(0)'
             }}>
-              {label}
+              <span>{label}</span>
+              {badge ? (
+                <span style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '10px',
+                  background: '#f59e0b',
+                  color: '#fff',
+                  marginLeft: '8px'
+                }}>
+                  {badge}
+                </span>
+              ) : null}
             </span>
           )}
         </>

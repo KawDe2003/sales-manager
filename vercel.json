@@ -1,5 +1,11 @@
 {
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/agents/daily-sweep",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
