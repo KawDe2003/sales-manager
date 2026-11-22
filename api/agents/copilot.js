@@ -16,7 +16,7 @@ export default async function handler(request, response) {
     const { prompt = '', context = {}, customApiKey = '', customProvider = 'auto' } = body;
 
     // Resolve API keys (Priority: Environment Variables, then forwarded client key)
-    const geminiKey = process.env.GEMINI_API_KEY || (customProvider === 'gemini' ? customApiKey : (customApiKey?.startsWith('AIzaSy') ? customApiKey : ''));
+    const geminiKey = process.env.GEMINI_API_KEY || (customProvider === 'gemini' ? customApiKey : (customApiKey?.startsWith('AIzaSy') || customApiKey?.startsWith('AQ.') ? customApiKey : ''));
     const groqKey = process.env.GROQ_API_KEY || (customProvider === 'groq' ? customApiKey : (customApiKey?.startsWith('gsk_') ? customApiKey : ''));
     const openrouterKey = process.env.OPENROUTER_API_KEY || (customProvider === 'openrouter' ? customApiKey : (customApiKey?.startsWith('sk-or-') ? customApiKey : ''));
 
@@ -102,16 +102,17 @@ Instructions:
         } else {
           const errData = await geminiRes.json().catch(() => ({}));
           const errMsg = errData.error?.message || `HTTP ${geminiRes.status} ${geminiRes.statusText}`;
-          providerError = `Google Gemini Error (${errMsg}). Note: Free Gemini API keys must be created at https://aistudio.google.com/app/apikey (starts with 'AIzaSy...'). Keys starting with 'AQ.' from Google Cloud Console credentials are not accepted by the Generative Language API.`;
+          const isUnsupported = errMsg.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED') || errMsg.includes('API key not valid');
+          if (isUnsupported) {
+            providerError = `Google Gemini rejected key (${errMsg}). This happens when your Google Cloud project (273989328724) does not have the 'Generative Language API' enabled in Google Cloud Console, or if API restrictions are blocking it. Quick fix: in Google AI Studio, click "Create API Key" → select "Create key in new project" (or use free Groq LLaMA 3.3).`;
+          } else {
+            providerError = `Google Gemini API Error: ${errMsg}`;
+          }
           console.warn('[Copilot]', providerError);
         }
       } catch (e) {
         providerError = `Gemini connection failed: ${e.message}`;
         console.warn('[Copilot] Gemini exception:', e.message);
-      }
-    } else if (customApiKey && !groqKey && !openrouterKey) {
-      if (customApiKey.startsWith('AQ.')) {
-        providerError = `Your key starts with 'AQ.', which is a Google Cloud OAuth token, not a Gemini API key. Please generate a 100% free Gemini API key starting with 'AIzaSy...' at https://aistudio.google.com/app/apikey.`;
       }
     }
 

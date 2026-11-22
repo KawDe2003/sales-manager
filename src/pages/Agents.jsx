@@ -1023,14 +1023,9 @@ const Agents = () => {
                     </div>
 
                     {/* Key Format Helper / Validation */}
-                    {aiProvider === 'gemini' && freeApiKey && freeApiKey.startsWith('AQ.') && (
-                      <div style={{ fontSize: '0.70rem', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 8px', borderRadius: '6px' }}>
-                        ⚠️ Notice: Keys starting with <code>AQ.</code> are Google Cloud OAuth tokens. Free Gemini API keys start with <code>AIzaSy...</code> from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Google AI Studio</a>.
-                      </div>
-                    )}
                     {aiProvider === 'gemini' && !freeApiKey && (
                       <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)' }}>
-                        💡 Tip: Get a 100% free key starting with <code>AIzaSy...</code> in 30 seconds at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>aistudio.google.com/app/apikey</a>.
+                        💡 Tip: In <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Google AI Studio</a>, click <strong>Create API Key</strong> → select <em>"Create key in new project"</em> to ensure the Generative Language API is pre-enabled.
                       </div>
                     )}
                     {aiProvider === 'groq' && !freeApiKey && (
