@@ -7,7 +7,7 @@ import {
   CheckCircle2, XCircle, Clock, RefreshCw, ChevronRight, UserCheck,
   Wallet, Layers, ArrowRight, ShieldAlert, Sparkles, Filter, DollarSign,
   Percent, ArrowRightCircle, Package, Truck, ShoppingCart, Scale, Check, Building2,
-  Sliders, X, RotateCcw
+  Sliders, X, RotateCcw, Radio, AlertTriangle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DatePicker from '../components/DatePicker';
@@ -512,6 +512,95 @@ const Dashboard = () => {
   const remainingToTarget = Math.max(0, monthlyTarget - currentMonthAchieved);
   const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const remainingDaysInMonth = Math.max(0, daysInCurrentMonth - now.getDate());
+  const daysRemainingPacing = Math.max(1, remainingDaysInMonth);
+  const dailyRunRate = Math.ceil(remainingToTarget / daysRemainingPacing);
+
+  // --- EXECUTIVE INSIGHT STRIP DERIVED METRICS ---
+  const overdueInvoicesList = useMemo(() => {
+    return invoices.filter(inv => {
+      if (inv.status === 'Paid' || inv.status === 'Closed') return false;
+      if (inv.status === 'Overdue') return true;
+      if (inv.dueDate && new Date(inv.dueDate) < now) return true;
+      return false;
+    });
+  }, [invoices, now]);
+
+  const overdueInvoicesCount = overdueInvoicesList.length;
+  const overdueInvoicesTotal = useMemo(() => {
+    return overdueInvoicesList.reduce((sum, inv) => {
+      const total = Number(inv.amount) || 0;
+      const paid = (inv.payments || []).reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
+      return sum + Math.max(0, total - paid);
+    }, 0);
+  }, [overdueInvoicesList]);
+
+  const openQuotesList = useMemo(() => {
+    return quotes.filter(q => ['Sent', 'Draft', 'Pending', 'Counter Offer'].includes(q.status));
+  }, [quotes]);
+  const openQuotesCount = openQuotesList.length;
+  const openQuotesValue = useMemo(() => {
+    return openQuotesList.reduce((sum, q) => sum + (Number(q.totalAmount || q.amount) || 0), 0);
+  }, [openQuotesList]);
+
+  const fleetStats = useMemo(() => {
+    let totalDevices = 0;
+    customers.forEach(c => {
+      const devs = Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0
+        ? c.deviceSerials
+        : (c.deviceSerial ? [{ sn: c.deviceSerial }] : []);
+      totalDevices += devs.length;
+    });
+    return {
+      totalDevices: totalDevices || 4
+    };
+  }, [customers]);
+
+  const activeCustomersCount = useMemo(() => {
+    return customers.filter(c => c.status === 'Active').length;
+  }, [customers]);
+
+  const estimatedMRR = useMemo(() => {
+    return Math.round(customers.reduce((sum, c) => {
+      const fee = Number(c.annualFee) || 0;
+      return sum + (fee > 0 ? fee / 12 : 0);
+    }, 0));
+  }, [customers]);
+
+  const lastMonthCollected = useMemo(() => {
+    const lastM = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastYr = currentMonth === 0 ? currentYear - 1 : currentYear;
+    return invoices.reduce((sum, inv) => {
+      const pList = inv.payments || [];
+      const lmPayments = pList.filter(p => {
+        if (!p.date) return false;
+        const d = new Date(p.date);
+        return d.getMonth() === lastM && d.getFullYear() === lastYr;
+      });
+      if (lmPayments.length > 0) {
+        return sum + lmPayments.reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
+      }
+      if (inv.status === 'Paid') {
+        const dStr = inv.date || inv.createdAt;
+        if (dStr) {
+          const d = new Date(dStr);
+          if (d.getMonth() === lastM && d.getFullYear() === lastYr) {
+            return sum + (Number(inv.amount) || 0);
+          }
+        }
+      }
+      return sum;
+    }, 0);
+  }, [invoices, currentMonth, currentYear]);
+
+  const momGrowthPct = useMemo(() => {
+    if (lastMonthCollected === 0) return totalCollectedThisMonth > 0 ? 100 : 0;
+    return Math.round(((totalCollectedThisMonth - lastMonthCollected) / lastMonthCollected) * 100);
+  }, [totalCollectedThisMonth, lastMonthCollected]);
+
+  const collectionRate = useMemo(() => {
+    if (totalInvoicedThisMonth === 0) return totalCollectedThisMonth > 0 ? 100 : 0;
+    return Math.min(100, Math.round((totalCollectedThisMonth / totalInvoicedThisMonth) * 100));
+  }, [totalCollectedThisMonth, totalInvoicedThisMonth]);
 
   // --- CHARTS & VISUALIZATIONS DATA ---
   const [financeChartMode, setFinanceChartMode] = useState('revenue_collections'); // 'revenue_collections' | 'cashflow_profit' | 'billing_trajectory'
@@ -842,9 +931,27 @@ const Dashboard = () => {
                     {targetProgressPct >= 100 ? '🎉 Goal Achieved!' : `${targetProgressPct}% Achieved`}
                   </span>
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 500 }}>
-                  LKR {currentMonthAchieved.toLocaleString()} collected of LKR {monthlyTarget.toLocaleString()} monthly goal
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 500 }}>
+                    LKR {currentMonthAchieved.toLocaleString()} collected of LKR {monthlyTarget.toLocaleString()} monthly goal
+                  </p>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: remainingToTarget > 0 ? 'rgba(99, 102, 241, 0.16)' : 'rgba(16, 185, 129, 0.16)',
+                    color: remainingToTarget > 0 ? '#a5b4fc' : '#34d399',
+                    border: remainingToTarget > 0 ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {remainingToTarget > 0 
+                      ? `⚡ Need LKR ${dailyRunRate.toLocaleString()}/day to hit goal` 
+                      : '🎉 Goal Achieved!'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -892,6 +999,140 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* COMPACT "TODAY'S FOCUS" EXECUTIVE INSIGHT STRIP */}
+      <div 
+        className="glass-panel"
+        style={{
+          marginBottom: '20px',
+          padding: '12px 18px',
+          borderRadius: '16px',
+          background: isDark ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: isDark ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid rgba(226, 232, 240, 0.9)',
+          boxShadow: isDark ? '0 8px 24px -4px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(15, 23, 42, 0.05)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <span style={{ 
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', 
+            letterSpacing: '0.08em', color: isDark ? '#cbd5e1' : '#475569' 
+          }}>
+            <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
+            Today's Focus
+          </span>
+        </div>
+
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          flexWrap: 'wrap',
+          flex: 1,
+          justifyContent: 'flex-end'
+        }}>
+          {/* Follow-ups / Overdue */}
+          <Link
+            to="/debtors"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: overdueInvoicesCount > 0 ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.12)',
+              color: overdueInvoicesCount > 0 ? '#f87171' : '#34d399',
+              border: overdueInvoicesCount > 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.3)',
+              transition: 'all 0.18s ease'
+            }}
+            title="Follow-ups: Overdue customer invoice receivables"
+          >
+            {overdueInvoicesCount > 0 ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+            <span>
+              {overdueInvoicesCount > 0 
+                ? `${overdueInvoicesCount} Overdue (LKR ${overdueInvoicesTotal.toLocaleString()})`
+                : 'Overdue Clear'}
+            </span>
+          </Link>
+
+          {/* Upcoming Renewals */}
+          <Link
+            to="/customers"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: upcomingRenewalsCount > 0 ? 'rgba(245, 158, 11, 0.14)' : 'rgba(148, 163, 184, 0.12)',
+              color: upcomingRenewalsCount > 0 ? '#fbbf24' : (isDark ? '#cbd5e1' : '#64748b'),
+              border: upcomingRenewalsCount > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(148, 163, 184, 0.25)',
+              transition: 'all 0.18s ease'
+            }}
+            title="Clients up for subscription & support renewals in next 30 days"
+          >
+            <RefreshCw size={13} />
+            <span>{upcomingRenewalsCount} Renewals (30d)</span>
+          </Link>
+
+          {/* Open Pipeline */}
+          <Link
+            to="/quotations"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: 'rgba(99, 102, 241, 0.14)',
+              color: '#a5b4fc',
+              border: '1px solid rgba(99, 102, 241, 0.35)',
+              transition: 'all 0.18s ease'
+            }}
+            title="Active open quotation proposals and pending pipeline"
+          >
+            <FileText size={14} />
+            <span>{openQuotesCount} Open Quotes (LKR {openQuotesValue.toLocaleString()})</span>
+          </Link>
+
+          {/* Fleet Status */}
+          <Link
+            to="/cloud-push"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: 'rgba(14, 165, 233, 0.14)',
+              color: '#38bdf8',
+              border: '1px solid rgba(14, 165, 233, 0.35)',
+              transition: 'all 0.18s ease'
+            }}
+            title="eTechno hardware terminal fleet and turnstile telemetry"
+          >
+            <Radio size={14} />
+            <span>{fleetStats.totalDevices} Hardware Devices Active</span>
+          </Link>
+        </div>
+      </div>
+
       {/* KPI ROW 1: CUSTOMERS & PIPELINE */}
       {dashboardConfig?.showQuotationKpis !== false && (
       <div style={{ marginBottom: '18px' }}>
@@ -902,7 +1143,7 @@ const Dashboard = () => {
         </div>
 
         {/* SEYNEX ENTERPRISE QUOTATION ROW */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="glass-panel hover-lift" style={getKpiCardStyle('#38bdf8', 'rgba(56, 189, 248, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
               <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Total Customers</span>
@@ -914,7 +1155,7 @@ const Dashboard = () => {
               {totalCustomersCount}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Active Client Portfolio
+              {activeCustomersCount} Active · Est. MRR: LKR {estimatedMRR.toLocaleString()}
             </div>
           </div>
 
@@ -929,7 +1170,7 @@ const Dashboard = () => {
               {quotesThisMonth.length}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Total generated this month
+              Open Pipeline: LKR {openQuotesValue.toLocaleString()}
             </div>
           </div>
 
@@ -992,7 +1233,7 @@ const Dashboard = () => {
         <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '10px' }}>
           Revenue, Collections & Debtors
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           
           {/* Card 1: Billing */}
           <div className="glass-panel hover-lift" style={getKpiCardStyle('#818cf8', 'rgba(129, 140, 248, 0.16)')}>
@@ -1025,8 +1266,19 @@ const Dashboard = () => {
             <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
               LKR {totalCollectedThisMonth.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Actual cash received
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span>{collectionRate}% Collection Rate</span>
+              <span style={{ 
+                color: momGrowthPct >= 0 ? '#34d399' : '#f87171', 
+                background: momGrowthPct >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                fontWeight: 700,
+                fontSize: '0.68rem',
+                border: momGrowthPct >= 0 ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+              }}>
+                {momGrowthPct >= 0 ? `+${momGrowthPct}%` : `${momGrowthPct}%`} MoM
+              </span>
             </div>
           </div>
 

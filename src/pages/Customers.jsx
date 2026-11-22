@@ -171,7 +171,7 @@ const Customers = () => {
       </div>
 
       {/* Customers List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="customers-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers.length === 0 ? (
           <div className="lg:col-span-3 glass-panel flex flex-col items-center justify-center" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <User size={48} color="var(--text-muted)" style={{ opacity: 0.4, marginBottom: '16px' }} />
@@ -207,10 +207,10 @@ const Customers = () => {
             return (
               <div 
                 key={customer.id} 
-                className="glass-panel hover-lift" 
+                className="glass-panel hover-lift customer-card" 
                 style={{ 
                   display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                  padding: '24px', position: 'relative', borderLeft: `4px solid ${customer.status === 'Active' ? 'var(--success)' : 'var(--panel-border)'}`
+                  padding: '22px 20px', position: 'relative', borderLeft: `4px solid ${customer.status === 'Active' ? 'var(--success)' : 'var(--panel-border)'}`
                 }}
               >
                 <div>
@@ -301,25 +301,26 @@ const Customers = () => {
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="pt-3 border-t border-panel flex items-center justify-between gap-2">
+                <div className="customer-card-actions pt-3 border-t border-panel flex items-center justify-between gap-2">
                   <button 
                     type="button"
-                    className="btn btn-secondary" 
-                    style={{ flex: 1, height: '36px', fontSize: '0.75rem', fontWeight: 700, gap: '6px' }}
+                    className="btn btn-secondary action-history-btn" 
+                    style={{ flex: 1, minWidth: 0, height: '38px', fontSize: '0.8rem', fontWeight: 700, gap: '6px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                     onClick={() => setTimelineCustomer(customer)}
                     title="View 360 History and Transaction Timeline"
                   >
-                    <History size={14} className="text-accent" /> 360 History
+                    <History size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)' }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>360 History</span>
                   </button>
 
                   <button 
                     type="button"
-                    className="btn btn-secondary" 
-                    style={{ width: '36px', height: '36px', padding: 0, position: 'relative' }} 
+                    className="btn-icon btn-secondary" 
+                    style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', padding: 0, position: 'relative', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
                     onClick={() => setActiveNotesCustomer(customer)}
                     title="Internal Staff Notes"
                   >
-                    <StickyNote size={15} color="var(--warning)" />
+                    <StickyNote size={17} style={{ color: 'var(--warning)', flexShrink: 0 }} />
                     {customer.notes?.length > 0 && (
                       <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--warning)', color: '#000', fontSize: '9px', fontWeight: 900, borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {customer.notes.length}
@@ -329,28 +330,28 @@ const Customers = () => {
 
                   <button 
                     type="button"
-                    className="btn btn-secondary" 
-                    style={{ width: '36px', height: '36px', padding: 0, color: 'var(--accent-primary)' }} 
+                    className="btn-icon btn-secondary" 
+                    style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', padding: 0, color: 'var(--accent-primary)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
                     onClick={() => navigate('/cloud-push', { state: { customerId: customer.id } })}
                     title="Cloud Push & Active Users Statement"
                   >
-                    <Cloud size={15} />
+                    <Cloud size={17} style={{ flexShrink: 0 }} />
                   </button>
 
                   <button 
                     type="button"
-                    className="btn btn-secondary" 
-                    style={{ width: '36px', height: '36px', padding: 0 }} 
+                    className="btn-icon btn-secondary" 
+                    style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', padding: 0, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
                     onClick={() => { setEditingCustomer(customer); setShowModal(true); }}
                     title="Edit Customer"
                   >
-                    <Edit2 size={14} />
+                    <Edit2 size={16} style={{ flexShrink: 0 }} />
                   </button>
 
                   <button 
                     type="button"
-                    className="btn btn-secondary" 
-                    style={{ width: '36px', height: '36px', padding: 0, color: 'var(--danger)' }} 
+                    className="btn-icon btn-secondary" 
+                    style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', padding: 0, color: 'var(--danger)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
                     onClick={() => {
                       confirmAction({
                         title: 'Delete Customer Record',
@@ -360,7 +361,7 @@ const Customers = () => {
                     }}
                     title="Delete Customer"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} style={{ flexShrink: 0 }} />
                   </button>
                 </div>
               </div>
