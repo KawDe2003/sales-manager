@@ -2068,7 +2068,7 @@ const HR = () => {
       {/* ===== HR MODALS & DRAWERS (PORTALLED TO DOCUMENT.BODY) =================== */}
       {/* ========================================================================= */}
       {typeof document !== 'undefined' && createPortal(
-        <>
+        <div id="hr-modals-portal">
           {profileEmployee && (
         <div 
           className="modal-overlay"
@@ -4059,7 +4059,7 @@ const HR = () => {
           </div>
         </div>
       )}
-        </>,
+        </div>,
         document.body
       )}
 

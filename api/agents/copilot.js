@@ -1,6 +1,10 @@
 // Server-Side Executive AI Copilot Endpoint
 // Endpoint: /api/agents/copilot.js
-// Powered by Google Gemini 1.5/2.5 Flash with deterministic algorithmic fallback
+// Supports 100% Free AI Providers:
+// 1. Google Gemini 1.5/2.0 Flash (Free tier via Google AI Studio)
+// 2. Groq Cloud LLaMA 3.3 70B (Free tier via console.groq.com)
+// 3. OpenRouter Free Models (openrouter.ai)
+// 4. Built-in Deterministic Algorithmic Engine (100% free, zero-config, zero-network)
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -9,9 +13,12 @@ export default async function handler(request, response) {
 
   try {
     const body = typeof request.body === 'string' ? JSON.parse(request.body || '{}') : (request.body || {});
-    const { prompt = '', context = {}, mode = 'briefing' } = body;
+    const { prompt = '', context = {}, customApiKey = '', customProvider = 'auto' } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Resolve API keys (Priority: Environment Variables, then forwarded client key)
+    const geminiKey = process.env.GEMINI_API_KEY || (customProvider === 'gemini' ? customApiKey : '');
+    const groqKey = process.env.GROQ_API_KEY || (customProvider === 'groq' ? customApiKey : '');
+    const openrouterKey = process.env.OPENROUTER_API_KEY || (customProvider === 'openrouter' ? customApiKey : '');
 
     // Destructure contextual business signals
     const {
@@ -24,10 +31,7 @@ export default async function handler(request, response) {
       activeClientsCount = 0
     } = context;
 
-    // If Gemini API Key is available, invoke Gemini Flash
-    if (apiKey) {
-      try {
-        const systemPrompt = `You are the Seynex Executive AI Copilot for Seynex Technology (sales management, cloud turnstiles, and biometric access control).
+    const systemPrompt = `You are the Seynex Executive AI Copilot for Seynex Technology (sales management, cloud turnstiles, and biometric access control).
 You advise the leadership team with sharp, revenue-focused, LKAS-compliant recommendations.
 
 Current Live Business Context:
@@ -47,21 +51,24 @@ Formatting Rules:
 - Provide numbered priority recommendations (Immediate Action, Follow-up, Risk Mitigation).
 - Keep total response within 3-4 crisp sections.`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // -------------------------------------------------------------------------
+    // PROVIDER 1: Google Gemini 1.5 Flash (100% Free Tier via Google AI Studio)
+    // -------------------------------------------------------------------------
+    if (geminiKey) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timeout = setTimeout(() => controller.abort(), 14000);
 
         const geminiRes = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-goog-api-key': geminiKey
+          },
           body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: systemPrompt }] }
-            ],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 1024
-            }
+            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
           }),
           signal: controller.signal
         });
@@ -73,26 +80,109 @@ Formatting Rules:
           if (replyText) {
             return response.status(200).json({
               ok: true,
-              source: 'gemini-1.5-flash',
+              source: 'gemini-1.5-flash (Google AI Free Tier)',
               briefing: replyText,
               timestamp: new Date().toISOString()
             });
           }
         }
-      } catch (geminiErr) {
-        console.warn('[Copilot] Gemini API call degraded, falling back to algorithmic engine:', geminiErr.message);
+      } catch (e) {
+        console.warn('[Copilot] Gemini API error, attempting fallback:', e.message);
       }
     }
 
-    // High-Precision Algorithmic Executive Engine (Fallback when Gemini API Key is omitted or offline)
+    // -------------------------------------------------------------------------
+    // PROVIDER 2: Groq Cloud LLaMA 3.3 70B (100% Free Tier via console.groq.com)
+    // -------------------------------------------------------------------------
+    if (groqKey) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: 'You are the Seynex Executive AI Copilot. Provide sharp, executive business analysis.' },
+              { role: 'user', content: systemPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 1024
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const replyText = groqData.choices?.[0]?.message?.content;
+          if (replyText) {
+            return response.status(200).json({
+              ok: true,
+              source: 'llama-3.3-70b (Groq Free Tier)',
+              briefing: replyText,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[Copilot] Groq API error, attempting fallback:', e.message);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // PROVIDER 3: OpenRouter Free Models (Free Tier via openrouter.ai)
+    // -------------------------------------------------------------------------
+    if (openrouterKey) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 14000);
+
+        const routerRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openrouterKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-3.3-70b-instruct:free',
+            messages: [{ role: 'user', content: systemPrompt }],
+            max_tokens: 1024
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (routerRes.ok) {
+          const routerData = await routerRes.json();
+          const replyText = routerData.choices?.[0]?.message?.content;
+          if (replyText) {
+            return response.status(200).json({
+              ok: true,
+              source: 'meta-llama-3.3-70b (OpenRouter Free Tier)',
+              briefing: replyText,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      } catch (e) {}
+    }
+
+    // -------------------------------------------------------------------------
+    // PROVIDER 4: Built-in Algorithmic Executive Engine (100% Free, Zero-Config)
+    // -------------------------------------------------------------------------
     const overdueTotal = Number(totalOverdueAmount || 0);
     const renewalArr = Number(totalRenewalArr || 0);
 
-    const highRiskDebtors = (debtors || []).filter(d => (d.daysOverdue || d.overdueDays || 0) >= 14);
     const topDebtor = (debtors || [])[0];
 
     const algorithmicBriefing = `### 🎯 Seynex Executive Intelligence Briefing
-*Generated: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}*
+*Generated by Seynex On-Premise Engine (Zero-Cost / 100% Free)*
 
 ---
 
@@ -117,7 +207,7 @@ Formatting Rules:
 
     return response.status(200).json({
       ok: true,
-      source: 'algorithmic-executive-engine',
+      source: 'seynex-algorithmic-engine (Free Built-in)',
       briefing: algorithmicBriefing,
       timestamp: new Date().toISOString()
     });

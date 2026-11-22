@@ -3,7 +3,7 @@ import {
   Zap, Play, CheckCircle, Clock, AlertTriangle, MessageSquare,
   Calendar, FileText, Check, X, Shield, RefreshCw, Send,
   Cpu, ArrowRight, Eye, CheckCheck, Sliders, History,
-  Sparkles, Bot, ChevronRight, UserCheck, HardDrive, BellRing
+  Sparkles, Bot, ChevronRight, UserCheck, HardDrive, BellRing, Key
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 
@@ -30,14 +30,22 @@ const Agents = () => {
   const [selectedAgentFilter, setSelectedAgentFilter] = useState('all');
   const [selectedItemDetail, setSelectedItemDetail] = useState(null);
 
-  // Copilot Drawer State
+  // Copilot Drawer State & Free AI Model Configuration
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotPrompt, setCopilotPrompt] = useState('');
+  const [freeApiKey, setFreeApiKey] = useState(() => {
+    try { return localStorage.getItem('seynex_free_ai_key') || ''; } catch { return ''; }
+  });
+  const [aiProvider, setAiProvider] = useState(() => {
+    try { return localStorage.getItem('seynex_free_ai_provider') || 'gemini'; } catch { return 'gemini'; }
+  });
+  const [showAiKeyConfig, setShowAiKeyConfig] = useState(false);
+
   const [copilotMessages, setCopilotMessages] = useState([
     {
       role: 'assistant',
-      text: `### 👋 Welcome to Seynex Executive AI Copilot\nI analyze your live business signals across **Overdue Debtors**, **Annual Cloud Subscriptions**, **CRM Pipeline**, and **Turnstile Hardware**. \n\nSelect a prompt below or type any business question for an instant executive analysis.`
+      text: `### 👋 Welcome to Seynex Executive AI Copilot\nI analyze your live business signals across **Overdue Debtors**, **Annual Cloud Subscriptions**, **CRM Pipeline**, and **Turnstile Hardware**.\n\nPowered by 100% Free AI models (Google Gemini 1.5 Flash, Groq Cloud LLaMA 3.3 70B, or our built-in on-premise engine). Click **"⚙️ Free AI Key"** at top right to enter a custom key or use the built-in free tier.`
     }
   ]);
 
@@ -104,6 +112,8 @@ const Agents = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: text,
+          customApiKey: freeApiKey,
+          customProvider: aiProvider,
           context: {
             debtors: invoices.filter(i => i.status !== 'Paid' && (i.outstanding_balance > 0 || (i.total - (i.amount_paid || 0)) > 0)).slice(0, 10),
             renewals: renewingCustomers.slice(0, 10),
@@ -884,18 +894,135 @@ const Agents = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsCopilotOpen(false)}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--text-muted)',
-                  cursor: 'pointer', padding: '6px', borderRadius: '6px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAiKeyConfig(!showAiKeyConfig)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    background: freeApiKey ? 'rgba(16, 185, 129, 0.12)' : 'var(--subtle-bg)',
+                    border: freeApiKey ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--subtle-border)',
+                    color: freeApiKey ? '#10b981' : 'var(--text-secondary)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                  title="Configure 100% Free AI Model Key"
+                >
+                  <Key size={13} />
+                  <span>{freeApiKey ? 'Free AI Connected' : 'Free AI Key'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCopilotOpen(false)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                    cursor: 'pointer', padding: '6px', borderRadius: '6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
+
+            {/* Collapsible Free AI Key Configuration Panel */}
+            {showAiKeyConfig && (
+              <div style={{
+                padding: '14px 18px',
+                background: 'rgba(99, 102, 241, 0.06)',
+                borderBottom: '1px solid var(--subtle-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Free AI Provider Configuration
+                  </span>
+                  <a
+                    href={aiProvider === 'groq' ? 'https://console.groq.com/keys' : 'https://aistudio.google.com/app/apikey'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', fontWeight: 700, textDecoration: 'none' }}
+                  >
+                    Get Free Key →
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[
+                    { id: 'gemini', label: 'Google Gemini (Free)' },
+                    { id: 'groq', label: 'Groq LLaMA 3.3 (Free)' },
+                    { id: 'builtin', label: 'Built-in Engine (No Key)' }
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setAiProvider(p.id);
+                        try { localStorage.setItem('seynex_free_ai_provider', p.id); } catch(e) {}
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        background: aiProvider === p.id ? 'var(--accent-primary)' : 'var(--subtle-bg)',
+                        color: aiProvider === p.id ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--subtle-border)'
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {aiProvider !== 'builtin' && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="password"
+                      placeholder={aiProvider === 'groq' ? 'Paste Free Groq Key (gsk_...)' : 'Paste Free Gemini Key (AIzaSy...)'}
+                      value={freeApiKey}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setFreeApiKey(val);
+                        try { localStorage.setItem('seynex_free_ai_key', val); } catch(e) {}
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        border: '1px solid var(--subtle-border)',
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try { localStorage.setItem('seynex_free_ai_key', freeApiKey); } catch(e) {}
+                        setShowAiKeyConfig(false);
+                        showNotification?.('Free AI API Key saved in browser!', 'success');
+                      }}
+                      className="btn btn-primary"
+                      style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 700 }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Quick Prompt Suggestions */}
             <div style={{
