@@ -288,6 +288,21 @@ export const AuthProvider = ({ children }) => {
         if (!res.error && res.data?.user) {
           const resolvedBizId = targetBusinessId || 'biz_main';
 
+          // Also upsert this Supabase Auth user into team_members table so they appear in Settings and future queries!
+          try {
+            await supabase.from('team_members').upsert({
+              id: res.data.user.id,
+              business_id: resolvedBizId,
+              name: res.data.user.user_metadata?.name || cleanEmail.split('@')[0],
+              email: cleanEmail,
+              role: res.data.user.user_metadata?.role || 'Admin',
+              department: 'General',
+              status: 'Active',
+              password: cleanPassword,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'email' });
+          } catch(e) {}
+
           const authUser = {
             ...res.data.user,
             businessId: resolvedBizId,
@@ -298,9 +313,13 @@ export const AuthProvider = ({ children }) => {
           window.dispatchEvent(new CustomEvent('active_business_changed', { detail: resolvedBizId }));
           setUser(authUser);
           return res;
+        } else if (res.error) {
+          console.warn('[Auth] Supabase cloud sign-in error:', res.error.message);
+          return { data: null, error: res.error };
         }
       } catch (err) {
         console.warn('[Auth] Supabase cloud sign-in deferred:', err?.message);
+        return { data: null, error: err };
       }
     }
 
@@ -430,7 +449,7 @@ export const AuthProvider = ({ children }) => {
           password: cleanPassword,
           created_at: newMember.addedAt,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'email' });
         console.log('[Auth signUp] Synced new registration to database team_members table:', cleanEmail);
       } catch (err) {
         console.warn('[Auth signUp] team_members database sync error:', err.message);

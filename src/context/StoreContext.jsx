@@ -1860,7 +1860,7 @@ export default function StoreContextProvider({ children }) {
     // Sync to Supabase team_members table in database
     try {
       const client = getSupabaseClient(assignedBusinessId);
-      await client.from('team_members').upsert({
+      const { error: sbErr } = await client.from('team_members').upsert({
         id: newMember.id,
         business_id: assignedBusinessId,
         name: newMember.name,
@@ -1874,8 +1874,14 @@ export default function StoreContextProvider({ children }) {
         expiry_date: newMember.expiryDate,
         created_at: newMember.addedAt,
         updated_at: new Date().toISOString()
-      });
-      console.log('[Supabase Sync] Successfully saved team member to database:', newMember.email);
+      }, { onConflict: 'email' });
+
+      if (sbErr) {
+        console.error('[Supabase Sync] Error saving team member to database:', sbErr.message);
+        showNotification(`Database warning: ${sbErr.message}`, 'warning');
+      } else {
+        console.log('[Supabase Sync] Successfully saved team member to database:', newMember.email);
+      }
     } catch (err) {
       console.warn('[Supabase Sync] Error saving team member to database:', err.message);
     }
