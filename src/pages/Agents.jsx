@@ -986,39 +986,58 @@ const Agents = () => {
                 </div>
 
                 {aiProvider !== 'builtin' && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="password"
-                      placeholder={aiProvider === 'groq' ? 'Paste Free Groq Key (gsk_...)' : 'Paste Free Gemini Key (AIzaSy...)'}
-                      value={freeApiKey}
-                      onChange={(e) => {
-                        const val = e.target.value.trim();
-                        setFreeApiKey(val);
-                        try { localStorage.setItem('seynex_free_ai_key', val); } catch(e) {}
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '7px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.78rem',
-                        border: '1px solid var(--subtle-border)',
-                        background: 'var(--bg-primary)',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'monospace'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        try { localStorage.setItem('seynex_free_ai_key', freeApiKey); } catch(e) {}
-                        setShowAiKeyConfig(false);
-                        showNotification?.('Free AI API Key saved in browser!', 'success');
-                      }}
-                      className="btn btn-primary"
-                      style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 700 }}
-                    >
-                      Save
-                    </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="password"
+                        placeholder={aiProvider === 'groq' ? 'Paste Free Groq Key (gsk_...)' : 'Paste Free Gemini Key (AIzaSy...)'}
+                        value={freeApiKey}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          setFreeApiKey(val);
+                          try { localStorage.setItem('seynex_free_ai_key', val); } catch(e) {}
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '7px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          border: '1px solid var(--subtle-border)',
+                          background: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try { localStorage.setItem('seynex_free_ai_key', freeApiKey); } catch(e) {}
+                          setShowAiKeyConfig(false);
+                          showNotification?.('Free AI API Key saved in browser!', 'success');
+                        }}
+                        className="btn btn-primary"
+                        style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem', fontWeight: 700 }}
+                      >
+                        Save
+                      </button>
+                    </div>
+
+                    {/* Key Format Helper / Validation */}
+                    {aiProvider === 'gemini' && freeApiKey && freeApiKey.startsWith('AQ.') && (
+                      <div style={{ fontSize: '0.70rem', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 8px', borderRadius: '6px' }}>
+                        ⚠️ Notice: Keys starting with <code>AQ.</code> are Google Cloud OAuth tokens. Free Gemini API keys start with <code>AIzaSy...</code> from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Google AI Studio</a>.
+                      </div>
+                    )}
+                    {aiProvider === 'gemini' && !freeApiKey && (
+                      <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)' }}>
+                        💡 Tip: Get a 100% free key starting with <code>AIzaSy...</code> in 30 seconds at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>aistudio.google.com/app/apikey</a>.
+                      </div>
+                    )}
+                    {aiProvider === 'groq' && !freeApiKey && (
+                      <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)' }}>
+                        ⚡ Groq provides free LLaMA 3.3 70B inference (keys start with <code>gsk_...</code>) at <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>console.groq.com/keys</a>.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

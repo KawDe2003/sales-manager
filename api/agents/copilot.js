@@ -1,10 +1,10 @@
 // Server-Side Executive AI Copilot Endpoint
 // Endpoint: /api/agents/copilot.js
 // Supports 100% Free AI Providers:
-// 1. Google Gemini 1.5/2.0 Flash (Free tier via Google AI Studio)
-// 2. Groq Cloud LLaMA 3.3 70B (Free tier via console.groq.com)
+// 1. Google Gemini 1.5 / 2.0 Flash (Free tier via Google AI Studio: aistudio.google.com/app/apikey)
+// 2. Groq Cloud LLaMA 3.3 70B (Free tier via console.groq.com/keys)
 // 3. OpenRouter Free Models (openrouter.ai)
-// 4. Built-in Deterministic Algorithmic Engine (100% free, zero-config, zero-network)
+// 4. Built-in Dynamic Intelligence Engine (100% free, zero-config, zero-network fallback)
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -16,9 +16,9 @@ export default async function handler(request, response) {
     const { prompt = '', context = {}, customApiKey = '', customProvider = 'auto' } = body;
 
     // Resolve API keys (Priority: Environment Variables, then forwarded client key)
-    const geminiKey = process.env.GEMINI_API_KEY || (customProvider === 'gemini' ? customApiKey : '');
-    const groqKey = process.env.GROQ_API_KEY || (customProvider === 'groq' ? customApiKey : '');
-    const openrouterKey = process.env.OPENROUTER_API_KEY || (customProvider === 'openrouter' ? customApiKey : '');
+    const geminiKey = process.env.GEMINI_API_KEY || (customProvider === 'gemini' ? customApiKey : (customApiKey?.startsWith('AIzaSy') ? customApiKey : ''));
+    const groqKey = process.env.GROQ_API_KEY || (customProvider === 'groq' ? customApiKey : (customApiKey?.startsWith('gsk_') ? customApiKey : ''));
+    const openrouterKey = process.env.OPENROUTER_API_KEY || (customProvider === 'openrouter' ? customApiKey : (customApiKey?.startsWith('sk-or-') ? customApiKey : ''));
 
     // Destructure contextual business signals
     const {
@@ -31,6 +31,8 @@ export default async function handler(request, response) {
       activeClientsCount = 0
     } = context;
 
+    const userInquiry = prompt.trim() || 'Generate a comprehensive morning executive briefing with key revenue and operational priorities.';
+
     const systemPrompt = `You are the Seynex Executive AI Copilot for Seynex Technology (sales management, cloud turnstiles, and biometric access control).
 You advise the leadership team with sharp, revenue-focused, LKAS-compliant recommendations.
 
@@ -42,14 +44,18 @@ Current Live Business Context:
 - Untouched CRM Leads: ${leads.length} leads requiring follow-up
 - Low-Stock Inventory Items: ${inventory.length} items needing restock
 
-Provide a strategic, executive-grade briefing or response to the user's inquiry:
-"${prompt || 'Generate a comprehensive morning executive briefing with key revenue and operational priorities.'}"
+The user is specifically asking:
+"${userInquiry}"
 
-Formatting Rules:
-- Format in concise GitHub-flavored markdown.
-- Highlight specific LKR amounts and actionable client names.
-- Provide numbered priority recommendations (Immediate Action, Follow-up, Risk Mitigation).
-- Keep total response within 3-4 crisp sections.`;
+Instructions:
+- Directly and specifically address the user's inquiry above.
+- If they ask about debtors or cash flow, focus deeply on debtors with specific LKR amounts and overdue aging.
+- If they ask about renewals, focus on upcoming expiring accounts and annual recurring revenue retention.
+- If they ask about inventory/hardware, focus on turnstile components, stock risks, and supply orders.
+- If they ask for a morning briefing, provide a holistic summary across all pillars.
+- Format using clean GitHub-flavored markdown with bold metrics and numbered action items.`;
+
+    let providerError = null;
 
     // -------------------------------------------------------------------------
     // PROVIDER 1: Google Gemini 1.5 Flash (100% Free Tier via Google AI Studio)
@@ -67,8 +73,16 @@ Formatting Rules:
             'x-goog-api-key': geminiKey
           },
           body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: systemPrompt }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.6,
+              maxOutputTokens: 1024
+            }
           }),
           signal: controller.signal
         });
@@ -80,14 +94,24 @@ Formatting Rules:
           if (replyText) {
             return response.status(200).json({
               ok: true,
-              source: 'gemini-1.5-flash (Google AI Free Tier)',
+              source: 'gemini-1.5-flash (Google AI Studio Free Tier)',
               briefing: replyText,
               timestamp: new Date().toISOString()
             });
           }
+        } else {
+          const errData = await geminiRes.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${geminiRes.status} ${geminiRes.statusText}`;
+          providerError = `Google Gemini Error (${errMsg}). Note: Free Gemini API keys must be created at https://aistudio.google.com/app/apikey (starts with 'AIzaSy...'). Keys starting with 'AQ.' from Google Cloud Console credentials are not accepted by the Generative Language API.`;
+          console.warn('[Copilot]', providerError);
         }
       } catch (e) {
-        console.warn('[Copilot] Gemini API error, attempting fallback:', e.message);
+        providerError = `Gemini connection failed: ${e.message}`;
+        console.warn('[Copilot] Gemini exception:', e.message);
+      }
+    } else if (customApiKey && !groqKey && !openrouterKey) {
+      if (customApiKey.startsWith('AQ.')) {
+        providerError = `Your key starts with 'AQ.', which is a Google Cloud OAuth token, not a Gemini API key. Please generate a 100% free Gemini API key starting with 'AIzaSy...' at https://aistudio.google.com/app/apikey.`;
       }
     }
 
@@ -111,7 +135,7 @@ Formatting Rules:
               { role: 'system', content: 'You are the Seynex Executive AI Copilot. Provide sharp, executive business analysis.' },
               { role: 'user', content: systemPrompt }
             ],
-            temperature: 0.2,
+            temperature: 0.6,
             max_tokens: 1024
           }),
           signal: controller.signal
@@ -129,9 +153,12 @@ Formatting Rules:
               timestamp: new Date().toISOString()
             });
           }
+        } else {
+          const errData = await groqRes.json().catch(() => ({}));
+          providerError = `Groq API Error: ${errData.error?.message || groqRes.statusText}`;
         }
       } catch (e) {
-        console.warn('[Copilot] Groq API error, attempting fallback:', e.message);
+        providerError = `Groq connection failed: ${e.message}`;
       }
     }
 
@@ -152,6 +179,7 @@ Formatting Rules:
           body: JSON.stringify({
             model: 'meta-llama/llama-3.3-70b-instruct:free',
             messages: [{ role: 'user', content: systemPrompt }],
+            temperature: 0.6,
             max_tokens: 1024
           }),
           signal: controller.signal
@@ -174,41 +202,136 @@ Formatting Rules:
     }
 
     // -------------------------------------------------------------------------
-    // PROVIDER 4: Built-in Algorithmic Executive Engine (100% Free, Zero-Config)
+    // PROVIDER 4: Built-in Dynamic Intelligence Engine (100% Free, Zero-Config)
+    // Adapts intelligently to the specific user inquiry (prompt)!
     // -------------------------------------------------------------------------
     const overdueTotal = Number(totalOverdueAmount || 0);
     const renewalArr = Number(totalRenewalArr || 0);
+    const lowerInquiry = userInquiry.toLowerCase();
 
-    const topDebtor = (debtors || [])[0];
+    let dynamicOutput = '';
 
-    const algorithmicBriefing = `### 🎯 Seynex Executive Intelligence Briefing
-*Generated by Seynex On-Premise Engine (Zero-Cost / 100% Free)*
+    // Notice banner if a custom key had an issue
+    const warningHeader = providerError ? `> ⚠️ **AI Key Notice**: ${providerError}\n> *Falling back to the Seynex Dynamic Intelligence Engine below.*\n\n---\n\n` : '';
+
+    if (lowerInquiry.includes('debtor') || lowerInquiry.includes('debt') || lowerInquiry.includes('overdue') || lowerInquiry.includes('cash flow') || lowerInquiry.includes('unpaid')) {
+      // 1. DEDICATED DEBTORS ANALYSIS
+      dynamicOutput = `### 💰 Overdue Debtors & Cash Flow Intelligence
+*Targeted Financial Recovery Plan — LKAS Pacing*
+
+#### 1. Portfolio Exposure Overview
+* **Total Overdue Pipeline:** **LKR ${overdueTotal.toLocaleString()}** across **${debtors.length}** invoices.
+* **Aging Risk Tier:** High concentration in accounts exceeding 14–30 days payment terms.
+
+#### 2. Critical Action Accounts
+${debtors.length > 0 ? debtors.slice(0, 5).map((d, i) => {
+  const name = d.clientName || d.client_name || d.prospectName || 'Corporate Client';
+  const invNum = d.invoiceNumber || d.invoice_number || d.number || `#${i + 1}`;
+  const bal = Number(d.outstanding_balance ?? (Number(d.total || 0) - Number(d.amount_paid || 0)));
+  const days = d.daysOverdue || d.overdueDays || 14;
+  return `${i + 1}. **${name}** (Inv **${invNum}**) — **LKR ${bal.toLocaleString()}** (*${days} days overdue*)\n   *Action:* Trigger Automated Debtors Agent SMS with tokenized payment link.`;
+}).join('\n') : '*No overdue invoices found in current portfolio.*'}
+
+#### 3. Strategic Recovery Recommendations
+1. **Immediate SMS Payment Links:** Dispatch tokenized QuickSend SMS links directly to the financial controllers of top 3 accounts.
+2. **Turnstile Grace Period Warning:** For accounts over 21 days overdue with linked hardware, send a formal notification of scheduled cloud sync suspension.
+3. **Approval Queue:** Go to **Autonomous Agents → Pending Approvals** to approve pending debtor reminder dispatches.`;
+
+    } else if (lowerInquiry.includes('renewal') || lowerInquiry.includes('subscription') || lowerInquiry.includes('arr') || lowerInquiry.includes('expir')) {
+      // 2. DEDICATED 30-DAY RENEWALS STRATEGY
+      dynamicOutput = `### 🔄 Cloud & Turnstile 30-Day Renewal Strategy
+*SaaS Subscription Retention & ARR Preservation*
+
+#### 1. Renewal Exposure & ARR Pipeline
+* **Subscriptions Expiring in 30 Days:** **${renewals.length}** accounts.
+* **Projected Annual Recurring Revenue (ARR):** **LKR ${renewalArr.toLocaleString()}**.
+
+#### 2. Upcoming Expirations
+${renewals.length > 0 ? renewals.slice(0, 5).map((r, i) => {
+  const name = r.name || r.companyName || r.company_name || 'Client';
+  const fee = Number(r.annualFee || r.annual_fee || 0);
+  const date = r.renewalDate || r.renewal_date || 'Upcoming';
+  return `${i + 1}. **${name}** — Projected ARR: **LKR ${fee.toLocaleString()}** (Due: *${date}*)\n   *Action:* Pre-generate pro-forma invoice and queue 7-day reminder SMS.`;
+}).join('\n') : '*No accounts currently due for renewal within the next 30 days.*'}
+
+#### 3. Execution Checklist
+1. **Automated Pro-Forma Generation:** Authorize the Renewal Agent to draft renewal invoices into the Approval Queue.
+2. **Executive Outreach:** For contracts > LKR 100,000, schedule an account manager courtesy call 14 days prior to expiry.
+3. **Zero Turnstile Interruption:** Verify client payment confirmation before the auto-lock milestone date to ensure uninterrupted gate operation.`;
+
+    } else if (lowerInquiry.includes('hardware') || lowerInquiry.includes('inventory') || lowerInquiry.includes('stock') || lowerInquiry.includes('turnstile') || lowerInquiry.includes('safety')) {
+      // 3. DEDICATED HARDWARE & INVENTORY AUDIT
+      dynamicOutput = `### ⚡ Hardware Health & Safety Stock Audit
+*Physical Infrastructure & Turnstile Spares Readiness*
+
+#### 1. Critical Stock Levels
+* **Low-Stock Inventory SKUs:** **${inventory.length}** items currently at or below safety stock.
+* **Operational Risk:** Turnstile repair delays if core RFID or motor controller spares deplete.
+
+#### 2. Critical Parts Needing Restock
+${inventory.length > 0 ? inventory.slice(0, 5).map((item, i) => {
+  const name = item.name || item.item_name || 'Spare Part';
+  const qty = item.stock ?? item.quantity ?? 0;
+  const min = item.minStock ?? item.min_stock ?? 5;
+  return `${i + 1}. **${name}** — Current Stock: **${qty}** (Minimum Safety: **${min}**)\n   *Action:* Generate procurement order with primary hardware supplier.`;
+}).join('\n') : '*All hardware items and turnstile components meet safe stock thresholds.*'}
+
+#### 3. Recommended Field Actions
+1. **Supplier Purchase Orders:** Dispatch PO requests for low-stock controller boards.
+2. **Cloud Push Turnstile Audit:** Check Cloud-Push portal for any offline turnstile gates with >48 hours sync latency.`;
+
+    } else if (lowerInquiry.includes('lead') || lowerInquiry.includes('crm') || lowerInquiry.includes('sales') || lowerInquiry.includes('pipeline')) {
+      // 4. DEDICATED CRM PIPELINE ACCELERATION
+      dynamicOutput = `### 🎯 CRM Pipeline & Untouched Leads Acceleration
+*Sales Conversion & Lead Reactivation*
+
+#### 1. Inactivity Signals
+* **Untouched Leads (>3 Days):** **${leads.length}** prospects with no recent touchpoints.
+* **Pipeline Attrition Risk:** High risk of cold abandonment if response time exceeds 72 hours.
+
+#### 2. Priority Follow-Up Targets
+${leads.length > 0 ? leads.slice(0, 5).map((l, i) => {
+  const name = l.name || l.company || l.contactPerson || 'Lead';
+  const stage = l.stage || l.status || 'Active';
+  return `${i + 1}. **${name}** (Stage: *${stage}*)\n   *Action:* Assign immediate sales follow-up task via CRM Follow-Up Agent.`;
+}).join('\n') : '*All active CRM leads have been contacted within the last 48 hours.*'}
+
+#### 3. Action Plan
+1. **Automated Task Assignment:** Dispatch reminders to designated account reps for stagnant leads.
+2. **Re-engagement Email/SMS:** Send product brochure or turnstile demo invitation.`;
+
+    } else {
+      // 5. COMPREHENSIVE MORNING EXECUTIVE BRIEFING
+      const topDebtor = (debtors || [])[0];
+      dynamicOutput = `### 🎯 Seynex Executive Intelligence Briefing
+*Holistic Business Overview — Revenue, Retention & Operations*
 
 ---
 
-#### 1. 💰 Cash Flow & Debt Recovery Alert
-* **Outstanding Debtors Pipeline:** **LKR ${overdueTotal.toLocaleString()}** across **${debtors.length}** overdue invoices.
-* **Critical Priority:** ${topDebtor ? `Invoice **#${topDebtor.invoiceNumber || topDebtor.number || 'N/A'}** for **${topDebtor.clientName || topDebtor.prospectName || 'Client'}** (LKR ${Number(topDebtor.balance || topDebtor.amount || 0).toLocaleString()}) is **${topDebtor.daysOverdue || topDebtor.overdueDays || 14} days overdue**.` : 'No critical overdue debt accounts.'}
-* **Immediate Action:** Trigger the **Debtors Recovery Agent** to dispatch tokenized SMS payment links to accounts exceeding 7 days.
+#### 1. 💰 Cash Flow & Debt Recovery
+* **Outstanding Debtors Pipeline:** **LKR ${overdueTotal.toLocaleString()}** across **${debtors.length}** invoices.
+* **Top Debtor Priority:** ${topDebtor ? `Invoice **#${topDebtor.invoiceNumber || topDebtor.number || 'N/A'}** for **${topDebtor.clientName || topDebtor.prospectName || 'Client'}** (LKR ${Number(topDebtor.balance || topDebtor.amount || 0).toLocaleString()}) is overdue.` : 'No critical overdue accounts.'}
+* **Action:** Dispatch tokenized SMS payment links to accounts over 7 days.
 
 ---
 
-#### 2. 🔄 Cloud & Turnstile Annual Renewals
-* **30-Day Expiry Horizon:** **${renewals.length}** client subscriptions are due for renewal.
+#### 2. 🔄 Subscriptions & Annual Renewals
+* **30-Day Expiry Horizon:** **${renewals.length}** client subscriptions due for renewal.
 * **Projected Renewal ARR:** **LKR ${renewalArr.toLocaleString()}**.
-* **Suggested Action:** Ensure renewal invoices are auto-drafted and sent to the **Approval Queue** before turnstile auto-lock triggers.
+* **Action:** Approve pro-forma renewal invoices in the Autonomous Agents queue.
 
 ---
 
 #### 3. ⚡ Operational Health & Sales Pacing
-* **CRM Inactivity:** **${leads.length}** active sales leads have had zero touchpoints for >3 days.
-* **Inventory Stock:** **${inventory.length}** hardware units are below minimum safety stock levels.
-* **Recommendation:** Review the **Approval Queue** in the Agent Control Center to authorize pending automated outreach.`;
+* **CRM Inactivity:** **${leads.length}** sales leads untouched for >3 days.
+* **Hardware Spares:** **${inventory.length}** inventory items below safety stock.
+* **Action:** Review **Autonomous Agents → Pending Approvals** to authorize pending actions.`;
+    }
 
     return response.status(200).json({
       ok: true,
-      source: 'seynex-algorithmic-engine (Free Built-in)',
-      briefing: algorithmicBriefing,
+      source: 'seynex-dynamic-engine (Built-in Dynamic Fallback)',
+      briefing: warningHeader + dynamicOutput,
       timestamp: new Date().toISOString()
     });
 
