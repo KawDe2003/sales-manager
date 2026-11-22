@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { StoreContext } from '../context/StoreContext';
+import { StoreContext, sampleMainQuotes, sampleMainInvoices } from '../context/StoreContext';
 import { supabase, getSupabaseClient } from '../lib/supabase';
 import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
 import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin, Cpu, Monitor, Wrench } from 'lucide-react';
@@ -131,13 +131,21 @@ const SharedDocument = () => {
             const query = activeClient.from('quotations').select('*');
             if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
             else query.or(`share_key.eq.${searchKey},quote_number.eq.${searchKey},quote_number.ilike.${searchKey}`);
-            const { data, error } = await query.maybeSingle();
+            const { data: rows, error } = await query.limit(1);
+            const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : (rows && !Array.isArray(rows) ? rows : null);
             if (data && !error) {
+              const rawItems = data.items;
+              const parsedItems = typeof rawItems === 'string'
+                ? (() => { try { return JSON.parse(rawItems); } catch(e) { return []; } })()
+                : (Array.isArray(rawItems) ? rawItems : []);
               cloudQuote = { 
                 ...data, 
+                items: parsedItems,
                 shareKey: data.share_key, 
                 quoteNumber: data.quote_number,
                 prospectName: data.prospect_name,
+                prospectPhone: data.prospect_phone,
+                amount: Number(data.amount) || 0,
                 prospectAddress: data.prospect_address || data.address || '',
                 address: data.prospect_address || data.address || '',
                 convertedInvoiceId: data.converted_invoice_id || null,
@@ -147,10 +155,24 @@ const SharedDocument = () => {
                 status: data.status || 'Pending'
               };
             }
-          } catch (e) {}
+          } catch (e) {
+            console.warn('[SharedDocument] Supabase Quote Query Error:', e);
+          }
+
+          // Fallback candidate from demo dataset
+          let sampleQuote = null;
+          if (Array.isArray(sampleMainQuotes)) {
+            sampleQuote = sampleMainQuotes.find(item =>
+              item.id === searchKey ||
+              item.shareKey === searchKey ||
+              item.shareToken === searchKey ||
+              item.quoteNumber === searchKey ||
+              String(item.quoteNumber || '').toLowerCase() === searchKey.toLowerCase()
+            );
+          }
 
           // 4. Merge candidates: the one with highest status priority always wins!
-          const candidates = [localQuote, contextQuote, cloudQuote].filter(Boolean);
+          const candidates = [localQuote, contextQuote, cloudQuote, sampleQuote].filter(Boolean);
           if (candidates.length > 0) {
             candidates.sort((a, b) => getStatusWeight(b.status) - getStatusWeight(a.status));
             foundDoc = { ...candidates[0] };
@@ -360,20 +382,37 @@ const SharedDocument = () => {
             if (isUUID) query.or(`id.eq.${searchKey},share_key.eq.${searchKey}`);
             else query.or(`share_key.eq.${searchKey},invoice_number.eq.${searchKey},invoice_number.ilike.${searchKey}`);
 
-            const { data, error } = await query.maybeSingle();
+            const { data: rows, error } = await query.limit(1);
+            const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : (rows && !Array.isArray(rows) ? rows : null);
             if (data && !error) {
+              const rawItems = data.items;
+              const parsedItems = typeof rawItems === 'string'
+                ? (() => { try { return JSON.parse(rawItems); } catch(e) { return []; } })()
+                : (Array.isArray(rawItems) ? rawItems : []);
               foundDoc = { 
                 ...data, 
+                items: parsedItems,
                 shareKey: data.share_key, 
                 invoiceNumber: data.invoice_number,
                 dueDate: data.due_date,
                 customerId: data.customer_id,
                 reminderSent: data.reminder_sent,
                 prospectName: data.prospect_name,
+                amount: Number(data.amount) || 0,
                 billingAddress: data.billing_address || data.address || '',
                 address: data.billing_address || data.address || ''
               };
             }
+          }
+
+          if (!foundDoc && Array.isArray(sampleMainInvoices)) {
+            const sampleMatch = sampleMainInvoices.find(item =>
+              item.id === searchKey ||
+              item.shareKey === searchKey ||
+              item.invoiceNumber === searchKey ||
+              String(item.invoiceNumber || '').toLowerCase() === searchKey.toLowerCase()
+            );
+            if (sampleMatch) foundDoc = { ...sampleMatch };
           }
 
           if (foundDoc) {

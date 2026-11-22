@@ -212,7 +212,7 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
     let finalLink = shareLink;
     if (typeof verifyAndGetShareLink === 'function') {
       const res = await verifyAndGetShareLink('quote', quote);
-      if (res && res.shareUrl) finalLink = res.shareUrl;
+      if (res && (res.shareUrl || res.link)) finalLink = res.shareUrl || res.link;
     }
     const text = `Hello ${quote.prospectName || 'Valued Customer'},\n\nPlease review your quotation *#${quote.quoteNumber}* from ${smsConfig?.companyName || 'Seynex Technology'}.\n\n*Total:* LKR ${(Number(quote.amount) || 0).toLocaleString()}\n*Validity:* ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : '30 Days'}\n\nView & respond directly online:\n${finalLink}\n\nThank you!`;
     openWhatsApp({
@@ -431,7 +431,8 @@ const QuoteCard = ({ quote, updateQuoteStatus, convertQuoteToInvoice, onEdit, on
               let finalLink = shareLink;
               if (typeof verifyAndGetShareLink === 'function') {
                 const res = await verifyAndGetShareLink('quote', quote);
-                if (res && res.shareUrl) finalLink = res.shareUrl;
+                if (res && (res.shareUrl || res.link)) finalLink = res.shareUrl || res.link;
+                if (res && res.success === false) return;
               }
               navigator.clipboard.writeText(finalLink);
               showNotification && showNotification('Public quotation share link copied to clipboard!', 'success');

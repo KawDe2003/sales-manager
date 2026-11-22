@@ -780,7 +780,8 @@ const InvoiceCard = ({ invoice, customers, payments = [], updateInvoiceStatus, o
               let finalLink = shareLink;
               if (typeof verifyAndGetShareLink === 'function') {
                 const res = await verifyAndGetShareLink('invoice', invoice);
-                if (res && res.shareUrl) finalLink = res.shareUrl;
+                if (res && (res.shareUrl || res.link)) finalLink = res.shareUrl || res.link;
+                if (res && res.success === false) return;
               }
               navigator.clipboard.writeText(finalLink);
               showNotification && showNotification('Public invoice share link copied to clipboard!', 'success');

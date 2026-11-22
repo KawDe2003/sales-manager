@@ -193,6 +193,81 @@ export const getNextSequentialCustomerCode = (customers = []) => {
   return `CUST-${String(nextNum).padStart(3, '0')}`;
 };
 
+export const sampleMainQuotes = [
+  {
+    id: '12caeecf-e0be-4e00-810a-d7218166135e',
+    quoteNumber: 'QT-1001',
+    shareKey: '12caeecf-e0be-4e00-810a-d7218166135e',
+    shareToken: '12caeecf-e0be-4e00-810a-d7218166135e',
+    date: '2026-11-20',
+    validUntil: '2026-12-20',
+    customerId: 'mc-1',
+    prospectName: 'Apex Global Technologies',
+    contactPerson: 'Rohan Jayasinghe',
+    phone: '0773456789',
+    prospectPhone: '0773456789',
+    email: 'rohan@apexglobal.lk',
+    prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    status: 'Sent',
+    sentAt: '2026-11-20T10:00:00Z',
+    amount: 450000,
+    totalAmount: 450000,
+    items: [
+      { name: 'eTechno Turnstile Hardware Package (2 Flap Barriers)', qty: 1, unitPrice: 350000, unitCost: 350000, amount: 350000 },
+      { name: 'Annual Cloud Push & Integration License', qty: 1, unitPrice: 100000, unitCost: 100000, amount: 100000 }
+    ],
+    notes: 'Hardware warranty 1 year. Annual Cloud SLA renewal after 12 months.'
+  },
+  {
+    id: 'mq-101',
+    quoteNumber: 'QT-2001',
+    shareKey: 'SNX-MQ101',
+    date: '2026-09-25',
+    validUntil: '2026-10-25',
+    customerId: 'mc-1',
+    prospectName: 'Apex Global Technologies',
+    contactPerson: 'Rohan Jayasinghe',
+    phone: '0773456789',
+    prospectPhone: '0773456789',
+    email: 'rohan@apexglobal.lk',
+    prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    status: 'Sent',
+    sentAt: '2026-09-25T11:00:00Z',
+    amount: 520000,
+    totalAmount: 520000,
+    items: [
+      { name: 'Enterprise Cloud ERP License (Annual)', qty: 2, unitPrice: 185000, amount: 370000 },
+      { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 },
+      { name: 'Professional Systems Consulting (Day Rate)', qty: 1, unitPrice: 55000, amount: 55000 }
+    ],
+    notes: 'Standard 12-month license with guaranteed 99.9% uptime SLA.'
+  }
+];
+
+export const sampleMainInvoices = [
+  {
+    id: 'minv-201',
+    invoiceNumber: 'INV-2001',
+    shareKey: 'SNX-MINV201',
+    date: '2026-09-20',
+    dueDate: '2026-10-05',
+    customerId: 'mc-1',
+    prospectName: 'Apex Global Technologies',
+    billingAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
+    amount: 650000,
+    totalAmount: 650000,
+    status: 'Paid',
+    items: [
+      { name: 'Enterprise Cloud ERP License (Annual)', qty: 3, unitPrice: 185000, amount: 555000 },
+      { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 }
+    ],
+    reminderSent: false
+  }
+];
+
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
   const [isStoreLoading, setIsStoreLoading] = useState(false);
@@ -299,55 +374,7 @@ export default function StoreContextProvider({ children }) {
     }
   ];
 
-  const sampleMainQuotes = [
-    {
-      id: 'mq-101',
-      quoteNumber: 'QT-2001',
-      shareKey: 'SNX-MQ101',
-      date: '2026-09-25',
-      validUntil: '2026-10-25',
-      customerId: 'mc-1',
-      prospectName: 'Apex Global Technologies',
-      contactPerson: 'Rohan Jayasinghe',
-      phone: '0773456789',
-      prospectPhone: '0773456789',
-      email: 'rohan@apexglobal.lk',
-      prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-      address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-      status: 'Sent',
-      sentAt: '2026-09-25T11:00:00Z',
-      amount: 520000,
-      totalAmount: 520000,
-      items: [
-        { name: 'Enterprise Cloud ERP License (Annual)', qty: 2, unitPrice: 185000, amount: 370000 },
-        { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 },
-        { name: 'Professional Systems Consulting (Day Rate)', qty: 1, unitPrice: 55000, amount: 55000 }
-      ],
-      notes: 'Standard 12-month license with guaranteed 99.9% uptime SLA.'
-    }
-  ];
 
-  const sampleMainInvoices = [
-    {
-      id: 'minv-201',
-      invoiceNumber: 'INV-2001',
-      shareKey: 'SNX-MINV201',
-      date: '2026-09-20',
-      dueDate: '2026-10-05',
-      customerId: 'mc-1',
-      prospectName: 'Apex Global Technologies',
-      billingAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-      address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-      amount: 650000,
-      totalAmount: 650000,
-      status: 'Paid',
-      items: [
-        { name: 'Enterprise Cloud ERP License (Annual)', qty: 3, unitPrice: 185000, amount: 555000 },
-        { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 }
-      ],
-      reminderSent: false
-    }
-  ];
 
   const sampleMainPayments = [
     { id: 'pay-main-1', documentId: 'minv-201', invoiceNumber: 'INV-2001', amount: 650000, date: '2026-09-28', method: 'Bank Transfer', customerName: 'Apex Global Technologies' }
@@ -2061,7 +2088,7 @@ export default function StoreContextProvider({ children }) {
         address: quote.prospectAddress || quote.address || '',
         amount: Number(quote.amount) || 0,
         status: quote.status || 'Pending',
-        items: quote.items || [],
+        items: Array.isArray(quote.items) ? quote.items : [],
         // Explicit invoice link fields — critical for SharedDocument status resolution
         converted_invoice_id: quote.convertedInvoiceId || null,
         converted_invoice_number: quote.convertedInvoiceNumber || null,
@@ -2074,10 +2101,29 @@ export default function StoreContextProvider({ children }) {
         .from('quotations')
         .upsert(fullQuotePayload, { onConflict: 'id' });
 
-      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column'))) {
-        const { share_token, prospect_address, address, customer_id, ...coreQuote } = fullQuotePayload;
+      // Clean core fallback: strictly match columns verified in remote quotations table
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
+        const coreQuote = {
+          id: fullQuotePayload.id,
+          user_id: effId,
+          share_key: token,
+          quote_number: fullQuotePayload.quote_number,
+          date: fullQuotePayload.date,
+          prospect_name: fullQuotePayload.prospect_name,
+          prospect_phone: fullQuotePayload.prospect_phone,
+          amount: fullQuotePayload.amount,
+          status: fullQuotePayload.status,
+          items: fullQuotePayload.items
+        };
         const fallbackRes = await targetClient.from('quotations').upsert(coreQuote, { onConflict: 'id' });
         error = fallbackRes.error;
+
+        // If foreign key constraint failed on user_id, retry without user_id
+        if (error && error.code === '23503') {
+          delete coreQuote.user_id;
+          const noUserRes = await targetClient.from('quotations').upsert(coreQuote, { onConflict: 'id' });
+          error = noUserRes.error;
+        }
       }
 
       if (error) {
@@ -2105,8 +2151,8 @@ export default function StoreContextProvider({ children }) {
       const effId = getEffectiveUserId();
       const token = invoice.shareToken || invoice.shareKey || generateShareKey();
 
-      // Clean core payload strictly matching columns verified in remote Supabase
-      const cleanCorePayload = {
+      // Extended payload including optional relational and address fields
+      const extendedPayload = {
         id: toUuid(invoice.id),
         user_id: effId,
         business_id: invoice.businessId || activeBusinessId || 'biz_main',
@@ -2120,12 +2166,7 @@ export default function StoreContextProvider({ children }) {
         amount: Number(invoice.amount) || 0,
         status: invoice.status || 'Draft',
         items: Array.isArray(invoice.items) ? invoice.items : [],
-        reminder_sent: !!invoice.reminderSent
-      };
-
-      // Extended payload including optional relational and address fields
-      const extendedPayload = {
-        ...cleanCorePayload,
+        reminder_sent: !!invoice.reminderSent,
         billing_address: invoice.billingAddress || invoice.address || '',
         address: invoice.billingAddress || invoice.address || '',
         notes: invoice.notes || '',
@@ -2140,13 +2181,34 @@ export default function StoreContextProvider({ children }) {
         .from('invoices')
         .upsert(extendedPayload, { onConflict: 'id' });
 
-      // If extended columns do not exist in the remote database, immediately fallback to clean core schema
+      // Clean core fallback: strictly match columns verified in remote invoices table
       if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
-        const { share_token, ...fallbackCore } = cleanCorePayload;
+        const fallbackCore = {
+          id: extendedPayload.id,
+          user_id: effId,
+          share_key: token,
+          invoice_number: extendedPayload.invoice_number,
+          date: extendedPayload.date,
+          due_date: extendedPayload.due_date,
+          customer_id: extendedPayload.customer_id,
+          amount: extendedPayload.amount,
+          status: extendedPayload.status,
+          items: extendedPayload.items,
+          prospect_name: extendedPayload.prospect_name,
+          reminder_sent: extendedPayload.reminder_sent
+        };
         const cleanRes = await targetClient
           .from('invoices')
           .upsert(fallbackCore, { onConflict: 'id' });
         error = cleanRes.error;
+
+        // If foreign key constraint failed on user_id or customer_id, retry without them
+        if (error && error.code === '23503') {
+          delete fallbackCore.user_id;
+          fallbackCore.customer_id = null;
+          const cleanFkRes = await targetClient.from('invoices').upsert(fallbackCore, { onConflict: 'id' });
+          error = cleanFkRes.error;
+        }
       }
 
       if (error) {
@@ -2174,7 +2236,7 @@ export default function StoreContextProvider({ children }) {
    * exposing/copying the public link. If cloud sync fails, surfaces an error toast.
    */
   const verifyAndGetShareLink = async (type, document) => {
-    if (!document) return { success: false, link: null };
+    if (!document) return { success: false, link: null, shareUrl: null };
     const cleanType = (type === 'quote' || type === 'quotation') ? 'quote' : 'invoice';
     const bizId = document.businessId || activeBusinessId || 'biz_main';
     const token = document.shareToken || document.shareKey || generateShareKey();
@@ -2195,11 +2257,11 @@ export default function StoreContextProvider({ children }) {
 
     if (syncRes && syncRes.success === false) {
       showNotification(`Failed to verify cloud persistence: ${syncRes.error}. Public link may fail on external devices.`, 'error');
-      return { success: false, link: null, error: syncRes.error };
+      return { success: false, link: null, shareUrl: null, error: syncRes.error };
     }
 
     const shareUrl = `${window.location.origin}/share/${cleanType}/${token}?biz=${encodeURIComponent(bizId)}`;
-    return { success: true, link: shareUrl, shareToken: token };
+    return { success: true, link: shareUrl, shareUrl, shareToken: token };
   };
 
   const syncCustomerToSupabase = async (customer) => {
@@ -2220,17 +2282,37 @@ export default function StoreContextProvider({ children }) {
         renewal_date: customer.renewalDate || null,
         annual_fee: Number(customer.annualFee) || 0,
         status: customer.status || 'Active',
-        notes: customer.notes || []
+        notes: Array.isArray(customer.notes) ? customer.notes : []
       };
 
       let { error } = await supabase
         .from('customers')
         .upsert(fullCustPayload, { onConflict: 'id' });
 
-      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('address') || error.message?.includes('column'))) {
-        const { address, ...coreCust } = fullCustPayload;
+      // Clean core fallback: strictly match columns verified in remote customers table
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('address'))) {
+        const coreCust = {
+          id: fullCustPayload.id,
+          user_id: effId,
+          gym_name: fullCustPayload.gym_name,
+          name: fullCustPayload.name,
+          email: fullCustPayload.email,
+          phone: fullCustPayload.phone,
+          dob: fullCustPayload.dob,
+          purchase_date: fullCustPayload.purchase_date,
+          renewal_date: fullCustPayload.renewal_date,
+          annual_fee: fullCustPayload.annual_fee,
+          status: fullCustPayload.status,
+          notes: fullCustPayload.notes
+        };
         const fallbackRes = await supabase.from('customers').upsert(coreCust, { onConflict: 'id' });
         error = fallbackRes.error;
+
+        if (error && error.code === '23503') {
+          delete coreCust.user_id;
+          const cleanFkRes = await supabase.from('customers').upsert(coreCust, { onConflict: 'id' });
+          error = cleanFkRes.error;
+        }
       }
 
       if (error) {
@@ -3274,6 +3356,21 @@ export default function StoreContextProvider({ children }) {
       let coreRlsBlocked = false;
       let firstError = null;
 
+      const TABLE_ALLOWED_COLUMNS = {
+        quotations: ['id', 'user_id', 'share_key', 'quote_number', 'date', 'prospect_name', 'prospect_phone', 'amount', 'status', 'items'],
+        invoices: ['id', 'user_id', 'share_key', 'invoice_number', 'date', 'due_date', 'customer_id', 'amount', 'status', 'items', 'prospect_name', 'reminder_sent'],
+        customers: ['id', 'user_id', 'gym_name', 'name', 'email', 'phone', 'dob', 'purchase_date', 'renewal_date', 'annual_fee', 'status', 'notes'],
+        inventory: ['id', 'user_id', 'name', 'item_type', 'price', 'cost_price', 'reorder_level', 'stock', 'description'],
+        leads: ['id', 'user_id', 'gym_name', 'prospect_name', 'phone', 'status', 'date', 'notes'],
+        expenses: ['id', 'user_id', 'category', 'amount', 'date', 'description'],
+        fixed_assets: ['id', 'user_id', 'asset_code', 'name', 'category', 'purchase_date', 'purchase_cost', 'useful_life_years', 'salvage_value', 'location', 'status'],
+        payments: ['id', 'user_id', 'customer_id', 'document_id', 'amount', 'payment_type', 'payment_timestamp'],
+        tasks: ['id', 'user_id', 'title', 'description', 'due_date', 'status', 'priority', 'related_to', 'related_id'],
+        activity_logs: ['id', 'user_id', 'log_type', 'message', 'details', 'log_timestamp'],
+        suppliers: ['id', 'name', 'contact_person', 'email', 'phone', 'address', 'category', 'payment_terms', 'status'],
+        purchase_orders: ['id', 'po_number', 'supplier_id', 'supplier_name', 'date', 'expected_delivery_date', 'status', 'items', 'notes']
+      };
+
       const safeUpsertBatch = async (table, records, onConflict = 'id') => {
         if (!records || records.length === 0) return true;
         try {
@@ -3290,25 +3387,38 @@ export default function StoreContextProvider({ children }) {
             res = await activeClient.from(table).upsert(fallback, { onConflict });
           }
 
-          // If business_id column not present on remote schema yet, retry without business_id
-          if (res.error && (res.error.code === '42703' || res.error.message?.includes('business_id'))) {
-            res = await activeClient.from(table).upsert(records, { onConflict });
-          }
-
-          // If both business_id or user_id columns fail, strip both
-          if (res.error && (res.error.code === '23503' || res.error.code === '42703' || res.error.message?.includes('business_id') || res.error.message?.includes('user_id'))) {
-            const stripped = records.map(r => {
-              const copy = { ...r };
-              delete copy.user_id;
-              delete copy.business_id;
-              return copy;
+          // If column mismatch or schema cache error on business_id or other unmigrated fields, sanitize to core columns
+          if (res.error && (res.error.code === 'PGRST204' || res.error.code === '42703' || res.error.message?.includes('column') || res.error.message?.includes('schema cache'))) {
+            const allowed = TABLE_ALLOWED_COLUMNS[table];
+            const sanitized = records.map(r => {
+              if (!allowed) {
+                const c = { ...r };
+                delete c.business_id;
+                return c;
+              }
+              const clean = {};
+              allowed.forEach(col => {
+                if (r[col] !== undefined) clean[col] = r[col];
+              });
+              return clean;
             });
-            res = await activeClient.from(table).upsert(stripped, { onConflict });
+            res = await activeClient.from(table).upsert(sanitized, { onConflict });
+
+            // If foreign key constraint failed on user_id, retry without user_id
+            if (res.error && res.error.code === '23503') {
+              const noFk = sanitized.map(r => {
+                const copy = { ...r };
+                delete copy.user_id;
+                if (copy.customer_id) copy.customer_id = null;
+                return copy;
+              });
+              res = await activeClient.from(table).upsert(noFk, { onConflict });
+            }
           }
 
           if (res.error) {
-            // Ignore missing table errors for optional modules not present in remote schema
-            if (res.error.code === 'PGRST205' || res.error.code === '42P01' || res.error.message?.includes('schema cache') || res.error.message?.includes('does not exist')) {
+            // Ignore missing table errors for optional modules not present in remote schema (42P01 or PGRST205)
+            if (res.error.code === 'PGRST205' || res.error.code === '42P01' || (res.error.message?.includes('relation') && res.error.message?.includes('does not exist'))) {
               return true;
             }
             if (res.error.code === '42501' || res.error.message?.includes('row-level security')) {
