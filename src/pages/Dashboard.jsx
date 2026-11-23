@@ -1110,53 +1110,55 @@ const Dashboard = () => {
             <span>{openQuotesCount} Open Quotes (LKR {openQuotesValue.toLocaleString()})</span>
           </Link>
 
-          {/* Fleet Status */}
-          <Link
-            to="/cloud-push"
-            style={{
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '6px 14px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              background: 'rgba(14, 165, 233, 0.14)',
-              color: '#38bdf8',
-              border: '1px solid rgba(14, 165, 233, 0.35)',
-              transition: 'all 0.18s ease'
-            }}
-            title="eTechno hardware terminal fleet and turnstile telemetry"
-          >
-            <Radio size={14} />
-            <span>{fleetStats.totalDevices} Hardware Devices Active</span>
-          </Link>
+          {/* Biometric Fleet Status Badge */}
+          {dashboardConfig?.showBiometricFleet !== false && (
+            <Link
+              to="/cloud-push"
+              style={{
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                background: 'rgba(14, 165, 233, 0.14)',
+                color: '#38bdf8',
+                border: '1px solid rgba(14, 165, 233, 0.35)',
+                transition: 'all 0.18s ease'
+              }}
+              title="Biometric hardware terminal fleet and telemetry"
+            >
+              <Radio size={14} />
+              <span>{fleetStats.totalDevices} Biometric Devices Active</span>
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* KPI ROW 1: CUSTOMERS & PIPELINE */}
-      {dashboardConfig?.showQuotationKpis !== false && (
+      {/* KPI ROW 1: CLIENTS & QUOTATION PIPELINE */}
+      {dashboardConfig?.showKpiCards !== false && dashboardConfig?.showQuotationKpis !== false && (
       <div style={{ marginBottom: '18px' }}>
         <div className="flex justify-between items-center mb-2.5">
           <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b' }}>
-            Quotation Pipeline & Customer Base
+            Quotation Pipeline &amp; Client Base
           </div>
         </div>
 
-        {/* SEYNEX ENTERPRISE QUOTATION ROW */}
-        <div className="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* 4-COLUMN RESPONSIVE GRID */}
+        <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="glass-panel hover-lift" style={getKpiCardStyle('#38bdf8', 'rgba(56, 189, 248, 0.16)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Total Customers</span>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Total Clients</span>
               <div style={getKpiIconStyle('#38bdf8', isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(2, 132, 199, 0.12)')}>
                 <Users size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {totalCustomersCount}
             </div>
-            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {activeCustomersCount} Active · Est. MRR: LKR {estimatedMRR.toLocaleString()}
             </div>
           </div>
@@ -1168,41 +1170,26 @@ const Dashboard = () => {
                 <FileText size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {quotesThisMonth.length}
             </div>
-            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Open Pipeline: LKR {openQuotesValue.toLocaleString()}
             </div>
           </div>
 
           <div className="glass-panel hover-lift" style={getKpiCardStyle('#34d399', 'rgba(16, 185, 129, 0.18)')}>
             <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Accepted Quotes</span>
+              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Accepted Deals</span>
               <div style={getKpiIconStyle('#34d399', isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.12)')}>
                 <CheckCircle2 size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {acceptedQuotesThisMonth.length}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Confirmed & Invoiced deals
-            </div>
-          </div>
-
-          <div className="glass-panel hover-lift" style={getKpiCardStyle('#f87171', 'rgba(244, 63, 94, 0.16)')}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>Rejected Quotes</span>
-              <div style={getKpiIconStyle('#f87171', isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(225, 29, 72, 0.12)')}>
-                <XCircle size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }}>
-              {rejectedQuotesThisMonth.length}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Declined proposals
+              Confirmed &amp; Invoiced deals
             </div>
           </div>
 
@@ -1218,7 +1205,7 @@ const Dashboard = () => {
                 <Target size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {quoteConversionRate}%
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#34d399' : '#059669', fontWeight: 700, marginTop: '4px' }}>
@@ -1229,13 +1216,13 @@ const Dashboard = () => {
       </div>
       )}
 
-      {/* KPI ROW 2: FINANCIALS, COLLECTIONS & RENEWALS */}
-      {dashboardConfig?.showFinancialKpis !== false && (
+      {/* KPI ROW 2: FINANCIALS, COLLECTIONS & REVENUE */}
+      {dashboardConfig?.showKpiCards !== false && dashboardConfig?.showFinancialKpis !== false && (
       <div style={{ marginBottom: '26px' }}>
         <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '10px' }}>
-          Revenue, Collections & Debtors
+          Revenue, Collections &amp; Debtors
         </div>
-        <div className="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Billing */}
           <div className="glass-panel hover-lift" style={getKpiCardStyle('#818cf8', 'rgba(129, 140, 248, 0.16)')}>
@@ -1247,7 +1234,7 @@ const Dashboard = () => {
                 <CreditCard size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: 'var(--text-primary)' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} className="metric-value">
               LKR {totalInvoicedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
@@ -1265,7 +1252,7 @@ const Dashboard = () => {
                 <Award size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} className="metric-value">
               LKR {totalCollectedThisMonth.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -1294,11 +1281,11 @@ const Dashboard = () => {
                 <Clock size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} className="metric-value">
               LKR {totalOutstandingDebtors.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Outstanding & partial dues
+              Outstanding &amp; partial dues
             </div>
           </div>
 
@@ -1312,29 +1299,11 @@ const Dashboard = () => {
                 <AlertCircle size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626' }} className="metric-value">
+            <div style={{ fontSize: '1.48rem', fontWeight: 900, color: isDark ? '#f87171' : '#dc2626', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} className="metric-value">
               LKR {totalOverdueAmount.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
               Past due payment dates
-            </div>
-          </div>
-
-          {/* Card 5: Renewals (Seynex) */}
-          <div className="glass-panel hover-lift" style={getKpiCardStyle('#c084fc', 'rgba(192, 132, 252, 0.16)')}>
-            <div className="flex justify-between items-start mb-2">
-              <span style={{ fontSize: '0.73rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: isDark ? '#cbd5e1' : '#475569' }}>
-                Renewals (30 Days)
-              </span>
-              <div style={getKpiIconStyle('#c084fc', isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(147, 51, 234, 0.12)')}>
-                <RefreshCw size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isDark ? '#c084fc' : '#7c3aed' }}>
-              {upcomingRenewalsCount}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontWeight: 600 }}>
-              Subscriptions due soon
             </div>
           </div>
 
@@ -2669,7 +2638,89 @@ const Dashboard = () => {
       </div>
       )}
 
-      {/* DASHBOARD LAYOUT & METRICS CUSTOMIZER MODAL */}
+      {/* RECENT QUOTATIONS WIDGET */}
+      {dashboardConfig?.showRecentQuotes !== false && (
+        <div className="glass-panel mb-8" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--subtle-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="flex items-center gap-3">
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={20} />
+              </div>
+              <div>
+                <h3 className="h3">Recent Quotations</h3>
+                <p style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+                  Latest client proposals &amp; sequential deal pipeline
+                </p>
+              </div>
+            </div>
+            <Link to="/quotations" className="btn btn-secondary" style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}>
+              View All Quotations
+            </Link>
+          </div>
+
+          <div className="table-container" style={{ margin: 0, background: 'transparent' }}>
+            <table style={{ margin: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: '24px' }}>Quote # &amp; Client</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right', paddingRight: '24px' }}>Net Offer Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quotes.slice(0, 5).map((q) => {
+                  const statusColor = q.status === 'Accepted' || q.status === 'Converted to Invoice' 
+                    ? '#10b981' 
+                    : q.status === 'Rejected' || q.status === 'Void' 
+                      ? '#ef4444' 
+                      : '#f59e0b';
+                  return (
+                    <tr key={q.id || q.quoteNumber} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                      <td style={{ paddingLeft: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: 'var(--accent)', fontWeight: 800 }}>#{q.quoteNumber}</span>
+                          <span>{q.prospectName || 'Prospective Client'}</span>
+                        </div>
+                        {q.prospectPhone && (
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{q.prospectPhone}</div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {q.date ? new Date(q.date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: `${statusColor}18`,
+                          color: statusColor,
+                          border: `1px solid ${statusColor}33`,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {q.status || 'Draft'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', paddingRight: '24px', color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.9rem', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        LKR {(Number(q.amount) || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {quotes.length === 0 && (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                      No quotations recorded yet. Click "Proposals &amp; Quotes" to draft a new offer.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {showCustomizeModal && (
         <div 
           className="app-modal-backdrop" 

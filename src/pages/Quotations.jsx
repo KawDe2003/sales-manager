@@ -53,13 +53,13 @@ const Quotations = () => {
 
       {/* Responsive Search & Filter Toolbar */}
       <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '480px' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '260px', maxWidth: '480px' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search quotes by client, quote ID, or phone..."
-            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)' }}
+            style={{ paddingLeft: '48px', height: '42px', background: 'var(--subtle-bg)', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -79,7 +79,7 @@ const Quotations = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(() => {
           const filteredQuotes = quotes.filter(q => {
             const matchesSearch = (q.prospectName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -558,9 +558,9 @@ const QuoteCard = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between items-end md:items-center gap-4 pt-4 border-t border-panel">
         <div>
           <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-            Net Offer Estimate
+            Net Offer Total
           </div>
-          <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.15rem', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
             <span style={{ color: 'var(--accent-primary)', fontSize: '0.8rem', marginRight: '4px' }}>LKR</span>
             {(Number(quote.amount) || 0).toLocaleString()}
           </div>
@@ -1039,12 +1039,14 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
               justifyContent: 'center', 
               borderRadius: '8px',
               color: 'var(--text-primary)',
+              background: 'var(--subtle-bg)',
+              border: '1px solid var(--panel-border)',
               cursor: 'pointer'
             }} 
             onClick={onClose}
             aria-label="Close"
           >
-            <X size={18} strokeWidth={2.5} style={{ stroke: 'currentColor' }} />
+            <X size={20} strokeWidth={2.5} style={{ stroke: 'currentColor', color: 'inherit' }} />
           </button>
         </div>
 

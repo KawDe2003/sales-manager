@@ -1153,8 +1153,8 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 }}
                 placeholder="Select a Client"
                 options={[
-                  { value: '', label: 'Select a Client' },
-                  ...customers.map(c => ({ value: c.id, label: c.gymName }))
+                  { value: '', label: 'Select a Client / Business' },
+                  ...customers.map(c => ({ value: c.id, label: c.gymName || c.name || 'Unnamed Client' }))
                 ]}
                 style={{ height: '44px', width: '100%' }}
               />

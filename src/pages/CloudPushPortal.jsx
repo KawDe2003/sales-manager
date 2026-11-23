@@ -206,13 +206,44 @@ export default function CloudPushPortal() {
     setShowCreateProfileModal(true);
   };
 
+  // Quick Preset Biometric Devices for Active Hardware Card (1 Device vs 2 Devices)
+  const handleApplyMainDevicePreset = (mode) => {
+    const timestamp = Date.now();
+    if (mode === 'single') {
+      const existingSn = deviceSerials[0]?.sn || serialNo || 'NYU7254000011';
+      const singleDev = [
+        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN/OUT', label: 'Main Biometric Terminal (Two-Way IN/OUT)', status: 'idle' }
+      ];
+      setDeviceSerials(singleDev);
+      setSerialNo(existingSn);
+      setSerialFilter('ALL');
+      setCommandTargetSerial(existingSn);
+      notify('Switched to Single Device mode (Two-Way IN/OUT)', 'info');
+    } else if (mode === 'dual') {
+      const sn1 = deviceSerials[0]?.sn || serialNo || 'NYU7254000011';
+      let sn2 = deviceSerials[1]?.sn || '';
+      if (!sn2 && sn1) {
+        sn2 = sn1.slice(0, -1) + (Number(sn1.slice(-1)) + 1 || '2');
+      }
+      const dualDevs = [
+        { id: `dev-${timestamp}-1`, sn: sn1, role: 'IN', label: 'Entrance Biometric Device (IN)', status: 'idle' },
+        { id: `dev-${timestamp}-2`, sn: sn2 || 'NYU7254000012', role: 'OUT', label: 'Exit Biometric Device (OUT)', status: 'idle' }
+      ];
+      setDeviceSerials(dualDevs);
+      setSerialNo(sn1);
+      setSerialFilter('ALL');
+      setCommandTargetSerial(sn1);
+      notify('Switched to Dual Devices mode (Entrance IN + Exit OUT)', 'info');
+    }
+  };
+
   // Quick Preset Biometric Devices for Modal (1 Device vs 2 Devices)
   const handleApplyModalDevicePreset = (mode) => {
     const timestamp = Date.now();
     if (mode === 'single') {
       const existingSn = modalDevices[0]?.sn || '';
       setModalDevices([
-        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN', label: 'Entrance Biometric Device (IN)' }
+        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN/OUT', label: 'Main Biometric Terminal (Two-Way IN/OUT)' }
       ]);
     } else if (mode === 'dual') {
       const sn1 = modalDevices[0]?.sn || '';
@@ -350,7 +381,7 @@ export default function CloudPushPortal() {
       setSerialNo(cust.deviceSerials[0].sn);
     } else if (cust.deviceSerial) {
       setSerialNo(cust.deviceSerial);
-      setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)' }]);
+      setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN/OUT', label: 'Main Biometric Terminal (IN/OUT)', status: 'idle' }]);
     } else {
       setSerialNo('');
       setDeviceSerials([]);
@@ -390,7 +421,7 @@ export default function CloudPushPortal() {
           setSerialNo(cust.deviceSerials[0].sn);
         } else if (cust.deviceSerial) {
           setSerialNo(cust.deviceSerial);
-          setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)', status: 'idle' }]);
+          setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN/OUT', label: 'Main Biometric Terminal (IN/OUT)', status: 'idle' }]);
         } else {
           setSerialNo('');
           setDeviceSerials([]);
@@ -877,7 +908,7 @@ export default function CloudPushPortal() {
         terminals = [
           {
             terminal_serial: serialNo || 'NYU7254000011',
-            terminal_alias: 'Main Entrance Biometric Turnstile',
+            terminal_alias: 'Main Entrance Biometric Device',
             is_registration: false,
             inout_type: 'InOut',
             timediff: 330.0,
@@ -893,7 +924,7 @@ export default function CloudPushPortal() {
       setFleetList([
         {
           terminal_serial: serialNo || 'NYU7254000011',
-          terminal_alias: 'Main Entrance Biometric Turnstile',
+          terminal_alias: 'Main Entrance Biometric Device',
           is_registration: false,
           inout_type: 'InOut',
           timediff: 330.0,
@@ -1353,11 +1384,11 @@ export default function CloudPushPortal() {
                   color: 'var(--accent-primary)',
                   border: '1px solid rgba(99, 102, 241, 0.3)'
                 }}>
-                  Multi-Device / Turnstile Mode
+                  Multi-Device / Biometric Mode
                 </span>
               </div>
               <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Connect eTechno Push Gateway, manage multi-SN IN/OUT turnstiles, and run active member audits.
+                Connect eTechno Push Gateway, manage multi-SN IN/OUT biometric devices, and run active member audits.
               </p>
             </div>
           </div>
@@ -1520,77 +1551,117 @@ export default function CloudPushPortal() {
           </div>
         </div>
 
-        {/* Sub-panel 2: Biometric Turnstiles & Multi-Device Serials (IN / OUT) */}
+        {/* Sub-panel 2: Biometric Devices Fleet (Single Device or Multi-Device) */}
         <div className="cloud-sub-panel" style={{ marginBottom: portalSection === 'audit' ? '16px' : '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Cpu size={15} style={{ color: 'var(--accent-primary)' }} />
               <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 800 }}>
-                2. Linked Biometric Devices Fleet ({deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'})
+                2. Linked Biometric Devices Fleet ({deviceSerials.length} {deviceSerials.length === 1 ? 'Device' : 'Devices'})
               </span>
               <span style={{
                 fontSize: '0.72rem',
-                padding: '2px 7px',
+                padding: '2px 8px',
                 borderRadius: '10px',
                 fontWeight: 700,
                 background: 'rgba(16, 185, 129, 0.14)',
                 color: '#10b981'
               }}>
-                {deviceSerials.filter(d => d.role === 'IN').length} Entrance (IN) • {deviceSerials.filter(d => d.role === 'OUT').length} Exit (OUT)
+                {deviceSerials.length === 1
+                  ? `Single Device (${deviceSerials[0]?.role === 'IN/OUT' ? 'Two-Way IN/OUT' : (deviceSerials[0]?.role || 'Standalone')})`
+                  : `${deviceSerials.filter(d => d.role === 'IN').length} IN • ${deviceSerials.filter(d => d.role === 'OUT').length} OUT${deviceSerials.some(d => d.role === 'IN/OUT') ? ` • ${deviceSerials.filter(d => d.role === 'IN/OUT').length} Two-Way` : ''}`
+                }
               </span>
             </div>
 
-            {/* Scope / Target Filter Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                {portalSection === 'audit' ? 'Audit Scope:' : portalSection === 'realtime' ? 'Stream Scope:' : 'Target Scope:'}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSerialFilter('ALL');
-                  if (deviceSerials[0]) setCommandTargetSerial(deviceSerials[0].sn);
-                }}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: serialFilter === 'ALL' ? 'var(--accent-primary)' : 'transparent',
-                  color: serialFilter === 'ALL' ? '#fff' : 'var(--text-muted)',
-                  border: `1px solid ${serialFilter === 'ALL' ? 'var(--accent-primary)' : 'var(--panel-border)'}`
-                }}
-              >
-                All Devices (IN + OUT Combined)
-              </button>
-
-              {deviceSerials.map(dev => (
+            {/* Quick Fleet Presets & Scope / Target Filter Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                 <button
-                  key={dev.id || dev.sn}
                   type="button"
-                  onClick={() => {
-                    setSerialFilter(dev.sn);
-                    setCommandTargetSerial(dev.sn);
-                  }}
+                  onClick={() => handleApplyMainDevicePreset('single')}
+                  className="btn btn-sm"
+                  title="Configure client for 1 physical biometric device (Two-Way IN/OUT)"
                   style={{
-                    padding: '4px 9px',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: serialFilter === dev.sn ? 'var(--accent-primary)' : 'transparent',
-                    color: serialFilter === dev.sn ? '#fff' : 'var(--text-muted)',
-                    border: `1px solid ${serialFilter === dev.sn ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    fontSize: '0.72rem', padding: '3px 8px', borderRadius: '6px',
+                    background: deviceSerials.length === 1 ? 'rgba(99, 102, 241, 0.2)' : 'var(--subtle-bg)',
+                    color: deviceSerials.length === 1 ? 'var(--accent-primary)' : 'var(--text-muted)',
+                    border: `1px solid ${deviceSerials.length === 1 ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                    fontWeight: deviceSerials.length === 1 ? 800 : 500
                   }}
                 >
-                  <span style={{ fontWeight: 800 }}>[{dev.role}]</span>
-                  <span>{dev.sn}</span>
+                  ⚡ 1 Device (Single)
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => handleApplyMainDevicePreset('dual')}
+                  className="btn btn-sm"
+                  title="Configure client for dual devices (Entrance IN + Exit OUT)"
+                  style={{
+                    fontSize: '0.72rem', padding: '3px 8px', borderRadius: '6px',
+                    background: deviceSerials.length >= 2 ? 'rgba(99, 102, 241, 0.2)' : 'var(--subtle-bg)',
+                    color: deviceSerials.length >= 2 ? 'var(--accent-primary)' : 'var(--text-muted)',
+                    border: `1px solid ${deviceSerials.length >= 2 ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                    fontWeight: deviceSerials.length >= 2 ? 800 : 500
+                  }}
+                >
+                  ⚡ 2 Devices (Dual)
+                </button>
+              </div>
+
+              {deviceSerials.length > 1 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: '6px' }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {portalSection === 'audit' ? 'Audit Scope:' : portalSection === 'realtime' ? 'Stream Scope:' : 'Target Scope:'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSerialFilter('ALL');
+                      if (deviceSerials[0]) setCommandTargetSerial(deviceSerials[0].sn);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: serialFilter === 'ALL' ? 'var(--accent-primary)' : 'transparent',
+                      color: serialFilter === 'ALL' ? '#fff' : 'var(--text-muted)',
+                      border: `1px solid ${serialFilter === 'ALL' ? 'var(--accent-primary)' : 'var(--panel-border)'}`
+                    }}
+                  >
+                    All Devices Combined ({deviceSerials.length})
+                  </button>
+
+                  {deviceSerials.map(dev => (
+                    <button
+                      key={dev.id || dev.sn}
+                      type="button"
+                      onClick={() => {
+                        setSerialFilter(dev.sn);
+                        setCommandTargetSerial(dev.sn);
+                      }}
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: serialFilter === dev.sn ? 'var(--accent-primary)' : 'transparent',
+                        color: serialFilter === dev.sn ? '#fff' : 'var(--text-muted)',
+                        border: `1px solid ${serialFilter === dev.sn ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span style={{ fontWeight: 800 }}>[{dev.role}]</span>
+                      <span>{dev.sn}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1640,7 +1711,7 @@ export default function CloudPushPortal() {
                         {dev.sn}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {dev.label || (dev.role === 'IN' ? 'Entrance Turnstile' : 'Exit Turnstile')}
+                        {dev.label || (dev.role === 'IN' ? 'Entrance Biometric Device' : dev.role === 'OUT' ? 'Exit Biometric Device' : 'Two-Way Biometric Terminal')}
                       </div>
                     </div>
                   </div>
@@ -1983,7 +2054,7 @@ export default function CloudPushPortal() {
                 Active User Statement & Audit Engine Ready
               </h3>
               <p style={{ margin: '0 auto 20px', maxWidth: '540px', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Configure the billing cycle dates and rate in the hardware section above, then click <strong>Fetch Active User Statement</strong> to scan active biometric members across all turnstiles, or preview sample audit data.
+                Configure the billing cycle dates and rate in the hardware section above, then click <strong>Fetch Active User Statement</strong> to scan active biometric members across all biometric devices, or preview sample audit data.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                 <button
@@ -2313,17 +2384,17 @@ export default function CloudPushPortal() {
           {/* TAB 1: ANALYTICS & MONTHWISE TABLE */}
           {activeTab === 'analytics' && (
             <div>
-              {/* Turnstiles Fleet Telemetry & Multi-Device Status */}
+              {/* Biometric Fleet Telemetry & Multi-Device Status */}
               <div className="card" style={{ padding: '18px 20px', borderRadius: '16px', marginBottom: '22px', border: '1px solid var(--panel-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Cpu size={16} style={{ color: 'var(--accent-primary)' }} />
                     <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      Registered Biometric Turnstiles & Real-time Telemetry ({(auditData.configuredDevices || deviceSerials).length} Devices)
+                      Registered Biometric Devices &amp; Real-time Telemetry ({(auditData.configuredDevices || deviceSerials).length} Devices)
                     </h4>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Gateway Acc: <strong>#{accNo}</strong> • Scope: <strong>{auditData.serialFilter === 'ALL' ? 'Combined IN + OUT Gym Total' : `Filtered: ${auditData.serialFilter}`}</strong>
+                    Gateway Acc: <strong>#{accNo}</strong> • Scope: <strong>{auditData.serialFilter === 'ALL' ? 'Combined Biometric Fleet Total' : `Filtered: ${auditData.serialFilter}`}</strong>
                   </div>
                 </div>
 
@@ -2359,7 +2430,7 @@ export default function CloudPushPortal() {
                               {dev.sn}
                             </div>
                             <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {dev.label || (dev.role === 'IN' ? 'Entrance Turnstile' : 'Exit Turnstile')}
+                              {dev.label || (dev.role === 'IN' ? 'Entrance Device' : dev.role === 'OUT' ? 'Exit Device' : 'Two-Way Terminal')}
                             </div>
                           </div>
                         </div>
@@ -2682,14 +2753,16 @@ export default function CloudPushPortal() {
 
                   <div>
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      Biometric Turnstiles ({(auditData?.configuredDevices || deviceSerials).length} Terminals)
+                      Biometric Device{(auditData?.configuredDevices || deviceSerials).length === 1 ? '' : 's'} ({(auditData?.configuredDevices || deviceSerials).length} {(auditData?.configuredDevices || deviceSerials).length === 1 ? 'Terminal' : 'Terminals'})
                     </div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
                       Push Gateway Account: <strong>#{accNo}</strong>
-                      {serialFilter !== 'ALL' ? (
+                      {(auditData?.configuredDevices || deviceSerials).length === 1 ? (
+                        <span style={{ color: '#10b981', fontSize: '0.74rem', marginLeft: '6px' }}>(Single Two-Way Terminal)</span>
+                      ) : serialFilter !== 'ALL' ? (
                         <span style={{ color: '#4f46e5', fontSize: '0.74rem', marginLeft: '6px' }}>(Filter: {serialFilter})</span>
                       ) : (
-                        <span style={{ color: '#10b981', fontSize: '0.74rem', marginLeft: '6px' }}>(Combined IN + OUT Turnstiles)</span>
+                        <span style={{ color: '#10b981', fontSize: '0.74rem', marginLeft: '6px' }}>(Combined Biometric Fleet)</span>
                       )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -2955,7 +3028,7 @@ export default function CloudPushPortal() {
                 Live Biometric Attendance Stream ({filteredRealtime.length} Events)
               </h4>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Gateway Acc: <strong>#{accNo}</strong> • {deviceSerials.length} Turnstiles ({deviceSerials.map(d => `${d.sn} [${d.role}]`).join(', ')})
+                Gateway Acc: <strong>#{accNo}</strong> • {deviceSerials.length} Devices ({deviceSerials.map(d => `${d.sn} [${d.role}]`).join(', ')})
               </span>
             </div>
 
@@ -3057,7 +3130,7 @@ export default function CloudPushPortal() {
                   Biometric Terminal Remote Control Center
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Send instantaneous cloud instructions directly to physical biometric turnstiles and attendance readers.
+                  Send instantaneous cloud instructions directly to physical biometric devices and attendance readers.
                 </p>
               </div>
 
@@ -3074,7 +3147,7 @@ export default function CloudPushPortal() {
                     >
                       {deviceSerials.map(d => (
                         <option key={d.id || d.sn} value={d.sn}>
-                          [{d.role}] {d.sn} — {d.label || 'Turnstile'}
+                          [{d.role}] {d.sn} — {d.label || 'Biometric Device'}
                         </option>
                       ))}
                     </select>
@@ -3798,7 +3871,7 @@ export default function CloudPushPortal() {
                 </div>
               </div>
 
-              {/* Multi-Turnstile Fleet Setup */}
+              {/* Multi-Device Biometric Fleet Setup */}
               <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -114,8 +114,16 @@ const Settings = () => {
       const saved = localStorage.getItem('biz_db_config_biz_main');
       if (saved && (saved.includes('your-project-url') || saved.includes('xyz.supabase.co') || saved.includes('fallback'))) {
         localStorage.removeItem('biz_db_config_biz_main');
+        setSeynexDbUrl('https://cavehtshlvorbzlgqmxs.supabase.co');
+        setSeynexDbKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
       }
     } catch (e) {}
+
+    // Enforce production defaults if state held an invalid or placeholder endpoint
+    if (!seynexDbUrl || seynexDbUrl.includes('your-project-url') || seynexDbUrl.includes('xyz.supabase.co')) {
+      setSeynexDbUrl('https://cavehtshlvorbzlgqmxs.supabase.co');
+      setSeynexDbKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
+    }
 
     const handleDbUpdated = () => {
       if (getBusinessDbConfig) {

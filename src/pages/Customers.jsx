@@ -973,14 +973,14 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                   </div>
                 </div>
 
-                {/* Multi-Device Turnstiles List & Manager */}
+                {/* Biometric Devices Fleet Manager */}
                 <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--subtle-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                      Gym Turnstile Fleet ({(formData.deviceSerials || []).length} Connected Serials):
+                      Biometric Device Fleet ({(formData.deviceSerials || []).length} Device{(formData.deviceSerials || []).length === 1 ? '' : 's'}):
                     </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Supports multiple Entrance IN & Exit OUT readers
+                      Supports single 2-way terminal (IN/OUT) or dedicated Entrance IN &amp; Exit OUT readers
                     </span>
                   </div>
 
@@ -1011,12 +1011,12 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                           {dev.role}
                         </span>
                         <code style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dev.sn}</code>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>({dev.label || (dev.role === 'IN' ? 'Entrance' : 'Exit')})</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>({dev.label || (dev.role === 'IN' ? 'Entrance' : dev.role === 'OUT' ? 'Exit' : 'Two-Way')})</span>
                         <button
                           type="button"
                           onClick={() => removeCustDevice(dev.sn)}
                           style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-                          title="Remove this turnstile"
+                          title="Remove this biometric device"
                         >
                           <X size={12} />
                         </button>
@@ -1024,7 +1024,7 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                     ))}
                     {(formData.deviceSerials || []).length === 0 && (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        No turnstiles added yet. Enter serials below.
+                        No biometric devices added yet. Enter serials below.
                       </span>
                     )}
                   </div>
@@ -1043,17 +1043,18 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                       className="form-input"
                       value={newCustDeviceRole}
                       onChange={e => setNewCustDeviceRole(e.target.value)}
-                      style={{ height: '32px', fontSize: '0.78rem', width: '130px' }}
+                      style={{ height: '32px', fontSize: '0.78rem', width: '150px' }}
                     >
-                      <option value="IN">Turnstile IN</option>
-                      <option value="OUT">Turnstile OUT</option>
                       <option value="IN/OUT">Two-Way (IN/OUT)</option>
-                      <option value="RECEPTION">Reception Desk</option>
+                      <option value="IN">Entrance (IN)</option>
+                      <option value="OUT">Exit (OUT)</option>
+                      <option value="RECEPTION">Reception Terminal</option>
+                      <option value="DOOR">Access Door Terminal</option>
                     </select>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Label (e.g. Exit Turnstile)"
+                      placeholder="Label (e.g. Main Entrance Device)"
                       value={newCustDeviceLabel}
                       onChange={e => setNewCustDeviceLabel(e.target.value)}
                       style={{ height: '32px', fontSize: '0.78rem', flex: 1, minWidth: '130px' }}

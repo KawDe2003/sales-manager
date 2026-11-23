@@ -7,10 +7,12 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn, LogOut,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Zap
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Zap, Sliders, Palette
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ThemeCustomizerDrawer from './components/ThemeCustomizerDrawer';
+import { applyThemeTokens, loadThemeCustomizerConfig } from './utils/themeManager';
 
 // Route-level code-splitting: heavy pages are lazy-loaded on demand
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -278,6 +280,15 @@ const AppContent = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showCustomizerDrawer, setShowCustomizerDrawer] = useState(false);
+
+  // Apply persisted theme customizations on initial mount
+  useEffect(() => {
+    try {
+      const cfg = loadThemeCustomizerConfig();
+      if (cfg) applyThemeTokens(cfg);
+    } catch (e) {}
+  }, []);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -576,12 +587,34 @@ const AppContent = () => {
               )}
             </div>
             <div className="hidden-mobile">
-              <h1 style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
-                {brandName}<span style={{ color: 'var(--accent-primary)' }}>.</span>
+              <h1 style={{ fontSize: '1.12rem', fontWeight: '800', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                Seynex Sales Manager<span style={{ color: 'var(--accent, #6366f1)' }}>.</span>
               </h1>
             </div>
           </Link>
         </div>
+
+        {/* Center: Single-Row Pill Navigation (Desktop) */}
+        <nav className="header-pill-nav hidden-tablet-down" aria-label="Quick Navigation">
+          <NavLink to="/" end className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/quotations" className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Quotations
+          </NavLink>
+          <NavLink to="/invoices" className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Invoices
+          </NavLink>
+          <NavLink to="/customers" className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Customers
+          </NavLink>
+          <NavLink to="/cloud-push" className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Cloud Push Billing
+          </NavLink>
+          <NavLink to="/debtors" className={({ isActive }) => `header-nav-pill ${isActive ? 'active' : ''}`}>
+            Debtors
+          </NavLink>
+        </nav>
 
         <div className="flex items-center gap-2">
           {/* Quick Actions */}
@@ -603,6 +636,32 @@ const AppContent = () => {
             aria-label="Search"
           >
             <Search size={21} strokeWidth={2.3} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
+          </button>
+
+          {/* Customize Colors & Layout Drawer CTA */}
+          <button
+            type="button"
+            id="header-customize-theme-btn"
+            className="btn btn-secondary header-action-icon-btn"
+            style={{
+              height: '40px',
+              padding: '0 12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              position: 'relative',
+              zIndex: 2
+            }}
+            onClick={() => setShowCustomizerDrawer(true)}
+            title="Customize Colors & Layout"
+            aria-label="Customize Colors & Layout"
+          >
+            <Sliders size={18} strokeWidth={2.2} style={{ color: 'var(--accent, #6366f1)', flexShrink: 0 }} />
+            <span className="hidden-mobile" style={{ fontSize: '0.78rem' }}>Customize</span>
           </button>
 
           {/* AUTOMATIC CLOUD SYNC STATUS (ZERO-TOUCH AUTONOMOUS SYNC) */}
@@ -1314,6 +1373,12 @@ const AppContent = () => {
           </button>
         </nav>
       </div>
+
+      {/* Theme & Layout Customizer Slide-Over Drawer */}
+      <ThemeCustomizerDrawer
+        isOpen={showCustomizerDrawer}
+        onClose={() => setShowCustomizerDrawer(false)}
+      />
     </div>
   );
 };

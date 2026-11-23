@@ -2,24 +2,39 @@
 
 :root,
 [data-theme='dark'] {
+  /* ===== UNIFIED SYSTEM CSS VARIABLE TOKENS ===== */
+  --bg: #0d1117;
+  --surface: #161a23;
+  --surface-2: #1f2430;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #6366f1;
+  --accent-fg: #ffffff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+  --card-pad: 20px;
+
   /* ===== MODERN EXECUTIVE CHARCOAL & SLATE DARK MODE PALETTE ===== */
   /* Neutral dark surfaces with crisp separation, zero neon cyan glare, and high readability */
 
   /* 1. Base Backgrounds (Canvas to Elevated Surfaces) */
-  --bg-color: #0d1117;
-  --bg-primary: #12151c;
-  --bg-secondary: #171b24;
-  --bg-tertiary: #1f2430;
+  --bg-color: var(--bg);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
 
   /* 2. Panels, Cards & Containers (Identifiable Boundaries with Crisp Borders) */
-  --panel-bg: #161a23;
-  --panel-border: rgba(255, 255, 255, 0.12);
+  --panel-bg: var(--surface);
+  --panel-border: var(--border);
   --panel-border-highlight: rgba(255, 255, 255, 0.18);
   --panel-glow: transparent;
 
   /* 3. Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
   --text-muted: #64748b;
 
   /* 4. Inputs & Shadows - Recessed Darker Input for Instant Identification */
@@ -147,21 +162,36 @@
 [data-theme='light'] {
   color-scheme: light;
 
+  /* ===== UNIFIED SYSTEM CSS VARIABLE TOKENS (LIGHT MODE) ===== */
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-fg: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #e11d48;
+  --radius: 12px;
+  --card-pad: 20px;
+
   /* 1. Base Backgrounds - Soft slate canvas so pure white surfaces elevate crisply */
-  --bg-color: #f1f5f9;
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #e2e8f0;
+  --bg-color: var(--bg);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
 
   /* 2. Panels and Cards - Elevated solid pure white with crisp slate borders */
-  --panel-bg: #ffffff;
-  --panel-border: #e2e8f0;
+  --panel-bg: var(--surface);
+  --panel-border: var(--border);
   --panel-border-highlight: rgba(79, 70, 229, 0.3);
   --panel-glow: rgba(79, 70, 229, 0.05);
 
   /* 3. Typography - Deep rich slate for maximum readability & high contrast */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
   --text-muted: #64748b;
 
   /* 4. Inputs & Shadows */
@@ -2679,7 +2709,7 @@ body.sidebar-open-locked .app-sidebar {
   }
 }
 
-/* ===== VISIBILITY UTILITIES ===== */
+/* ===== VISIBILITY UTILITIES & RESPONSIVE BREAKPOINTS ===== */
 @media (max-width: 768px) {
   .hidden-mobile,
   #header-sidebar-toggle-btn-desktop {
@@ -2691,10 +2721,87 @@ body.sidebar-open-locked .app-sidebar {
   }
 }
 
+@media (max-width: 1023px) {
+  .hidden-tablet-down {
+    display: none !important;
+  }
+}
+
 @media (min-width: 769px) {
   .hidden-desktop {
     display: none !important;
   }
+}
+
+@media (min-width: 1024px) {
+  #header-sidebar-toggle-btn,
+  .hidden-desktop {
+    display: none !important;
+  }
+}
+
+/* ===== SINGLE-ROW HEADER PILL NAVIGATION ===== */
+.header-pill-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--subtle-bg);
+  padding: 4px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header-pill-nav::-webkit-scrollbar {
+  display: none;
+}
+.header-nav-pill {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.header-nav-pill:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+.header-nav-pill.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+/* ===== THEME CUSTOMIZER DRAWER ===== */
+.customizer-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999999;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.customizer-drawer-panel {
+  width: 400px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.5);
+  animation: slideInRight 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 /* ===== ANIMATIONS ===== */
