@@ -160,9 +160,17 @@ export const saveBusinessDbConfig = (businessId, config) => {
 /**
  * Pings the database to verify connectivity and calculate response latency.
  */
-export const testDatabaseConnection = async (businessId) => {
+export const testDatabaseConnection = async (businessId, customConfig) => {
   const normBizId = businessId || 'biz_main';
-  const config = getBusinessDbConfig(normBizId);
+  const config = customConfig && customConfig.url && customConfig.anonKey 
+    ? {
+        url: customConfig.url.trim(),
+        anonKey: customConfig.anonKey.trim(),
+        isDedicated: true,
+        isConfigured: true,
+        source: 'manual_test'
+      }
+    : getBusinessDbConfig(normBizId);
 
   if (!config.isConfigured || !isValidSupabaseUrl(config.url)) {
     return {
@@ -173,7 +181,9 @@ export const testDatabaseConnection = async (businessId) => {
     };
   }
 
-  const client = getSupabaseClient(normBizId);
+  const client = customConfig && customConfig.url && customConfig.anonKey
+    ? createClient(config.url, config.anonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    : getSupabaseClient(normBizId);
   const startTime = performance.now();
 
   try {

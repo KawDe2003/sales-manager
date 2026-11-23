@@ -30,6 +30,47 @@ export function createBasicAuthHeader(apiKey, username = '', password = '') {
 export const historicalAuditCache = new Map();
 
 /**
+ * Clear the historical audit cache on demand
+ */
+export function clearHistoricalAuditCache() {
+  historicalAuditCache.clear();
+}
+
+/**
+ * Normalize PIN strings: trim whitespace, handle leading-zero consistency (e.g. '0123' -> '123' if numeric),
+ * and ignore '0', '00', or empty PINs.
+ */
+export function normalizePin(rawPin) {
+  if (rawPin === null || rawPin === undefined) return '';
+  const str = String(rawPin).trim();
+  if (!str || str === '0' || str === '00' || str === '000') return '';
+  // Normalize leading zeros for numeric PINs
+  if (/^\d+$/.test(str)) {
+    const num = parseInt(str, 10);
+    return num === 0 ? '' : String(num);
+  }
+  return str;
+}
+
+/**
+ * Validates biometric punch record to exclude failed / denied access events
+ */
+export function isValidPunch(punch) {
+  if (!punch || typeof punch !== 'object') return false;
+  const status = String(punch.status || punch.Status || punch.verify_status || punch.state || '').toLowerCase();
+  if (status.includes('fail') || status.includes('denied') || status.includes('reject') || status.includes('invalid')) {
+    return false;
+  }
+  if (punch.verified === false || punch.is_valid === false || punch.success === false) {
+    return false;
+  }
+  if (punch.result === 0 || punch.Result === 0 || punch.verify_result === 0) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Executes async operations using a bounded concurrency pool (e.g. max 3-4 parallel promises)
  */
 export async function runWithConcurrency(items, limit, asyncFn) {
@@ -104,24 +145,33 @@ export function getMonthIntervals(startDateStr, endDateStr) {
 
 /**
  * Split a date range into chunks of maxDays (API max 10 days constraint)
+ * Enforces explicit 00:00:00 and 23:59:59 boundaries on each chunk
  */
 export function chunkDateRange(startDate, endDate, maxDays = 9) {
   const chunks = [];
-  let currStart = new Date(startDate);
-  const finalEnd = new Date(endDate);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  // Set start to beginning of day 00:00:00
+  let currStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0);
+  const finalEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59);
 
   while (currStart <= finalEnd) {
     const currEnd = new Date(currStart);
-    currEnd.setDate(currEnd.getDate() + maxDays);
+    currEnd.setDate(currEnd.getDate() + (maxDays - 1));
+    currEnd.setHours(23, 59, 59, 999);
     const effectiveEnd = currEnd > finalEnd ? new Date(finalEnd) : currEnd;
 
     chunks.push({
-      from: formatApiDate(currStart, false),
-      to: formatApiDate(effectiveEnd, true)
+      from: formatApiDate(currStart, false), // 'YYYY-MM-DD 00:00:00'
+      to: formatApiDate(effectiveEnd, true),  // 'YYYY-MM-DD 23:59:59'
+      fromDateObj: new Date(currStart),
+      toDateObj: new Date(effectiveEnd)
     });
 
     currStart = new Date(effectiveEnd);
     currStart.setDate(currStart.getDate() + 1);
+    currStart.setHours(0, 0, 0, 0);
   }
 
   return chunks;
@@ -695,18 +745,27 @@ export async function calculateMonthwiseActiveUsers({
   baseUrl = '/api/etechno',
   accNo = '1',
   serialNo = '',
+  deviceSerials = [],
   apiKey = '',
   username = '',
   password = '',
   fromDate,
   toDate,
   ratePerUserMonth = 100,
+  forceRefresh = false,
   onProgress = null
 }) {
   const months = getMonthIntervals(fromDate, toDate);
   if (months.length === 0) {
     throw new Error('Invalid date range. Please select valid From and To dates.');
   }
+
+  const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+  // Extract clean serial list from multi-device configuration
+  const serialList = (Array.isArray(deviceSerials) && deviceSerials.length > 0)
+    ? deviceSerials.map(d => (typeof d === 'string' ? d : d.sn)).map(s => String(s || '').trim()).filter(Boolean)
+    : (serialNo ? [String(serialNo).trim()] : []);
 
   if (onProgress) {
     onProgress({
@@ -724,7 +783,7 @@ export async function calculateMonthwiseActiveUsers({
     activeUserApiRes = await getActiveUserInvoiceData({
       baseUrl,
       accNo,
-      serialNo,
+      serialNo: serialList.length === 1 ? serialList[0] : '', // account-level if multiple or zero devices
       apiKey,
       username,
       password
@@ -747,8 +806,8 @@ export async function calculateMonthwiseActiveUsers({
     const invoiceObj = valueForInvoice[0] || {};
     const invoiceActiveUserCount = Number(invoiceObj.Active_User_Count) || 0;
     const invoiceUserCount = Number(invoiceObj.User_Count) || 0;
-    const invoiceActiveTerminalCount = Number(invoiceObj.Active_Terminal_Count) || 1;
-    const invoiceTerminalCount = Number(invoiceObj.Terminal_Count) || 1;
+    const invoiceActiveTerminalCount = Number(invoiceObj.Active_Terminal_Count) || (serialList.length || 1);
+    const invoiceTerminalCount = Number(invoiceObj.Terminal_Count) || (serialList.length || 1);
     const serviceName = avgValueData[0]?.Service_Name || invoiceObj.Service_Name || `Client Account #${accNo}`;
 
     // Group time-series snapshots by YYYY-MM
@@ -818,6 +877,7 @@ export async function calculateMonthwiseActiveUsers({
         }
       }
 
+      const isOpenMonth = m.key >= currentMonthKey || m.endDate >= new Date();
       const inactiveCount = Math.max(0, enrolledCount - activeCount);
       const monthlyFee = activeCount * Number(ratePerUserMonth || 0);
 
@@ -838,6 +898,7 @@ export async function calculateMonthwiseActiveUsers({
         snapshotCount,
         dataSource,
         isEstimated,
+        isOpenMonth,
         ratePerUser: Number(ratePerUserMonth || 0),
         monthlyFee
       });
@@ -854,6 +915,7 @@ export async function calculateMonthwiseActiveUsers({
       success: true,
       accNo,
       serialNo,
+      configuredDevices: serialList,
       fromDate,
       toDate,
       ratePerUserMonth: Number(ratePerUserMonth || 0),
@@ -882,7 +944,7 @@ export async function calculateMonthwiseActiveUsers({
   // ===== PATH B: TRANSACTION PUNCH LOG CHUNKING FALLBACK =====
   let terminalUsers = [];
   try {
-    const userRes = await getTerminalUsers({ baseUrl, accNo, serialNo, apiKey, username, password });
+    const userRes = await getTerminalUsers({ baseUrl, accNo, serialNo: serialList[0] || serialNo, apiKey, username, password });
     if (Array.isArray(userRes)) {
       terminalUsers = userRes;
     } else if (userRes?.user_list && Array.isArray(userRes.user_list)) {
@@ -901,6 +963,10 @@ export async function calculateMonthwiseActiveUsers({
   const allUniqueActivePins = new Set();
   const allPunchLogs = [];
 
+  const targetSerials = serialList.length > 0 ? serialList : [serialNo || ''];
+  const sortedDevicesKey = targetSerials.slice().sort().join(',') || 'ALL';
+  const rateKey = Number(ratePerUserMonth || 0);
+
   for (let i = 0; i < months.length; i++) {
     const m = months[i];
     if (onProgress) {
@@ -914,12 +980,17 @@ export async function calculateMonthwiseActiveUsers({
 
     const chunks = chunkDateRange(m.startDate, m.endDate, 8);
     const monthActivePins = new Set();
+    const seenPunchKeys = new Set();
     let monthPunchCount = 0;
 
-    const isHistoricalMonth = m.endDate < new Date();
-    const cacheKey = `${accNo}_${serialNo || 'ALL'}_${m.key}`;
+    const isOpenMonth = m.key >= currentMonthKey || m.endDate >= new Date();
+    const cacheKey = `${accNo}_${sortedDevicesKey}_${m.key}_${rateKey}`;
 
-    if (isHistoricalMonth && historicalAuditCache.has(cacheKey)) {
+    // Grace period: do not permanently cache closed month until 72 hours after month end
+    const gracePeriodMs = 72 * 60 * 60 * 1000;
+    const isEligibleForPermanentCache = !isOpenMonth && ((Date.now() - m.endDate.getTime()) > gracePeriodMs);
+
+    if (!forceRefresh && isEligibleForPermanentCache && historicalAuditCache.has(cacheKey)) {
       const cached = historicalAuditCache.get(cacheKey);
       cached.monthActivePins.forEach(pin => {
         monthActivePins.add(pin);
@@ -927,8 +998,16 @@ export async function calculateMonthwiseActiveUsers({
       });
       monthPunchCount = cached.monthPunchCount;
     } else {
+      // Build query tasks across all chunks and all linked biometric devices
+      const queryTasks = [];
+      for (const devSn of targetSerials) {
+        for (const chunk of chunks) {
+          queryTasks.push({ devSn, chunk });
+        }
+      }
+
       // Bounded concurrency pool: limit to max 3 concurrent chunk queries with retry backoff
-      await runWithConcurrency(chunks, 3, async (chunk) => {
+      await runWithConcurrency(queryTasks, 3, async ({ devSn, chunk }) => {
         let attempts = 0;
         let success = false;
         while (attempts < 2 && !success) {
@@ -937,7 +1016,7 @@ export async function calculateMonthwiseActiveUsers({
             const transRes = await getTransactionsChunk({
               baseUrl,
               accNo,
-              serialNo,
+              serialNo: devSn,
               fromDate: chunk.from,
               toDate: chunk.to,
               apiKey,
@@ -955,18 +1034,29 @@ export async function calculateMonthwiseActiveUsers({
             }
 
             transactions.forEach(t => {
-              const pin = t.pin || t.PIN || t.user_id || t.userId;
-              if (pin !== undefined && pin !== null && String(pin).trim() !== '') {
-                monthActivePins.add(String(pin));
-                allUniqueActivePins.add(String(pin));
-              }
+              if (!isValidPunch(t)) return;
+              const rawPin = t.pin ?? t.PIN ?? t.user_id ?? t.userId ?? t.EnrollNumber ?? t.enroll_number;
+              const pin = normalizePin(rawPin);
+              if (!pin) return;
+
+              // Composite deduplication key across chunks & devices: (PIN, timestamp, deviceSN)
+              const timeStr = String(t.time || t.timestamp || t.punch_time || t.Date || '').trim();
+              const snStr = String(t.terminal_serial || t.terminal_sn || devSn || '').trim();
+              const punchKey = `${pin}_${timeStr}_${snStr}`;
+
+              if (seenPunchKeys.has(punchKey)) return;
+              seenPunchKeys.add(punchKey);
+
+              // Site-wide cross-device PIN deduplication: Set ensures unique counting
+              monthActivePins.add(pin);
+              allUniqueActivePins.add(pin);
               monthPunchCount++;
               allPunchLogs.push(t);
             });
             success = true;
           } catch (err) {
             if (attempts >= 2) {
-              console.warn(`Chunk warning for ${chunk.from} to ${chunk.to}:`, err.message);
+              console.warn(`Chunk warning for ${chunk.from} to ${chunk.to} (SN ${devSn}):`, err.message);
             } else {
               await new Promise(r => setTimeout(r, 400));
             }
@@ -974,11 +1064,13 @@ export async function calculateMonthwiseActiveUsers({
         }
       });
 
-      if (isHistoricalMonth) {
+      if (isEligibleForPermanentCache) {
         historicalAuditCache.set(cacheKey, {
           monthActivePins: Array.from(monthActivePins),
           monthPunchCount,
-          uniquePunchUsers: monthActivePins.size
+          uniquePunchUsers: monthActivePins.size,
+          ratePerUser: rateKey,
+          cachedAt: Date.now()
         });
       }
     }
@@ -986,7 +1078,7 @@ export async function calculateMonthwiseActiveUsers({
     const uniquePunchUsers = monthActivePins.size;
     const activeCount = uniquePunchUsers > 0 ? uniquePunchUsers : activeEnrolled;
     const inactiveCount = Math.max(0, totalEnrolled - activeCount);
-    const monthlyFee = activeCount * Number(ratePerUserMonth || 0);
+    const monthlyFee = activeCount * rateKey;
 
     monthResults.push({
       key: m.key,
@@ -1000,8 +1092,9 @@ export async function calculateMonthwiseActiveUsers({
       uniquePunches: uniquePunchUsers,
       totalPunches: monthPunchCount,
       inactiveUsers: inactiveCount,
-      ratePerUser: Number(ratePerUserMonth || 0),
-      monthlyFee: monthlyFee
+      ratePerUser: rateKey,
+      monthlyFee: monthlyFee,
+      isOpenMonth
     });
   }
 
@@ -1016,15 +1109,16 @@ export async function calculateMonthwiseActiveUsers({
     success: true,
     accNo,
     serialNo,
+    configuredDevices: targetSerials,
     fromDate,
     toDate,
-    ratePerUserMonth: Number(ratePerUserMonth || 0),
+    ratePerUserMonth: rateKey,
     totalMonths,
     invoiceValue: {
       activeUserCount: averageMonthlyActive,
       userCount: totalEnrolled,
-      activeTerminalCount: 1,
-      terminalCount: 1
+      activeTerminalCount: targetSerials.length || 1,
+      terminalCount: targetSerials.length || 1
     },
     totalEnrolledUsers: totalEnrolled,
     activeEnrolledUsers: activeEnrolled,
@@ -1045,6 +1139,7 @@ export async function calculateMonthwiseActiveUsers({
 export function generateSimulatedMonthwiseData({
   accNo = '192',
   serialNo = 'NYU7254000011',
+  deviceSerials = [],
   fromDate = '2026-01-01',
   toDate = '2026-12-31',
   ratePerUserMonth = 100,
@@ -1053,6 +1148,7 @@ export function generateSimulatedMonthwiseData({
   const months = getMonthIntervals(fromDate, toDate);
   const monthResults = [];
   const isAcc192 = String(accNo).trim() === '192';
+  const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
   const currentEnrolled = isAcc192 ? 560 : (Number(baseEnrolled) || 50);
 
@@ -1067,6 +1163,8 @@ export function generateSimulatedMonthwiseData({
     '2026-10': 121,
     '2026-11': 52
   };
+
+  const devCount = (Array.isArray(deviceSerials) && deviceSerials.length > 0) ? deviceSerials.length : 2;
 
   months.forEach((m) => {
     let active = 236;
@@ -1087,6 +1185,7 @@ export function generateSimulatedMonthwiseData({
       dataSource = 'Simulation Standard Model';
     }
 
+    const isOpenMonth = m.key >= currentMonthKey || m.endDate >= new Date();
     const monthlyFee = active * Number(ratePerUserMonth || 0);
 
     monthResults.push({
@@ -1100,9 +1199,10 @@ export function generateSimulatedMonthwiseData({
       activeUsers: active,
       uniquePunches: active,
       snapshotCount,
-      activeTerminalCount: isAcc192 ? 1 : 3,
-      terminalCount: isAcc192 ? 1 : 3,
+      activeTerminalCount: devCount,
+      terminalCount: devCount,
       dataSource,
+      isOpenMonth,
       inactiveUsers: Math.max(0, currentEnrolled - active),
       ratePerUser: Number(ratePerUserMonth || 0),
       monthlyFee
@@ -1125,12 +1225,12 @@ export function generateSimulatedMonthwiseData({
     toDate,
     ratePerUserMonth: Number(ratePerUserMonth || 0),
     totalMonths,
-    serviceName: isAcc192 ? 'Fit Focus Gym (eTechno Verified Record)' : `Demo Enterprise Client (Acc #${accNo})`,
+    serviceName: isAcc192 ? 'Fit Focus Client (eTechno Verified Record)' : `Demo Enterprise Client (Acc #${accNo})`,
     invoiceValue: {
       activeUserCount: isAcc192 ? 236 : averageMonthlyActive,
       userCount: currentEnrolled,
-      activeTerminalCount: isAcc192 ? 1 : 3,
-      terminalCount: isAcc192 ? 1 : 3
+      activeTerminalCount: devCount,
+      terminalCount: devCount
     },
     totalEnrolledUsers: currentEnrolled,
     activeEnrolledUsers: isAcc192 ? 236 : averageMonthlyActive,

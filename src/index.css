@@ -3977,12 +3977,14 @@ body.sidebar-open-locked .app-sidebar {
     grid-column: span 1 !important;
   }
 
-  .cloud-turnstiles-grid {
+  .cloud-turnstiles-grid,
+  .cloud-devices-grid {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
   }
 
-  .cloud-add-turnstile-form {
+  .cloud-add-turnstile-form,
+  .cloud-add-device-form {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 8px !important;
@@ -3990,10 +3992,14 @@ body.sidebar-open-locked .app-sidebar {
 
   .cloud-add-turnstile-form input,
   .cloud-add-turnstile-form select,
-  .cloud-add-turnstile-form button {
+  .cloud-add-turnstile-form button,
+  .cloud-add-device-form input,
+  .cloud-add-device-form select,
+  .cloud-add-device-form button {
     width: 100% !important;
     min-width: 100% !important;
-    height: 38px !important;
+    min-height: 44px !important;
+    height: auto !important;
   }
 
   .cloud-hardware-actions {
@@ -4012,7 +4018,8 @@ body.sidebar-open-locked .app-sidebar {
   .cloud-hardware-actions button {
     width: 100% !important;
     justify-content: center !important;
-    height: 40px !important;
+    min-height: 44px !important;
+    height: auto !important;
   }
 
   .cloud-modal-dialog {
@@ -4128,14 +4135,18 @@ body.sidebar-open-locked .app-sidebar {
 }
 
 .cloud-hardware-static-card {
+  background: var(--panel-bg);
+  color: var(--text-primary);
   padding: 24px;
   border-radius: 16px;
   margin-bottom: 24px;
   border: 1px solid var(--panel-border);
+  box-shadow: var(--card-shadow);
 }
 
 .cloud-sub-panel {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   padding: 16px 18px;
   border-radius: 12px;
   border: 1px solid var(--panel-border);
@@ -4160,14 +4171,16 @@ body.sidebar-open-locked .app-sidebar {
   }
 }
 
-.cloud-turnstiles-grid {
+.cloud-turnstiles-grid,
+.cloud-devices-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.cloud-add-turnstile-form {
+.cloud-add-turnstile-form,
+.cloud-add-device-form {
   display: flex;
   align-items: center;
   gap: 8px;

@@ -1039,14 +1039,12 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
               justifyContent: 'center', 
               borderRadius: '8px',
               color: 'var(--text-primary)',
-              background: 'var(--subtle-bg)',
-              border: '1px solid var(--subtle-border)',
               cursor: 'pointer'
             }} 
             onClick={onClose}
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={18} strokeWidth={2.5} style={{ stroke: 'currentColor' }} />
           </button>
         </div>
 

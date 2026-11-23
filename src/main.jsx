@@ -3,6 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+// Auto-purge any legacy placeholder database URLs from localStorage on startup
+try {
+  const savedCfg = localStorage.getItem('biz_db_config_biz_main');
+  if (savedCfg && (savedCfg.includes('your-project-url') || savedCfg.includes('xyz.supabase.co') || savedCfg.includes('fallback') || savedCfg.includes('example'))) {
+    localStorage.removeItem('biz_db_config_biz_main');
+  }
+} catch (e) {}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);

@@ -133,7 +133,7 @@ const Settings = () => {
     setSeynexTesting(true);
     setSeynexTestResult(null);
     try {
-      const res = await testDatabaseConnection('biz_main');
+      const res = await testDatabaseConnection('biz_main', { url: seynexDbUrl, anonKey: seynexDbKey });
       setSeynexTestResult(res);
       if (res.success) {
         showNotification(`Seynex Database connected (${res.latencyMs}ms latency)!`, 'success');
@@ -162,13 +162,10 @@ const Settings = () => {
   const handleResetSeynexDb = () => {
     if (!saveBusinessDbConfig) return;
     saveBusinessDbConfig('biz_main', null);
-    if (getBusinessDbConfig) {
-      const cfg = getBusinessDbConfig('biz_main');
-      setSeynexDbUrl((cfg.url && !cfg.url.includes('your-project-url')) ? cfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co');
-      setSeynexDbKey((cfg.anonKey && cfg.anonKey !== 'your-anon-key') ? cfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
-    }
+    setSeynexDbUrl('https://cavehtshlvorbzlgqmxs.supabase.co');
+    setSeynexDbKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
     setSeynexTestResult(null);
-    showNotification('Seynex Enterprises database reset to environment defaults.');
+    showNotification('Seynex Enterprises database reset to canonical production defaults.');
   };
 
   useEffect(() => {

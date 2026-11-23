@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock, MapPin, Cloud } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
@@ -16,6 +16,7 @@ const Invoices = () => {
   } = useContext(StoreContext) || {};
   const defaultCompanyName = activeBusiness?.name || 'Seynex Enterprises';
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -29,7 +30,17 @@ const Invoices = () => {
     if (searchParam) {
       setSearchTerm(searchParam);
     }
-  }, [searchParams]);
+    if (location.state?.editingInvoice) {
+      setEditingInvoice(location.state.editingInvoice);
+      setShowModal(true);
+    } else if (location.state?.openInvoiceId) {
+      const found = invoices.find(inv => inv.id === location.state.openInvoiceId);
+      if (found) {
+        setEditingInvoice(found);
+        setShowModal(true);
+      }
+    }
+  }, [searchParams, location.state, invoices]);
 
   // SMS Modal States
   const [smsModalInvoice, setSmsModalInvoice] = useState(null);
@@ -1179,7 +1190,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 className="btn btn-sm btn-secondary"
                 onClick={() => {
                   setShowModal(false);
-                  navigate('/cloud-push', { state: { customerId: formData.customerId } });
+                  navigate(`/cloud-push?customerId=${encodeURIComponent(formData.customerId || '')}`, { state: { customerId: formData.customerId } });
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
                 title="Calculate monthwise active users for cloud push service"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { 
   Cloud, Server, Activity, Users, CheckCircle2, AlertCircle, 
@@ -7,7 +7,7 @@ import {
   Receipt, Key, Cpu, ArrowRight, Eye, EyeOff, ExternalLink,
   Search, ShieldCheck, Clock, BarChart3, HelpCircle, Save, Sparkles,
   Radio, Power, RotateCcw, Trash2, DownloadCloud, UploadCloud,
-  HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check, RefreshCcw,
+  HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check,
   LogIn, LogOut, ArrowUpDown, X, Building2, Edit3, SlidersHorizontal, ChevronRight,
   Shield, CheckCircle
 } from 'lucide-react';
@@ -23,17 +23,19 @@ import {
   sendTerminalCommand,
   getRealtimeTransactions,
   getTerminalsByAccount,
-  addTerminalToAccount
+  addTerminalToAccount,
+  clearHistoricalAuditCache
 } from '../utils/cloudPushService';
 import DatePicker from '../components/DatePicker';
 
 export default function CloudPushPortal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { customers = [], invoices = [], setInvoices, showNotification, updateCustomer, addCustomer, deleteCustomer } = useContext(StoreContext) || {};
+  const [searchParams] = useSearchParams();
+  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, updateCustomer, addCustomer, deleteCustomer } = useContext(StoreContext) || {};
 
-  // Parse any passed state (e.g. from customer card click)
-  const initialCustomerId = location.state?.customerId || '';
+  // Parse any passed state or URL query parameters (e.g. from invoice fee calculation button)
+  const initialCustomerId = searchParams.get('customerId') || location.state?.customerId || '';
 
   // Bulletproof notification helper
   const notify = (message, type = 'success') => {
@@ -55,17 +57,28 @@ export default function CloudPushPortal() {
   const [baseUrl, setBaseUrl] = useState('/api/etechno');
   const [ratePerUserMonth, setRatePerUserMonth] = useState(100);
 
-  // Multi-Device Turnstiles Fleet State (IN / OUT Serials)
+  // Multi-Device Biometric Fleet State (IN / OUT Serials)
   const [deviceSerials, setDeviceSerials] = useState([
-    { id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Turnstile (IN)', status: 'idle' },
-    { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Turnstile (OUT)', status: 'idle' }
+    { id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Biometric Device (IN)', status: 'idle' },
+    { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Biometric Device (OUT)', status: 'idle' }
   ]);
-  const [serialFilter, setSerialFilter] = useState('ALL'); // 'ALL' = combined gym totals, or specific SN
+  const [serialFilter, setSerialFilter] = useState('ALL'); // 'ALL' = combined site totals, or specific SN
   const [newDeviceSn, setNewDeviceSn] = useState('');
   const [newDeviceRole, setNewDeviceRole] = useState('IN');
   const [newDeviceLabel, setNewDeviceLabel] = useState('');
   const [pingingSn, setPingingSn] = useState(null);
   const [devicePingResults, setDevicePingResults] = useState({});
+
+  // Active Month Inclusions & Command Guardrails State
+  const [includedMonths, setIncludedMonths] = useState({});
+  const [confirmCommandModal, setConfirmCommandModal] = useState({
+    isOpen: false,
+    commandName: '',
+    commandLabel: '',
+    targetSerial: '',
+    description: '',
+    warning: ''
+  });
 
   // Date Range (default: current 12-month annual period)
   const currentYear = new Date().getFullYear();
@@ -152,10 +165,10 @@ export default function CloudPushPortal() {
     setModalRatePerUser(ratePerUserMonth || 100);
     setModalPeriodFrom(fromDate || `${currentYear}-01-01`);
     setModalPeriodTo(toDate || `${currentYear}-12-31`);
-    // Pre-populate with standard dual turnstiles (IN + OUT) as default template
+    // Pre-populate with standard dual biometric devices (IN + OUT) as default template
     setModalDevices([
-      { id: `dev-${Date.now()}-1`, sn: '', role: 'IN', label: 'Entrance Turnstile (IN)' },
-      { id: `dev-${Date.now()}-2`, sn: '', role: 'OUT', label: 'Exit Turnstile (OUT)' }
+      { id: `dev-${Date.now()}-1`, sn: '', role: 'IN', label: 'Entrance Biometric Device (IN)' },
+      { id: `dev-${Date.now()}-2`, sn: '', role: 'OUT', label: 'Exit Biometric Device (OUT)' }
     ]);
     setNewModalDevSn('');
     setNewModalDevRole('IN');
@@ -183,7 +196,7 @@ export default function CloudPushPortal() {
     if (Array.isArray(customer.deviceSerials) && customer.deviceSerials.length > 0) {
       setModalDevices(customer.deviceSerials);
     } else if (customer.deviceSerial) {
-      setModalDevices([{ id: 'dev-1', sn: customer.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }]);
+      setModalDevices([{ id: 'dev-1', sn: customer.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)' }]);
     } else {
       setModalDevices([]);
     }
@@ -193,13 +206,13 @@ export default function CloudPushPortal() {
     setShowCreateProfileModal(true);
   };
 
-  // Quick Preset Turnstiles for Modal (1 Device vs 2 Devices)
+  // Quick Preset Biometric Devices for Modal (1 Device vs 2 Devices)
   const handleApplyModalDevicePreset = (mode) => {
     const timestamp = Date.now();
     if (mode === 'single') {
       const existingSn = modalDevices[0]?.sn || '';
       setModalDevices([
-        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN', label: 'Entrance Turnstile (IN)' }
+        { id: `dev-${timestamp}`, sn: existingSn, role: 'IN', label: 'Entrance Biometric Device (IN)' }
       ]);
     } else if (mode === 'dual') {
       const sn1 = modalDevices[0]?.sn || '';
@@ -208,8 +221,8 @@ export default function CloudPushPortal() {
         sn2 = sn1.slice(0, -1) + (Number(sn1.slice(-1)) + 1 || '2');
       }
       setModalDevices([
-        { id: `dev-${timestamp}-1`, sn: sn1, role: 'IN', label: 'Entrance Turnstile (IN)' },
-        { id: `dev-${timestamp}-2`, sn: sn2, role: 'OUT', label: 'Exit Turnstile (OUT)' }
+        { id: `dev-${timestamp}-1`, sn: sn1, role: 'IN', label: 'Entrance Biometric Device (IN)' },
+        { id: `dev-${timestamp}-2`, sn: sn2, role: 'OUT', label: 'Exit Biometric Device (OUT)' }
       ]);
     }
   };
@@ -224,7 +237,7 @@ export default function CloudPushPortal() {
       notify(`Device ${sn} already exists in this profile`, 'warning');
       return;
     }
-    const defLabel = newModalDevLabel.trim() || (newModalDevRole === 'IN' ? 'Entrance Turnstile (IN)' : newModalDevRole === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device');
+    const defLabel = newModalDevLabel.trim() || (newModalDevRole === 'IN' ? 'Entrance Biometric Device (IN)' : newModalDevRole === 'OUT' ? 'Exit Biometric Device (OUT)' : 'Biometric Device');
     setModalDevices(prev => [...prev, {
       id: `dev-${Date.now()}`,
       sn,
@@ -242,7 +255,7 @@ export default function CloudPushPortal() {
   const handleSaveGymProfileFromModal = (e) => {
     if (e) e.preventDefault();
     if (!modalGymName.trim()) {
-      notify('Please enter a Gym / Client Name', 'warning');
+      notify('Please enter a Client / Business Name', 'warning');
       return;
     }
     if (!modalAccNo.trim()) {
@@ -252,7 +265,7 @@ export default function CloudPushPortal() {
 
     const cleanDevices = modalDevices.filter(d => d.sn && d.sn.trim());
     if (cleanDevices.length === 0) {
-      notify('Please configure at least one Device Serial # for this gym', 'warning');
+      notify('Please configure at least one Device Serial # for this client', 'warning');
       return;
     }
 
@@ -284,7 +297,7 @@ export default function CloudPushPortal() {
         setFromDate(modalPeriodFrom);
         setToDate(modalPeriodTo);
       }
-      notify(`Gym Profile "${modalGymName}" updated with ${cleanDevices.length} turnstile(s)!`, 'success');
+      notify(`Client Profile "${modalGymName}" updated with ${cleanDevices.length} biometric device(s)!`, 'success');
     } else {
       const newId = `mc-${Date.now()}`;
       const newCust = {
@@ -311,7 +324,7 @@ export default function CloudPushPortal() {
         addCustomer(newCust);
       }
 
-      // Immediately activate this gym in the portal
+      // Immediately activate this client in the portal
       setSelectedCustomerId(newId);
       setAccNo(newCust.cloudPushAcc);
       setApiKey(newCust.cloudPushApiKey);
@@ -322,7 +335,7 @@ export default function CloudPushPortal() {
       setToDate(modalPeriodTo);
       setSerialFilter('ALL');
 
-      notify(`New Gym Profile "${modalGymName}" created with ${cleanDevices.length} turnstile(s) and activated!`, 'success');
+      notify(`New Client Profile "${modalGymName}" created with ${cleanDevices.length} biometric device(s) and activated!`, 'success');
     }
 
     setShowCreateProfileModal(false);
@@ -337,7 +350,7 @@ export default function CloudPushPortal() {
       setSerialNo(cust.deviceSerials[0].sn);
     } else if (cust.deviceSerial) {
       setSerialNo(cust.deviceSerial);
-      setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }]);
+      setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)' }]);
     } else {
       setSerialNo('');
       setDeviceSerials([]);
@@ -377,7 +390,7 @@ export default function CloudPushPortal() {
           setSerialNo(cust.deviceSerials[0].sn);
         } else if (cust.deviceSerial) {
           setSerialNo(cust.deviceSerial);
-          setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)', status: 'idle' }]);
+          setDeviceSerials([{ id: 'dev-1', sn: cust.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)', status: 'idle' }]);
         } else {
           setSerialNo('');
           setDeviceSerials([]);
@@ -434,9 +447,9 @@ export default function CloudPushPortal() {
           cloudPushApiKey: apiKey,
           ratePerUserMonth
         });
-        notify(`Hardware profile & ${deviceSerials.length} turnstiles saved to customer record!`, 'success');
+        notify(`Hardware profile & ${deviceSerials.length} biometric device(s) saved to customer record!`, 'success');
       } else {
-        notify(`Hardware configuration & ${deviceSerials.length} turnstiles saved locally!`, 'success');
+        notify(`Hardware configuration & ${deviceSerials.length} biometric device(s) saved locally!`, 'success');
       }
     } catch (e) {
       console.error(e);
@@ -455,7 +468,7 @@ export default function CloudPushPortal() {
       return;
     }
 
-    const defaultLabel = newDeviceLabel.trim() || (newDeviceRole === 'IN' ? 'Entrance Turnstile (IN)' : newDeviceRole === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device');
+    const defaultLabel = newDeviceLabel.trim() || (newDeviceRole === 'IN' ? 'Entrance Biometric Device (IN)' : newDeviceRole === 'OUT' ? 'Exit Biometric Device (OUT)' : 'Biometric Device');
     const newDev = {
       id: `dev-${Date.now()}`,
       sn,
@@ -469,7 +482,7 @@ export default function CloudPushPortal() {
     setDeviceSerials(updated);
     setNewDeviceSn('');
     setNewDeviceLabel('');
-    notify(`Added ${sn} (${newDeviceRole}) to turnstile fleet`, 'success');
+    notify(`Added ${sn} (${newDeviceRole}) to biometric device fleet`, 'success');
   };
 
   // Remove device serial from fleet
@@ -617,7 +630,7 @@ export default function CloudPushPortal() {
   };
 
   // Fetch Live Active User Counts & Monthwise Breakdown
-  const handleRunAudit = async () => {
+  const handleRunAudit = async (forceRefresh = false) => {
     if (!accNo) {
       setError('Push Account # is required.');
       return;
@@ -625,6 +638,10 @@ export default function CloudPushPortal() {
     if (!fromDate || !toDate) {
       setError('Please specify both From and To dates for the billing period.');
       return;
+    }
+
+    if (forceRefresh) {
+      clearHistoricalAuditCache();
     }
 
     setLoading(true);
@@ -638,10 +655,12 @@ export default function CloudPushPortal() {
         baseUrl,
         accNo,
         serialNo: targetSerial,
+        deviceSerials,
         apiKey,
         fromDate,
         toDate,
         ratePerUserMonth,
+        forceRefresh,
         onProgress: (p) => setProgressInfo(p)
       });
 
@@ -652,8 +671,15 @@ export default function CloudPushPortal() {
         result.deviceOfflineNotice = true;
       }
 
+      const initIncluded = {};
+      if (Array.isArray(result.monthResults)) {
+        result.monthResults.forEach(m => {
+          initIncluded[m.key] = true;
+        });
+      }
+      setIncludedMonths(initIncluded);
       setAuditData(result);
-      notify(`Monthwise active members calculated across ${result.totalMonths} months!`, 'success');
+      notify(forceRefresh ? `Refreshed hardware audit data across ${result.totalMonths} months!` : `Monthwise active members calculated across ${result.totalMonths} months!`, 'success');
     } catch (err) {
       console.error(err);
       setError(`API Sync Error: ${err.message}. If the remote device is unreachable or offline, you can test with simulated sample data below.`);
@@ -670,6 +696,7 @@ export default function CloudPushPortal() {
     const result = generateSimulatedMonthwiseData({
       accNo: accNo || '192',
       serialNo: primarySerial,
+      deviceSerials,
       fromDate,
       toDate,
       ratePerUserMonth,
@@ -681,6 +708,14 @@ export default function CloudPushPortal() {
     }
     result.configuredDevices = deviceSerials;
     result.serialFilter = serialFilter;
+
+    const initIncluded = {};
+    if (Array.isArray(result.monthResults)) {
+      result.monthResults.forEach(m => {
+        initIncluded[m.key] = true;
+      });
+    }
+    setIncludedMonths(initIncluded);
     setAuditData(result);
     notify('Loaded verified eTechno biometric audit record for verification.', 'info');
   };
@@ -745,20 +780,38 @@ export default function CloudPushPortal() {
     };
   }, [portalSection, realtimeAutoRefresh, realtimeMinutes, accNo, apiKey]);
 
-  // 2. Dispatch Remote Hardware Command (POST /v2/terminal_cmd_client/)
-  const handleExecuteCommand = async (commandName, commandLabel) => {
+  // Request Remote Hardware Command with Guardrails for Disruptive Actions
+  const handleRequestCommand = (commandName, commandLabel, description, isDisruptive = false) => {
     const target = (commandTargetSerial || serialNo || '').trim();
     if (!target) {
-      if (showNotification) showNotification('warning', 'Please specify a target Terminal Serial #');
+      if (showNotification) showNotification('warning', 'Please specify a target Biometric Device Serial #');
       return;
     }
 
-    if (commandName === 'Clear_Att_Data' || commandName === 'Clear_Data') {
-      if (!window.confirm(`Are you sure you want to execute "${commandLabel}" on device ${target}? This clears hardware memory records.`)) {
-        return;
-      }
+    if (isDisruptive) {
+      setConfirmCommandModal({
+        isOpen: true,
+        commandName,
+        commandLabel,
+        targetSerial: target,
+        description: description || `Dispatches "${commandLabel}" to ${target}.`,
+        warning: commandName === 'Reboot_Terminal'
+          ? 'This will reboot the physical biometric terminal. Network access and gate verification will pause for 60-90 seconds.'
+          : (commandName === 'Clear_Att_Data' || commandName === 'Clear_Data')
+          ? 'This permanently purges stored attendance records from hardware memory buffer. Ensure logs are synchronized before continuing.'
+          : (commandName === 'Clear_Admin')
+          ? 'This removes administrative privilege locks on the biometric device to restore administrative access.'
+          : 'This triggers an over-the-air physical hardware action on the device relay.'
+      });
+      return;
     }
 
+    // Direct execution for non-disruptive commands
+    executeCommandDirect(commandName, commandLabel, target);
+  };
+
+  // Direct Execution of Remote Hardware Command
+  const executeCommandDirect = async (commandName, commandLabel, target) => {
     setCommandExecuting(commandName);
     try {
       const res = await sendTerminalCommand({
@@ -799,6 +852,7 @@ export default function CloudPushPortal() {
       }
     } finally {
       setCommandExecuting(null);
+      setConfirmCommandModal(prev => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -956,18 +1010,94 @@ export default function CloudPushPortal() {
     return `SE-PUSH-${yr}-${acc}`;
   }, [fromDate, accNo]);
 
+  // Filtered Billed Months based on User Toggles
+  const billedMonthResults = useMemo(() => {
+    if (!auditData?.monthResults) return [];
+    return auditData.monthResults.filter(m => includedMonths[m.key] !== false);
+  }, [auditData, includedMonths]);
+
+  // Recalculated dynamic totals based on included/toggled months
+  const billedTotals = useMemo(() => {
+    if (!billedMonthResults.length) {
+      return {
+        totalMonths: 0,
+        totalActiveSum: 0,
+        averageMonthlyActive: 0,
+        totalFee: 0,
+        peakActive: 0,
+        minActive: 0
+      };
+    }
+    const totalMonths = billedMonthResults.length;
+    const totalActiveSum = billedMonthResults.reduce((acc, m) => acc + (Number(m.activeUsers) || 0), 0);
+    const averageMonthlyActive = Math.round(totalActiveSum / totalMonths);
+    const totalFee = billedMonthResults.reduce((acc, m) => acc + (Number(m.monthlyFee) || 0), 0);
+    const peakActive = Math.max(...billedMonthResults.map(m => Number(m.activeUsers) || 0));
+    const minActive = Math.min(...billedMonthResults.map(m => Number(m.activeUsers) || 0));
+    return {
+      totalMonths,
+      totalActiveSum,
+      averageMonthlyActive,
+      totalFee,
+      peakActive,
+      minActive
+    };
+  }, [billedMonthResults]);
+
+  // Toggle month inclusion
+  const handleToggleMonthInclusion = (monthKey) => {
+    setIncludedMonths(prev => ({
+      ...prev,
+      [monthKey]: prev[monthKey] === false ? true : false
+    }));
+  };
+
   // Handle Generate Annual Invoice from Statement
   const handleCreateAnnualInvoice = () => {
     if (!auditData) return;
+
+    if (billedTotals.totalFee <= 0 || billedTotals.averageMonthlyActive <= 0) {
+      notify('Cannot create invoice: Total fee is LKR 0. Please include at least one month with active users.', 'warning');
+      return;
+    }
+    if (Number(ratePerUserMonth) <= 0) {
+      notify('Please specify a valid Rate per User (> 0).', 'warning');
+      return;
+    }
+
+    const billedMonthKeys = billedMonthResults.map(m => m.key);
+
+    // Duplicate Invoice Prevention: Check if active invoice already exists for customer with matching billed months
+    const activeInvoices = invoices.filter(inv => inv.customerId === selectedCustomerId && inv.status !== 'Void');
+    const existingWithSameService = activeInvoices.find(inv => {
+      const hasMonthOverlap = inv.cloudPushBilledMonths && inv.cloudPushBilledMonths.some(m => billedMonthKeys.includes(m));
+      const hasStatementOverlap = inv.notes && inv.notes.includes(statementId);
+      return hasMonthOverlap || hasStatementOverlap;
+    });
+
+    if (existingWithSameService) {
+      const proceed = window.confirm(
+        `Warning: An active invoice (#${existingWithSameService.invoiceNumber}) already exists for this client covering months (${existingWithSameService.cloudPushBilledMonths ? existingWithSameService.cloudPushBilledMonths.join(', ') : 'Cloud Push Service'}).\n\nDo you want to proceed and generate an additional invoice?`
+      );
+      if (!proceed) return;
+    }
+
     const invNumber = `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const devicesList = auditData.configuredDevices || deviceSerials;
-    const devicesSummary = devicesList.map(d => `${d.sn} (${d.role})`).join(', ');
+    const devicesSummary = devicesList.map(d => `${typeof d === 'string' ? d : d.sn} (${d.role || 'IN/OUT'})`).join(', ');
+
+    // Tax / VAT Support
+    const taxRate = Number(selectedCustomer?.taxRate || 0);
+    const subtotal = billedTotals.totalFee;
+    const taxAmount = Math.round((subtotal * taxRate) / 100);
+    const netAmount = subtotal + taxAmount;
+
     const lineItem = {
       id: `push-svc-${Date.now()}`,
-      name: `Biometric Cloud Push Service Annual License (${devicesList.length} Devices: ${devicesSummary})`,
-      desc: `Monthwise active member biometric push sync from ${fromDate} to ${toDate} across ${devicesList.length} turnstiles/devices (${devicesSummary}) under Gateway Acc #${accNo}. Avg ${auditData.averageMonthlyActive} active members/month across ${auditData.totalMonths} months @ LKR ${ratePerUserMonth}/user/mo.`,
+      name: `Biometric Cloud Push Service License (${devicesList.length} Devices: ${devicesSummary})`,
+      desc: `Monthwise active member biometric push sync across ${devicesList.length} biometric devices (${devicesSummary}) under Gateway Acc #${accNo}. Avg ${billedTotals.averageMonthlyActive} active members/month across ${billedTotals.totalMonths} audited months (${billedMonthKeys.join(', ')}) @ LKR ${ratePerUserMonth}/user/mo.`,
       type: 'Cloud Service',
-      price: auditData.totalAnnualFee,
+      price: subtotal,
       quantity: 1,
       billingCycle: 'Annual'
     };
@@ -983,22 +1113,31 @@ export default function CloudPushPortal() {
       phone: selectedCustomer?.phone || '',
       address: selectedCustomer?.address || '',
       items: [lineItem],
-      amount: auditData.totalAnnualFee,
+      subtotal,
+      taxRate,
+      taxAmount,
+      amount: netAmount,
       paidAmount: 0,
-      balance: auditData.totalAnnualFee,
+      balance: netAmount,
       status: 'Unpaid',
-      notes: `Generated from official eTechno biometric audit statement ${statementId}. Push Account #${accNo}. Configured Devices: ${devicesSummary}.`
+      cloudPushBilledMonths: billedMonthKeys,
+      notes: `Generated from official eTechno biometric audit statement ${statementId}. Push Account #${accNo}. Configured Biometric Devices: ${devicesSummary}.`
     };
 
-    if (setInvoices) {
+    if (addInvoice) {
+      addInvoice(newInvoice);
+    } else if (setInvoices) {
       setInvoices(prev => [newInvoice, ...(prev || [])]);
       try {
         const existing = JSON.parse(localStorage.getItem('gym_invoices') || '[]');
         localStorage.setItem('gym_invoices', JSON.stringify([newInvoice, ...existing]));
       } catch (e) {}
     }
-    notify(`Annual Invoice ${invNumber} created with Cloud Push line item!`, 'success');
-    navigate('/invoices');
+
+    notify(`Official Tax Invoice ${invNumber} created! Redirecting to Invoice Editor...`, 'success');
+    navigate(`/invoices?search=${encodeURIComponent(invNumber)}`, {
+      state: { openInvoiceId: newInvoice.id, editingInvoice: newInvoice }
+    });
   };
 
   // Handle Print
@@ -1266,7 +1405,7 @@ export default function CloudPushPortal() {
                   border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
                 }}
               >
-                <Plus size={12} /> New Gym Profile
+                <Plus size={12} /> + New Client Profile
               </button>
               <button
                 type="button"
@@ -1274,7 +1413,7 @@ export default function CloudPushPortal() {
                 className="btn btn-sm btn-secondary"
                 style={{ fontSize: '0.74rem', padding: '3px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
               >
-                <Building2 size={12} /> Manage All ({customers.length})
+                <Building2 size={12} /> Manage Client Profiles ({customers.length})
               </button>
             </div>
           </div>
@@ -1387,7 +1526,7 @@ export default function CloudPushPortal() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Cpu size={15} style={{ color: 'var(--accent-primary)' }} />
               <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 800 }}>
-                2. Gym Turnstiles & Multi-Device Fleet ({deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'})
+                2. Linked Biometric Devices Fleet ({deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'})
               </span>
               <span style={{
                 fontSize: '0.72rem',
@@ -1573,7 +1712,7 @@ export default function CloudPushPortal() {
             }}
           >
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Plus size={13} /> Add Turnstile:
+              <Plus size={13} /> Add Biometric Device:
             </div>
 
             <input
@@ -1591,17 +1730,17 @@ export default function CloudPushPortal() {
               onChange={(e) => setNewDeviceRole(e.target.value)}
               style={{ height: '34px', fontSize: '0.8rem', width: '185px', minWidth: '175px' }}
             >
-              <option value="IN">Entrance Turnstile (IN)</option>
-              <option value="OUT">Exit Turnstile (OUT)</option>
-              <option value="IN/OUT">Two-Way (IN/OUT)</option>
-              <option value="RECEPTION">Reception Desk</option>
-              <option value="DOOR">Access Door</option>
+              <option value="IN">Entrance Biometric Device (IN)</option>
+              <option value="OUT">Exit Biometric Device (OUT)</option>
+              <option value="IN/OUT">Two-Way Device (IN/OUT)</option>
+              <option value="RECEPTION">Reception Terminal</option>
+              <option value="DOOR">Access Door Terminal</option>
             </select>
 
             <input
               type="text"
               className="form-control"
-              placeholder="Label / Location (e.g. Exit Turnstile)"
+              placeholder="Label / Location (e.g. Exit Gate Reader)"
               value={newDeviceLabel}
               onChange={(e) => setNewDeviceLabel(e.target.value)}
               style={{ height: '34px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
@@ -1690,11 +1829,11 @@ export default function CloudPushPortal() {
               {' • '}
               <span>{deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'} ({deviceSerials.filter(d => d.role === 'IN').length} IN, {deviceSerials.filter(d => d.role === 'OUT').length} OUT)</span>
               {' • '}
-              <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Gym Total' : `Filtered: ${serialFilter}`}</strong></span>
+              <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Site Total' : `Filtered: ${serialFilter}`}</strong></span>
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -1721,7 +1860,7 @@ export default function CloudPushPortal() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={handleRunAudit}
+                  onClick={() => handleRunAudit(false)}
                   disabled={loading}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px', justifyContent: 'center' }}
                 >
@@ -1736,6 +1875,18 @@ export default function CloudPushPortal() {
                       <span>Fetch Active User Statement</span>
                     </>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => handleRunAudit(true)}
+                  disabled={loading}
+                  title="Bypass 72-hour cache and re-query fresh biometric attendance logs"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', fontSize: '0.82rem' }}
+                >
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  <span>Force Refresh</span>
                 </button>
               </>
             )}
@@ -2070,13 +2221,13 @@ export default function CloudPushPortal() {
                 <Users size={18} style={{ color: 'var(--accent-primary)' }} />
               </div>
               <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {auditData.averageMonthlyActive}
+                {billedTotals.totalMonths > 0 ? billedTotals.averageMonthlyActive : auditData.averageMonthlyActive}
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {auditData.invoiceValue ? (
-                  <>Server Value: <strong style={{ color: '#10b981' }}>{auditData.invoiceValue.activeUserCount}</strong> • Peak: <strong>{auditData.peakActiveUsers}</strong></>
+                  <>Server Snapshot: <strong style={{ color: '#10b981' }}>{auditData.invoiceValue.activeUserCount}</strong> • Peak: <strong>{billedTotals.peakActive || auditData.peakActiveUsers}</strong></>
                 ) : (
-                  <>Peak: <strong>{auditData.peakActiveUsers}</strong> • Min: <strong>{auditData.minActiveUsers}</strong></>
+                  <>Peak: <strong>{billedTotals.peakActive || auditData.peakActiveUsers}</strong> • Min: <strong>{billedTotals.minActive || auditData.minActiveUsers}</strong></>
                 )}
               </div>
             </div>
@@ -2098,14 +2249,14 @@ export default function CloudPushPortal() {
             {/* Billing Months */}
             <div className="card" style={{ padding: '18px 20px', borderRadius: '14px', border: '1px solid var(--panel-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Billing Cycle Span</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Billed Cycle Span</span>
                 <Calendar size={18} style={{ color: '#f59e0b' }} />
               </div>
               <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {auditData.totalMonths} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>Months</span>
+                {billedTotals.totalMonths} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>/ {auditData.totalMonths} Mos</span>
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                {fromDate} to {toDate}
+                {billedTotals.totalMonths === auditData.totalMonths ? 'All months included' : `${auditData.totalMonths - billedTotals.totalMonths} month(s) excluded`}
               </div>
             </div>
 
@@ -2116,14 +2267,14 @@ export default function CloudPushPortal() {
               border: '1px solid rgba(99, 102, 241, 0.3)' 
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Annual Push Service Fee</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Billed Push Service Fee</span>
                 <Receipt size={18} style={{ color: 'var(--accent-primary)' }} />
               </div>
               <div style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                Rs. {auditData.totalAnnualFee.toLocaleString()}
+                Rs. {billedTotals.totalFee.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Calculated @ Rs. {ratePerUserMonth}/user/month
+                Calculated @ Rs. {ratePerUserMonth}/user/month ({billedTotals.totalMonths} Mos)
               </div>
             </div>
           </div>
@@ -2295,86 +2446,125 @@ export default function CloudPushPortal() {
                   <table className="table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: 'var(--subtle-bg)', borderBottom: '1px solid var(--panel-border)' }}>
+                        <th style={{ padding: '12px 14px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', width: '50px', textAlign: 'center' }}>
+                          <span title="Include in Billing Calculation">BILL</span>
+                        </th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Month / Period</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Enrolled</th>
-                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Members</th>
-                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Terminals</th>
+                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          Site-Wide Active Members
+                          <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--text-muted)', textTransform: 'none' }}>
+                            (Cross-device deduplicated)
+                          </div>
+                        </th>
+                        <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Biometric Devices</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cloud Telemetry</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Monthly Rate</th>
                         <th style={{ padding: '12px 16px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Push Charge (LKR)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {auditData.monthResults.map((m, idx) => (
-                        <tr key={m.key} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
-                          <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {m.monthLabel}
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                              {m.startDate} ~ {m.endDate}
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
-                            {m.totalEnrolled}
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <span style={{
-                              background: 'rgba(16, 185, 129, 0.12)',
-                              color: '#10b981',
-                              padding: '4px 10px',
-                              borderRadius: '20px',
-                              fontWeight: 700,
-                              fontSize: '0.84rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              <CheckCircle2 size={12} />
-                              {m.activeUsers}
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            {m.activeTerminalCount !== undefined ? `${m.activeTerminalCount} / ${m.terminalCount || 1}` : '1 / 1'}
-                          </td>
-                          <td style={{ padding: '14px 16px', fontSize: '0.82rem' }}>
-                            {m.snapshotCount > 0 ? (
-                              <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
-                                {m.snapshotCount} Snapshots (4x daily)
+                      {auditData.monthResults.map((m, idx) => {
+                        const isIncluded = includedMonths[m.key] !== false;
+                        return (
+                          <tr key={m.key} style={{ borderBottom: '1px solid var(--subtle-border)', opacity: isIncluded ? 1 : 0.45, transition: 'opacity 0.2s ease' }}>
+                            <td style={{ padding: '14px 14px', textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={isIncluded}
+                                onChange={() => handleToggleMonthInclusion(m.key)}
+                                style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+                                title={`Toggle ${m.monthLabel} in billing total`}
+                              />
+                            </td>
+                            <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <div>{m.monthLabel}</div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                                {m.startDate} ~ {m.endDate}
+                              </div>
+                              {m.isOpenMonth && (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  padding: '2px 7px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(245, 158, 11, 0.15)',
+                                  color: '#f59e0b',
+                                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                                  marginTop: '4px'
+                                }}>
+                                  <Clock size={10} /> In Progress (Partial)
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
+                              {m.totalEnrolled}
+                            </td>
+                            <td style={{ padding: '14px 16px' }}>
+                              <span style={{
+                                background: isIncluded ? 'rgba(16, 185, 129, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                                color: isIncluded ? '#10b981' : '#64748b',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontWeight: 700,
+                                fontSize: '0.84rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                <CheckCircle2 size={12} />
+                                {m.activeUsers}
                               </span>
-                            ) : m.totalPunches ? (
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                {m.totalPunches.toLocaleString()} Punches
-                              </span>
-                            ) : (
-                              <span style={{ color: 'var(--text-muted)' }}>
-                                Official Baseline Metric
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            Rs. {m.ratePerUser}
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            Rs. {m.monthlyFee.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                              {m.activeTerminalCount !== undefined
+                                ? `${m.activeTerminalCount} / ${m.terminalCount || 1}`
+                                : `${(auditData.configuredDevices || deviceSerials).length} Devices (Site-Wide)`}
+                            </td>
+                            <td style={{ padding: '14px 16px', fontSize: '0.82rem' }}>
+                              {m.snapshotCount > 0 ? (
+                                <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                  {m.snapshotCount} Snapshots (4x daily)
+                                </span>
+                              ) : m.totalPunches ? (
+                                <span style={{ color: 'var(--text-secondary)' }}>
+                                  {m.totalPunches.toLocaleString()} Punches
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>
+                                  Official Baseline Metric
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                              Rs. {m.ratePerUser}
+                            </td>
+                            <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              Rs. {m.monthlyFee.toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr style={{ background: 'var(--subtle-bg)', fontWeight: 800, borderTop: '2px solid var(--panel-border)' }}>
-                        <td style={{ padding: '14px 16px', color: 'var(--text-primary)' }}>
-                          ANNUAL TOTALS ({auditData.totalMonths} Months)
+                        <td colSpan={2} style={{ padding: '14px 16px', color: 'var(--text-primary)' }}>
+                          BILLED AUDIT TOTALS ({billedTotals.totalMonths} of {auditData.totalMonths} Months Selected)
                         </td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
                           {auditData.totalEnrolledUsers}
                         </td>
                         <td style={{ padding: '14px 16px', color: 'var(--accent-primary)' }}>
-                          Avg: {auditData.averageMonthlyActive} / mo
+                          Avg: {billedTotals.averageMonthlyActive} / mo
                         </td>
                         <td colSpan={3} style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          Total Annual Cloud Push Service Fee:
+                          Net Audited Cloud Push Fee ({billedTotals.totalMonths} Months):
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '1.1rem', color: 'var(--accent-primary)' }}>
-                          Rs. {auditData.totalAnnualFee.toLocaleString()}
+                          Rs. {billedTotals.totalFee.toLocaleString()}
                         </td>
                       </tr>
                     </tfoot>
@@ -2590,7 +2780,7 @@ export default function CloudPushPortal() {
                     </tr>
                   </thead>
                   <tbody>
-                    {auditData.monthResults.map((m, i) => (
+                    {billedMonthResults.map((m, i) => (
                       <tr key={m.key} style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <td style={{ padding: '9px 12px', color: '#64748b' }}>{i + 1}</td>
                         <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>{m.monthLabel}</td>
@@ -2607,16 +2797,16 @@ export default function CloudPushPortal() {
                   <tfoot>
                     <tr style={{ background: '#f8fafc', borderTop: '2px solid #0f172a', fontWeight: 900 }}>
                       <td colSpan={3} style={{ padding: '12px', color: '#0f172a' }}>
-                        ANNUAL AUDIT TOTAL ({auditData.totalMonths} Months)
+                        ANNUAL AUDIT TOTAL ({billedTotals.totalMonths} Months)
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center', color: '#1d4ed8' }}>
-                        Avg: {auditData.averageMonthlyActive} / mo
+                        Avg: {billedTotals.averageMonthlyActive} / mo
                       </td>
                       <td colSpan={2} style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
                         —
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right', fontSize: '1.05rem', color: '#4f46e5' }}>
-                        Rs. {auditData.totalAnnualFee.toLocaleString()}
+                        Rs. {billedTotals.totalFee.toLocaleString()}
                       </td>
                     </tr>
                   </tfoot>
@@ -2664,6 +2854,7 @@ export default function CloudPushPortal() {
 
         </div>
       )}
+
         </div>
       )}
 
@@ -2927,14 +3118,14 @@ export default function CloudPushPortal() {
                 </div>
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Sync Active Members</h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Pushes all current active gym members to the terminal to ensure seamless turnstile entry for paid clients.
+                  Pushes all current active members to the terminal to ensure seamless access entry for active clients.
                 </p>
               </div>
               <button
                 type="button"
                 className="btn btn-primary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem' }}
-                onClick={() => handleExecuteCommand('ReSync_Active', 'Sync Active Members')}
+                onClick={() => handleRequestCommand('ReSync_Active', 'Sync Active Members', 'Pushes active members to the terminal', false)}
                 disabled={commandExecuting === 'ReSync_Active'}
               >
                 {commandExecuting === 'ReSync_Active' ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
@@ -2962,7 +3153,7 @@ export default function CloudPushPortal() {
                 type="button"
                 className="btn btn-secondary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem' }}
-                onClick={() => handleExecuteCommand('ReSync_All', 'Full Hardware ReSync')}
+                onClick={() => handleRequestCommand('ReSync_All', 'Full Hardware ReSync', 'Synchronizes all members, PIN rosters, RFID cards, and biometric templates', false)}
                 disabled={commandExecuting === 'ReSync_All'}
               >
                 {commandExecuting === 'ReSync_All' ? <RefreshCw size={14} className="animate-spin" /> : <RotateCcw size={14} />}
@@ -2983,14 +3174,14 @@ export default function CloudPushPortal() {
                 </div>
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Lock Inactive Members</h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Dispatches lockout orders for expired or deactivated subscriptions so they cannot gain entry at turnstiles.
+                  Dispatches lockout orders for expired or deactivated subscriptions so they cannot gain entry at biometric gates.
                 </p>
               </div>
               <button
                 type="button"
                 className="btn btn-secondary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem' }}
-                onClick={() => handleExecuteCommand('ReSync_InActive', 'Lock Inactive Members')}
+                onClick={() => handleRequestCommand('ReSync_InActive', 'Lock Inactive Members', 'Dispatches lockout orders for expired subscriptions', false)}
                 disabled={commandExecuting === 'ReSync_InActive'}
               >
                 {commandExecuting === 'ReSync_InActive' ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
@@ -3018,7 +3209,7 @@ export default function CloudPushPortal() {
                 type="button"
                 className="btn btn-secondary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem' }}
-                onClick={() => handleExecuteCommand('TRN_DOWN_30', 'Download Past 30 Days')}
+                onClick={() => handleRequestCommand('TRN_DOWN_30', 'Download Past 30 Days', 'Commands hardware to re-upload past 30 days of punches', false)}
                 disabled={commandExecuting === 'TRN_DOWN_30'}
               >
                 {commandExecuting === 'TRN_DOWN_30' ? <RefreshCw size={14} className="animate-spin" /> : <DownloadCloud size={14} />}
@@ -3026,7 +3217,7 @@ export default function CloudPushPortal() {
               </button>
             </div>
 
-            {/* 5. Reboot Terminal */}
+            {/* 5. Reboot Terminal (Disruptive) */}
             <div className="card" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -3037,7 +3228,7 @@ export default function CloudPushPortal() {
                     Reboot_Terminal
                   </span>
                 </div>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Reboot Terminal</h4>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Reboot Biometric Terminal</h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   Performs a remote hardware restart to reset network connectivity or clear system freeze states.
                 </p>
@@ -3046,7 +3237,7 @@ export default function CloudPushPortal() {
                 type="button"
                 className="btn btn-secondary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444' }}
-                onClick={() => handleExecuteCommand('Reboot_Terminal', 'Reboot Terminal')}
+                onClick={() => handleRequestCommand('Reboot_Terminal', 'Reboot Terminal', 'Remotely restarts the physical hardware.', true)}
                 disabled={commandExecuting === 'Reboot_Terminal'}
               >
                 {commandExecuting === 'Reboot_Terminal' ? <RefreshCw size={14} className="animate-spin" /> : <Power size={14} />}
@@ -3054,7 +3245,7 @@ export default function CloudPushPortal() {
               </button>
             </div>
 
-            {/* 6. Clear Attendance Data */}
+            {/* 6. Clear Attendance Data (Disruptive) */}
             <div className="card" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -3074,11 +3265,67 @@ export default function CloudPushPortal() {
                 type="button"
                 className="btn btn-secondary"
                 style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#f43f5e' }}
-                onClick={() => handleExecuteCommand('Clear_Att_Data', 'Clear Attendance Buffer')}
+                onClick={() => handleRequestCommand('Clear_Att_Data', 'Clear Attendance Buffer', 'Purges stored punch records from device flash memory.', true)}
                 disabled={commandExecuting === 'Clear_Att_Data'}
               >
                 {commandExecuting === 'Clear_Att_Data' ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 <span>Clear Attendance Buffer</span>
+              </button>
+            </div>
+
+            {/* 7. Clear Admin Lockout (Disruptive) */}
+            <div className="card" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Key size={20} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                    Clear_Admin
+                  </span>
+                </div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Clear Admin Lockout</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  Removes administrative privilege locks on the biometric device to restore menu and configuration access.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}
+                onClick={() => handleRequestCommand('Clear_Admin', 'Clear Admin Lockout', 'Removes administrative privilege locks on the biometric device.', true)}
+                disabled={commandExecuting === 'Clear_Admin'}
+              >
+                {commandExecuting === 'Clear_Admin' ? <RefreshCw size={14} className="animate-spin" /> : <Key size={14} />}
+                <span>Clear Admin Privileges</span>
+              </button>
+            </div>
+
+            {/* 8. Trigger Relay / Unlock Door (Disruptive) */}
+            <div className="card" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Cpu size={20} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                    TRIGGER_RELAY
+                  </span>
+                </div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Remote Relay Trigger</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  Fires the physical door / barrier relay pulse to temporarily unlock access control barrier over-the-air.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ marginTop: '16px', width: '100%', fontSize: '0.84rem', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10b981' }}
+                onClick={() => handleRequestCommand('TRIGGER_RELAY', 'Remote Relay Trigger', 'Remotely triggers the physical door relay pulse.', true)}
+                disabled={commandExecuting === 'TRIGGER_RELAY'}
+              >
+                {commandExecuting === 'TRIGGER_RELAY' ? <RefreshCw size={14} className="animate-spin" /> : <Power size={14} />}
+                <span>Trigger Relay Impulse</span>
               </button>
             </div>
 
@@ -3282,7 +3529,119 @@ export default function CloudPushPortal() {
         </div>
       )}
 
-      {/* ===== MODAL 1: CREATE / EDIT GYM HARDWARE PROFILE ===== */}
+      {/* ===== MODAL: CONFIRM REMOTE HARDWARE COMMAND GUARDRAIL ===== */}
+      {confirmCommandModal.isOpen && typeof document !== 'undefined' && createPortal(
+        <div className="app-modal-backdrop cloud-modal-overlay" style={{ zIndex: 9999999 }}>
+          <div className="app-modal-dialog cloud-modal-dialog" style={{ maxWidth: '520px', borderRadius: '16px' }}>
+            <div style={{
+              padding: '18px 22px',
+              borderBottom: '1px solid var(--panel-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'var(--bg-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  padding: '8px', borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444'
+                }}>
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Confirm Biometric Device Command
+                  </h3>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Target Serial: <code style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{confirmCommandModal.targetSerial}</code>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmCommandModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {confirmCommandModal.description}
+              </div>
+
+              {confirmCommandModal.warning && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#ef4444', fontSize: '0.8rem', lineHeight: 1.5,
+                  display: 'flex', gap: '10px', alignItems: 'flex-start'
+                }}>
+                  <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Warning:</strong> {confirmCommandModal.warning}
+                  </div>
+                </div>
+              )}
+
+              <div style={{
+                background: 'var(--subtle-bg)', padding: '12px 14px',
+                borderRadius: '8px', border: '1px solid var(--panel-border)',
+                fontSize: '0.78rem', color: 'var(--text-muted)'
+              }}>
+                Action: <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{confirmCommandModal.commandLabel}</span> ({confirmCommandModal.commandName})
+              </div>
+            </div>
+
+            <div style={{
+              padding: '14px 22px',
+              borderTop: '1px solid var(--panel-border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              background: 'var(--bg-secondary)'
+            }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmCommandModal(prev => ({ ...prev, isOpen: false }))}
+                disabled={commandExecuting !== null}
+                style={{ padding: '8px 16px', fontSize: '0.84rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => executeCommandDirect(confirmCommandModal.commandName, confirmCommandModal.commandLabel, confirmCommandModal.targetSerial)}
+                disabled={commandExecuting !== null}
+                style={{
+                  padding: '8px 20px', fontSize: '0.84rem',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  border: '1px solid #dc2626', gap: '6px'
+                }}
+              >
+                {commandExecuting ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    Dispatching...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={14} />
+                    Confirm &amp; Execute
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===== MODAL 1: CREATE / EDIT CLIENT HARDWARE PROFILE ===== */}
       {showCreateProfileModal && typeof document !== 'undefined' && createPortal(
         <div className="app-modal-backdrop cloud-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="app-modal-dialog cloud-modal-dialog">
@@ -3305,10 +3664,10 @@ export default function CloudPushPortal() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {editingProfileId ? 'Edit Gym Hardware Profile' : 'Create New Gym Hardware Profile'}
+                    {editingProfileId ? 'Edit Client Hardware Profile' : 'Create New Client Hardware Profile'}
                   </h3>
                   <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Configure Push Account #, API Auth Token, and multi-turnstile fleet (1 device or 2 devices).
+                    Configure Push Account #, API Auth Token, and multi-device biometric fleet.
                   </p>
                 </div>
               </div>
@@ -3327,19 +3686,19 @@ export default function CloudPushPortal() {
             {/* Modal Body */}
             <form onSubmit={handleSaveGymProfileFromModal} style={{ overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
-              {/* Gym / Facility Information */}
+              {/* Client / Facility Information */}
               <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Building2 size={13} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Gym Facility Details</span>
+                  <span>Client Facility Details</span>
                 </div>
                 <div className="cloud-modal-grid">
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Gym / Client Name *</label>
+                    <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '4px' }}>Client / Business Name *</label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. Fit Focus Gym & Fitness"
+                      placeholder="e.g. Seynex Enterprise Client"
                       value={modalGymName}
                       onChange={e => setModalGymName(e.target.value)}
                       required
@@ -3445,7 +3804,7 @@ export default function CloudPushPortal() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Cpu size={14} style={{ color: 'var(--accent-primary)' }} />
                     <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      Gym Turnstiles Fleet ({modalDevices.length} Device{modalDevices.length === 1 ? '' : 's'})
+                      Linked Biometric Devices Fleet ({modalDevices.length} Device{modalDevices.length === 1 ? '' : 's'})
                     </span>
                     <span style={{
                       fontSize: '0.72rem', padding: '2px 7px', borderRadius: '8px', fontWeight: 700,
@@ -3523,7 +3882,7 @@ export default function CloudPushPortal() {
                             setModalDevices(prev => prev.map((d, i) => i === idx ? {
                               ...d,
                               role: r,
-                              label: d.label || (r === 'IN' ? 'Entrance Turnstile (IN)' : r === 'OUT' ? 'Exit Turnstile (OUT)' : 'Turnstile Device')
+                              label: d.label || (r === 'IN' ? 'Entrance Biometric Device (IN)' : r === 'OUT' ? 'Exit Biometric Device (OUT)' : 'Biometric Device')
                             } : d));
                           }}
                           style={{ height: '32px', fontSize: '0.8rem' }}
@@ -3538,7 +3897,7 @@ export default function CloudPushPortal() {
                         <input
                           type="text"
                           className="form-control"
-                          placeholder="Label (e.g. Entrance Turnstile)"
+                          placeholder="Label (e.g. Entrance Gate)"
                           value={dev.label || ''}
                           onChange={(e) => {
                             const l = e.target.value;
@@ -3551,7 +3910,7 @@ export default function CloudPushPortal() {
                       <button
                         type="button"
                         onClick={() => handleRemoveDeviceFromModal(dev.id || dev.sn)}
-                        title="Delete Turnstile"
+                        title="Delete Biometric Device"
                         style={{
                           background: 'none', border: 'none', color: '#ef4444',
                           cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center'
@@ -3564,18 +3923,18 @@ export default function CloudPushPortal() {
 
                   {modalDevices.length === 0 && (
                     <div style={{ padding: '14px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      No turnstiles added yet. Click one of the quick setup buttons above or add a turnstile below.
+                      No biometric devices added yet. Click one of the quick setup buttons above or add a device below.
                     </div>
                   )}
                 </div>
 
-                {/* Add Another Turnstile Device Row */}
+                {/* Add Another Device Row */}
                 <div style={{
                   display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap',
                   padding: '8px 10px', borderRadius: '8px', background: 'rgba(0,0,0,0.06)', border: '1px dashed var(--panel-border)'
                 }}>
                   <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Plus size={12} /> Add Turnstile:
+                    <Plus size={12} /> Add Biometric Device:
                   </span>
                   <input
                     type="text"
@@ -3634,7 +3993,7 @@ export default function CloudPushPortal() {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Save size={15} />
-                  <span>{editingProfileId ? 'Update Gym Profile' : 'Create & Activate Gym Profile'}</span>
+                  <span>{editingProfileId ? 'Update Client Profile' : 'Create & Activate Client Profile'}</span>
                 </button>
               </div>
             </form>
@@ -3643,7 +4002,7 @@ export default function CloudPushPortal() {
         document.body
       )}
 
-      {/* ===== MODAL 2: MANAGE ALL GYM HARDWARE PROFILES ===== */}
+      {/* ===== MODAL 2: MANAGE ALL CLIENT HARDWARE PROFILES ===== */}
       {showManageProfilesModal && typeof document !== 'undefined' && createPortal(
         <div className="app-modal-backdrop cloud-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="app-modal-dialog cloud-modal-dialog" style={{ maxWidth: '880px' }}>
@@ -3659,10 +4018,10 @@ export default function CloudPushPortal() {
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Building2 size={20} style={{ color: 'var(--accent-primary)' }} />
-                  Gym Biometric Hardware Profiles
+                  Client Biometric Hardware Profiles
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Manage individual Push Accounts, API keys, and multi-turnstile setups for each gym facility.
+                  Manage individual Push Accounts, API keys, and multi-device setups for each client site.
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3676,7 +4035,7 @@ export default function CloudPushPortal() {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}
                 >
                   <Plus size={13} />
-                  <span>New Gym Profile</span>
+                  <span>+ New Client Profile</span>
                 </button>
                 <button
                   type="button"
@@ -3697,7 +4056,7 @@ export default function CloudPushPortal() {
                 const isSelected = selectedCustomerId === c.id;
                 const devices = Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0
                   ? c.deviceSerials
-                  : (c.deviceSerial ? [{ id: 'd-1', sn: c.deviceSerial, role: 'IN', label: 'Entrance Turnstile (IN)' }] : []);
+                  : (c.deviceSerial ? [{ id: 'd-1', sn: c.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)' }] : []);
 
                 return (
                   <div
@@ -3751,9 +4110,9 @@ export default function CloudPushPortal() {
                         </span>
                       </div>
 
-                      {/* Turnstile Devices Chips */}
+                      {/* Biometric Devices Chips */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Turnstiles:</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biometric Devices:</span>
                         {devices.map((d, dIdx) => (
                           <span
                             key={dIdx}
@@ -3809,7 +4168,7 @@ export default function CloudPushPortal() {
                           setShowManageProfilesModal(false);
                           openEditProfileModal(c);
                         }}
-                        title="Edit hardware configuration for this gym"
+                        title="Edit hardware configuration for this client site"
                         style={{ fontSize: '0.78rem', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <Edit3 size={13} /> Edit
@@ -3819,7 +4178,7 @@ export default function CloudPushPortal() {
                         type="button"
                         className="btn btn-sm btn-secondary"
                         onClick={() => handleDeleteGymProfile(c)}
-                        title="Delete Gym Profile"
+                        title="Delete Client Profile"
                         style={{ padding: '6px 8px', color: '#ef4444' }}
                       >
                         <Trash2 size={13} />
@@ -3832,7 +4191,7 @@ export default function CloudPushPortal() {
               {customers.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
                   <Building2 size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                  <p style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>No Gym Profiles found.</p>
+                  <p style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>No Client Profiles found.</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -3841,7 +4200,7 @@ export default function CloudPushPortal() {
                     }}
                     className="btn btn-sm btn-primary"
                   >
-                    + Create First Gym Profile
+                    + Create First Client Profile
                   </button>
                 </div>
               )}
