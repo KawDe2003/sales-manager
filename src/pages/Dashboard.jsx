@@ -94,6 +94,23 @@ const Dashboard = () => {
   // --- DASHBOARD CUSTOMIZATION MODAL STATE ---
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
 
+  // --- SIMPLE VS DETAILED VIEW MODE (Default: Simple View for clarity) ---
+  const [simpleMode, setSimpleMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_simple_mode');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleSimpleMode = (val) => {
+    setSimpleMode(val);
+    try {
+      localStorage.setItem('dashboard_simple_mode', String(val));
+    } catch {}
+  };
+
   // --- GLOBAL DATE FILTER STATE ---
   const [dateFilter, setDateFilter] = useState('30d'); // 'today', '7d', '30d', 'custom'
   const [customStart, setCustomStart] = useState('');
@@ -836,8 +853,8 @@ const Dashboard = () => {
     <div style={{ position: 'relative', width: '100%', paddingBottom: '40px', animation: 'fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       
       {/* HEADER WITH QUICK BUTTONS & DATE SELECTOR */}
-      <div className="page-hero" style={{ position: 'relative', zIndex: 50, paddingBottom: '24px' }}>
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+      <div className="page-hero" style={{ position: 'relative', zIndex: 50, paddingBottom: '20px' }}>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h1 className="h1 mb-1" style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
@@ -862,39 +879,556 @@ const Dashboard = () => {
                 width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', 
                 boxShadow: '0 0 10px var(--success)'
               }}></span>
-              Real-Time Enterprise Financials & CRM Insights
+              {simpleMode ? 'Executive Performance & Operational Summary' : 'Real-Time Enterprise Financials & CRM Insights'}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+            {/* View Mode Toggle Switcher */}
+            <div style={{
+              display: 'inline-flex',
+              padding: '3px',
+              background: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.06)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(15, 23, 42, 0.12)',
+              borderRadius: '10px'
+            }}>
+              <button 
+                type="button"
+                onClick={() => toggleSimpleMode(true)}
+                style={{
+                  padding: '6px 13px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  borderRadius: '7px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: simpleMode ? 'var(--accent-primary, #6366f1)' : 'transparent',
+                  color: simpleMode ? '#ffffff' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: simpleMode ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none',
+                  transition: 'all 0.18s ease'
+                }}
+              >
+                <Zap size={14} /> Simple View
+              </button>
+              <button 
+                type="button"
+                onClick={() => toggleSimpleMode(false)}
+                style={{
+                  padding: '6px 13px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  borderRadius: '7px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: !simpleMode ? 'var(--accent-primary, #6366f1)' : 'transparent',
+                  color: !simpleMode ? '#ffffff' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: !simpleMode ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none',
+                  transition: 'all 0.18s ease'
+                }}
+              >
+                <BarChart3 size={14} /> Detailed View
+              </button>
+            </div>
+
+            <Link to="/quotations" className="btn btn-secondary" style={{ padding: '7px 14px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <FileText size={15} /> Quotes
+            </Link>
+            <Link to="/invoices" className="btn btn-secondary" style={{ padding: '7px 14px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <CreditCard size={15} /> Invoices
+            </Link>
+            <Link to="/customers" className="btn btn-primary" style={{ padding: '7px 16px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Plus size={15} /> Add Customer
+            </Link>
             <button 
               id="dashboard-customize-layout-btn"
               onClick={() => setShowCustomizeModal(true)}
               className="btn btn-secondary"
               style={{
-                padding: '8px 16px',
-                fontSize: '0.85rem',
+                padding: '7px 12px',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '7px'
+                gap: '5px'
               }}
               title="Customize dashboard cards, metrics, and sales target"
             >
-              <Sliders size={15} /> Customize
+              <Sliders size={15} />
             </button>
-            <Link to="/invoices" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-              <CreditCard size={16} /> Invoices
-            </Link>
-            <Link to="/customers" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
-              <Plus size={16} /> Add Customer
-            </Link>
           </div>
         </div>
       </div>
 
-      {/* MONTHLY REVENUE TARGET PROGRESS WIDGET */}
-      {dashboardConfig?.showMonthlyTarget !== false && (
+      {simpleMode ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', animation: 'fadeIn 0.3s ease' }}>
+          {/* ROW 1: 4 HIGH-IMPACT EXECUTIVE KPI CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Invoiced This Month */}
+            <div 
+              className="glass-panel hover-lift"
+              style={{
+                padding: '20px',
+                borderRadius: '16px',
+                background: isDark
+                  ? 'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%), #ffffff',
+                border: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(99, 102, 241, 0.18)',
+                boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                  Invoiced (This Month)
+                </span>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <FileText size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+                LKR {totalInvoicedThisMonth.toLocaleString()}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span style={{ color: '#818cf8', fontWeight: 700 }}>
+                  {invoicesThisMonth.length} {invoicesThisMonth.length === 1 ? 'invoice' : 'invoices'}
+                </span>
+                <span>issued this month</span>
+              </div>
+            </div>
+
+            {/* Card 2: Cash Collected */}
+            <div 
+              className="glass-panel hover-lift"
+              style={{
+                padding: '20px',
+                borderRadius: '16px',
+                background: isDark
+                  ? 'radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.08) 0%, transparent 60%), #ffffff',
+                border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.18)',
+                boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                  Cash Collected
+                </span>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.15)', color: '#34d399',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Wallet size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+                LKR {totalCollectedThisMonth.toLocaleString()}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span style={{ color: '#10b981', fontWeight: 700, background: 'rgba(16, 185, 129, 0.15)', padding: '1px 6px', borderRadius: '4px' }}>
+                  {collectionRate}%
+                </span>
+                <span>realization rate</span>
+              </div>
+            </div>
+
+            {/* Card 3: Active Pipeline */}
+            <div 
+              className="glass-panel hover-lift"
+              style={{
+                padding: '20px',
+                borderRadius: '16px',
+                background: isDark
+                  ? 'radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.08) 0%, transparent 60%), #ffffff',
+                border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.18)',
+                boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                  Active Pipeline
+                </span>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Target size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+                LKR {openQuotesValue.toLocaleString()}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                  {openQuotesCount} {openQuotesCount === 1 ? 'quote' : 'quotes'}
+                </span>
+                <span>open & awaiting decision</span>
+              </div>
+            </div>
+
+            {/* Card 4: Client Accounts */}
+            <div 
+              className="glass-panel hover-lift"
+              style={{
+                padding: '20px',
+                borderRadius: '16px',
+                background: isDark
+                  ? 'radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 60%), #ffffff',
+                border: isDark ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid rgba(6, 182, 212, 0.18)',
+                boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                  Client Accounts
+                </span>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Users size={18} />
+                </div>
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+                {customers.length} <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>Clients</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span style={{ color: '#06b6d4', fontWeight: 700 }}>
+                  {fleetStats?.totalDevices || 0}
+                </span>
+                <span>biometric devices deployed</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ROW 2: SINGLE CLEAN FINANCIAL PERFORMANCE CHART */}
+          <div 
+            className="glass-panel"
+            style={{
+              padding: '22px 24px',
+              borderRadius: '18px',
+              background: isDark ? 'rgba(30, 41, 59, 0.65)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+              boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.25)' : '0 4px 20px rgba(15, 23, 42, 0.05)'
+            }}
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Monthly Revenue vs. Cash Inflow
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Trailing 6-month comparison of billed revenue vs. collected payments
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#6366f1' }}></span>
+                  <span style={{ fontWeight: 600 }}>Invoiced Revenue</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                  <span style={{ fontWeight: 600 }}>Cash Collected</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ width: '100%', height: '280px', marginTop: '10px' }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={financialStudioData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="simpleInvoicedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="simpleCollectedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={isDark ? "#34d399" : "#10b981"} stopOpacity={0.45} />
+                      <stop offset="95%" stopColor={isDark ? "#34d399" : "#10b981"} stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255, 255, 255, 0.07)" : "rgba(15, 23, 42, 0.07)"} />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke={isDark ? "#64748b" : "#94a3b8"} 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke={isDark ? "#64748b" : "#94a3b8"} 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : v}
+                  />
+                  <Tooltip content={<ModernGlassTooltip isDark={isDark} />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="invoiced" 
+                    name="Invoiced Revenue" 
+                    stroke={isDark ? "#818cf8" : "#4f46e5"} 
+                    strokeWidth={2.5} 
+                    fillOpacity={1} 
+                    fill="url(#simpleInvoicedGrad)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="collected" 
+                    name="Cash Collected" 
+                    stroke={isDark ? "#34d399" : "#059669"} 
+                    strokeWidth={2.5} 
+                    fillOpacity={1} 
+                    fill="url(#simpleCollectedGrad)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* ROW 3: TWO-COLUMN ACTIVITY & PRIORITY GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Column 1: Recent Quotations */}
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>Recent Quotations</h3>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>Latest client proposals & deal pipeline</p>
+                  </div>
+                </div>
+                <Link to="/quotations" className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  View All <ChevronRight size={13} />
+                </Link>
+              </div>
+
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', margin: 0, fontSize: '0.82rem', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)' }}>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Quote & Client</th>
+                      <th style={{ padding: '10px 10px', textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Net Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotes.slice(0, 5).map((q) => {
+                      const statusColor = q.status === 'Accepted' || q.status === 'Converted to Invoice'
+                        ? '#10b981'
+                        : q.status === 'Rejected' || q.status === 'Void'
+                          ? '#ef4444'
+                          : '#f59e0b';
+                      return (
+                        <tr key={q.id || q.quoteNumber} style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(15, 23, 42, 0.05)' }}>
+                          <td style={{ padding: '10px 16px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: 'var(--accent-primary, #6366f1)', fontWeight: 800 }}>#{q.quoteNumber}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>{q.prospectName || 'Client'}</span>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              {q.date ? new Date(q.date).toLocaleDateString() : 'Recent'}
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              background: `${statusColor}18`,
+                              color: statusColor,
+                              border: `1px solid ${statusColor}33`,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {q.status || 'Draft'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                            LKR {(Number(q.amount) || 0).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {quotes.length === 0 && (
+                      <tr>
+                        <td colSpan="3" style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                          No quotes created yet. Click "+ New Quote" to start.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Column 2: Outstanding Invoices / Receivables */}
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CreditCard size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>Outstanding Invoices</h3>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>Unsettled client balances & receivables</p>
+                  </div>
+                </div>
+                <Link to="/invoices" className="btn btn-secondary" style={{ padding: '5px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  View All <ChevronRight size={13} />
+                </Link>
+              </div>
+
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', margin: 0, fontSize: '0.82rem', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)' }}>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Client & Invoice</th>
+                      <th style={{ padding: '10px 10px', textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Balance Due</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.filter(i => i.status !== 'Paid' && i.status !== 'Closed').slice(0, 5).map(inv => {
+                      const total = Number(inv.amount) || 0;
+                      const paid = (inv.payments || []).reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
+                      const out = Math.max(0, total - paid);
+                      return (
+                        <tr key={inv.id} style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(15, 23, 42, 0.05)' }}>
+                          <td style={{ padding: '10px 16px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                              {inv.customerName || inv.prospectName || 'Client'}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              {inv.invoiceNumber}
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center' }}>
+                            <span className={`badge badge-${inv.status === 'Overdue' ? 'danger' : 'warning'}`} style={{ fontSize: '0.7rem' }}>
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                            LKR {out.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {invoices.filter(i => i.status !== 'Paid' && i.status !== 'Closed').length === 0 && (
+                      <tr>
+                        <td colSpan="3" style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--success)', fontSize: '0.82rem', fontWeight: 600 }}>
+                          ✓ All accounts are settled and up to date!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* EXPAND TO DETAILED VIEW BANNER */}
+          <div 
+            onClick={() => toggleSimpleMode(false)}
+            style={{
+              padding: '18px 24px',
+              borderRadius: '16px',
+              background: isDark ? 'rgba(99, 102, 241, 0.06)' : 'rgba(99, 102, 241, 0.04)',
+              border: '1px dashed rgba(99, 102, 241, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            className="hover-lift"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '12px',
+                background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary, #6366f1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <BarChart3 size={20} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                  Looking for Deep Financials &amp; Operational Analytics?
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Access Sales Target Tracking, SLFRS Real-Time P&amp;L Studio, Pipeline Funnel, and 90-Day Debtor Aging.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '8px 18px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={(e) => { e.stopPropagation(); toggleSimpleMode(false); }}
+            >
+              <span>Detailed View</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* DETAILED VIEW ACTIVE NOTICE */}
+          <div style={{
+            marginBottom: '20px',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            background: isDark ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.06)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.82rem',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 600 }}>
+              <BarChart3 size={15} color="#6366f1" />
+              <span>Detailed Analytics View active. Showing full P&amp;L statements, funnel velocity, and debtor aging.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggleSimpleMode(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--accent-primary, #6366f1)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <Zap size={14} /> Switch back to Simple View
+            </button>
+          </div>
+
+          {/* MONTHLY REVENUE TARGET PROGRESS WIDGET */}
+          {dashboardConfig?.showMonthlyTarget !== false && (
         <div className="glass-panel hover-lift" style={{
           marginBottom: '22px',
           padding: '22px 26px',
@@ -2721,6 +3255,9 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+        </>
+      )}
+
       {showCustomizeModal && (
         <div 
           className="app-modal-backdrop" 
