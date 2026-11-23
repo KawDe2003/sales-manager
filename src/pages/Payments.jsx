@@ -1,5 +1,6 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { 
   BadgeDollarSign, Search, User, FileText, CheckCircle2, AlertCircle, 
@@ -18,6 +19,7 @@ const Payments = () => {
     recordEnhancedPayment, smsConfig = {}, showNotification, sendDirectSMS, triggerSMS 
   } = useContext(StoreContext) || {};
   
+  const [searchParams] = useSearchParams();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null); // { id, type, amount, remaining, number, rawInv }
   const [amount, setAmount] = useState('');
@@ -28,6 +30,45 @@ const Payments = () => {
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Handle URL Deep-Linking from Invoices (?invoiceId=...&customerId=...)
+  useEffect(() => {
+    const invoiceIdParam = searchParams.get('invoiceId');
+    const customerIdParam = searchParams.get('customerId');
+
+    if (invoiceIdParam || customerIdParam) {
+      let targetInv = null;
+      if (invoiceIdParam) {
+        targetInv = invoices.find(inv => String(inv.id) === String(invoiceIdParam) || String(inv.invoiceNumber) === String(invoiceIdParam));
+      }
+
+      let targetCust = null;
+      if (customerIdParam) {
+        targetCust = customers.find(c => String(c.id) === String(customerIdParam));
+      } else if (targetInv) {
+        targetCust = customers.find(c => c.id === targetInv.customerId || (c.gymName && c.gymName === targetInv.prospectName) || (c.name && c.name === targetInv.prospectName));
+      }
+
+      if (targetCust) {
+        setSelectedCustomer(targetCust);
+      }
+
+      if (targetInv) {
+        const invPayments = payments.filter(p => p.documentId === targetInv.id);
+        const paidSum = invPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const remaining = Math.max(0, (Number(targetInv.amount) || 0) - paidSum);
+        setSelectedDoc({
+          id: targetInv.id,
+          type: 'Invoice',
+          amount: Number(targetInv.amount) || 0,
+          remaining,
+          number: targetInv.invoiceNumber,
+          rawInv: targetInv
+        });
+        setAmount(remaining > 0 ? String(remaining) : String(Number(targetInv.amount) || 0));
+      }
+    }
+  }, [searchParams, invoices, customers, payments]);
   
   // Post-payment receipt modal state
   const [completedPaymentData, setCompletedPaymentData] = useState(null);

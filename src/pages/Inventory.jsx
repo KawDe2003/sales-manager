@@ -652,18 +652,18 @@ const InventoryCard = ({ item, onEdit, onDelete, getTypeIcon, getTypeBadgeClass 
       {/* Pricing & Margins Card Box */}
       <div style={{ background: 'var(--subtle-bg)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--subtle-border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid var(--subtle-border)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item Selling Price:</span>
-          <span style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Item Selling Price:</span>
+          <span style={{ fontWeight: 850, color: 'var(--text-primary)', fontSize: '1.05rem', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>
             {item.type === 'Service' && sellingPrice === 0 ? 'Custom / Variable' : `LKR ${sellingPrice.toLocaleString()}`}
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem' }}>
-          <span style={{ color: 'var(--text-muted)' }}>Stock Cost Price:</span>
-          <span style={{ fontWeight: 700, color: 'var(--warning)' }}>LKR {costPrice.toLocaleString()}</span>
+          <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Stock Cost Price:</span>
+          <span style={{ fontWeight: 700, color: 'var(--warning)', whiteSpace: 'nowrap' }}>LKR {costPrice.toLocaleString()}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', paddingTop: '4px' }}>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Unit Margin:</span>
-          <span style={{ fontWeight: 800, color: margin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>Unit Margin:</span>
+          <span style={{ fontWeight: 800, color: margin >= 0 ? 'var(--success)' : 'var(--danger)', whiteSpace: 'nowrap' }}>
             LKR {margin.toLocaleString()} ({marginPct}%)
           </span>
         </div>

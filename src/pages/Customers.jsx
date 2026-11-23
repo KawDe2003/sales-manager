@@ -115,19 +115,20 @@ const Customers = () => {
               Create, track, and manage client profiles, 360 transaction timelines, and renewal schedules.
             </p>
           </div>
-          <div className="btn-group flex gap-3">
+          <div className="btn-group flex gap-3" style={{ flexWrap: 'nowrap', alignItems: 'center' }}>
             <button
               className="btn btn-secondary"
               onClick={handleExport}
               title="Export CSV"
+              style={{ whiteSpace: 'nowrap', height: '44px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <Download size={18} className="text-success" />
-              <span className="sm-hidden">Export CSV</span>
+              <span className="sm-hidden" style={{ whiteSpace: 'nowrap' }}>Export CSV</span>
             </button>
             <button 
               type="button"
               className="btn btn-primary" 
-              style={{ padding: '12px 24px', position: 'relative', zIndex: 2 }} 
+              style={{ padding: '0 20px', height: '44px', position: 'relative', zIndex: 2, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '8px' }} 
               onClick={handleOpenAddModal}
             >
               <Plus size={18} /> New Client
@@ -326,12 +327,12 @@ const Customers = () => {
                   <button 
                     type="button"
                     className="btn btn-secondary action-history-btn" 
-                    style={{ flex: 1, minWidth: '85px', height: '38px', fontSize: '0.8rem', fontWeight: 700, gap: '6px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ flex: 1, minWidth: '95px', height: '38px', fontSize: '0.8rem', fontWeight: 700, gap: '6px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}
                     onClick={() => setTimelineCustomer(customer)}
                     title="View 360 History and Transaction Timeline"
                   >
                     <History size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)' }} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>360 History</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>360 View</span>
                   </button>
 
                   <button 

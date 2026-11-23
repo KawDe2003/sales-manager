@@ -1,12 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { StoreContext, sampleMainQuotes, sampleMainInvoices } from '../context/StoreContext';
 import { supabase, getSupabaseClient } from '../lib/supabase';
 import { generateDocumentPDF, generatePurchaseOrderPDF, generatePaymentReceiptPDF } from '../utils/pdfGenerator';
-import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin, Cpu, Monitor, Wrench } from 'lucide-react';
+import { Download, Printer, CheckCircle, XCircle, FileText, Receipt, Clock, ShieldCheck, Tag, DollarSign, MessageSquare, AlertTriangle, Send, ShoppingBag, Check, MapPin, Cpu, Monitor, Wrench, ArrowLeft } from 'lucide-react';
 
 const SharedDocument = () => {
   const { type, id } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const bizId = searchParams.get('biz') || 'biz_main';
   const activeClient = getSupabaseClient(bizId) || supabase;
@@ -470,9 +471,20 @@ const SharedDocument = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#070b14' }}>
-        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%', marginBottom: '20px' }}></div>
-        <p style={{ color: '#94a3b8' }}>Retrieving secure document preview...</p>
+      <div style={{ minHeight: '100vh', background: '#070b14', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ maxWidth: '960px', width: '100%', display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div style={{ width: '180px', height: '42px', background: 'rgba(255,255,255,0.06)', borderRadius: '12px' }} />
+          <div style={{ width: '140px', height: '42px', background: 'rgba(255,255,255,0.06)', borderRadius: '12px' }} />
+        </div>
+        <div style={{ maxWidth: '960px', width: '100%', height: '580px', background: '#0e1626', borderRadius: '28px', padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ width: '220px', height: '36px', background: 'rgba(255,255,255,0.08)', borderRadius: '8px' }} />
+            <div style={{ width: '120px', height: '36px', background: 'rgba(255,255,255,0.08)', borderRadius: '8px' }} />
+          </div>
+          <div style={{ width: '160px', height: '18px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }} />
+          <div style={{ width: '100%', height: '160px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', marginTop: '20px' }} />
+          <div style={{ width: '50%', height: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', marginTop: 'auto' }} />
+        </div>
       </div>
     );
   }
@@ -664,7 +676,7 @@ const SharedDocument = () => {
       <div style={{ maxWidth: '960px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }} className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(99,102,241,0.3)' }}>
-            <span style={{ color: '#ffffff', fontWeight: '900', fontSize: '22px' }}>G</span>
+            <span style={{ color: '#ffffff', fontWeight: '900', fontSize: '22px' }}>S</span>
           </div>
           <div>
             <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.2rem', lineHeight: 1 }}>Secure Portal</div>
@@ -672,7 +684,18 @@ const SharedDocument = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {isPreview && (
+            <button 
+              type="button"
+              onClick={() => navigate('/quotations')} 
+              className="btn btn-secondary" 
+              style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)', height: '42px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              title="Return to Quotations dashboard"
+            >
+              <ArrowLeft size={16} /> Back to Quotations
+            </button>
+          )}
           <button onClick={handleDownloadPDF} className="btn btn-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', height: '42px' }}>
             <Printer size={18} /> Print PDF
           </button>
@@ -1130,6 +1153,25 @@ const SharedDocument = () => {
                   </div>
                 </div>
               )}
+
+              {/* DEDICATED TAX / VAT LINE ITEM */}
+              {(Number(docData.taxRate || 0) > 0 || Number(docData.taxAmount || docData.tax || 0) > 0) && (
+                <div style={{ 
+                  padding: '10px 0 4px 0', 
+                  borderTop: '1px dashed rgba(99, 102, 241, 0.4)',
+                  marginTop: '8px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ color: '#a5b4fc', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Receipt size={14} color="#818cf8" />
+                      <span>TAX / VAT ({docData.taxRate || 0}%)</span>
+                    </div>
+                    <div style={{ color: '#c7d2fe', fontWeight: 900, fontSize: '1.05rem', fontFamily: 'monospace' }}>
+                      + LKR {(Number(docData.taxAmount || docData.tax || 0)).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1182,33 +1224,6 @@ const SharedDocument = () => {
                   </div>
                 </div>
               </div>
-
-              {/* DIRECT TAP TO VIEW INVOICE (ESPECIALLY HANDY ON MOBILE) */}
-              {docData.convertedInvoiceNumber && (
-                <div style={{ marginBottom: '16px' }}>
-                  <a
-                    href={`/share/invoice/${docData.convertedInvoiceId || docData.convertedInvoiceNumber}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      padding: '12px 18px',
-                      borderRadius: '14px',
-                      fontWeight: 800,
-                      fontSize: '0.88rem',
-                      boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <Receipt size={17} /> VIEW TAX INVOICE #{docData.convertedInvoiceNumber}
-                  </a>
-                </div>
-              )}
 
               {isPO && docData.applyVat ? (
                 <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>

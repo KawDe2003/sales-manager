@@ -420,7 +420,7 @@ const Login = () => {
                 <input
                   type="email"
                   id="login-email-input"
-                  placeholder="name@company.com"
+                  placeholder="name@seynex.lk"
                   value={email}
                   onChange={e => handleEmailChange(e.target.value)}
                   required

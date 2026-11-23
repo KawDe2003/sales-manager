@@ -4495,16 +4495,9 @@ export default function StoreContextProvider({ children }) {
 
   const updateQuote = (id, updatedData) => {
     const existing = quotes.find(q => q.id === id);
-    const isSent = existing && (
-      existing.status === 'Sent' || 
-      existing.status === 'Accepted' || 
-      existing.status === 'Converted to Invoice' || 
-      existing.status === 'Rejected' || 
-      existing.status === 'Counter Offer' || 
-      Boolean(existing.sentAt)
-    );
-    if (isSent) {
-      showNotification(`Quotation #${existing?.quoteNumber || ''} has already been sent to customer and cannot be edited.`, 'warning');
+    const isLocked = existing && (existing.status === 'Converted to Invoice' || existing.isLocked);
+    if (isLocked) {
+      showNotification(`Quotation #${existing?.quoteNumber || ''} has already been converted to an invoice and is locked.`, 'warning');
       return;
     }
     setQuotes(quotes.map(q => {
@@ -4519,21 +4512,17 @@ export default function StoreContextProvider({ children }) {
   };
 
   const updateQuoteStatus = async (id, status) => {
-    // If status is updated to 'Accepted', automatically convert to invoice and alert owner!
-    if (status === 'Accepted') {
-      const quote = quotes.find(q => q.id === id);
-      if (quote && quote.status !== 'Converted to Invoice' && !quote.convertedInvoiceNumber) {
-        return acceptQuote(id);
-      }
-    }
-
+    // Decoupled from auto-creating invoice: quotation status changes purely reflect sales cycle
     const additionalFields = status === 'Sent' ? { sentAt: new Date().toISOString() } : {};
+    if (status === 'Accepted') {
+      additionalFields.acceptedAt = new Date().toISOString();
+    }
     setQuotes(prev => prev.map(q => q.id === id ? { ...q, status, ...additionalFields } : q));
     
     // Cloud Sync
     try {
       setCloudSyncStatus('syncing');
-      const { error } = await supabase.from('quotations').update({ status }).eq('id', toUuid(id));
+      const { error } = await supabase.from('quotations').update({ status, ...additionalFields }).eq('id', toUuid(id));
       if (error) {
         console.warn('[Supabase Sync] Quote Status Error:', error.message);
         setCloudSyncStatus('error');
@@ -4547,6 +4536,56 @@ export default function StoreContextProvider({ children }) {
       console.warn('[Supabase Sync] Quote Status Exception:', e.message);
       setCloudSyncStatus('error');
     }
+    showNotification(`Quotation marked as ${status}.`, 'success');
+  };
+
+  // Admin capability: unlock locked/sent quotation back to draft/editable
+  const unlockQuote = async (id) => {
+    const quote = quotes.find(q => q.id === id);
+    if (!quote) return;
+    const updated = {
+      ...quote,
+      status: 'Draft',
+      sentAt: null,
+      acceptedAt: null
+    };
+    setQuotes(prev => prev.map(q => q.id === id ? updated : q));
+    try {
+      localStorage.setItem('gym_quotes', JSON.stringify(quotes.map(q => q.id === id ? updated : q)));
+    } catch (e) {}
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('quotations').update({ status: 'Draft', sent_at: null, accepted_at: null }).eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      setCloudSyncStatus('error');
+    }
+    showNotification(`Quotation #${quote.quoteNumber || ''} unlocked for editing.`, 'success');
+  };
+
+  // Admin capability: void quotation
+  const voidQuote = async (id) => {
+    const quote = quotes.find(q => q.id === id);
+    if (!quote) return;
+    const updated = {
+      ...quote,
+      status: 'Rejected',
+      voidedAt: new Date().toISOString()
+    };
+    setQuotes(prev => prev.map(q => q.id === id ? updated : q));
+    try {
+      localStorage.setItem('gym_quotes', JSON.stringify(quotes.map(q => q.id === id ? updated : q)));
+    } catch (e) {}
+    try {
+      setCloudSyncStatus('syncing');
+      await supabase.from('quotations').update({ status: 'Rejected' }).eq('id', toUuid(id));
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date());
+    } catch (e) {
+      setCloudSyncStatus('error');
+    }
+    showNotification(`Quotation #${quote.quoteNumber || ''} voided.`, 'info');
   };
 
   // Quotation Auto-Expiry Check
@@ -4936,7 +4975,9 @@ export default function StoreContextProvider({ children }) {
       amount: Number(quote.amount) || 0,
       subtotal: Number(quote.subtotal || quote.amount) || 0,
       discount: Number(quote.discount || 0),
-      tax: Number(quote.tax || 0),
+      taxRate: Number(quote.taxRate || 0),
+      taxAmount: Number(quote.taxAmount || quote.tax || 0),
+      tax: Number(quote.taxAmount || quote.tax || 0),
       notes: quote.notes ? `${quote.notes}\nConverted from Quote: #${quoteRef}` : `Converted from Quote: #${quoteRef}`,
       agreementTerms: quote.agreementTerms || quote.terms || '',
       quotationId: quote.id,
@@ -6611,7 +6652,7 @@ export default function StoreContextProvider({ children }) {
       customers, addCustomer, deleteCustomer, updateCustomer,
       inventory, addInventoryItem, deleteInventoryItem, updateInventoryItem,
       invoices, addInvoice, updateInvoice, updateInvoiceStatus, generateInstallmentSchedule, updateInvoiceInstallmentPlan, recalculateInvoiceBalanceAndInstallments,
-      quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice, acceptQuote, proposeBudget, rejectQuote, checkQuotationExpirations,
+      quotes, addQuote, updateQuoteStatus, updateQuote, convertQuoteToInvoice, acceptQuote, proposeBudget, rejectQuote, checkQuotationExpirations, unlockQuote, voidQuote,
       verifyAndGetShareLink,
       leads, addLead, updateLead, deleteLead, addLeadComment, deleteLeadComment,
       expenses, addExpense, updateExpense, deleteExpense,

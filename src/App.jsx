@@ -331,7 +331,11 @@ const AppContent = () => {
     };
   }, [searchOpen]);
 
-  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(prev => !prev);
+    }
+  };
   const toggleSidebarCollapse = () => setIsSidebarCollapsed(prev => !prev);
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -459,8 +463,9 @@ const AppContent = () => {
       {notification && (
         <div className="global-toast-container" style={{
           position: 'fixed',
-          top: '24px',
+          bottom: '24px',
           right: '24px',
+          top: 'auto',
           zIndex: 999999999,
           padding: '14px 18px',
           borderRadius: '12px',

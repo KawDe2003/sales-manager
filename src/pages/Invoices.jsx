@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
 import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, ShoppingBag, FileText, Calendar, Building2, User, Link as LinkIcon, Search, BadgeDollarSign, Eye, CalendarDays, CheckCircle, Clock, Tag, AlertCircle, MessageSquare, SendHorizontal, RefreshCw, Lock, MapPin, Cloud } from 'lucide-react';
 import { generateDocumentPDF } from '../utils/pdfGenerator';
@@ -16,12 +16,20 @@ const Invoices = () => {
   } = useContext(StoreContext) || {};
   const defaultCompanyName = activeBusiness?.name || 'Seynex Enterprises';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [viewingInstallmentInvoice, setViewingInstallmentInvoice] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
+
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParams]);
 
   // SMS Modal States
   const [smsModalInvoice, setSmsModalInvoice] = useState(null);
@@ -395,7 +403,7 @@ Thank you for your business!`;
                 setEditingInvoice(invoice);
                 setShowModal(true);
               }}
-              onRecordPayment={() => navigate('/payments')}
+              onRecordPayment={() => navigate(`/payments?invoiceId=${encodeURIComponent(invoice.id)}&customerId=${encodeURIComponent(invoice.customerId || '')}`)}
               onViewInstallments={() => setViewingInstallmentInvoice(invoice)}
               onSendWhatsApp={() => handleSendWhatsApp(invoice)}
               onSendSms={() => handleOpenSmsModal(invoice)}
@@ -915,8 +923,10 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   );
 
   const initialDiscountItem = initialData?.items?.find(i => i.isDiscount);
-  const initialDiscount = initialDiscountItem ? Math.abs(initialDiscountItem.price) : 0;
+  const initialDiscount = initialDiscountItem ? Math.abs(initialDiscountItem.price) : (initialData?.discount || 0);
   const initialItems = initialData?.items?.filter(i => !i.isDiscount) || [];
+
+  const [taxRate, setTaxRate] = useState(Number(initialData?.taxRate ?? 0));
 
   const [formData, setFormData] = useState({
     invoiceNumber: initialData?.invoiceNumber || (() => {
@@ -940,8 +950,16 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   const [installmentFrequency, setInstallmentFrequency] = useState(initialData?.installmentPlan?.frequency || 'Monthly');
   const [selectedInventoryId, setSelectedInventoryId] = useState('');
 
-  const calculateSubtotal = (items) => items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const calculateTotal = (items, discount = 0) => calculateSubtotal(items) - Number(discount || 0);
+  const calculateSubtotal = (items) => items.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
+  const calculateDiscount = (discount) => Number(discount || 0);
+  const calculateTaxAmount = (items, discount, rate) => {
+    const taxable = Math.max(0, calculateSubtotal(items) - calculateDiscount(discount));
+    return Math.round(taxable * (Number(rate || 0) / 100));
+  };
+  const calculateNetTotal = (items, discount, rate) => {
+    const taxable = Math.max(0, calculateSubtotal(items) - calculateDiscount(discount));
+    return taxable + Math.round(taxable * (Number(rate || 0) / 100));
+  };
 
   const handleAddItem = () => {
     if (!selectedInventoryId) return;
@@ -956,7 +974,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
       const defaultCycle = invItem.billingCycle || ((invItem.type === 'Hardware' || isOneTimeName) ? 'One-Time' : 'Annual');
       newItems.push({ ...invItem, quantity: 1, billingCycle: defaultCycle });
     }
-    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
+    setFormData({ ...formData, items: newItems });
     setSelectedInventoryId('');
   };
 
@@ -968,12 +986,12 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
   const handleUpdateItemPrice = (idx, newPrice) => {
     const parsed = newPrice === '' ? 0 : Number(newPrice);
     const newItems = formData.items.map((it, i) => i === idx ? { ...it, price: parsed } : it);
-    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
+    setFormData({ ...formData, items: newItems });
   };
 
   const handleRemoveItem = (idx) => {
     const newItems = formData.items.filter((_, i) => i !== idx);
-    setFormData({ ...formData, items: newItems, amount: calculateTotal(newItems, formData.discount) });
+    setFormData({ ...formData, items: newItems });
   };
 
   // Lock body scroll while modal is active
@@ -1059,18 +1077,31 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
 
         <form onSubmit={(e) => {
           e.preventDefault();
+          const subtotal = calculateSubtotal(formData.items);
+          const discountVal = calculateDiscount(formData.discount);
+          const taxAmountVal = calculateTaxAmount(formData.items, formData.discount, taxRate);
+          const netTotal = calculateNetTotal(formData.items, formData.discount, taxRate);
           const finalItems = [...formData.items];
-          if (Number(formData.discount) > 0) {
-            finalItems.push({ name: 'Discount', price: -Number(formData.discount), quantity: 1, isDiscount: true });
+          if (discountVal > 0) {
+            finalItems.push({ name: 'Discount', price: -discountVal, quantity: 1, isDiscount: true });
           }
-          const netTotal = calculateTotal(formData.items, formData.discount);
           const finalPlan = (enableInstallments && generateInstallmentSchedule)
             ? generateInstallmentSchedule(netTotal, installmentCount, downPayment, formData.date, installmentFrequency)
             : null;
-          onSave({ ...formData, amount: netTotal, items: finalItems, installmentPlan: finalPlan });
+          onSave({ 
+            ...formData, 
+            subtotal,
+            discount: discountVal,
+            taxRate: Number(taxRate || 0),
+            taxAmount: taxAmountVal,
+            tax: taxAmountVal,
+            amount: netTotal, 
+            items: finalItems, 
+            installmentPlan: finalPlan 
+          });
           onClose();
         }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '50px' }}>
 
           {(formData.quoteRef || formData.quotationNumber) && (
             <div style={{
@@ -1303,9 +1334,91 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                   className="form-input"
                   style={{ width: '160px', height: '40px', textAlign: 'right', fontWeight: 800, color: '#f59e0b' }}
                   value={formData.discount === 0 ? '' : formData.discount}
-                  onChange={e => setFormData({ ...formData, discount: e.target.value, amount: calculateTotal(formData.items, e.target.value) })}
+                  onChange={e => setFormData({ ...formData, discount: e.target.value })}
                   placeholder="0"
                 />
+              </div>
+            </div>
+
+            {/* Tax / VAT Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '12px', marginTop: '12px', borderTop: '1px solid rgba(245, 158, 11, 0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                <Receipt size={16} color="var(--accent-primary)" />
+                <span>Tax / VAT Configuration:</span>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {[0, 5, 8, 15, 18].map((rateVal) => (
+                  <button
+                    key={rateVal}
+                    type="button"
+                    onClick={() => setTaxRate(rateVal)}
+                    style={{
+                      height: '26px',
+                      padding: '0 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: Number(taxRate) === rateVal ? 'var(--accent-primary)' : 'rgba(99, 102, 241, 0.12)',
+                      color: Number(taxRate) === rateVal ? '#ffffff' : 'var(--accent-primary)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {rateVal}%
+                  </button>
+                ))}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Custom %:</span>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="form-input" 
+                    style={{ width: '70px', height: '30px', fontSize: '0.8rem', padding: '2px 8px', textAlign: 'right', fontWeight: 800, color: 'var(--accent-primary)' }} 
+                    value={taxRate === 0 ? '' : taxRate} 
+                    onChange={e => setTaxRate(e.target.value === '' ? 0 : Number(e.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4-Tier Auditable Breakdown */}
+            <div style={{
+              padding: '12px 16px',
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '10px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: '10px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              marginTop: '12px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Gross Subtotal</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                  LKR {calculateSubtotal(formData.items).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Discount</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: calculateDiscount(formData.discount) > 0 ? '#f59e0b' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  - LKR {calculateDiscount(formData.discount).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Tax / VAT ({taxRate}%)</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: calculateTaxAmount(formData.items, formData.discount, taxRate) > 0 ? 'var(--accent-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  + LKR {calculateTaxAmount(formData.items, formData.discount, taxRate).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Audited Net</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--success)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
+                  LKR {calculateNetTotal(formData.items, formData.discount, taxRate).toLocaleString()}
+                </div>
               </div>
             </div>
           </div>
@@ -1316,7 +1429,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
               <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>NET TOTAL AMOUNT</span>
             </div>
             <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--success)', fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
-              LKR {calculateTotal(formData.items, formData.discount).toLocaleString()}
+              LKR {calculateNetTotal(formData.items, formData.discount, taxRate).toLocaleString()}
             </div>
           </div>
 

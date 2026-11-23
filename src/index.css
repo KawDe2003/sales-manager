@@ -2502,6 +2502,18 @@ body.sidebar-open-locked .app-sidebar {
   pointer-events: auto;
 }
 
+@media (min-width: 1024px) {
+  #header-sidebar-toggle-btn {
+    display: none !important;
+  }
+  .sidebar-overlay,
+  .sidebar-open .sidebar-overlay {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 /* ===== MODAL SYSTEM ===== */
 .modal-backdrop {
   position: fixed;
@@ -3448,7 +3460,8 @@ body.sidebar-open-locked .app-sidebar {
 /* 4. Global Toast Notifications */
 .global-toast-container {
   position: fixed !important;
-  top: 24px !important;
+  bottom: 24px !important;
+  top: auto !important;
   right: 24px !important;
   z-index: 999999999 !important;
   /* Above all modals, backdrops, and dialogs */
@@ -3459,7 +3472,8 @@ body.sidebar-open-locked .app-sidebar {
 
 @media (max-width: 640px) {
   .global-toast-container {
-    top: 12px !important;
+    bottom: 20px !important;
+    top: auto !important;
     left: 12px !important;
     right: 12px !important;
     max-width: calc(100% - 24px) !important;
@@ -5146,8 +5160,8 @@ body,
 /* 3. Global Responsive Search Box Wrapper */
 .search-box-wrapper {
   position: relative;
-  flex: 1 1 260px;
-  min-width: 220px;
+  flex: 1 1 340px;
+  min-width: 260px;
   width: 100%;
 }
 
@@ -5157,6 +5171,15 @@ body,
     width: 100%;
     min-width: 100%;
   }
+}
+
+/* Currency & Micro-UI Text Wrap Prevention */
+.currency-val,
+.kpi-val,
+.stat-card-value,
+.nowrap-text,
+.numeric {
+  white-space: nowrap !important;
 }
 
 /* 4. Table Responsive Scroll Wrapper */

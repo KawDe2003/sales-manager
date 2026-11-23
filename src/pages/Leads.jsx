@@ -541,8 +541,8 @@ const Leads = () => {
                 key={stage}
                 className="pipeline-column"
                 style={{
-                  flex: '1 0 300px',
-                  minWidth: '280px',
+                  flex: '1 1 0',
+                  minWidth: '240px',
                   maxWidth: '360px',
                   scrollSnapAlign: 'start',
                   background: 'var(--subtle-bg)',
