@@ -9,7 +9,7 @@ import {
   Radio, Power, RotateCcw, Trash2, DownloadCloud, UploadCloud,
   HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check,
   LogIn, LogOut, ArrowUpDown, X, Building2, Edit3, SlidersHorizontal, ChevronRight,
-  Shield, CheckCircle
+  Shield, CheckCircle, Sliders, ChevronDown, ChevronUp
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
@@ -132,6 +132,7 @@ export default function CloudPushPortal() {
   const [showManageProfilesModal, setShowManageProfilesModal] = useState(false);
   const [manageProfilesFilter, setManageProfilesFilter] = useState('all'); // 'all' | 'subscribed' | 'standard'
   const [editingProfileId, setEditingProfileId] = useState(null);
+  const [isConfigExpanded, setIsConfigExpanded] = useState(false);
 
   // Modal Form State
   const [modalGymName, setModalGymName] = useState('');
@@ -1473,660 +1474,216 @@ export default function CloudPushPortal() {
         </button>
       </div>
 
-      {/* ===== STATIC BIOMETRIC HARDWARE FLEET & GATEWAY CONFIGURATION PANEL (STATIC ACROSS ALL TABS) ===== */}
-      <div className="card cloud-hardware-static-card">
+      {/* ===== MINIMIZED COMPACT BIOMETRIC CONTROL & BILLING STRIP ===== */}
+      <div className="card cloud-hardware-static-card" style={{ padding: '16px 20px', marginBottom: '20px' }}>
         
-        {/* Card Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--subtle-border)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Row 1: Client Selector + Live Status + Configure Hardware Toggle + Profile Management */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+          
+          {/* Client Selector & Live Service Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
             <div style={{
-              width: '36px', height: '36px', borderRadius: '10px',
+              width: '34px', height: '34px', borderRadius: '8px',
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(16, 185, 129, 0.15))',
               border: '1px solid rgba(99, 102, 241, 0.35)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}>
-              <Cpu size={19} style={{ color: 'var(--accent-primary)' }} />
+              <Cpu size={17} style={{ color: 'var(--accent-primary)' }} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-                  Biometric Hardware Fleet & {portalSection === 'audit' ? 'Billing' : 'Gateway'} Configuration
-                </span>
-                <span style={{
-                  fontSize: '0.72rem',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  color: 'var(--accent-primary)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)'
-                }}>
-                  Multi-Device / Biometric Mode
-                </span>
-              </div>
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Connect eTechno Push Gateway, manage multi-SN IN/OUT biometric devices, and run active member audits.
-              </p>
-            </div>
-          </div>
 
-          {/* Quick Date Presets (Shown on Audit Tab) */}
-          {portalSection === 'audit' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: '2px' }}>Quick Cycles:</span>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('current_annual')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Annual 2026</button>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_annual')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Annual 2025</button>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_12_months')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Past 12 Mos</button>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_6_months')} style={{ fontSize: '0.76rem', padding: '4px 9px' }}>Past 6 Mos</button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Target: <strong>{selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`}</strong>
-              </span>
-              <span style={{
-                padding: '3px 9px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700,
-                background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)'
-              }}>
-                Cloud Push Active
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Sub-panel 1: Gateway Credentials & Account */}
-        <div className="cloud-sub-panel">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <Server size={14} style={{ color: 'var(--accent-primary)' }} />
-              <span>1. Cloud Push Gateway & Account Authentication</span>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={openCreateProfileModal}
-                className="btn btn-sm"
-                style={{
-                  fontSize: '0.74rem', padding: '3px 10px', borderRadius: '6px',
-                  background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
-                  border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
-                }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '240px', maxWidth: '420px' }}>
+              <select
+                className="form-control"
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                style={{ height: '38px', fontSize: '0.85rem', fontWeight: 700, flex: 1 }}
               >
-                <Plus size={12} /> + New Client Profile
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowManageProfilesModal(true)}
-                className="btn btn-sm btn-secondary"
-                style={{ fontSize: '0.74rem', padding: '3px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
-              >
-                <Building2 size={12} /> Manage Client Profiles ({customers.length})
-              </button>
-            </div>
-          </div>
-
-          {/* Cloud Push Service Status Banner for Selected Client */}
-          {selectedCustomerId && !isClientCloudPushActive && (
-            <div style={{
-              margin: '0 0 16px 0',
-              padding: '12px 18px',
-              borderRadius: '10px',
-              background: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ShieldAlert size={18} style={{ color: 'var(--warning, #f59e0b)', flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)' }}>
-                    Cloud Push Biometric Service is Not Enabled for "{selectedCustomer?.gymName || selectedCustomer?.name}"
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    This client is registered as a standard client without active biometric Cloud Push integration or active member billing.
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleEnableCloudPushForCurrentClient}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 14px', fontWeight: 700 }}
-              >
-                <Zap size={13} /> Enable Cloud Push for this Client
-              </button>
-            </div>
-          )}
-
-          {selectedCustomerId && isClientCloudPushActive && (
-            <div style={{
-              margin: '0 0 16px 0',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'rgba(99, 102, 241, 0.06)',
-              border: '1px solid rgba(99, 102, 241, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <Cloud size={16} style={{ color: 'var(--accent, #6366f1)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Cloud Push Active for {selectedCustomer?.gymName || selectedCustomer?.name} (Account #{accNo || '—'})
-                </span>
-                <span className="badge" style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                  {deviceSerials.length} Biometric Device{deviceSerials.length === 1 ? '' : 's'} Linked
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleDisableCloudPushForCurrentClient}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.74rem', textDecoration: 'underline', cursor: 'pointer' }}
-                title="Disconnect client from Cloud Push service"
-              >
-                Disable Service for Client
-              </button>
-            </div>
-          )}
-
-          <div className="cloud-hardware-grid">
-            {/* Enterprise Client Selection */}
-            <div>
-              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}>
-                <Users size={13} style={{ color: 'var(--accent-primary)' }} /> ENTERPRISE CLIENT
-              </label>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <select
-                  className="form-control"
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  style={{ height: '38px', fontSize: '0.84rem', fontWeight: 700, flex: 1 }}
-                >
-                  <option value="">-- Direct Device / Custom Account --</option>
-                  {subscribedCustomers.length > 0 && (
-                    <optgroup label="── Cloud Push Subscribed Clients ──">
-                      {subscribedCustomers.map(c => {
-                        const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
-                        const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
-                        const devInfo = devCount > 0 ? ` • ${devCount} Device${devCount === 1 ? '' : 's'}` : '';
-                        return (
-                          <option key={c.id} value={c.id}>
-                            {c.gymName || c.name}{accInfo}{devInfo}
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  )}
-                  {unsubscribedCustomers.length > 0 && (
-                    <optgroup label="── Standard Clients (No Cloud Push) ──">
-                      {unsubscribedCustomers.map(c => (
+                <option value="">-- Direct Device / Custom Account --</option>
+                {subscribedCustomers.length > 0 && (
+                  <optgroup label="── Cloud Push Subscribed Clients ──">
+                    {subscribedCustomers.map(c => {
+                      const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
+                      const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
+                      const devInfo = devCount > 0 ? ` • ${devCount} Dev` : '';
+                      return (
                         <option key={c.id} value={c.id}>
-                          {c.gymName || c.name} (Service Disabled)
+                          {c.gymName || c.name}{accInfo}{devInfo}
                         </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-
-                {selectedCustomerId && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-secondary"
-                    onClick={() => {
-                      const cust = customers.find(c => c.id === selectedCustomerId);
-                      if (cust) openEditProfileModal(cust);
-                    }}
-                    title="Edit selected gym profile"
-                    style={{ height: '38px', padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', flexShrink: 0 }}
-                  >
-                    <Edit3 size={13} />
-                  </button>
+                      );
+                    })}
+                  </optgroup>
                 )}
-              </div>
-            </div>
+                {unsubscribedCustomers.length > 0 && (
+                  <optgroup label="── Standard Clients (No Cloud Push) ──">
+                    {unsubscribedCustomers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.gymName || c.name} (Service Disabled)
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
 
-            {/* Push Account # */}
-            <div>
-              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Server size={13} style={{ color: 'var(--accent-primary)' }} /> Push Account # (push_acc)
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={accNo}
-                onChange={(e) => setAccNo(e.target.value)}
-                placeholder="e.g. 192"
-                style={{ height: '38px', fontSize: '0.84rem', fontWeight: 700 }}
-              />
-            </div>
-
-            {/* API Key */}
-            <div>
-              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Key size={13} style={{ color: 'var(--accent-primary)' }} /> API Key / Auth Token
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showApiKey ? 'text' : 'password'}
-                  className="form-control"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter eTechno API Key"
-                  style={{ height: '38px', fontSize: '0.84rem', paddingRight: '36px' }}
-                />
+              {selectedCustomerId && (
                 <button
                   type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  style={{
-                    position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px'
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => {
+                    const cust = customers.find(c => c.id === selectedCustomerId);
+                    if (cust) openEditProfileModal(cust);
                   }}
+                  title="Edit client profile details in modal"
+                  style={{ height: '38px', padding: '0 8px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
                 >
-                  {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <Edit3 size={13} />
                 </button>
-              </div>
+              )}
             </div>
 
-            {/* Gateway URL */}
-            <div>
-              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Cloud size={13} style={{ color: 'var(--accent-primary)' }} /> API Gateway Proxy URL
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="/api/etechno"
-                style={{ height: '38px', fontSize: '0.84rem' }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-panel 2: Biometric Devices Fleet (Single Device or Multi-Device) */}
-        <div className="cloud-sub-panel" style={{ marginBottom: portalSection === 'audit' ? '16px' : '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <Cpu size={15} style={{ color: 'var(--accent-primary)' }} />
-              <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 800 }}>
-                2. Linked Biometric Devices Fleet ({deviceSerials.length} {deviceSerials.length === 1 ? 'Device' : 'Devices'})
-              </span>
-              <span style={{
-                fontSize: '0.72rem',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                background: 'rgba(16, 185, 129, 0.14)',
-                color: '#10b981'
+            {/* Live Service Status Badge */}
+            {selectedCustomerId && isClientCloudPushActive && (
+              <span className="badge" style={{
+                fontSize: '0.74rem', fontWeight: 700, padding: '6px 12px', borderRadius: '8px',
+                background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}>
-                {deviceSerials.length === 1
-                  ? `Single Device (${deviceSerials[0]?.role === 'IN/OUT' ? 'Two-Way IN/OUT' : (deviceSerials[0]?.role || 'Standalone')})`
-                  : `${deviceSerials.filter(d => d.role === 'IN').length} IN • ${deviceSerials.filter(d => d.role === 'OUT').length} OUT${deviceSerials.some(d => d.role === 'IN/OUT') ? ` • ${deviceSerials.filter(d => d.role === 'IN/OUT').length} Two-Way` : ''}`
-                }
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                Acc #{accNo || '—'} · {deviceSerials.length} Biometric Dev ({deviceSerials.filter(d => d.role === 'IN').length} IN / {deviceSerials.filter(d => d.role === 'OUT').length} OUT) · Rs. {ratePerUserMonth}/mo
               </span>
-            </div>
+            )}
 
-            {/* Quick Fleet Presets & Scope / Target Filter Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => handleApplyMainDevicePreset('single')}
-                  className="btn btn-sm"
-                  title="Configure client for 1 physical biometric device (Two-Way IN/OUT)"
-                  style={{
-                    fontSize: '0.72rem', padding: '3px 8px', borderRadius: '6px',
-                    background: deviceSerials.length === 1 ? 'rgba(99, 102, 241, 0.2)' : 'var(--subtle-bg)',
-                    color: deviceSerials.length === 1 ? 'var(--accent-primary)' : 'var(--text-muted)',
-                    border: `1px solid ${deviceSerials.length === 1 ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
-                    fontWeight: deviceSerials.length === 1 ? 800 : 500
-                  }}
-                >
-                  ⚡ 1 Device (Single)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleApplyMainDevicePreset('dual')}
-                  className="btn btn-sm"
-                  title="Configure client for dual devices (Entrance IN + Exit OUT)"
-                  style={{
-                    fontSize: '0.72rem', padding: '3px 8px', borderRadius: '6px',
-                    background: deviceSerials.length >= 2 ? 'rgba(99, 102, 241, 0.2)' : 'var(--subtle-bg)',
-                    color: deviceSerials.length >= 2 ? 'var(--accent-primary)' : 'var(--text-muted)',
-                    border: `1px solid ${deviceSerials.length >= 2 ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
-                    fontWeight: deviceSerials.length >= 2 ? 800 : 500
-                  }}
-                >
-                  ⚡ 2 Devices (Dual)
-                </button>
-              </div>
-
-              {deviceSerials.length > 1 ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: '6px' }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {portalSection === 'audit' ? 'Audit Scope:' : portalSection === 'realtime' ? 'Stream Scope:' : 'Target Scope:'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSerialFilter('ALL');
-                      if (deviceSerials[0]) setCommandTargetSerial(deviceSerials[0].sn);
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: serialFilter === 'ALL' ? 'var(--accent-primary)' : 'transparent',
-                      color: serialFilter === 'ALL' ? '#fff' : 'var(--text-muted)',
-                      border: `1px solid ${serialFilter === 'ALL' ? 'var(--accent-primary)' : 'var(--panel-border)'}`
-                    }}
-                  >
-                    All Devices Combined ({deviceSerials.length})
-                  </button>
-
-                  {deviceSerials.map(dev => (
-                    <button
-                      key={dev.id || dev.sn}
-                      type="button"
-                      onClick={() => {
-                        setSerialFilter(dev.sn);
-                        setCommandTargetSerial(dev.sn);
-                      }}
-                      style={{
-                        padding: '4px 9px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        background: serialFilter === dev.sn ? 'var(--accent-primary)' : 'transparent',
-                        color: serialFilter === dev.sn ? '#fff' : 'var(--text-muted)',
-                        border: `1px solid ${serialFilter === dev.sn ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <span style={{ fontWeight: 800 }}>[{dev.role}]</span>
-                      <span>{dev.sn}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            {selectedCustomerId && !isClientCloudPushActive && (
+              <span className="badge" style={{
+                fontSize: '0.74rem', fontWeight: 700, padding: '6px 12px', borderRadius: '8px',
+                background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
+              }}>
+                <ShieldAlert size={12} /> Standard Client (No Push)
+              </span>
+            )}
           </div>
 
-          {/* Registered Devices Cards */}
-          <div className="cloud-turnstiles-grid">
-            {deviceSerials.map((dev, idx) => {
-              const pingStatus = devicePingResults[dev.sn];
-              const isPinging = pingingSn === dev.sn;
-              const isFilterActive = serialFilter === 'ALL' || serialFilter === dev.sn;
-
-              return (
-                <div
-                  key={dev.id || idx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: 'var(--subtle-bg)',
-                    border: `1px solid ${isFilterActive ? 'var(--panel-border-highlight)' : 'var(--panel-border)'}`,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                    {/* Direction Badge */}
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      fontWeight: 800,
-                      fontSize: '0.72rem',
-                      letterSpacing: '0.04em',
-                      background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                      color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : 'var(--accent)',
-                      border: `1px solid ${dev.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
-                    }}>
-                      {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
-                      {dev.role}
-                    </span>
-
-                    {/* Serial & Alias */}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.88rem', color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
-                        {dev.sn}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {dev.label || (dev.role === 'IN' ? 'Entrance Biometric Device' : dev.role === 'OUT' ? 'Exit Biometric Device' : 'Two-Way Biometric Terminal')}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions: Ping Status + Ping Button + Delete */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    {pingStatus && (
-                      <span style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        color: pingStatus.online ? '#10b981' : '#f59e0b',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: pingStatus.online ? '#10b981' : '#f59e0b' }} />
-                        {pingStatus.online ? 'Online' : 'Offline'}
-                      </span>
-                    )}
-
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => handlePingSingleDevice(dev.sn)}
-                      disabled={isPinging}
-                      title="Ping device connection via eTechno Push Gateway"
-                      style={{
-                        fontSize: '0.73rem',
-                        padding: '4px 9px',
-                        borderRadius: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      {isPinging ? <RefreshCw size={11} className="animate-spin" /> : 'Ping'}
-                    </button>
-
-                    {deviceSerials.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDevice(dev.id || dev.sn)}
-                        title="Remove device"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Trash2 size={13} style={{ color: '#ef4444' }} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Add New Turnstile / Device Row */}
-          <form
-            className="cloud-add-turnstile-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleAddDevice();
-            }}
-          >
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Plus size={13} /> Add Biometric Device:
-            </div>
-
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Serial # (e.g. NYU7254000012)"
-              value={newDeviceSn}
-              onChange={(e) => setNewDeviceSn(e.target.value)}
-              style={{ height: '34px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
-            />
-
-            <select
-              className="form-control"
-              value={newDeviceRole}
-              onChange={(e) => setNewDeviceRole(e.target.value)}
-              style={{ height: '34px', fontSize: '0.8rem', width: '185px', minWidth: '175px' }}
+          {/* Configuration Expansion & Profile Management Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setIsConfigExpanded(!isConfigExpanded)}
+              className="btn btn-sm"
+              style={{
+                fontSize: '0.78rem', padding: '7px 14px', borderRadius: '8px', fontWeight: 700,
+                background: isConfigExpanded ? 'rgba(99, 102, 241, 0.18)' : 'var(--subtle-bg)',
+                color: isConfigExpanded ? 'var(--accent-primary)' : 'var(--text-primary)',
+                border: `1px solid ${isConfigExpanded ? 'var(--accent-primary)' : 'var(--subtle-border)'}`,
+                display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title="Expand hardware fleet and push gateway settings for this client"
             >
-              <option value="IN">Entrance Biometric Device (IN)</option>
-              <option value="OUT">Exit Biometric Device (OUT)</option>
-              <option value="IN/OUT">Two-Way Device (IN/OUT)</option>
-              <option value="RECEPTION">Reception Terminal</option>
-              <option value="DOOR">Access Door Terminal</option>
-            </select>
-
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Label / Location (e.g. Exit Gate Reader)"
-              value={newDeviceLabel}
-              onChange={(e) => setNewDeviceLabel(e.target.value)}
-              style={{ height: '34px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
-            />
+              <Sliders size={13} />
+              <span>{isConfigExpanded ? 'Minimize Settings' : 'Configure Hardware & Fleet'}</span>
+              {isConfigExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
 
             <button
-              type="submit"
-              className="btn btn-sm btn-primary"
+              type="button"
+              onClick={() => setShowManageProfilesModal(true)}
+              className="btn btn-sm btn-secondary"
+              style={{ fontSize: '0.76rem', padding: '7px 11px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}
+            >
+              <Building2 size={13} /> Manage Profiles ({customers.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={openCreateProfileModal}
+              className="btn btn-sm"
               style={{
-                height: '34px',
-                fontSize: '0.78rem',
-                padding: '0 12px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
+                fontSize: '0.76rem', padding: '7px 11px', borderRadius: '8px',
+                background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)',
+                border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
               }}
             >
-              <Plus size={13} /> Add Device
+              <Plus size={12} /> + New Client Profile
             </button>
-          </form>
+          </div>
         </div>
 
-        {/* Sub-panel 3: Annual Billing Period & Pricing (Audit Tab Only) */}
-        {portalSection === 'audit' && (
-          <div className="cloud-sub-panel" style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <Calendar size={14} style={{ color: 'var(--accent-primary)' }} />
-              <span>3. Annual Billing Period & Active User Rates</span>
+        {/* If Selected Client is Unsubscribed, show contextual opt-in notice */}
+        {selectedCustomerId && !isClientCloudPushActive && (
+          <div style={{
+            margin: '0 0 14px 0', padding: '10px 16px', borderRadius: '8px',
+            background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={16} style={{ color: 'var(--warning, #f59e0b)' }} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)' }}>
+                <strong>{selectedCustomer?.gymName || selectedCustomer?.name}</strong> is registered as a standard client without Cloud Push biometric integration.
+              </span>
             </div>
-
-            <div className="cloud-hardware-grid">
-              {/* From Date */}
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Calendar size={13} style={{ color: 'var(--accent-primary)' }} /> Annual Period From
-                </label>
-                <DatePicker
-                  value={fromDate}
-                  onChange={setFromDate}
-                  placeholder="YYYY-MM-DD"
-                />
-              </div>
-
-              {/* To Date */}
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Calendar size={13} style={{ color: 'var(--accent-primary)' }} /> Annual Period To
-                </label>
-                <DatePicker
-                  value={toDate}
-                  onChange={setToDate}
-                  placeholder="YYYY-MM-DD"
-                />
-              </div>
-
-              {/* Rate per Active User / Month */}
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <DollarSign size={13} style={{ color: 'var(--accent-primary)' }} /> Rate Per Active Member / Month (LKR)
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                    Rs.
-                  </span>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={ratePerUserMonth}
-                    onChange={(e) => setRatePerUserMonth(Number(e.target.value) || 0)}
-                    min="0"
-                    step="10"
-                    style={{ height: '38px', fontSize: '0.85rem', paddingLeft: '34px', fontWeight: 700 }}
-                  />
-                </div>
-              </div>
-            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleEnableCloudPushForCurrentClient}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.76rem', padding: '4px 12px', fontWeight: 700 }}
+            >
+              <Zap size={12} /> Enable Cloud Push for this Client
+            </button>
           </div>
         )}
 
-        {/* Action Trigger Buttons */}
-        <div className="cloud-hardware-actions">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-            <span>
-              Target: <strong>{selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`}</strong>
-              {' • '}
-              <span>{deviceSerials.length} Device{deviceSerials.length === 1 ? '' : 's'} ({deviceSerials.filter(d => d.role === 'IN').length} IN, {deviceSerials.filter(d => d.role === 'OUT').length} OUT)</span>
-              {' • '}
-              <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Site Total' : `Filtered: ${serialFilter}`}</strong></span>
-            </span>
-          </div>
+        {/* Row 2: Operational Date Range & Statement Execution Buttons */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
+          paddingTop: '12px', borderTop: '1px solid var(--subtle-border)'
+        }}>
+          {portalSection === 'audit' ? (
+            <>
+              {/* Date Controls & Quick Cycles */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('current_annual')} style={{ fontSize: '0.74rem', padding: '4px 8px' }}>Annual 2026</button>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_annual')} style={{ fontSize: '0.74rem', padding: '4px 8px' }}>Annual 2025</button>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_12_months')} style={{ fontSize: '0.74rem', padding: '4px 8px' }}>Past 12 Mos</button>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => applyPreset('last_6_months')} style={{ fontSize: '0.74rem', padding: '4px 8px' }}>Past 6 Mos</button>
+                </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {isHardwareDirty && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSaveConfig}
-                title="Save configuration and device serials to customer profile"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', animation: 'fadeIn 0.2s ease' }}
-              >
-                <Save size={14} />
-                <span>Save Hardware Profile</span>
-              </button>
-            )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>From</span>
+                  <DatePicker value={fromDate} onChange={setFromDate} placeholder="YYYY-MM-DD" style={{ width: '130px', height: '34px', fontSize: '0.78rem' }} />
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>To</span>
+                  <DatePicker value={toDate} onChange={setToDate} placeholder="YYYY-MM-DD" style={{ width: '130px', height: '34px', fontSize: '0.78rem' }} />
+                </div>
 
-            {portalSection === 'audit' && (
-              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Rate:</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', background: 'var(--subtle-bg)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--subtle-border)' }}>
+                    Rs. {ratePerUserMonth} / user
+                  </span>
+                </div>
+              </div>
+
+              {/* Execution Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {isHardwareDirty && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveConfig}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px', animation: 'pulse 2s infinite' }}
+                  >
+                    <Save size={13} /> Save Profile
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-sm"
                   onClick={handleRunSimulated}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px' }}
                 >
-                  <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Preview Sample Audit</span>
+                  <Sparkles size={13} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Preview Sample</span>
                 </button>
 
                 <button
@@ -2134,16 +1691,16 @@ export default function CloudPushPortal() {
                   className="btn btn-primary"
                   onClick={() => handleRunAudit(false)}
                   disabled={loading}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px', justifyContent: 'center' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '7px 16px', fontSize: '0.84rem', fontWeight: 800 }}
                 >
                   {loading ? (
                     <>
-                      <RefreshCw size={16} className="animate-spin" />
+                      <RefreshCw size={15} className="animate-spin" />
                       <span>Scanning Months...</span>
                     </>
                   ) : (
                     <>
-                      <Activity size={16} />
+                      <Activity size={15} />
                       <span>Fetch Active User Statement</span>
                     </>
                   )}
@@ -2151,19 +1708,345 @@ export default function CloudPushPortal() {
 
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-sm"
                   onClick={() => handleRunAudit(true)}
                   disabled={loading}
                   title="Bypass 72-hour cache and re-query fresh biometric attendance logs"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', fontSize: '0.82rem' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 10px', fontSize: '0.78rem' }}
                 >
-                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                  <span>Force Refresh</span>
+                  <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
                 </button>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                <span>
+                  Target: <strong>{selectedCustomer ? (selectedCustomer.gymName || selectedCustomer.name) : `Account #${accNo}`}</strong>
+                  {' • '}
+                  <span>{deviceSerials.length} Devices ({deviceSerials.filter(d => d.role === 'IN').length} IN / {deviceSerials.filter(d => d.role === 'OUT').length} OUT)</span>
+                  {' • '}
+                  <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Site Total' : `Filtered: ${serialFilter}`}</strong></span>
+                </span>
+              </div>
+
+              {isHardwareDirty && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveConfig}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px' }}
+                >
+                  <Save size={13} /> Save Profile
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* ===== CONSOLIDATED ONE AREA: EXPANDABLE HARDWARE & GATEWAY CONFIGURATION PANEL ===== */}
+        {isConfigExpanded && (
+          <div style={{
+            marginTop: '16px',
+            paddingTop: '16px',
+            borderTop: '1px dashed var(--panel-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            {/* Header of Configuration Section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Server size={17} style={{ color: 'var(--accent-primary)' }} />
+                <div>
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                    eTechno Gateway & Biometric Device Fleet Configuration
+                  </span>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Configure credentials, API token, proxy URL, linked biometric devices, and billing rates for this client in one place.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {isHardwareDirty && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveConfig}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 14px' }}
+                  >
+                    <Save size={13} /> Save Hardware Profile
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setIsConfigExpanded(false)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', padding: '6px 10px' }}
+                >
+                  <ChevronUp size={13} /> Minimize Settings
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-panel 1: Gateway Credentials & Account */}
+            <div className="cloud-sub-panel" style={{ padding: '14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                <Key size={13} style={{ color: 'var(--accent-primary)' }} />
+                <span>1. Cloud Push Gateway & Account Authentication</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                {/* Push Account # */}
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.76rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Server size={12} style={{ color: 'var(--accent-primary)' }} /> Push Account # (push_acc)
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={accNo}
+                    onChange={(e) => setAccNo(e.target.value)}
+                    placeholder="e.g. 192"
+                    style={{ height: '36px', fontSize: '0.84rem', fontWeight: 700 }}
+                  />
+                </div>
+
+                {/* API Key */}
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.76rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Key size={12} style={{ color: 'var(--accent-primary)' }} /> API Key / Auth Token
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      className="form-control"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="Enter eTechno API Key"
+                      style={{ height: '36px', fontSize: '0.84rem', paddingRight: '36px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      style={{
+                        position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px'
+                      }}
+                    >
+                      {showApiKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Gateway URL */}
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.76rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Cloud size={12} style={{ color: 'var(--accent-primary)' }} /> API Gateway Proxy URL
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    placeholder="/api/etechno"
+                    style={{ height: '36px', fontSize: '0.84rem' }}
+                  />
+                </div>
+
+                {/* Rate Per Active Member / Month */}
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.76rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <DollarSign size={12} style={{ color: 'var(--accent-primary)' }} /> Rate / Active Member / Month (LKR)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Rs.
+                    </span>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={ratePerUserMonth}
+                      onChange={(e) => setRatePerUserMonth(Number(e.target.value) || 0)}
+                      min="0"
+                      step="10"
+                      style={{ height: '36px', fontSize: '0.84rem', paddingLeft: '34px', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-panel 2: Biometric Devices Fleet */}
+            <div className="cloud-sub-panel" style={{ padding: '14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--panel-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <Cpu size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span style={{ color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 800 }}>
+                    2. Linked Biometric Devices Fleet ({deviceSerials.length} {deviceSerials.length === 1 ? 'Device' : 'Devices'})
+                  </span>
+                  <span style={{
+                    fontSize: '0.72rem', padding: '2px 8px', borderRadius: '10px', fontWeight: 700,
+                    background: 'rgba(16, 185, 129, 0.14)', color: '#10b981'
+                  }}>
+                    {deviceSerials.length === 1
+                      ? `Single Device (${deviceSerials[0]?.role === 'IN/OUT' ? 'Two-Way IN/OUT' : (deviceSerials[0]?.role || 'Standalone')})`
+                      : `${deviceSerials.filter(d => d.role === 'IN').length} IN • ${deviceSerials.filter(d => d.role === 'OUT').length} OUT${deviceSerials.some(d => d.role === 'IN/OUT') ? ` • ${deviceSerials.filter(d => d.role === 'IN/OUT').length} Two-Way` : ''}`
+                    }
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => handleApplyDevicePreset('single')}
+                    style={{ fontSize: '0.74rem', padding: '3px 8px' }}
+                  >
+                    ⚡ 1 Device (Single)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => handleApplyDevicePreset('dual')}
+                    style={{ fontSize: '0.74rem', padding: '3px 8px' }}
+                  >
+                    ⚡ 2 Devices (Dual)
+                  </button>
+                </div>
+              </div>
+
+              {/* Linked Device Chips */}
+              <div className="cloud-turnstiles-grid" style={{ marginBottom: '14px' }}>
+                {deviceSerials.map((dev, idx) => {
+                  const pingStatus = devicePingResults[dev.sn];
+                  const isPinging = pingingDevices[dev.sn];
+
+                  return (
+                    <div
+                      key={dev.id || dev.sn || idx}
+                      style={{
+                        padding: '10px 14px', borderRadius: '8px',
+                        background: 'var(--bg-primary)', border: '1px solid var(--subtle-border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800,
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.12)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                          color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : 'var(--accent)',
+                          border: `1px solid ${dev.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                        }}>
+                          {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
+                          {dev.role}
+                        </span>
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.86rem', color: 'var(--text-primary)' }}>
+                            {dev.sn}
+                          </div>
+                          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {dev.label || (dev.role === 'IN' ? 'Entrance Biometric Device' : dev.role === 'OUT' ? 'Exit Biometric Device' : 'Two-Way Biometric Terminal')}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        {pingStatus && (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: pingStatus.online ? '#10b981' : '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: pingStatus.online ? '#10b981' : '#f59e0b' }} />
+                            {pingStatus.online ? 'Online' : 'Offline'}
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handlePingSingleDevice(dev.sn)}
+                          disabled={isPinging}
+                          title="Ping device connection via eTechno Push Gateway"
+                          style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          {isPinging ? <RefreshCw size={11} className="animate-spin" /> : 'Ping'}
+                        </button>
+
+                        {deviceSerials.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDevice(dev.id || dev.sn)}
+                            title="Remove device"
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                          >
+                            <Trash2 size={13} style={{ color: '#ef4444' }} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add New Device Row */}
+              <form
+                className="cloud-add-turnstile-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddDevice();
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Plus size={13} /> Add Device:
+                </div>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Serial # (e.g. NYU7254000012)"
+                  value={newDeviceSn}
+                  onChange={(e) => setNewDeviceSn(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
+                />
+
+                <select
+                  className="form-control"
+                  value={newDeviceRole}
+                  onChange={(e) => setNewDeviceRole(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.8rem', width: '185px', minWidth: '175px' }}
+                >
+                  <option value="IN">Entrance Biometric Device (IN)</option>
+                  <option value="OUT">Exit Biometric Device (OUT)</option>
+                  <option value="IN/OUT">Two-Way Device (IN/OUT)</option>
+                  <option value="RECEPTION">Reception Terminal</option>
+                  <option value="DOOR">Access Door Terminal</option>
+                </select>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Label / Location (e.g. Exit Gate Reader)"
+                  value={newDeviceLabel}
+                  onChange={(e) => setNewDeviceLabel(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.8rem', flex: 1, minWidth: '150px' }}
+                />
+
+                <button
+                  type="submit"
+                  className="btn btn-sm btn-primary"
+                  style={{ height: '34px', fontSize: '0.78rem', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Plus size={13} /> Add Device
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Progress Bar (when scanning multiple months) */}
         {loading && progressInfo && (
