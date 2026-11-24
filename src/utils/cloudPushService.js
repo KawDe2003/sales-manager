@@ -1225,7 +1225,7 @@ export function generateSimulatedMonthwiseData({
     toDate,
     ratePerUserMonth: Number(ratePerUserMonth || 0),
     totalMonths,
-    serviceName: isAcc192 ? 'Fit Focus Client (eTechno Verified Record)' : `Demo Enterprise Client (Acc #${accNo})`,
+    serviceName: `Client Site (Acc #${accNo})`,
     invoiceValue: {
       activeUserCount: isAcc192 ? 236 : averageMonthlyActive,
       userCount: currentEnrolled,

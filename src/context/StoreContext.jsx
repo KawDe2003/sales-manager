@@ -194,80 +194,9 @@ export const getNextSequentialCustomerCode = (customers = []) => {
   return `CUST-${String(nextNum).padStart(3, '0')}`;
 };
 
-export const sampleMainQuotes = [
-  {
-    id: '12caeecf-e0be-4e00-810a-d7218166135e',
-    quoteNumber: 'QT-1001',
-    shareKey: '12caeecf-e0be-4e00-810a-d7218166135e',
-    shareToken: '12caeecf-e0be-4e00-810a-d7218166135e',
-    date: '2026-11-20',
-    validUntil: '2026-12-20',
-    customerId: 'mc-1',
-    prospectName: 'Apex Global Technologies',
-    contactPerson: 'Rohan Jayasinghe',
-    phone: '0773456789',
-    prospectPhone: '0773456789',
-    email: 'rohan@apexglobal.lk',
-    prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    status: 'Sent',
-    sentAt: '2026-11-20T10:00:00Z',
-    amount: 450000,
-    totalAmount: 450000,
-    items: [
-      { name: 'eTechno Turnstile Hardware Package (2 Flap Barriers)', qty: 1, unitPrice: 350000, unitCost: 350000, amount: 350000 },
-      { name: 'Annual Cloud Push & Integration License', qty: 1, unitPrice: 100000, unitCost: 100000, amount: 100000 }
-    ],
-    notes: 'Hardware warranty 1 year. Annual Cloud SLA renewal after 12 months.'
-  },
-  {
-    id: 'mq-101',
-    quoteNumber: 'QT-2001',
-    shareKey: 'SNX-MQ101',
-    date: '2026-09-25',
-    validUntil: '2026-10-25',
-    customerId: 'mc-1',
-    prospectName: 'Apex Global Technologies',
-    contactPerson: 'Rohan Jayasinghe',
-    phone: '0773456789',
-    prospectPhone: '0773456789',
-    email: 'rohan@apexglobal.lk',
-    prospectAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    status: 'Sent',
-    sentAt: '2026-09-25T11:00:00Z',
-    amount: 520000,
-    totalAmount: 520000,
-    items: [
-      { name: 'Enterprise Cloud ERP License (Annual)', qty: 2, unitPrice: 185000, amount: 370000 },
-      { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 },
-      { name: 'Professional Systems Consulting (Day Rate)', qty: 1, unitPrice: 55000, amount: 55000 }
-    ],
-    notes: 'Standard 12-month license with guaranteed 99.9% uptime SLA.'
-  }
-];
+export const sampleMainQuotes = [];
 
-export const sampleMainInvoices = [
-  {
-    id: 'minv-201',
-    invoiceNumber: 'INV-2001',
-    shareKey: 'SNX-MINV201',
-    date: '2026-09-20',
-    dueDate: '2026-10-05',
-    customerId: 'mc-1',
-    prospectName: 'Apex Global Technologies',
-    billingAddress: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    address: 'No. 128, Galle Road, Colombo 03, Sri Lanka',
-    amount: 650000,
-    totalAmount: 650000,
-    status: 'Paid',
-    items: [
-      { name: 'Enterprise Cloud ERP License (Annual)', qty: 3, unitPrice: 185000, amount: 555000 },
-      { name: 'Annual Priority SLA & Support Contract', qty: 1, unitPrice: 95000, amount: 95000 }
-    ],
-    reminderSent: false
-  }
-];
+export const sampleMainInvoices = [];
 
 export default function StoreContextProvider({ children }) {
   const { user } = useAuth();
@@ -314,160 +243,16 @@ export default function StoreContextProvider({ children }) {
     }
   ];
 
-  const sampleMainCustomers = [
-    { id: 'mc-1', code: 'CUST-001', gymName: 'Fit Focus Enterprise (2 Devices)', name: 'Rohan Jayasinghe', email: 'rohan@apexglobal.lk', phone: '0773456789', address: 'No. 128, Galle Road, Colombo 03, Sri Lanka', status: 'Active', tag: 'Enterprise Client', annualFee: 650000, purchaseDate: '2026-01-01', renewalDate: '2026-12-31', notes: [], cloudPushAcc: '192', deviceSerial: 'NYU7254000011', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000011', role: 'IN', label: 'Entrance Biometric Device (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Biometric Device (OUT)' }], cloudPushApiKey: 'cGYm94tX97qA6cXw7UKgh64nr', ratePerUserMonth: 100 },
-    { id: 'mc-2', code: 'CUST-002', gymName: 'PowerZone Commercial Club (2 Devices)', name: 'Samantha Silva', email: 'samantha@powerzone.lk', phone: '0714567890', address: 'Level 4, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 420000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN', label: 'Entrance Biometric Device (IN)' }, { id: 'dev-2', sn: 'NYU7254000012', role: 'OUT', label: 'Exit Biometric Device (OUT)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 120 },
-    { id: 'mc-2b', code: 'CUST-003', gymName: 'PowerZone Express (1 Device)', name: 'Samantha Silva', email: 'express@powerzone.lk', phone: '0714567891', address: 'Tower B, World Trade Center, Colombo 01', status: 'Active', tag: 'Commercial Client', annualFee: 240000, purchaseDate: '2025-02-15', renewalDate: '2026-12-15', notes: [], cloudPushAcc: '172', deviceSerial: 'VGU6254800142', deviceSerials: [{ id: 'dev-1', sn: 'VGU6254800142', role: 'IN/OUT', label: 'Main Biometric Terminal (Two-Way IN/OUT)' }], cloudPushApiKey: '7sm2seeY3Jp1jM354Po3wpx55', ratePerUserMonth: 100 },
-    { id: 'mc-3', code: 'CUST-004', gymName: 'IronCore Athletic Center', name: 'Nishan Mendis', email: 'nishan@ironcore.lk', phone: '0765678901', address: 'No. 45, Alfred House Gardens, Colombo 03, Sri Lanka', status: 'Active', tag: 'Corporate Client', annualFee: 850000, purchaseDate: '2025-03-20', renewalDate: '2026-10-20', notes: [], cloudPushAcc: '185', deviceSerial: 'NYU7254000030', deviceSerials: [{ id: 'dev-1', sn: 'NYU7254000030', role: 'IN', label: 'Main Entrance (IN)' }, { id: 'dev-2', sn: 'NYU7254000031', role: 'OUT', label: 'Member Exit Biometric Device (OUT)' }], cloudPushApiKey: 'k9LmP2xQ89vB5yZ12WqRt33po', ratePerUserMonth: 100 }
-  ];
-
-  const sampleMainInventory = [
-    { id: 'minv-101', name: 'Enterprise Cloud ERP License (Annual)', type: 'Software', price: 185000, costPrice: 65000, stock: 100, reorderLevel: 10, desc: 'Full-featured enterprise cloud operations license' },
-    { id: 'minv-102', name: 'Annual Priority SLA & Support Contract', type: 'Service', price: 95000, costPrice: 30000, stock: 999, reorderLevel: 5, desc: '24/7 dedicated support and maintenance package' },
-    { id: 'minv-103', name: 'Commercial Network Security Gateway', type: 'Hardware', price: 145000, costPrice: 98000, stock: 18, reorderLevel: 4, desc: 'Managed hardware firewall and VPN gateway' },
-    { id: 'minv-104', name: 'Professional Systems Consulting (Day Rate)', type: 'Consulting', price: 45000, costPrice: 15000, stock: 50, reorderLevel: 5, desc: 'On-site senior enterprise technical advisory' },
-    { id: 'minv-105', name: 'Cloud Automated Backup Storage 1TB', type: 'Cloud Service', price: 36000, costPrice: 14000, stock: 200, reorderLevel: 20, desc: 'Encrypted off-site disaster recovery storage' },
-    { id: 'minv-106', name: 'Biometric Cloud Push Service (Annual Active User License)', type: 'Cloud Service', price: 72000, costPrice: 18000, stock: 999, reorderLevel: 10, desc: 'Monthwise biometric push synchronization per active member count' }
-  ];
-
-  const sampleMainLeads = [
-    { 
-      id: 'mlead-1', 
-      gymName: 'Orion Solutions Colombo', 
-      contactPerson: 'Dinesh Wickramasinghe', 
-      name: 'Dinesh Wickramasinghe', 
-      phone: '0776789012', 
-      email: 'dinesh@orionsolutions.lk', 
-      location: 'Colombo 04', 
-      status: 'Proposal Sent', 
-      value: 520000, 
-      date: '2026-09-25T10:00:00.000Z',
-      lastActionDate: '2026-10-01T11:00:00.000Z',
-      nextActionDate: new Date().toISOString().split('T')[0],
-      nextActionNote: 'Review custom ERP implementation proposal with procurement committee',
-      comments: [
-        {
-          id: 'mc-1',
-          date: '2026-10-01T11:00:00.000Z',
-          text: 'Conducted demonstration for finance team. Requested itemized quotation for 5 user licenses.',
-          type: 'Meeting',
-          nextActionDate: new Date().toISOString().split('T')[0],
-          nextActionNote: 'Review custom ERP implementation proposal with procurement committee',
-          author: 'Sales Executive'
-        }
-      ]
-    },
-    { 
-      id: 'mlead-2', 
-      gymName: 'Sterling Retail Group', 
-      contactPerson: 'Anura Fernando', 
-      name: 'Anura Fernando', 
-      phone: '0717890123', 
-      email: 'anura@sterlingretail.lk', 
-      location: 'Kandy', 
-      status: 'Contacted', 
-      value: 380000, 
-      date: '2026-09-29T14:20:00.000Z',
-      lastActionDate: '2026-09-30T16:00:00.000Z',
-      nextActionDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      nextActionNote: 'Follow-up call regarding hardware specifications',
-      comments: []
-    }
-  ];
-
-
-
-  const sampleMainPayments = [
-    { id: 'pay-main-1', documentId: 'minv-201', invoiceNumber: 'INV-2001', amount: 650000, date: '2026-09-28', method: 'Bank Transfer', customerName: 'Apex Global Technologies' }
-  ];
-
-  const sampleMainExpenses = [
-    { id: 'mexp-1', category: 'Operational', amount: 85000, date: '2026-07-05', description: 'AWS Cloud Server Hosting & Disaster Recovery Tier 3' },
-    { id: 'mexp-2', category: 'Operational', amount: 28000, date: '2026-07-10', description: 'Colombo 03 Office Dedicated Leased Line High-Speed Fiber' },
-    { id: 'mexp-3', category: 'Staff', amount: 240000, date: '2026-07-28', description: 'Enterprise Solutions Engineering & Cloud DevOps Salaries' },
-    { id: 'mexp-4', category: 'Administrative', amount: 45000, date: '2026-08-01', description: 'Corporate Legal Advisory & Annual Regulatory Compliance' }
-  ];
-
-  const sampleMainFixedAssets = [
-    { id: 'mfa-1', assetCode: 'FA-2001', name: 'Dell PowerEdge Enterprise Rack Server R750', category: 'IT Infrastructure', purchaseDate: '2025-01-15', purchaseCost: 1450000, usefulLifeYears: 5, salvageValue: 150000, depreciationMethod: 'Straight Line (SLM)', location: 'Colombo 03 Server Room', status: 'Active' },
-    { id: 'mfa-2', assetCode: 'FA-2002', name: 'Cisco Core Managed Switch & Next-Gen Firewall Gateway', category: 'Network Hardware', purchaseDate: '2025-03-20', purchaseCost: 680000, usefulLifeYears: 6, salvageValue: 50000, depreciationMethod: 'Straight Line (SLM)', location: 'Data Rack A', status: 'Active' },
-    { id: 'mfa-3', assetCode: 'FA-2003', name: 'Executive Systems Engineering Dual-Monitor Workstations', category: 'Office IT Equipment', purchaseDate: '2025-05-10', purchaseCost: 520000, usefulLifeYears: 4, salvageValue: 40000, depreciationMethod: 'Straight Line (SLM)', location: 'Engineering Lab', status: 'Active' }
-  ];
-
-  const sampleMainSuppliers = [
-    { 
-      id: 'msup-1', 
-      name: 'Cisco & Dell Authorized Tech Distributor', 
-      contactPerson: 'Harsha Wickramasinghe', 
-      phone: '0112890123', 
-      email: 'enterprise@techdistributors.lk', 
-      category: 'Enterprise Hardware & Servers', 
-      address: 'Level 14, World Trade Center, Colombo 01', 
-      status: 'Active',
-      isVatRegistered: true,
-      vatNumber: 'VAT-401928374-7000',
-      vatRate: 18
-    },
-    { 
-      id: 'msup-2', 
-      name: 'Amazon Web Services / Cloud Partner SL', 
-      contactPerson: 'Suren Perera', 
-      phone: '0114567890', 
-      email: 'billing@cloudpartners.lk', 
-      category: 'Cloud Hosting & Infrastructure', 
-      address: 'No. 120, Dharmapala Mawatha, Colombo 07', 
-      status: 'Active',
-      isVatRegistered: true,
-      vatNumber: 'VAT-902817263-7000',
-      vatRate: 18
-    }
-  ];
-
-  const sampleMainPurchaseOrders = [
-    {
-      id: 'mpo-1',
-      poNumber: 'PO-2001',
-      supplierId: 'msup-1',
-      supplierName: 'Cisco & Dell Authorized Tech Distributor',
-      supplierPhone: '0112890123',
-      supplierEmail: 'enterprise@techdistributors.lk',
-      supplierAddress: 'Level 14, World Trade Center, Colombo 01',
-      date: new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0],
-      expectedDelivery: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-      status: 'Ordered',
-      subtotal: 290000,
-      applyVat: true,
-      vatRate: 18,
-      vatAmount: 52200,
-      totalAmount: 342200,
-      isVatRegistered: true,
-      supplierVatNumber: 'VAT-401928374-7000',
-      shareKey: 'po_share_2001',
-      items: [
-        { name: 'Commercial Network Security Gateway', quantity: 2, unitCost: 98000, totalCost: 196000 },
-        { name: 'Cloud Automated Backup Storage 1TB', quantity: 5, unitCost: 14000, totalCost: 70000 },
-        { name: 'Priority Replacement Hardware Module', quantity: 1, unitCost: 24000, totalCost: 24000 }
-      ]
-    }
-  ];
-
-  const sampleMainJournalEntries = [
-    { id: 'mje-1', date: '2026-01-01', reference: 'GEN-2001', description: 'Stated Capital Inflow - Seynex Enterprises', createdBy: 'Admin', timestamp: new Date('2026-01-01').toISOString() },
-    { id: 'mje-2', date: '2026-09-20', reference: 'GEN-2002', description: 'Apex Global Technologies INV-2001 Billed (Software & SLA)', createdBy: 'System', timestamp: new Date('2026-09-20').toISOString() },
-    { id: 'mje-3', date: '2026-09-28', reference: 'GEN-2003', description: 'Apex Global Technologies INV-2001 Full Settlement Received', createdBy: 'System', timestamp: new Date('2026-09-28').toISOString() },
-    { id: 'mje-4', date: '2026-10-01', reference: 'GEN-2004', description: 'AWS Cloud Infrastructure Monthly Hosting Expense', createdBy: 'System', timestamp: new Date('2026-10-01').toISOString() }
-  ];
-
-  const sampleMainJournalLines = [
-    { id: 'mjl-1', journalEntryId: 'mje-1', accountId: '1020', debit: 8000000, credit: 0 },
-    { id: 'mjl-2', journalEntryId: 'mje-1', accountId: '3010', debit: 0, credit: 8000000 },
-    { id: 'mjl-3', journalEntryId: 'mje-2', accountId: '1100', debit: 650000, credit: 0 },
-    { id: 'mjl-4', journalEntryId: 'mje-2', accountId: '4010', debit: 0, credit: 650000 },
-    { id: 'mjl-5', journalEntryId: 'mje-3', accountId: '1020', debit: 650000, credit: 0 },
-    { id: 'mjl-6', journalEntryId: 'mje-3', accountId: '1100', debit: 0, credit: 650000 },
-    { id: 'mjl-7', journalEntryId: 'mje-4', accountId: '5050', debit: 85000, credit: 0 },
-    { id: 'mjl-8', journalEntryId: 'mje-4', accountId: '1020', debit: 0, credit: 85000 }
-  ];
+  const sampleMainCustomers = [];
+  const sampleMainInventory = [];
+  const sampleMainLeads = [];
+  const sampleMainPayments = [];
+  const sampleMainExpenses = [];
+  const sampleMainFixedAssets = [];
+  const sampleMainSuppliers = [];
+  const sampleMainPurchaseOrders = [];
+  const sampleMainJournalEntries = [];
+  const sampleMainJournalLines = [];
 
   const DEFAULT_MAIN_SMS_CONFIG = {
     apiKey: '2179165276941c4e5eb994053957585',
@@ -558,7 +343,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return sampleMainCustomers;
+    return [];
   });
 
   const [inventory, setInventory] = useState(() => {
@@ -581,7 +366,7 @@ export default function StoreContextProvider({ children }) {
         }
       }
     } catch (e) {}
-    return sampleMainInventory;
+    return [];
   });
 
   const [invoices, setInvoices] = useState(() => {
@@ -747,233 +532,9 @@ export default function StoreContextProvider({ children }) {
   });
 
   // --- HR & PAYROLL ERP STATE ---
-  const sampleEmployees = [
-    {
-      id: 'emp-1',
-      employeeId: 'EMP-101',
-      name: 'Kasun Rajapaksha',
-      nic: '199214502819',
-      dob: '1992-05-14',
-      gender: 'Male',
-      bloodGroup: 'O+',
-      designation: 'Head Fitness Trainer',
-      department: 'Fitness & Training',
-      employmentType: 'Full-Time',
-      shift: 'Morning (06:00 - 15:00)',
-      phone: '0771234567',
-      email: 'kasun@gymsales.lk',
-      address: '45/2 Temple Road, Colombo 03',
-      emergencyContactName: 'Sunethra Rajapaksha',
-      emergencyContactPhone: '0778899001',
-      emergencyContactRelation: 'Spouse',
-      joinDate: '2023-01-15',
-      confirmationDate: '2023-07-15',
-      basicSalary: 85000,
-      allowance: 15000,
-      foodAllowance: 5000,
-      transportAllowance: 10000,
-      epfEligible: true,
-      bankName: 'Commercial Bank of Ceylon',
-      bankAccount: '8004920192',
-      bankBranch: 'Kollupitiya Branch',
-      bankDetails: 'Commercial Bank - 8004920192 (Kollupitiya)',
-      status: 'Active',
-      leaveBalances: { annual: 14, casual: 7, medical: 7 }
-    },
-    {
-      id: 'emp-2',
-      employeeId: 'EMP-102',
-      name: 'Dilani Samarasinghe',
-      nic: '198865403211',
-      dob: '1988-11-20',
-      gender: 'Female',
-      bloodGroup: 'A+',
-      designation: 'Operations Manager',
-      department: 'Management',
-      employmentType: 'Full-Time',
-      shift: 'General (08:30 - 17:00)',
-      phone: '0719876543',
-      email: 'dilani@gymsales.lk',
-      address: '12 Galle Road, Mount Lavinia',
-      emergencyContactName: 'Kamal Samarasinghe',
-      emergencyContactPhone: '0712233445',
-      emergencyContactRelation: 'Brother',
-      joinDate: '2022-06-01',
-      confirmationDate: '2022-12-01',
-      basicSalary: 120000,
-      allowance: 20000,
-      foodAllowance: 8000,
-      transportAllowance: 12000,
-      epfEligible: true,
-      bankName: 'Sampath Bank PLC',
-      bankAccount: '1009283940',
-      bankBranch: 'Dehiwala Branch',
-      bankDetails: 'Sampath Bank - 1009283940 (Dehiwala)',
-      status: 'Active',
-      leaveBalances: { annual: 14, casual: 7, medical: 7 }
-    },
-    {
-      id: 'emp-3',
-      employeeId: 'EMP-103',
-      name: 'Mahesh Kumara',
-      nic: '199532104928',
-      dob: '1995-09-08',
-      gender: 'Male',
-      bloodGroup: 'B+',
-      designation: 'Senior Gym Instructor',
-      department: 'Fitness & Training',
-      employmentType: 'Full-Time',
-      shift: 'Evening (13:00 - 22:00)',
-      phone: '0754443322',
-      email: 'mahesh@gymsales.lk',
-      address: '88 Kandy Road, Kelaniya',
-      emergencyContactName: 'Ranjith Kumara',
-      emergencyContactPhone: '0751122334',
-      emergencyContactRelation: 'Father',
-      joinDate: '2023-08-10',
-      confirmationDate: '2024-02-10',
-      basicSalary: 65000,
-      allowance: 10000,
-      foodAllowance: 4000,
-      transportAllowance: 6000,
-      epfEligible: true,
-      bankName: 'Hatton National Bank',
-      bankAccount: '0029384756',
-      bankBranch: 'Kelaniya Branch',
-      bankDetails: 'HNB Bank - 0029384756 (Kelaniya)',
-      status: 'Active',
-      leaveBalances: { annual: 14, casual: 7, medical: 7 }
-    },
-    {
-      id: 'emp-4',
-      employeeId: 'EMP-104',
-      name: 'Anoma Perera',
-      nic: '199854302910',
-      dob: '1998-03-24',
-      gender: 'Female',
-      bloodGroup: 'AB+',
-      designation: 'Front Desk Receptionist',
-      department: 'Operations & Front Desk',
-      employmentType: 'Full-Time',
-      shift: 'Morning (06:00 - 15:00)',
-      phone: '0703344556',
-      email: 'anoma@gymsales.lk',
-      address: '14/B Lake Road, Rajagiriya',
-      emergencyContactName: 'Swarna Perera',
-      emergencyContactPhone: '0708877665',
-      emergencyContactRelation: 'Mother',
-      joinDate: '2024-01-05',
-      confirmationDate: '2024-07-05',
-      basicSalary: 55000,
-      allowance: 8000,
-      foodAllowance: 3000,
-      transportAllowance: 5000,
-      epfEligible: true,
-      bankName: 'Bank of Ceylon',
-      bankAccount: '772819034',
-      bankBranch: 'Rajagiriya Branch',
-      bankDetails: 'Bank of Ceylon - 772819034 (Rajagiriya)',
-      status: 'Active',
-      leaveBalances: { annual: 14, casual: 7, medical: 7 }
-    },
-    {
-      id: 'emp-5',
-      employeeId: 'EMP-105',
-      name: 'Nuwan Bandara (Tech Specialist)',
-      nic: '199045102938',
-      dob: '1990-07-18',
-      gender: 'Male',
-      bloodGroup: 'B+',
-      designation: 'Senior Infrastructure Field Engineer',
-      department: 'IT Infrastructure & Support',
-      employmentType: 'Full-Time',
-      compensationType: 'salary',
-      basicSalary: 85000,
-      allowance: 15000,
-      foodAllowance: 5000,
-      transportAllowance: 10000,
-      shift: 'General (08:30 - 17:00)',
-      phone: '0714455667',
-      email: 'nuwan.tech@gymsales.lk',
-      address: '22 Tech Zone, Homagama',
-      emergencyContactName: 'Kusum Bandara',
-      emergencyContactPhone: '0719988776',
-      emergencyContactRelation: 'Spouse',
-      joinDate: '2023-05-10',
-      confirmationDate: '2023-11-10',
-      epfEligible: true,
-      bankName: 'Sampath Bank PLC',
-      bankAccount: '1100293847',
-      bankBranch: 'Homagama Branch',
-      bankDetails: 'Sampath Bank - 1100293847 (Homagama)',
-      status: 'Active',
-      leaveBalances: { annual: 14, casual: 7, medical: 7 }
-    },
-    {
-      id: 'emp-6',
-      employeeId: 'EMP-106',
-      name: 'Chathura Senanayake (Freelance)',
-      nic: '198734109283',
-      dob: '1987-12-04',
-      gender: 'Male',
-      bloodGroup: 'A+',
-      designation: 'Freelance Fitness Workshop Coach',
-      department: 'Fitness & Training',
-      employmentType: 'Outsourced',
-      compensationType: 'piece_rate',
-      pieceRate: 2500,
-      pieceDescription: 'Per Client Workshop / Training Session',
-      defaultUnits: 28,
-      unitsCompleted: 28,
-      shift: 'Morning (06:00 - 15:00)',
-      phone: '0776655443',
-      email: 'chathura.coach@gymsales.lk',
-      address: '55 Kotte Road, Nugegoda',
-      emergencyContactName: 'Nirosha Senanayake',
-      emergencyContactPhone: '0773322110',
-      emergencyContactRelation: 'Spouse',
-      joinDate: '2023-09-01',
-      confirmationDate: '2024-03-01',
-      basicSalary: 70000,
-      allowance: 0,
-      foodAllowance: 0,
-      transportAllowance: 8000,
-      epfEligible: false,
-      bankName: 'Commercial Bank of Ceylon',
-      bankAccount: '8005521940',
-      bankBranch: 'Nugegoda Branch',
-      bankDetails: 'Commercial Bank - 8005521940 (Nugegoda)',
-      status: 'Active',
-      leaveBalances: { annual: 5, casual: 2, medical: 3 }
-    }
-  ];
-
-  const sampleHrLetters = [
-    {
-      id: 'let-1',
-      employeeId: 'emp-1',
-      employeeName: 'Kasun Rajapaksha',
-      type: 'Salary Certificate',
-      title: 'Salary Confirmation & Employment Certificate',
-      date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
-      recipient: 'The Manager, Commercial Bank of Ceylon PLC',
-      content: 'This is to certify that Mr. Kasun Rajapaksha is an active full-time employee holding the designation of Head Fitness Trainer with a current gross monthly remuneration of LKR 100,000.00.'
-    }
-  ];
-
-  const samplePayruns = [
-    {
-      id: 'pr-1',
-      month: '2026-07',
-      payrunDate: '2026-07-31',
-      totalGross: 315000,
-      totalNet: 289800,
-      totalEpfEmployer: 32400,
-      totalEtfEmployer: 8100,
-      status: 'Processed',
-      slipsCount: 3
-    }
-  ];
+  const sampleEmployees = [];
+  const sampleHrLetters = [];
+  const samplePayruns = [];
 
   const defaultFeatureToggles = {
     procurement: true,
@@ -989,38 +550,9 @@ export default function StoreContextProvider({ children }) {
     ledger: true
   };
 
-  const sampleAttendanceLogs = [
-    { id: 'att-1', employeeId: 'emp-1', date: new Date().toISOString().split('T')[0], status: 'Present', checkIn: '08:30', checkOut: '17:30', otHours: 1 },
-    { id: 'att-2', employeeId: 'emp-2', date: new Date().toISOString().split('T')[0], status: 'Present', checkIn: '08:50', checkOut: '17:00', otHours: 0 },
-    { id: 'att-3', employeeId: 'emp-3', date: new Date().toISOString().split('T')[0], status: 'On Leave', checkIn: '', checkOut: '', otHours: 0 }
-  ];
-
-  const sampleLeaveRequests = [
-    {
-      id: 'leave-1',
-      employeeId: 'emp-3',
-      employeeName: 'Mahesh Kumara',
-      leaveType: 'Annual Leave',
-      startDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      endDate: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
-      days: 2,
-      reason: 'Personal family event',
-      status: 'Approved'
-    }
-  ];
-
-  const sampleSalaryAdvances = [
-    {
-      id: 'adv-1',
-      employeeId: 'emp-1',
-      employeeName: 'Kasun Rajapaksha',
-      amount: 15000,
-      requestDate: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0],
-      reason: 'Emergency home repair',
-      status: 'Issued',
-      deductedInMonth: ''
-    }
-  ];
+  const sampleAttendanceLogs = [];
+  const sampleLeaveRequests = [];
+  const sampleSalaryAdvances = [];
 
   const [employees, setEmployees] = useState(() => {
     try {
@@ -1054,51 +586,9 @@ export default function StoreContextProvider({ children }) {
     return [];
   });
 
-  const sampleStockTransfers = [
-    {
-      id: 'st-1',
-      transferNumber: 'STO-1001',
-      sourceLocation: 'Main Central Warehouse',
-      destinationLocation: 'Colombo 03 Gym Branch',
-      requestDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-      status: 'In Transit',
-      items: [
-        { itemName: 'Rubber Bumper Plates 20kg', quantity: 10 },
-        { itemName: 'Commercial Dumbbell Set 2.5-25kg', quantity: 2 }
-      ],
-      notes: 'Branch replenishment for new fitness studio area'
-    }
-  ];
-
-  const samplePerformanceReviews = [
-    {
-      id: 'rev-1',
-      employeeId: 'emp-1',
-      employeeName: 'Kasun Rajapaksha',
-      reviewDate: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0],
-      reviewer: 'Manager',
-      punctualityRating: 5,
-      trainingQualityRating: 4,
-      clientEngagementRating: 5,
-      teamworkRating: 4,
-      overallScore: 4.5,
-      comments: 'Exceptional client retention rate and gym floor discipline.'
-    }
-  ];
-
-  const sampleExpenseClaims = [
-    {
-      id: 'claim-1',
-      employeeId: 'emp-2',
-      employeeName: 'Nimali Perera',
-      claimDate: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
-      category: 'Gym Equipment Supplies',
-      description: 'Emergency cable replacement parts purchased locally',
-      amount: 4500,
-      status: 'Approved',
-      disbursedDate: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0]
-    }
-  ];
+  const sampleStockTransfers = [];
+  const samplePerformanceReviews = [];
+  const sampleExpenseClaims = [];
 
   const [salaryAdvances, setSalaryAdvances] = useState(() => {
     try {
@@ -1575,7 +1065,7 @@ export default function StoreContextProvider({ children }) {
     const savedConfig = localStorage.getItem('biz_data_biz_main_smsConfig') || localStorage.getItem('gym_sms_config');
 
     return {
-      customers: savedCust ? JSON.parse(savedCust) : sampleMainCustomers,
+      customers: savedCust ? JSON.parse(savedCust) : [],
       inventory: savedInv ? JSON.parse(savedInv) : [],
       leads: savedLeads ? JSON.parse(savedLeads) : [],
       quotes: savedQuotes ? JSON.parse(savedQuotes) : [],
@@ -2084,42 +1574,7 @@ export default function StoreContextProvider({ children }) {
   }, [theme]);
 
   const seedDummyData = () => {
-    try {
-      localStorage.removeItem('biz_data_biz_main_erased');
-      localStorage.removeItem(`biz_data_${activeBusinessId}_erased`);
-    } catch (e) {}
-
-    setCustomers(sampleMainCustomers);
-    setInventory(sampleMainInventory);
-    setLeads(sampleMainLeads);
-    setQuotes(sampleMainQuotes);
-    setInvoices(sampleMainInvoices);
-    setExpenses(sampleMainExpenses);
-    setPayments(sampleMainPayments);
-    setFixedAssets(sampleMainFixedAssets);
-    setJournalEntries(sampleMainJournalEntries);
-    setJournalLines(sampleMainJournalLines);
-    setSuppliers(sampleMainSuppliers);
-    setPurchaseOrders(sampleMainPurchaseOrders);
-    setSmsConfig(DEFAULT_MAIN_SMS_CONFIG);
-
-    try {
-      localStorage.setItem('biz_data_biz_main_customers', JSON.stringify(sampleMainCustomers));
-      localStorage.setItem('biz_data_biz_main_inventory', JSON.stringify(sampleMainInventory));
-      localStorage.setItem('biz_data_biz_main_leads', JSON.stringify(sampleMainLeads));
-      localStorage.setItem('biz_data_biz_main_quotes', JSON.stringify(sampleMainQuotes));
-      localStorage.setItem('biz_data_biz_main_invoices', JSON.stringify(sampleMainInvoices));
-      localStorage.setItem('biz_data_biz_main_expenses', JSON.stringify(sampleMainExpenses));
-      localStorage.setItem('biz_data_biz_main_payments', JSON.stringify(sampleMainPayments));
-      localStorage.setItem('biz_data_biz_main_fixedAssets', JSON.stringify(sampleMainFixedAssets));
-      localStorage.setItem('biz_data_biz_main_journalEntries', JSON.stringify(sampleMainJournalEntries));
-      localStorage.setItem('biz_data_biz_main_journalLines', JSON.stringify(sampleMainJournalLines));
-      localStorage.setItem('biz_data_biz_main_suppliers', JSON.stringify(sampleMainSuppliers));
-      localStorage.setItem('biz_data_biz_main_purchaseOrders', JSON.stringify(sampleMainPurchaseOrders));
-      localStorage.setItem('biz_data_biz_main_smsConfig', JSON.stringify(DEFAULT_MAIN_SMS_CONFIG));
-    } catch (e) {}
-
-    showNotification('Loaded Seynex Enterprises demo dataset successfully!', 'success');
+    showNotification('Sample demo datasets have been removed. System runs cleanly on your live records.', 'info');
   };
 
   const resetToSeynexDefaults = async () => {
@@ -3085,41 +2540,49 @@ export default function StoreContextProvider({ children }) {
           return true;
         });
 
-        if (filteredCData.length > 0) {
-          const usedCodes = new Set();
-          const loadedCustomers = filteredCData.map((c, idx) => {
-            let code = c.code;
-            const validPattern = code ? code.match(/^CUST-(\d+)[A-Z]?$/i) : null;
-            if (!code || !validPattern || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined') || usedCodes.has(code.toUpperCase())) {
-              code = `CUST-${String(idx + 1).padStart(3, '0')}`;
-            }
-            usedCodes.add(code.toUpperCase());
-            return {
-              id: c.id,
-              code,
-              businessId: c.business_id || activeBusinessId,
-              gymName: c.gym_name || c.gymName,
-              name: c.name,
-              email: c.email,
-              phone: c.phone,
-              address: c.address || c.street_address || '',
-              taxNumber: c.tax_number || c.taxNumber || '',
-              tags: Array.isArray(c.tags) ? c.tags : (c.tag ? [c.tag] : []),
-              leadSource: c.lead_source || c.leadSource || 'Walk-in',
-              dob: c.dob,
-              purchaseDate: c.purchase_date || c.purchaseDate,
-              renewalDate: c.renewal_date || c.renewalDate, 
-              annualFee: Number(c.annual_fee || c.annualFee) || 0,
-              status: c.status,
-              notes: c.notes || []
-            };
-          });
-          setCustomers(loadedCustomers);
-          try {
-            localStorage.setItem('gym_customers', JSON.stringify(loadedCustomers));
-            localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(loadedCustomers));
-          } catch(e) {}
-        }
+        const usedCodes = new Set();
+        const loadedCustomers = filteredCData.map((c, idx) => {
+          let code = c.code;
+          const validPattern = code ? code.match(/^CUST-(\d+)[A-Z]?$/i) : null;
+          if (!code || !validPattern || code.startsWith('SNX-') || code.startsWith('HP-') || code.includes('undefined') || usedCodes.has(code.toUpperCase())) {
+            code = `CUST-${String(idx + 1).padStart(3, '0')}`;
+          }
+          usedCodes.add(code.toUpperCase());
+          return {
+            id: c.id,
+            code,
+            businessId: c.business_id || activeBusinessId,
+            gymName: c.gym_name || c.gymName,
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            address: c.address || c.street_address || '',
+            taxNumber: c.tax_number || c.taxNumber || '',
+            tags: Array.isArray(c.tags) ? c.tags : (c.tag ? [c.tag] : []),
+            leadSource: c.lead_source || c.leadSource || 'Walk-in',
+            dob: c.dob,
+            purchaseDate: c.purchase_date || c.purchaseDate,
+            renewalDate: c.renewal_date || c.renewalDate, 
+            annualFee: Number(c.annual_fee || c.annualFee) || 0,
+            status: c.status,
+            notes: c.notes || []
+          };
+        });
+
+        // Merge any local offline customers that haven't synced yet
+        let localCustomers = [];
+        try {
+          localCustomers = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_customers`) || localStorage.getItem('gym_customers') || '[]');
+        } catch (e) {}
+        const remoteCustIds = new Set(loadedCustomers.map(c => c.id));
+        const unSyncedLocalCust = (Array.isArray(localCustomers) ? localCustomers : []).filter(lc => lc && lc.id && !remoteCustIds.has(lc.id));
+        const finalCustomers = [...loadedCustomers, ...unSyncedLocalCust];
+
+        setCustomers(finalCustomers);
+        try {
+          localStorage.setItem('gym_customers', JSON.stringify(finalCustomers));
+          localStorage.setItem(`biz_data_${activeBusinessId}_customers`, JSON.stringify(finalCustomers));
+        } catch(e) {}
       }
 
       // 4. Inventory
@@ -3133,24 +2596,31 @@ export default function StoreContextProvider({ children }) {
           return true;
         });
 
-        if (filteredInvData.length > 0) {
-          const loadedInventory = filteredInvData.map(i => ({
-            id: i.id,
-            businessId: i.business_id || activeBusinessId,
-            name: i.name,
-            type: i.item_type || i.type, 
-            price: Number(i.price) || 0, 
-            costPrice: Number(i.cost_price ?? i.costPrice ?? Math.round((Number(i.price) || 0) * 0.7)),
-            reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 5),
-            stock: Number(i.stock) || 0, 
-            desc: i.description || i.desc
-          }));
-          setInventory(loadedInventory);
-          try {
-            localStorage.setItem('gym_inventory', JSON.stringify(loadedInventory));
-            localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(loadedInventory));
-          } catch(e) {}
-        }
+        const loadedInventory = filteredInvData.map(i => ({
+          id: i.id,
+          businessId: i.business_id || activeBusinessId,
+          name: i.name,
+          type: i.item_type || i.type, 
+          price: Number(i.price) || 0, 
+          costPrice: Number(i.cost_price ?? i.costPrice ?? Math.round((Number(i.price) || 0) * 0.7)),
+          reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 5),
+          stock: Number(i.stock) || 0, 
+          desc: i.description || i.desc
+        }));
+
+        let localInventory = [];
+        try {
+          localInventory = JSON.parse(localStorage.getItem(`biz_data_${activeBusinessId}_inventory`) || localStorage.getItem('gym_inventory') || '[]');
+        } catch (e) {}
+        const remoteInvIds = new Set(loadedInventory.map(i => i.id));
+        const unSyncedLocalInv = (Array.isArray(localInventory) ? localInventory : []).filter(li => li && li.id && !remoteInvIds.has(li.id));
+        const finalInventory = [...loadedInventory, ...unSyncedLocalInv];
+
+        setInventory(finalInventory);
+        try {
+          localStorage.setItem('gym_inventory', JSON.stringify(finalInventory));
+          localStorage.setItem(`biz_data_${activeBusinessId}_inventory`, JSON.stringify(finalInventory));
+        } catch(e) {}
       }
 
       // 5. Quotations

@@ -2381,7 +2381,7 @@ const LeadModal = ({ initialData, onClose, onSave, statuses, markedActionDates =
                 required 
                 type="text" 
                 className="form-input" 
-                placeholder="e.g. Lanka Fancy Pettah / PowerZone Gym"
+                placeholder="e.g. Acme Corporation / Metropolitan Hub"
                 style={{ height: '42px' }} 
                 value={formData.gymName || ''} 
                 onChange={e => setFormData({...formData, gymName: e.target.value})} 

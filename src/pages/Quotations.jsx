@@ -1259,7 +1259,7 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                       }}
                       placeholder="+ Search & select inventory item to add..."
                       options={[
-                        { value: '', label: '+ Browse & add item from catalog...' },
+                        { value: '', label: inventory.length === 0 ? '+ Catalog empty (add Custom Item)' : '+ Browse & add item from catalog...' },
                         ...inventory.map(inv => ({
                           value: inv.id,
                           label: `${inv.name} • LKR ${(inv.price || 0).toLocaleString()} ${inv.type === 'Hardware' ? `(Stock: ${inv.stock || 0})` : `(${inv.type || 'Service'})`}`

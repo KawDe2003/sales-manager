@@ -1613,34 +1613,26 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
             </div>
           </div>
 
-          {/* Demo Data & System Utilities */}
+          {/* System Data Cleanup & Cache Management */}
           <div className="glass-panel">
             <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
-              <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px' }}>
-                <Zap size={22} color="var(--success)" />
+              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.12)', borderRadius: '12px' }}>
+                <Trash2 size={22} color="var(--danger)" />
               </div>
               <div>
-                <h2 className="h2" style={{ margin: 0 }}>Demo Data & Sample Records</h2>
-                <p className="text-secondary" style={{ fontSize: '0.82rem', margin: 0 }}>Populate full sample enterprise records across clients, invoices, inventory, and general ledger journal lines.</p>
+                <h2 className="h2" style={{ margin: 0 }}>System Data & Cache Cleanup</h2>
+                <p className="text-secondary" style={{ fontSize: '0.82rem', margin: 0 }}>Permanently erase all local cached records, offline data, and start completely clean.</p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
               <button 
                 type="button" 
-                className="btn btn-primary" 
-                onClick={seedDummyData}
-                style={{ padding: '10px 20px', fontSize: '0.88rem', gap: '8px' }}
-              >
-                <Zap size={16} /> Seed Sample Enterprise Dataset
-              </button>
-              <button 
-                type="button" 
                 className="btn btn-secondary" 
                 onClick={resetEverythingWithConfirmation}
-                style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)' }}
+                style={{ padding: '10px 18px', fontSize: '0.88rem', gap: '6px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
-                <Trash2 size={16} /> Erase All Data
+                <Trash2 size={16} /> Erase All Local Data & Caches
               </button>
             </div>
           </div>

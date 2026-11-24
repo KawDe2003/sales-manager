@@ -884,7 +884,7 @@ const InventoryModal = ({ onClose, onSave, initialData }) => {
         }} className="modal-body">
           <div className="form-group mb-4">
             <label className="form-label">Product Commercial Name</label>
-            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Enterprise Cloud ERP License / Gym POS Software" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <input required type="text" className="form-input" style={{ height: '42px' }} placeholder="e.g. Enterprise Cloud ERP License / Hardware Gateway" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
 
           <div className="form-group mb-4">

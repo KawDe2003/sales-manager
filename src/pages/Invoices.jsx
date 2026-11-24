@@ -1205,7 +1205,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                 onChange={val => setSelectedInventoryId(val)}
                 placeholder="+ Browse inventory or software subscription..."
                 options={[
-                  { value: '', label: '+ Browse inventory or software subscription...' },
+                  { value: '', label: inventory.length === 0 ? '+ Catalog empty (add custom line below)' : '+ Browse inventory or software subscription...' },
                   ...inventory.map(inv => ({
                     value: inv.id,
                     label: `${inv.name} • LKR ${(inv.price || 0).toLocaleString()} ${inv.type === 'Hardware' ? `(In Stock: ${inv.stock || 0} units)` : '(Service/Software)'}`

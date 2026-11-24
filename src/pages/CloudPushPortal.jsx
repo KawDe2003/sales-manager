@@ -2955,7 +2955,7 @@ export default function CloudPushPortal() {
                   Real-Time Biometric Punch Stream
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Streaming live attendance punches recorded at Account <strong>#{accNo}</strong> ({selectedCustomer?.gymName || selectedCustomer?.name || 'Fit Focus Gym'})
+                  Streaming live attendance punches recorded at Account <strong>#{accNo}</strong> ({selectedCustomer?.gymName || selectedCustomer?.name || 'Client Site'})
                 </p>
               </div>
 
