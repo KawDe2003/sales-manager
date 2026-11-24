@@ -9,7 +9,7 @@ import {
   Radio, Power, RotateCcw, Trash2, DownloadCloud, UploadCloud,
   HardDrive, Terminal, Plus, Play, Pause, AlertTriangle, Check,
   LogIn, LogOut, ArrowUpDown, X, Building2, Edit3, SlidersHorizontal, ChevronRight,
-  Shield, CheckCircle, Sliders, ChevronDown, ChevronUp
+  Shield, CheckCircle, Sliders, ChevronDown, ChevronUp, Lock, Edit2
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
@@ -3548,9 +3548,21 @@ export default function CloudPushPortal() {
               
               {/* Client / Facility Information */}
               <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Building2 size={13} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Client Facility Details</span>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Building2 size={13} style={{ color: 'var(--accent-primary)' }} />
+                    <span>Client Facility Details</span>
+                  </div>
+                  {editingProfileId && (
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px',
+                      background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)',
+                      border: '1px solid var(--panel-border)', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      textTransform: 'none'
+                    }}>
+                      <Lock size={11} /> Read-Only (Managed in Customers)
+                    </span>
+                  )}
                 </div>
                 <div className="cloud-modal-grid">
                   <div>
@@ -3560,9 +3572,18 @@ export default function CloudPushPortal() {
                       className="form-control"
                       placeholder="e.g. Seynex Enterprise Client"
                       value={modalGymName}
-                      onChange={e => setModalGymName(e.target.value)}
+                      onChange={e => !editingProfileId && setModalGymName(e.target.value)}
+                      readOnly={Boolean(editingProfileId)}
                       required
-                      style={{ height: '36px', fontSize: '0.85rem', fontWeight: 600 }}
+                      style={{
+                        height: '36px', fontSize: '0.85rem', fontWeight: 600,
+                        ...(editingProfileId ? {
+                          background: 'var(--subtle-bg, rgba(255, 255, 255, 0.03))',
+                          cursor: 'not-allowed',
+                          opacity: 0.85,
+                          border: '1px dashed var(--panel-border)'
+                        } : {})
+                      }}
                     />
                   </div>
                   <div>
@@ -3572,8 +3593,17 @@ export default function CloudPushPortal() {
                       className="form-control"
                       placeholder="e.g. CUST-004"
                       value={modalClientCode}
-                      onChange={e => setModalClientCode(e.target.value)}
-                      style={{ height: '36px', fontSize: '0.85rem' }}
+                      onChange={e => !editingProfileId && setModalClientCode(e.target.value)}
+                      readOnly={Boolean(editingProfileId)}
+                      style={{
+                        height: '36px', fontSize: '0.85rem',
+                        ...(editingProfileId ? {
+                          background: 'var(--subtle-bg, rgba(255, 255, 255, 0.03))',
+                          cursor: 'not-allowed',
+                          opacity: 0.85,
+                          border: '1px dashed var(--panel-border)'
+                        } : {})
+                      }}
                     />
                   </div>
                   <div>
@@ -3583,8 +3613,17 @@ export default function CloudPushPortal() {
                       className="form-control"
                       placeholder="e.g. Gym Manager"
                       value={modalContactName}
-                      onChange={e => setModalContactName(e.target.value)}
-                      style={{ height: '36px', fontSize: '0.85rem' }}
+                      onChange={e => !editingProfileId && setModalContactName(e.target.value)}
+                      readOnly={Boolean(editingProfileId)}
+                      style={{
+                        height: '36px', fontSize: '0.85rem',
+                        ...(editingProfileId ? {
+                          background: 'var(--subtle-bg, rgba(255, 255, 255, 0.03))',
+                          cursor: 'not-allowed',
+                          opacity: 0.85,
+                          border: '1px dashed var(--panel-border)'
+                        } : {})
+                      }}
                     />
                   </div>
                   <div>
@@ -3594,8 +3633,17 @@ export default function CloudPushPortal() {
                       className="form-control"
                       placeholder="e.g. 0771234567"
                       value={modalPhone}
-                      onChange={e => setModalPhone(e.target.value)}
-                      style={{ height: '36px', fontSize: '0.85rem' }}
+                      onChange={e => !editingProfileId && setModalPhone(e.target.value)}
+                      readOnly={Boolean(editingProfileId)}
+                      style={{
+                        height: '36px', fontSize: '0.85rem',
+                        ...(editingProfileId ? {
+                          background: 'var(--subtle-bg, rgba(255, 255, 255, 0.03))',
+                          cursor: 'not-allowed',
+                          opacity: 0.85,
+                          border: '1px dashed var(--panel-border)'
+                        } : {})
+                      }}
                     />
                   </div>
                 </div>
@@ -3603,9 +3651,19 @@ export default function CloudPushPortal() {
 
               {/* Cloud Push Gateway & Auth */}
               <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Server size={13} style={{ color: 'var(--accent-primary)' }} />
-                  <span>eTechno Push Gateway Authentication</span>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Server size={13} style={{ color: 'var(--accent-primary)' }} />
+                    <span>eTechno Push Gateway Authentication</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px',
+                    background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)',
+                    border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    textTransform: 'none'
+                  }}>
+                    <Edit2 size={11} /> Editable Configuration
+                  </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                   <div>
