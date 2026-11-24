@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
 
 const Procurement = () => {
@@ -928,11 +929,11 @@ Please confirm receipt of this order and acknowledge your dispatch schedule. Tha
                 </div>
                 <div>
                   <label className="form-label">EXPECTED DELIVERY DATE</label>
-                  <input 
-                    type="date"
-                    className="form-input"
+                  <DatePicker
                     value={poForm.expectedDelivery}
-                    onChange={(e) => setPoForm({ ...poForm, expectedDelivery: e.target.value })}
+                    onChange={(val) => setPoForm({ ...poForm, expectedDelivery: val })}
+                    placeholder="Select delivery date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
               </div>

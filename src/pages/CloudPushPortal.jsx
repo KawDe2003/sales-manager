@@ -1582,21 +1582,6 @@ export default function CloudPushPortal() {
                 style={{ flex: 1, minWidth: '220px' }}
                 triggerStyle={{ height: '38px', fontSize: '0.84rem', fontWeight: 700 }}
               />
-
-              {selectedCustomerId && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => {
-                    const cust = customers.find(c => c.id === selectedCustomerId);
-                    if (cust) openEditProfileModal(cust);
-                  }}
-                  title="Edit client profile details in modal"
-                  style={{ height: '38px', padding: '0 8px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
-                >
-                  <Edit3 size={13} />
-                </button>
-              )}
             </div>
 
             {/* Live Service Status Badge */}
@@ -1665,7 +1650,7 @@ export default function CloudPushPortal() {
                 border: '1px solid rgba(99, 102, 241, 0.35)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700
               }}
             >
-              <Plus size={12} /> + New Client Profile
+              <Plus size={13} /> New Client Profile
             </button>
           </div>
         </div>
@@ -1727,17 +1712,6 @@ export default function CloudPushPortal() {
 
               {/* Execution Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {isHardwareDirty && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={handleSaveConfig}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px', animation: 'pulse 2s infinite' }}
-                  >
-                    <Save size={13} /> Save Profile
-                  </button>
-                )}
-
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -1783,17 +1757,6 @@ export default function CloudPushPortal() {
                   <span>Scope: <strong>{serialFilter === 'ALL' ? 'Combined Site Total' : `Filtered: ${serialFilter}`}</strong></span>
                 </span>
               </div>
-
-              {isHardwareDirty && (
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSaveConfig}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px' }}
-                >
-                  <Save size={13} /> Save Profile
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -3835,7 +3798,7 @@ export default function CloudPushPortal() {
                         {dev.role}
                       </span>
 
-                      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.5fr', gap: '8px' }}>
+                      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
                         <input
                           type="text"
                           className="form-control"
@@ -3848,25 +3811,25 @@ export default function CloudPushPortal() {
                           style={{ height: '32px', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 700 }}
                         />
 
-                        <select
-                          className="form-control"
+                        <CustomSelect
                           value={dev.role}
-                          onChange={(e) => {
-                            const r = e.target.value;
+                          onChange={(r) => {
                             setModalDevices(prev => prev.map((d, i) => i === idx ? {
                               ...d,
                               role: r,
                               label: d.label || (r === 'IN' ? 'Entrance Biometric Device (IN)' : r === 'OUT' ? 'Exit Biometric Device (OUT)' : 'Biometric Device')
                             } : d));
                           }}
-                          style={{ height: '32px', fontSize: '0.8rem' }}
-                        >
-                          <option value="IN">Entrance (IN)</option>
-                          <option value="OUT">Exit (OUT)</option>
-                          <option value="IN/OUT">Two-Way (IN/OUT)</option>
-                          <option value="RECEPTION">Reception Desk</option>
-                          <option value="DOOR">Access Door</option>
-                        </select>
+                          options={[
+                            { value: 'IN', label: 'Entrance (IN)' },
+                            { value: 'OUT', label: 'Exit (OUT)' },
+                            { value: 'IN/OUT', label: 'Two-Way (IN/OUT)' },
+                            { value: 'RECEPTION', label: 'Reception Desk' },
+                            { value: 'DOOR', label: 'Access Door' }
+                          ]}
+                          size="sm"
+                          triggerStyle={{ height: '32px', fontSize: '0.8rem' }}
+                        />
 
                         <input
                           type="text"
@@ -3918,18 +3881,20 @@ export default function CloudPushPortal() {
                     onChange={e => setNewModalDevSn(e.target.value)}
                     style={{ height: '30px', fontSize: '0.8rem', width: '160px', fontFamily: 'monospace' }}
                   />
-                  <select
-                    className="form-control"
+                  <CustomSelect
                     value={newModalDevRole}
-                    onChange={e => setNewModalDevRole(e.target.value)}
-                    style={{ height: '30px', fontSize: '0.8rem', width: '140px' }}
-                  >
-                    <option value="IN">Entrance (IN)</option>
-                    <option value="OUT">Exit (OUT)</option>
-                    <option value="IN/OUT">Two-Way (IN/OUT)</option>
-                    <option value="RECEPTION">Reception Desk</option>
-                    <option value="DOOR">Access Door</option>
-                  </select>
+                    onChange={setNewModalDevRole}
+                    options={[
+                      { value: 'IN', label: 'Entrance (IN)' },
+                      { value: 'OUT', label: 'Exit (OUT)' },
+                      { value: 'IN/OUT', label: 'Two-Way (IN/OUT)' },
+                      { value: 'RECEPTION', label: 'Reception Desk' },
+                      { value: 'DOOR', label: 'Access Door' }
+                    ]}
+                    size="sm"
+                    style={{ width: '150px' }}
+                    triggerStyle={{ height: '30px', fontSize: '0.8rem' }}
+                  />
                   <input
                     type="text"
                     className="form-control"

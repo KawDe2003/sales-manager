@@ -2875,7 +2875,7 @@ body.sidebar-open-locked .app-sidebar {
 .header-nav-pill.active {
   background: var(--accent);
   color: var(--accent-fg);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* ===== THEME CUSTOMIZER DRAWER ===== */

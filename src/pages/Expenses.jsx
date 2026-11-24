@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { StoreContext } from '../context/StoreContext';
 import { Plus, Search, Trash2, Edit3, DollarSign, PieChart, Wallet, Building2 } from 'lucide-react';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const Expenses = () => {
   const { 
@@ -296,12 +297,11 @@ const Expenses = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={form.date} 
-                    onChange={e => setForm({...form, date: e.target.value})} 
+                  <DatePicker
+                    value={form.date}
+                    onChange={val => setForm({...form, date: val})}
+                    placeholder="Select date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
               </div>

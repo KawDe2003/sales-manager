@@ -10,6 +10,7 @@ import { StoreContext } from '../context/StoreContext';
 import { exportAccountLedgerPDF, exportJournalVoucherPDF, exportTrialBalancePDF } from '../utils/pdfGenerator';
 import { calculateTrialBalance } from '../utils/slfrsEngine';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const Ledger = () => {
   const { 
@@ -996,40 +997,26 @@ const Ledger = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' }}>
                   FROM DATE
                 </label>
-                <input 
-                  type="date" 
+                <DatePicker
                   value={statementStartDate}
-                  onChange={(e) => setStatementStartDate(e.target.value)}
-                  style={{ 
-                    padding: '10px 14px', 
-                    background: 'rgba(15, 23, 42, 0.85)', 
-                    border: '1px solid rgba(255, 255, 255, 0.14)', 
-                    borderRadius: '12px', 
-                    color: '#ffffff',
-                    fontSize: '0.85rem'
-                  }}
+                  onChange={(val) => setStatementStartDate(val)}
+                  placeholder="From date"
+                  style={{ width: '165px', height: '42px' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' }}>
                   TO DATE
                 </label>
-                <input 
-                  type="date" 
+                <DatePicker
                   value={statementEndDate}
-                  onChange={(e) => setStatementEndDate(e.target.value)}
-                  style={{ 
-                    padding: '10px 14px', 
-                    background: 'rgba(15, 23, 42, 0.85)', 
-                    border: '1px solid rgba(255, 255, 255, 0.14)', 
-                    borderRadius: '12px', 
-                    color: '#ffffff',
-                    fontSize: '0.85rem'
-                  }}
+                  onChange={(val) => setStatementEndDate(val)}
+                  placeholder="To date"
+                  style={{ width: '165px', height: '42px' }}
                 />
               </div>
 
@@ -1896,13 +1883,12 @@ const Ledger = () => {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>POSTING DATE *</label>
-                  <input 
-                    type="date" 
-                    required
+                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>POSTING DATE *</label>
+                  <DatePicker
                     value={voucherForm.date}
-                    onChange={(e) => setVoucherForm({ ...voucherForm, date: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(255, 255, 255, 0.14)', borderRadius: '12px', color: '#ffffff' }}
+                    onChange={(val) => setVoucherForm({ ...voucherForm, date: val })}
+                    placeholder="Select posting date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
 

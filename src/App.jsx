@@ -617,14 +617,6 @@ const AppContent = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Quick Actions */}
-          <Link to="/sms" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-primary)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-            <MessageSquare size={15} /> SMS Portal
-          </Link>
-          <Link to="/invoices" className="btn btn-secondary hidden-mobile" style={{ height: '36px', padding: '0 12px', fontSize: '0.8rem', color: 'var(--accent-emerald)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
-            <CreditCard size={15} /> Invoice
-          </Link>
-
           {/* Search */}
           <button
             type="button"
@@ -913,24 +905,10 @@ const AppContent = () => {
             className="btn btn-secondary hidden-mobile"
             style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={closeSidebar}
+            title="System Settings"
           >
             <SettingsIcon size={16} className="text-secondary" />
           </Link>
-
-          {/* Logout */}
-          {user && (
-            <button
-              className="btn btn-secondary hidden-mobile"
-              style={{ color: 'var(--danger)', height: '36px', padding: '0 12px', fontSize: '0.8rem' }}
-              onClick={() => {
-                signOut();
-                closeSidebar();
-              }}
-            >
-              <LogOut size={15} />
-              <span className="hidden-mobile">Logout</span>
-            </button>
-          )}
         </div>
       </header>
 
@@ -1057,30 +1035,6 @@ const AppContent = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Mobile Drawer Theme Toggle */}
-              <button
-                type="button"
-                id="mobile-drawer-theme-toggle-btn"
-                onClick={toggleTheme}
-                style={{
-                  background: 'var(--subtle-bg)',
-                  border: '1px solid var(--panel-border)',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  padding: '6px 10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700
-                }}
-                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              >
-                {theme === 'dark' ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#818cf8' }} />}
-                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-              </button>
-
               <button
                 onClick={closeSidebar}
                 style={{
@@ -1135,33 +1089,6 @@ const AppContent = () => {
                   </div>
                 )}
               </div>
-
-              {/* Quick Logout from User Badge (expanded) */}
-              {!isSidebarCollapsed && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    signOut();
-                    closeSidebar();
-                  }}
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderRadius: '8px',
-                    color: '#ef4444',
-                    padding: '6px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Log Out of Session"
-                >
-                  <LogOut size={14} />
-                </button>
-              )}
             </div>
           )}
 
@@ -1239,7 +1166,7 @@ const AppContent = () => {
             <NavItem to="/features" icon={<Sparkles size={18} />} label="Features Directory" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
           </nav>
 
-          {/* Sidebar Footer with Theme Switcher & Logout */}
+          {/* Sidebar Footer with Logout */}
           <div style={{
             marginTop: 'auto',
             padding: isSidebarCollapsed ? '16px 8px' : '16px 14px',
@@ -1248,47 +1175,6 @@ const AppContent = () => {
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {/* Theme Toggle Button in Sidebar */}
-            <button
-              type="button"
-              id="sidebar-theme-toggle-btn"
-              onClick={toggleTheme}
-              style={{
-                width: '100%',
-                height: '38px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-                padding: isSidebarCollapsed ? '0' : '0 12px',
-                borderRadius: '10px',
-                background: 'var(--subtle-bg)',
-                border: '1px solid var(--subtle-border)',
-                color: 'var(--text-primary)',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.18s ease'
-              }}
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {theme === 'dark' ? <Sun size={16} style={{ color: '#f59e0b' }} /> : <Moon size={16} style={{ color: '#818cf8' }} />}
-                {!isSidebarCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-muted)'
-                }}>
-                  {theme === 'dark' ? 'Dark' : 'Light'}
-                </span>
-              )}
-            </button>
-
             {/* Logout Button in Sidebar */}
             {user && (
               <button

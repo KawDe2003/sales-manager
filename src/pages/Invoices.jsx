@@ -6,6 +6,7 @@ import { Receipt, Plus, Download, Trash2, Smartphone, Edit2, X, PlusCircle, Shop
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const Invoices = () => {
   const { 
@@ -1174,11 +1175,11 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
             </div>
             <div className="form-group">
               <label className="form-label">Invoice Issue Date</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+              <DatePicker value={formData.date} onChange={val => setFormData({ ...formData, date: val })} placeholder="Select issue date" style={{ width: '100%', height: '44px' }} />
             </div>
             <div className="form-group">
               <label className="form-label">Payment Due Date</label>
-              <input required type="date" className="form-input" style={{ height: '44px' }} value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} />
+              <DatePicker value={formData.dueDate} onChange={val => setFormData({ ...formData, dueDate: val })} placeholder="Select due date" style={{ width: '100%', height: '44px' }} />
             </div>
           </div>
 

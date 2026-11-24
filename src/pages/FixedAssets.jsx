@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const FixedAssets = () => {
   const { 
@@ -600,12 +601,11 @@ const AssetModal = ({ initialData, onClose, onSave }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="form-group">
               <label className="form-label">Purchase Date</label>
-              <input 
-                required 
-                type="date" 
-                className="form-input" 
-                value={formData.purchaseDate} 
-                onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })} 
+              <DatePicker
+                value={formData.purchaseDate}
+                onChange={val => setFormData({ ...formData, purchaseDate: val })}
+                placeholder="Select purchase date"
+                style={{ width: '100%', height: '42px' }}
               />
             </div>
             <div className="form-group">

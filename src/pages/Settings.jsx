@@ -5,6 +5,7 @@ import { StoreContext } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import CustomSelect from '../components/CustomSelect';
 import CustomColorPicker from '../components/CustomColorPicker';
+import DatePicker from '../components/DatePicker';
 import { 
   Settings as SettingsIcon, CreditCard, MessageSquare, Save, RefreshCw, 
   Building2, Globe, ShieldCheck, Mail, Phone, MapPin, Zap, Cake, 
@@ -2808,14 +2809,14 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
                   </span>
                 )}
               </label>
-              <input
-                type="date"
-                className="form-input"
+              <DatePicker
                 value={closedBeforeDate || ''}
-                onChange={e => {
-                  if (setClosedBeforeDate) setClosedBeforeDate(e.target.value);
-                  if (showNotification) showNotification(e.target.value ? `Accounting period locked on or before ${e.target.value}` : 'Accounting period lock removed', 'info');
+                onChange={val => {
+                  if (setClosedBeforeDate) setClosedBeforeDate(val);
+                  if (showNotification) showNotification(val ? `Accounting period locked on or before ${val}` : 'Accounting period lock removed', 'info');
                 }}
+                placeholder="Select lock date"
+                style={{ width: '100%', height: '42px' }}
               />
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 }}>
                 Invoices, journal entries, and payments dated on or before this date cannot be modified or deleted. To adjust a closed period, issue a reversal voucher or credit note.

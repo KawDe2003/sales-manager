@@ -11,6 +11,7 @@ import { StoreContext, getNextSequentialCustomerCode } from '../context/StoreCon
 import { exportToCSV } from '../utils/export';
 import { generateCustomerStatementPDF } from '../utils/pdfGenerator';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const SEYNEX_CUSTOMER_TAGS = ['All', 'Enterprise Client', 'Corporate Client', 'Commercial Client', 'SME', 'Government / NGO'];
 const LEAD_SOURCES = ['Direct Visit', 'Referral', 'Website', 'Social Media', 'Inbound Inquiry', 'Partner Network', 'Phone Call', 'Walk-in'];
@@ -872,12 +873,11 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                       </div>
                       <div>
                         <label className="form-label" style={{ fontSize: '0.78rem' }}>Next Annual Renewal Date</label>
-                        <input 
-                          type="date" 
-                          className="form-input" 
-                          style={{ height: '40px', fontSize: '0.86rem' }}
-                          value={formData.renewalDate || ''} 
-                          onChange={e => setFormData({...formData, renewalDate: e.target.value})} 
+                        <DatePicker
+                          value={formData.renewalDate || ''}
+                          onChange={val => setFormData({...formData, renewalDate: val})}
+                          placeholder="Select renewal date"
+                          style={{ width: '100%', height: '40px' }}
                         />
                       </div>
                     </>

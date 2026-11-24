@@ -7,6 +7,7 @@ import { FileText, Plus, Minus, Download, Trash2, Smartphone, Edit2, X, PlusCirc
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 const Quotations = () => {
   const { quotes = [], addQuote, updateQuote, updateQuoteStatus, convertQuoteToInvoice, unlockQuote, voidQuote, deleteQuote, inventory = [], triggerSMS, smsConfig, customers = [], leads = [], showNotification } = useContext(StoreContext) || {};
@@ -1106,26 +1107,24 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
                   Offer Date
                 </label>
-                <input 
-                  required 
-                  type="date" 
-                  className="form-input" 
-                  style={{ height: '36px', fontSize: '0.82rem', padding: '4px 10px' }} 
-                  value={formData.date} 
-                  onChange={e => setFormData({...formData, date: e.target.value})} 
+                <DatePicker
+                  value={formData.date}
+                  onChange={val => setFormData({...formData, date: val})}
+                  placeholder="Select date"
+                  size="sm"
+                  style={{ width: '100%', height: '36px' }}
                 />
               </div>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>
                   Valid Until
                 </label>
-                <input 
-                  required 
-                  type="date" 
-                  className="form-input" 
-                  style={{ height: '36px', fontSize: '0.82rem', padding: '4px 10px' }} 
-                  value={formData.validUntil} 
-                  onChange={e => setFormData({...formData, validUntil: e.target.value})} 
+                <DatePicker
+                  value={formData.validUntil}
+                  onChange={val => setFormData({...formData, validUntil: val})}
+                  placeholder="Select date"
+                  size="sm"
+                  style={{ width: '100%', height: '36px' }}
                 />
               </div>
             </div>
