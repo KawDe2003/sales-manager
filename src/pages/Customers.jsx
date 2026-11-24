@@ -319,6 +319,19 @@ const Customers = () => {
                         );
                       })()}
                     </div>
+
+                    {/* Cloud Push Service Subscription Badge */}
+                    <div style={{ marginTop: '6px' }}>
+                      {customer.cloudPushEnabled !== false && (customer.cloudPushAcc || (customer.deviceSerials && customer.deviceSerials.length > 0)) ? (
+                        <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent, #6366f1)', border: '1px solid rgba(99, 102, 241, 0.25)', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', borderRadius: '6px' }}>
+                          <Cloud size={11} /> Cloud Push Active ({customer.deviceSerials?.length || (customer.deviceSerial ? 1 : 0)} Dev · Acc #{customer.cloudPushAcc || '—'})
+                        </span>
+                      ) : (
+                        <span className="badge badge-secondary" style={{ fontSize: '0.7rem', opacity: 0.65, display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '6px' }}>
+                          <Shield size={10} /> Standard Client (No Cloud Push)
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -480,6 +493,9 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
     renewalFrequency: initialData?.renewalFrequency || (initialBillingType === 'Annual' ? 'Annual' : (initialBillingType === 'Monthly' ? 'Monthly' : 'One Time')),
     annualFee: initialBillingType === 'One-Time' || initialBillingType === 'None' ? 0 : (initialData?.annualFee ?? 450000),
     renewalDate: initialBillingType === 'One-Time' || initialBillingType === 'None' ? '' : (initialData?.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]),
+    cloudPushEnabled: initialData 
+      ? (initialData.cloudPushEnabled !== undefined ? Boolean(initialData.cloudPushEnabled) : Boolean(initialData.cloudPushAcc || initialData.deviceSerial || (initialData.deviceSerials && initialData.deviceSerials.length > 0)))
+      : false,
     cloudPushAcc: initialData?.cloudPushAcc || '',
     deviceSerial: initialData?.deviceSerial || '',
     deviceSerials: Array.isArray(initialData?.deviceSerials) ? initialData.deviceSerials : (
@@ -582,9 +598,12 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
         renewalFrequency: isAnnual ? 'Annual' : (formData.billingType === 'Monthly' ? 'Monthly' : 'One Time'),
         annualFee: isOneTime ? 0 : (Number(formData.annualFee) || 0),
         renewalDate: isOneTime ? '' : (formData.renewalDate || ''),
-        cloudPushAcc: (formData.cloudPushAcc || '').trim(),
-        deviceSerial: (formData.deviceSerial || '').trim(),
-        cloudPushApiKey: (formData.cloudPushApiKey || '').trim()
+        cloudPushEnabled: Boolean(formData.cloudPushEnabled),
+        cloudPushAcc: formData.cloudPushEnabled ? (formData.cloudPushAcc || '').trim() : '',
+        deviceSerial: formData.cloudPushEnabled ? (formData.deviceSerial || '').trim() : '',
+        deviceSerials: formData.cloudPushEnabled ? (Array.isArray(formData.deviceSerials) ? formData.deviceSerials : []) : [],
+        cloudPushApiKey: formData.cloudPushEnabled ? (formData.cloudPushApiKey || '').trim() : '',
+        ratePerUserMonth: formData.cloudPushEnabled ? (Number(formData.ratePerUserMonth) || 100) : 100
       });
       onClose();
     } catch (err) {
@@ -902,21 +921,58 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                 marginTop: '10px',
                 padding: '16px',
                 borderRadius: '10px',
-                background: 'rgba(99, 102, 241, 0.06)',
-                border: '1px solid rgba(99, 102, 241, 0.2)'
+                background: formData.cloudPushEnabled ? 'rgba(99, 102, 241, 0.06)' : 'var(--subtle-bg)',
+                border: `1px solid ${formData.cloudPushEnabled ? 'rgba(99, 102, 241, 0.25)' : 'var(--subtle-border)'}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Cloud size={16} style={{ color: 'var(--accent-primary)' }} />
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                      eTechno Cloud Push & Hardware Turnstiles Config
-                    </span>
+                    <Cloud size={16} style={{ color: formData.cloudPushEnabled ? 'var(--accent-primary)' : 'var(--text-muted)' }} />
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                        eTechno Cloud Push & Biometric Fleet Config
+                      </span>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        Configure dedicated biometric hardware push credentials and active user billing rates.
+                      </div>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--accent-primary)', fontWeight: 700, background: 'rgba(99, 102, 241, 0.12)', padding: '2px 8px', borderRadius: '10px' }}>
-                    Multi-Device IN/OUT Support
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, cloudPushEnabled: !formData.cloudPushEnabled })}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: formData.cloudPushEnabled ? 'var(--accent-primary)' : 'var(--subtle-border)',
+                      color: formData.cloudPushEnabled ? '#ffffff' : 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: formData.cloudPushEnabled ? '#ffffff' : 'var(--text-muted)' }}></span>
+                    {formData.cloudPushEnabled ? 'Service Active' : 'Service Disabled'}
+                  </button>
                 </div>
 
+                {!formData.cloudPushEnabled ? (
+                  <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed var(--subtle-border)', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <span>This client does not use Cloud Push biometric services. Billing will exclude biometric fees.</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => setFormData({ ...formData, cloudPushEnabled: true })}
+                      style={{ fontSize: '0.74rem', padding: '3px 10px' }}
+                    >
+                      + Enable Cloud Push Service
+                    </button>
+                  </div>
+                ) : (
+                  <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '14px' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.78rem' }}>Push Account # (push_acc)</label>
@@ -1069,6 +1125,8 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                     </button>
                   </div>
                 </div>
+                </>
+                )}
               </div>
 
               {/* Tags Selection */}

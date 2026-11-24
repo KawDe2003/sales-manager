@@ -32,7 +32,7 @@ export default function CloudPushPortal() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, updateCustomer, addCustomer, deleteCustomer } = useContext(StoreContext) || {};
+  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, updateCustomer, addCustomer, deleteCustomer, syncAllToCloud } = useContext(StoreContext) || {};
 
   // Parse any passed state or URL query parameters (e.g. from invoice fee calculation button)
   const initialCustomerId = searchParams.get('customerId') || location.state?.customerId || '';
@@ -130,6 +130,7 @@ export default function CloudPushPortal() {
   // Gym Profile Management Modals & State
   const [showCreateProfileModal, setShowCreateProfileModal] = useState(false);
   const [showManageProfilesModal, setShowManageProfilesModal] = useState(false);
+  const [manageProfilesFilter, setManageProfilesFilter] = useState('all'); // 'all' | 'subscribed' | 'standard'
   const [editingProfileId, setEditingProfileId] = useState(null);
 
   // Modal Form State
@@ -503,7 +504,7 @@ export default function CloudPushPortal() {
     return getHardwareSnapshot() !== savedHardwareSnapshotRef.current;
   }, [accNo, deviceSerials, apiKey, ratePerUserMonth]);
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     try {
       const primarySn = deviceSerials[0]?.sn || serialNo || '';
       const cfg = { accNo, serialNo: primarySn, deviceSerials, apiKey, baseUrl, ratePerUserMonth };
@@ -511,15 +512,24 @@ export default function CloudPushPortal() {
       
       if (selectedCustomerId && updateCustomer) {
         updateCustomer(selectedCustomerId, {
+          cloudPushEnabled: true,
           cloudPushAcc: accNo,
           deviceSerial: primarySn,
           deviceSerials,
           cloudPushApiKey: apiKey,
           ratePerUserMonth
         });
-        notify(`Hardware profile & ${deviceSerials.length} biometric device(s) saved to customer record!`, 'success');
+        if (syncAllToCloud) {
+          await syncAllToCloud(false);
+        } else {
+          notify(`Hardware profile & ${deviceSerials.length} biometric device(s) saved to customer record!`, 'success');
+        }
       } else {
-        notify(`Hardware configuration & ${deviceSerials.length} biometric device(s) saved locally!`, 'success');
+        if (syncAllToCloud) {
+          await syncAllToCloud(false);
+        } else {
+          notify(`Hardware configuration & ${deviceSerials.length} biometric device(s) saved locally!`, 'success');
+        }
       }
       savedHardwareSnapshotRef.current = getHardwareSnapshot();
     } catch (e) {
@@ -1033,6 +1043,71 @@ export default function CloudPushPortal() {
     return customers.find(c => c.id === selectedCustomerId) || null;
   }, [customers, selectedCustomerId]);
 
+  const { subscribedCustomers, unsubscribedCustomers } = useMemo(() => {
+    const subscribed = [];
+    const unsubscribed = [];
+    (customers || []).forEach(c => {
+      const isSub = c.cloudPushEnabled !== false && Boolean(c.cloudPushAcc || (Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0) || c.deviceSerial);
+      if (isSub) subscribed.push(c);
+      else unsubscribed.push(c);
+    });
+    return { subscribedCustomers: subscribed, unsubscribedCustomers: unsubscribed };
+  }, [customers]);
+
+  const isClientCloudPushActive = useMemo(() => {
+    if (!selectedCustomerId) return true; // Direct Device / Custom Account mode
+    if (!selectedCustomer) return false;
+    return selectedCustomer.cloudPushEnabled !== false && Boolean(selectedCustomer.cloudPushAcc || (Array.isArray(selectedCustomer.deviceSerials) && selectedCustomer.deviceSerials.length > 0) || selectedCustomer.deviceSerial);
+  }, [selectedCustomerId, selectedCustomer]);
+
+  const handleEnableCloudPushForCurrentClient = () => {
+    if (!selectedCustomerId) return;
+    const cust = customers.find(c => c.id === selectedCustomerId);
+    if (!cust) return;
+    const defaultDev = Array.isArray(cust.deviceSerials) && cust.deviceSerials.length > 0 
+      ? cust.deviceSerials 
+      : [{ id: `dev-${Date.now()}`, sn: cust.deviceSerial || 'NYU7254000011', role: 'IN/OUT', label: 'Main Biometric Terminal (IN/OUT)', status: 'idle' }];
+    const newAcc = cust.cloudPushAcc || '192';
+    const newKey = cust.cloudPushApiKey || apiKey || 'cGYm94tX97qA6cXw7UKgh64nr';
+    const newRate = Number(cust.ratePerUserMonth) || 100;
+
+    setAccNo(newAcc);
+    setApiKey(newKey);
+    setDeviceSerials(defaultDev);
+    setSerialNo(defaultDev[0]?.sn || '');
+    setRatePerUserMonth(newRate);
+
+    if (updateCustomer) {
+      updateCustomer(cust.id, {
+        cloudPushEnabled: true,
+        cloudPushAcc: newAcc,
+        deviceSerial: defaultDev[0]?.sn || '',
+        deviceSerials: defaultDev,
+        cloudPushApiKey: newKey,
+        ratePerUserMonth: newRate
+      });
+      notify(`Cloud Push Service enabled for "${cust.gymName || cust.name}". Profile updated!`, 'success');
+    }
+  };
+
+  const handleDisableCloudPushForCurrentClient = () => {
+    if (!selectedCustomerId) return;
+    const cust = customers.find(c => c.id === selectedCustomerId);
+    if (!cust) return;
+    if (window.confirm(`Disable Cloud Push biometric service for "${cust.gymName || cust.name}"? This client will be treated as a standard non-biometric client.`)) {
+      setAccNo('');
+      setApiKey('');
+      setDeviceSerials([]);
+      setSerialNo('');
+      if (updateCustomer) {
+        updateCustomer(cust.id, {
+          cloudPushEnabled: false
+        });
+        notify(`Cloud Push Service disabled for "${cust.gymName || cust.name}".`, 'info');
+      }
+    }
+  };
+
   // Filtered Real-time Attendance Punches
   const filteredRealtime = useMemo(() => {
     let logs = realtimeLogs;
@@ -1491,6 +1566,75 @@ export default function CloudPushPortal() {
             </div>
           </div>
 
+          {/* Cloud Push Service Status Banner for Selected Client */}
+          {selectedCustomerId && !isClientCloudPushActive && (
+            <div style={{
+              margin: '0 0 16px 0',
+              padding: '12px 18px',
+              borderRadius: '10px',
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldAlert size={18} style={{ color: 'var(--warning, #f59e0b)', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text-primary)' }}>
+                    Cloud Push Biometric Service is Not Enabled for "{selectedCustomer?.gymName || selectedCustomer?.name}"
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    This client is registered as a standard client without active biometric Cloud Push integration or active member billing.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleEnableCloudPushForCurrentClient}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 14px', fontWeight: 700 }}
+              >
+                <Zap size={13} /> Enable Cloud Push for this Client
+              </button>
+            </div>
+          )}
+
+          {selectedCustomerId && isClientCloudPushActive && (
+            <div style={{
+              margin: '0 0 16px 0',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              background: 'rgba(99, 102, 241, 0.06)',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <Cloud size={16} style={{ color: 'var(--accent, #6366f1)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Cloud Push Active for {selectedCustomer?.gymName || selectedCustomer?.name} (Account #{accNo || '—'})
+                </span>
+                <span className="badge" style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  {deviceSerials.length} Biometric Device{deviceSerials.length === 1 ? '' : 's'} Linked
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDisableCloudPushForCurrentClient}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.74rem', textDecoration: 'underline', cursor: 'pointer' }}
+                title="Disconnect client from Cloud Push service"
+              >
+                Disable Service for Client
+              </button>
+            </div>
+          )}
+
           <div className="cloud-hardware-grid">
             {/* Enterprise Client Selection */}
             <div>
@@ -1505,16 +1649,29 @@ export default function CloudPushPortal() {
                   style={{ height: '38px', fontSize: '0.84rem', fontWeight: 700, flex: 1 }}
                 >
                   <option value="">-- Direct Device / Custom Account --</option>
-                  {customers.map(c => {
-                    const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
-                    const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
-                    const devInfo = devCount > 0 ? ` • ${devCount} Device${devCount === 1 ? '' : 's'}` : '';
-                    return (
-                      <option key={c.id} value={c.id}>
-                        {c.gymName || c.name}{accInfo}{devInfo}
-                      </option>
-                    );
-                  })}
+                  {subscribedCustomers.length > 0 && (
+                    <optgroup label="── Cloud Push Subscribed Clients ──">
+                      {subscribedCustomers.map(c => {
+                        const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
+                        const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
+                        const devInfo = devCount > 0 ? ` • ${devCount} Device${devCount === 1 ? '' : 's'}` : '';
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.gymName || c.name}{accInfo}{devInfo}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  )}
+                  {unsubscribedCustomers.length > 0 && (
+                    <optgroup label="── Standard Clients (No Cloud Push) ──">
+                      {unsubscribedCustomers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.gymName || c.name} (Service Disabled)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
 
                 {selectedCustomerId && (
@@ -4167,10 +4324,81 @@ export default function CloudPushPortal() {
               </div>
             </div>
 
+            {/* Modal Filter Tabs */}
+            <div style={{ padding: '12px 20px 0 20px', display: 'flex', gap: '8px', borderBottom: '1px solid var(--panel-border)', background: 'var(--bg-secondary)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setManageProfilesFilter('all')}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px 8px 0 0',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: manageProfilesFilter === 'all' ? 'var(--bg-primary)' : 'transparent',
+                  color: manageProfilesFilter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: manageProfilesFilter === 'all' ? '2px solid var(--accent-primary)' : '2px solid transparent'
+                }}
+              >
+                All Enterprise Clients ({customers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setManageProfilesFilter('subscribed')}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px 8px 0 0',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: manageProfilesFilter === 'subscribed' ? 'var(--bg-primary)' : 'transparent',
+                  color: manageProfilesFilter === 'subscribed' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: manageProfilesFilter === 'subscribed' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Cloud size={13} style={{ color: 'var(--accent, #6366f1)' }} />
+                <span>Cloud Push Subscribed ({subscribedCustomers.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setManageProfilesFilter('standard')}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px 8px 0 0',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: manageProfilesFilter === 'standard' ? 'var(--bg-primary)' : 'transparent',
+                  color: manageProfilesFilter === 'standard' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: manageProfilesFilter === 'standard' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Shield size={13} style={{ color: 'var(--text-muted)' }} />
+                <span>Standard Clients (No Cloud Push) ({unsubscribedCustomers.length})</span>
+              </button>
+            </div>
+
             {/* Modal List */}
             <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {customers.map((c) => {
+              {customers
+                .filter(c => {
+                  const isSub = c.cloudPushEnabled !== false && Boolean(c.cloudPushAcc || (Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0) || c.deviceSerial);
+                  if (manageProfilesFilter === 'subscribed') return isSub;
+                  if (manageProfilesFilter === 'standard') return !isSub;
+                  return true;
+                })
+                .map((c) => {
                 const isSelected = selectedCustomerId === c.id;
+                const isSub = c.cloudPushEnabled !== false && Boolean(c.cloudPushAcc || (Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0) || c.deviceSerial);
                 const devices = Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0
                   ? c.deviceSerials
                   : (c.deviceSerial ? [{ id: 'd-1', sn: c.deviceSerial, role: 'IN', label: 'Entrance Biometric Device (IN)' }] : []);
@@ -4182,17 +4410,18 @@ export default function CloudPushPortal() {
                       padding: '16px 18px',
                       borderRadius: '12px',
                       background: isSelected ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-secondary)',
-                      border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--panel-border)'}`,
+                      border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : isSub ? 'var(--panel-border)' : 'var(--subtle-border)'}`,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       flexWrap: 'wrap',
                       gap: '14px',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      opacity: !isSub ? 0.85 : 1
                     }}
                   >
                     <div style={{ minWidth: '260px', flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>
                           {c.gymName || c.name}
                         </span>
@@ -4202,6 +4431,23 @@ export default function CloudPushPortal() {
                         }}>
                           {c.code || 'NO-CODE'}
                         </span>
+                        {isSub ? (
+                          <span style={{
+                            fontSize: '0.68rem', padding: '2px 7px', borderRadius: '10px',
+                            background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent, #6366f1)', fontWeight: 700,
+                            display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(99, 102, 241, 0.25)'
+                          }}>
+                            <Cloud size={10} /> Cloud Push Subscribed
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.68rem', padding: '2px 7px', borderRadius: '10px',
+                            background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-muted)', fontWeight: 600,
+                            display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--subtle-border)'
+                          }}>
+                            <Shield size={10} /> Standard Client (No Push)
+                          </span>
+                        )}
                         {isSelected && (
                           <span style={{
                             fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px',
@@ -4213,49 +4459,75 @@ export default function CloudPushPortal() {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '14px', fontSize: '0.78rem', color: 'var(--text-secondary)', flexWrap: 'wrap', marginBottom: '8px' }}>
-                        <span>
-                          Account #: <strong>{c.cloudPushAcc ? `#${c.cloudPushAcc}` : 'Not Set'}</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          API Key: <strong>{c.cloudPushApiKey ? `${c.cloudPushApiKey.slice(0, 4)}••••${c.cloudPushApiKey.slice(-4)}` : 'Missing'}</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Rate: <strong>Rs. {c.ratePerUserMonth || 100} / active user</strong>
-                        </span>
-                      </div>
+                      {isSub ? (
+                        <div style={{ display: 'flex', gap: '14px', fontSize: '0.78rem', color: 'var(--text-secondary)', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          <span>
+                            Account #: <strong>{c.cloudPushAcc ? `#${c.cloudPushAcc}` : 'Not Set'}</strong>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            API Key: <strong>{c.cloudPushApiKey ? `${c.cloudPushApiKey.slice(0, 4)}••••${c.cloudPushApiKey.slice(-4)}` : 'Missing'}</strong>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Rate: <strong>Rs. {c.ratePerUserMonth || 100} / active user</strong>
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: '8px', fontStyle: 'italic' }}>
+                          Standard non-biometric client. Biometric Cloud Push service is not linked.
+                        </div>
+                      )}
 
                       {/* Biometric Devices Chips */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biometric Devices:</span>
-                        {devices.map((d, dIdx) => (
-                          <span
-                            key={dIdx}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
-                              background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.12)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                              color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : 'var(--accent)',
-                              border: `1px solid ${d.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
-                            }}
-                          >
-                            <span>[{d.role}]</span>
-                            <span style={{ fontFamily: 'monospace' }}>{d.sn}</span>
-                          </span>
-                        ))}
-                        {devices.length === 0 && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            No devices configured
-                          </span>
-                        )}
-                      </div>
+                      {isSub && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biometric Devices:</span>
+                          {devices.map((d, dIdx) => (
+                            <span
+                              key={dIdx}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                                background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.12)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                                color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : 'var(--accent)',
+                                border: `1px solid ${d.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                              }}
+                            >
+                              <span>[{d.role}]</span>
+                              <span style={{ fontFamily: 'monospace' }}>{d.sn}</span>
+                            </span>
+                          ))}
+                          {devices.length === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              No devices configured
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                      {!isSelected ? (
+                      {!isSub ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => {
+                            if (updateCustomer) {
+                              updateCustomer(c.id, {
+                                cloudPushEnabled: true,
+                                cloudPushAcc: c.cloudPushAcc || '192',
+                                ratePerUserMonth: c.ratePerUserMonth || 100
+                              });
+                            }
+                            handleActivateGymProfile(c);
+                          }}
+                          style={{ fontSize: '0.78rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Zap size={12} /> Enable & Connect
+                        </button>
+                      ) : !isSelected ? (
                         <button
                           type="button"
                           className="btn btn-sm btn-primary"
@@ -4275,6 +4547,23 @@ export default function CloudPushPortal() {
                           }}
                         >
                           Connected
+                        </button>
+                      )}
+
+                      {isSub && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => {
+                            if (window.confirm(`Disable Cloud Push service for "${c.gymName || c.name}"?`)) {
+                              if (updateCustomer) updateCustomer(c.id, { cloudPushEnabled: false });
+                              notify(`Cloud Push disabled for "${c.gymName || c.name}".`, 'info');
+                            }
+                          }}
+                          title="Disable Cloud Push service for this client"
+                          style={{ fontSize: '0.75rem', padding: '6px 8px', color: 'var(--text-muted)' }}
+                        >
+                          Opt-Out
                         </button>
                       )}
 

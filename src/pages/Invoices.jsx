@@ -1185,19 +1185,26 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           <div style={{ marginTop: '28px', padding: '20px', background: 'var(--subtle-bg)', borderRadius: '14px', border: '1px solid var(--panel-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <label className="form-label" style={{ margin: 0 }}>Dynamic Line Items</label>
-              <button
-                type="button"
-                className="btn btn-sm btn-secondary"
-                onClick={() => {
-                  setShowModal(false);
-                  navigate(`/cloud-push?customerId=${encodeURIComponent(formData.customerId || '')}`, { state: { customerId: formData.customerId } });
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
-                title="Calculate monthwise active users for cloud push service"
-              >
-                <Cloud size={13} style={{ color: 'var(--accent-primary)' }} />
-                <span>Calculate Cloud Push Fee</span>
-              </button>
+              {(() => {
+                const targetCust = customers.find(c => c.id === formData.customerId);
+                const hasCloudPush = targetCust && targetCust.cloudPushEnabled !== false && Boolean(targetCust.cloudPushAcc || (Array.isArray(targetCust.deviceSerials) && targetCust.deviceSerials.length > 0) || targetCust.deviceSerial);
+                if (!hasCloudPush) return null;
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => {
+                      setShowModal(false);
+                      navigate(`/cloud-push?customerId=${encodeURIComponent(formData.customerId || '')}`, { state: { customerId: formData.customerId } });
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
+                    title="Calculate monthwise active users for cloud push service"
+                  >
+                    <Cloud size={13} style={{ color: 'var(--accent-primary)' }} />
+                    <span>Calculate Cloud Push Fee</span>
+                  </button>
+                );
+              })()}
             </div>
             <div className="flex gap-3 mb-4">
               <CustomSelect 

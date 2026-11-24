@@ -664,69 +664,94 @@ const AppContent = () => {
             <span className="hidden-mobile" style={{ fontSize: '0.78rem' }}>Customize</span>
           </button>
 
-          {/* AUTOMATIC CLOUD SYNC STATUS (ZERO-TOUCH AUTONOMOUS SYNC) */}
+          {/* 1-CLICK SAVE TO DATABASE (APPEARS/HIGHLIGHTS ON DATA CHANGES) */}
           <button
             type="button"
-            id="header-cloud-sync-status"
-            onClick={() => {
+            id="header-save-to-database-btn"
+            onClick={async () => {
               if (syncAllToCloud) {
-                syncAllToCloud();
+                await syncAllToCloud(false);
               } else if (fetchCloudData) {
-                fetchCloudData();
+                await fetchCloudData();
               }
             }}
+            disabled={cloudSyncStatus === 'syncing'}
             style={{
               height: '36px',
-              padding: '0 14px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              display: 'flex',
+              padding: hasUnsavedChanges ? '0 16px' : '0 12px',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
-              background: cloudSyncStatus === 'syncing'
-                ? 'color-mix(in srgb, var(--accent) 15%, transparent)'
-                : cloudSyncStatus === 'error'
-                  ? 'rgba(239, 68, 68, 0.12)'
-                  : 'rgba(16, 185, 129, 0.12)',
-              color: cloudSyncStatus === 'syncing'
-                ? 'var(--accent)'
-                : cloudSyncStatus === 'error'
-                  ? '#ef4444'
-                  : '#10b981',
-              border: cloudSyncStatus === 'syncing'
-                ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
-                : cloudSyncStatus === 'error'
-                  ? '1px solid rgba(239, 68, 68, 0.3)'
-                  : '1px solid rgba(16, 185, 129, 0.25)',
+              gap: '8px',
+              background: hasUnsavedChanges
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                : cloudSyncStatus === 'syncing'
+                  ? 'color-mix(in srgb, var(--accent, #6366f1) 20%, transparent)'
+                  : cloudSyncStatus === 'error'
+                    ? 'rgba(239, 68, 68, 0.12)'
+                    : 'rgba(16, 185, 129, 0.08)',
+              color: hasUnsavedChanges
+                ? '#ffffff'
+                : cloudSyncStatus === 'syncing'
+                  ? 'var(--accent, #6366f1)'
+                  : cloudSyncStatus === 'error'
+                    ? '#ef4444'
+                    : '#10b981',
+              border: hasUnsavedChanges
+                ? '1px solid #059669'
+                : cloudSyncStatus === 'syncing'
+                  ? '1px solid color-mix(in srgb, var(--accent, #6366f1) 30%, transparent)'
+                  : cloudSyncStatus === 'error'
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(16, 185, 129, 0.25)',
               borderRadius: '20px',
-              cursor: 'pointer',
+              cursor: cloudSyncStatus === 'syncing' ? 'wait' : 'pointer',
+              boxShadow: hasUnsavedChanges ? '0 0 16px rgba(16, 185, 129, 0.55)' : 'none',
+              transform: hasUnsavedChanges ? 'scale(1.02)' : 'scale(1)',
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
               userSelect: 'none',
-              transition: 'all 0.2s ease',
               position: 'relative',
               zIndex: 2
             }}
             title={
-              cloudSyncStatus === 'syncing'
-                ? 'Saving updates to Supabase cloud database automatically...'
-                : cloudSyncStatus === 'error'
-                  ? 'Autonomous background auto-reconnect active. Click to retry immediately.'
-                  : 'Continuous autonomous sync active. All records are safely saved to Supabase.'
+              hasUnsavedChanges
+                ? 'Unsaved changes detected. Click to save exact data directly to database now!'
+                : cloudSyncStatus === 'syncing'
+                  ? 'Saving records directly to Supabase cloud database...'
+                  : cloudSyncStatus === 'error'
+                    ? 'Save failed. Click to retry directly now.'
+                    : 'All records are saved in the cloud database. Click to re-sync anytime.'
             }
           >
             {cloudSyncStatus === 'syncing' ? (
               <>
                 <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
-                <span>Auto-Saving...</span>
+                <span>Saving to Database...</span>
+              </>
+            ) : hasUnsavedChanges ? (
+              <>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 0 8px #ffffff',
+                  animation: 'pulse 1.5s infinite',
+                  flexShrink: 0
+                }} />
+                <Save size={15} style={{ flexShrink: 0 }} />
+                <span>Save to Database</span>
               </>
             ) : cloudSyncStatus === 'error' ? (
               <>
-                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)', flexShrink: 0 }}></span>
-                <span>Auto-Reconnecting...</span>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+                <span>Save Error · Retry</span>
               </>
             ) : (
               <>
-                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', flexShrink: 0 }}></span>
-                <span>Cloud Synced</span>
+                <CheckCircle size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                <span className="hidden-mobile" style={{ opacity: 0.9 }}>Database Synced</span>
               </>
             )}
           </button>

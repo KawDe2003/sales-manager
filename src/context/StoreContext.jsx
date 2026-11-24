@@ -379,11 +379,13 @@ export default function StoreContextProvider({ children }) {
         if (Array.isArray(parsed)) {
           const sanitized = parsed.filter(inv => {
             if (!inv || (inv.businessId && inv.businessId !== 'biz_main')) return false;
-            const p = String(inv.prospectName || '').toLowerCase();
+            const p = String(inv.prospectName || inv.prospect_name || '').toLowerCase();
+            const invNum = String(inv.invoiceNumber || inv.invoice_number || '').toUpperCase();
+            if (invNum === 'INV-2003' || invNum === 'INV-2004' || p.includes('ironcore') || p.includes('fit focus')) return false;
             if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
             return true;
           });
-          return sanitized.map(inv => {
+          const mapped = sanitized.map(inv => {
             const rawAmt = Number(inv.amount != null && !isNaN(inv.amount) ? inv.amount : (inv.totalAmount != null && !isNaN(inv.totalAmount) ? inv.totalAmount : (inv.items?.[0]?.amount || 10000)));
             const validAmt = isNaN(rawAmt) || rawAmt <= 0 ? 10000 : rawAmt;
             return {
@@ -392,6 +394,14 @@ export default function StoreContextProvider({ children }) {
               totalAmount: validAmt
             };
           });
+          // Resave purged clean state immediately so dummy invoices are erased from disk cache
+          if (sanitized.length !== parsed.length) {
+            try {
+              localStorage.setItem('gym_invoices', JSON.stringify(mapped));
+              localStorage.setItem(`biz_data_${activeId}_invoices`, JSON.stringify(mapped));
+            } catch (e) {}
+          }
+          return mapped;
         }
       }
     } catch (e) {}
@@ -1153,20 +1163,12 @@ export default function StoreContextProvider({ children }) {
 
     setHasUnsavedChanges(true);
 
-    // Auto-save: sync to cloud in background without requiring manual user button clicks
+    // Unsaved changes detected: prominent "Save to Database" action will display in header.
+    // Automatic background debounced save is disabled as requested by the user.
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
     }
-
-    autoSaveTimerRef.current = setTimeout(() => {
-      syncAllToCloud(true);
-    }, 1500);
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
   }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   const [theme, setTheme] = useState(() => {
@@ -1889,10 +1891,26 @@ export default function StoreContextProvider({ children }) {
     try {
       setCloudSyncStatus('syncing');
       const effId = getEffectiveUserId();
+      const isCloudPushSub = customer.cloudPushEnabled !== false && Boolean(
+        customer.cloudPushAcc ||
+        customer.deviceSerial ||
+        (Array.isArray(customer.deviceSerials) && customer.deviceSerials.length > 0)
+      );
+
+      // Manage tags to store opt-in/opt-out status safely
+      let updatedTags = Array.isArray(customer.tags) ? [...customer.tags] : (customer.tag ? [customer.tag] : []);
+      if (customer.cloudPushEnabled === false) {
+        updatedTags = updatedTags.filter(t => t !== 'Cloud-Push');
+        if (!updatedTags.includes('No-Cloud-Push')) updatedTags.push('No-Cloud-Push');
+      } else if (isCloudPushSub) {
+        updatedTags = updatedTags.filter(t => t !== 'No-Cloud-Push');
+        if (!updatedTags.includes('Cloud-Push')) updatedTags.push('Cloud-Push');
+      }
+
       const fullCustPayload = {
         id: toUuid(customer.id),
         user_id: effId,
-        business_id: customer.businessId || activeBusinessId,
+        business_id: customer.businessId || activeBusinessId || 'biz_main',
         gym_name: customer.gymName || 'Client Gym',
         name: customer.name || '',
         email: customer.email || '',
@@ -1903,7 +1921,17 @@ export default function StoreContextProvider({ children }) {
         renewal_date: customer.renewalDate || null,
         annual_fee: Number(customer.annualFee) || 0,
         status: customer.status || 'Active',
-        notes: Array.isArray(customer.notes) ? customer.notes : []
+        notes: Array.isArray(customer.notes) ? customer.notes : [],
+        code: customer.code || null,
+        tax_number: customer.taxNumber || null,
+        tags: updatedTags,
+        billing_type: customer.billingType || 'Annual',
+        renewal_frequency: customer.renewalFrequency || 'Annual',
+        cloud_push_acc: isCloudPushSub ? (customer.cloudPushAcc || null) : null,
+        device_serial: isCloudPushSub ? (customer.deviceSerial || (Array.isArray(customer.deviceSerials) && customer.deviceSerials[0]?.sn) || null) : null,
+        device_serials: isCloudPushSub ? (Array.isArray(customer.deviceSerials) ? customer.deviceSerials : []) : [],
+        cloud_push_api_key: isCloudPushSub ? (customer.cloudPushApiKey || null) : null,
+        rate_per_user_month: isCloudPushSub ? (Number(customer.ratePerUserMonth) || 100) : 100
       };
 
       let { error } = await supabase
@@ -1911,7 +1939,7 @@ export default function StoreContextProvider({ children }) {
         .upsert(fullCustPayload, { onConflict: 'id' });
 
       // Clean core fallback: strictly match columns verified in remote customers table
-      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('address'))) {
+      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
         const coreCust = {
           id: fullCustPayload.id,
           user_id: effId,
@@ -1919,12 +1947,23 @@ export default function StoreContextProvider({ children }) {
           name: fullCustPayload.name,
           email: fullCustPayload.email,
           phone: fullCustPayload.phone,
+          address: fullCustPayload.address,
           dob: fullCustPayload.dob,
           purchase_date: fullCustPayload.purchase_date,
           renewal_date: fullCustPayload.renewal_date,
           annual_fee: fullCustPayload.annual_fee,
           status: fullCustPayload.status,
-          notes: fullCustPayload.notes
+          notes: fullCustPayload.notes,
+          code: fullCustPayload.code,
+          tax_number: fullCustPayload.tax_number,
+          tags: fullCustPayload.tags,
+          billing_type: fullCustPayload.billing_type,
+          renewal_frequency: fullCustPayload.renewal_frequency,
+          cloud_push_acc: fullCustPayload.cloud_push_acc,
+          device_serial: fullCustPayload.device_serial,
+          device_serials: fullCustPayload.device_serials,
+          cloud_push_api_key: fullCustPayload.cloud_push_api_key,
+          rate_per_user_month: fullCustPayload.rate_per_user_month
         };
         const fallbackRes = await supabase.from('customers').upsert(coreCust, { onConflict: 'id' });
         error = fallbackRes.error;
@@ -2581,6 +2620,11 @@ export default function StoreContextProvider({ children }) {
             code = `CUST-${String(idx + 1).padStart(3, '0')}`;
           }
           usedCodes.add(code.toUpperCase());
+          const tags = Array.isArray(c.tags) ? c.tags : (c.tag ? [c.tag] : []);
+          const isExplicitlyOptedOut = tags.includes('No-Cloud-Push');
+          const hasDevicesOrAcc = Boolean(c.cloud_push_acc || c.device_serial || (Array.isArray(c.device_serials) && c.device_serials.length > 0));
+          const isCloudPushActive = !isExplicitlyOptedOut && hasDevicesOrAcc;
+
           return {
             id: c.id,
             code,
@@ -2591,14 +2635,22 @@ export default function StoreContextProvider({ children }) {
             phone: c.phone,
             address: c.address || c.street_address || '',
             taxNumber: c.tax_number || c.taxNumber || '',
-            tags: Array.isArray(c.tags) ? c.tags : (c.tag ? [c.tag] : []),
+            tags,
             leadSource: c.lead_source || c.leadSource || 'Walk-in',
             dob: c.dob,
             purchaseDate: c.purchase_date || c.purchaseDate,
             renewalDate: c.renewal_date || c.renewalDate, 
             annualFee: Number(c.annual_fee || c.annualFee) || 0,
             status: c.status,
-            notes: c.notes || []
+            notes: c.notes || [],
+            billingType: c.billing_type || 'Annual',
+            renewalFrequency: c.renewal_frequency || 'Annual',
+            cloudPushEnabled: isCloudPushActive,
+            cloudPushAcc: isCloudPushActive ? (c.cloud_push_acc || '') : '',
+            cloudPushApiKey: isCloudPushActive ? (c.cloud_push_api_key || '') : '',
+            deviceSerial: isCloudPushActive ? (c.device_serial || '') : '',
+            deviceSerials: isCloudPushActive ? (Array.isArray(c.device_serials) ? c.device_serials : (c.device_serial ? [{ id: 'dev-1', sn: c.device_serial, role: 'IN/OUT', label: 'Main Biometric Terminal', status: 'idle' }] : [])) : [],
+            ratePerUserMonth: Number(c.rate_per_user_month) || 100
           };
         });
 
@@ -2727,9 +2779,9 @@ export default function StoreContextProvider({ children }) {
 
         const filteredIData = iData.filter(inv => {
           if (inv.business_id) return inv.business_id === activeBusinessId;
-          const iid = String(inv.id || '');
           const p = String(inv.prospect_name || '').toLowerCase();
-          if (iid.startsWith('inv-20')) return false;
+          const invNum = String(inv.invoice_number || '').toUpperCase();
+          if (invNum === 'INV-2003' || invNum === 'INV-2004' || p.includes('ironcore') || p.includes('fit focus')) return false;
           if (p.includes('fancy center') || p.includes('bridal') || p.includes('cosmetics') || p.includes('salon chamari')) return false;
           return true;
         });
@@ -2784,7 +2836,13 @@ export default function StoreContextProvider({ children }) {
         // Merge any local invoices that were created locally but haven't synced to remote yet
         const remoteIds = new Set(loadedInvoices.map(i => i.id));
         const remoteNumbers = new Set(loadedInvoices.map(i => i.invoiceNumber));
-        const unSyncedLocalInvoices = localInvoices.filter(li => li && li.id && !remoteIds.has(li.id) && !remoteNumbers.has(li.invoiceNumber));
+        const unSyncedLocalInvoices = localInvoices.filter(li => {
+          if (!li || !li.id) return false;
+          const invNum = String(li.invoiceNumber || '').toUpperCase();
+          const p = String(li.prospectName || '').toLowerCase();
+          if (invNum === 'INV-2003' || invNum === 'INV-2004' || p.includes('ironcore') || p.includes('fit focus')) return false;
+          return !remoteIds.has(li.id) && !remoteNumbers.has(li.invoiceNumber);
+        });
         const mergedInvoices = [...loadedInvoices, ...unSyncedLocalInvoices];
 
         setInvoices(mergedInvoices);
@@ -3021,7 +3079,7 @@ export default function StoreContextProvider({ children }) {
       const TABLE_ALLOWED_COLUMNS = {
         quotations: ['id', 'user_id', 'share_key', 'quote_number', 'date', 'prospect_name', 'prospect_phone', 'amount', 'status', 'items'],
         invoices: ['id', 'user_id', 'share_key', 'invoice_number', 'date', 'due_date', 'customer_id', 'amount', 'status', 'items', 'prospect_name', 'reminder_sent'],
-        customers: ['id', 'user_id', 'gym_name', 'name', 'email', 'phone', 'dob', 'purchase_date', 'renewal_date', 'annual_fee', 'status', 'notes'],
+        customers: ['id', 'user_id', 'gym_name', 'name', 'email', 'phone', 'address', 'dob', 'purchase_date', 'renewal_date', 'annual_fee', 'status', 'notes', 'code', 'tax_number', 'tags', 'billing_type', 'renewal_frequency', 'cloud_push_acc', 'device_serial', 'device_serials', 'cloud_push_api_key', 'rate_per_user_month'],
         inventory: ['id', 'user_id', 'name', 'item_type', 'price', 'cost_price', 'reorder_level', 'stock', 'description'],
         leads: ['id', 'user_id', 'gym_name', 'prospect_name', 'phone', 'status', 'date', 'notes'],
         expenses: ['id', 'user_id', 'category', 'amount', 'date', 'description'],
@@ -3102,21 +3160,47 @@ export default function StoreContextProvider({ children }) {
         }
       };
 
-      const customerRecords = (customers || []).map(c => ({
-        id: toUuid(c.id),
-        user_id: effId,
-        gym_name: c.gymName || 'Client Gym',
-        name: c.name || '',
-        email: c.email || '',
-        phone: c.phone || '',
-        address: c.address || '',
-        dob: c.dob || null,
-        purchase_date: c.purchaseDate || null,
-        renewal_date: c.renewalDate || null,
-        annual_fee: Number(c.annualFee) || 0,
-        status: c.status || 'Active',
-        notes: c.notes || []
-      }));
+      const customerRecords = (customers || []).map(c => {
+        const isCloudPushSub = c.cloudPushEnabled !== false && Boolean(
+          c.cloudPushAcc ||
+          c.deviceSerial ||
+          (Array.isArray(c.deviceSerials) && c.deviceSerials.length > 0)
+        );
+        let updatedTags = Array.isArray(c.tags) ? [...c.tags] : (c.tag ? [c.tag] : []);
+        if (c.cloudPushEnabled === false) {
+          updatedTags = updatedTags.filter(t => t !== 'Cloud-Push');
+          if (!updatedTags.includes('No-Cloud-Push')) updatedTags.push('No-Cloud-Push');
+        } else if (isCloudPushSub) {
+          updatedTags = updatedTags.filter(t => t !== 'No-Cloud-Push');
+          if (!updatedTags.includes('Cloud-Push')) updatedTags.push('Cloud-Push');
+        }
+
+        return {
+          id: toUuid(c.id),
+          user_id: effId,
+          gym_name: c.gymName || 'Client Gym',
+          name: c.name || '',
+          email: c.email || '',
+          phone: c.phone || '',
+          address: c.address || '',
+          dob: c.dob || null,
+          purchase_date: c.purchaseDate || null,
+          renewal_date: c.renewalDate || null,
+          annual_fee: Number(c.annualFee) || 0,
+          status: c.status || 'Active',
+          notes: Array.isArray(c.notes) ? c.notes : [],
+          code: c.code || null,
+          tax_number: c.taxNumber || null,
+          tags: updatedTags,
+          billing_type: c.billingType || 'Annual',
+          renewal_frequency: c.renewalFrequency || 'Annual',
+          cloud_push_acc: isCloudPushSub ? (c.cloudPushAcc || null) : null,
+          device_serial: isCloudPushSub ? (c.deviceSerial || (Array.isArray(c.deviceSerials) && c.deviceSerials[0]?.sn) || null) : null,
+          device_serials: isCloudPushSub ? (Array.isArray(c.deviceSerials) ? c.deviceSerials : []) : [],
+          cloud_push_api_key: isCloudPushSub ? (c.cloudPushApiKey || null) : null,
+          rate_per_user_month: isCloudPushSub ? (Number(c.ratePerUserMonth) || 100) : 100
+        };
+      });
 
       const inventoryRecords = (inventory || []).map(item => ({
         id: toUuid(item.id),
@@ -3146,23 +3230,29 @@ export default function StoreContextProvider({ children }) {
         items: q.items || []
       }));
 
-      const invoiceRecords = (invoices || []).map(inv => ({
-        id: toUuid(inv.id),
-        user_id: safeUserId,
-        share_key: inv.shareKey || generateShareKey(),
-        invoice_number: inv.invoiceNumber || 'INV-1001',
-        date: inv.date || new Date().toISOString().split('T')[0],
-        due_date: inv.dueDate || null,
-        customer_id: isUuid(inv.customerId) ? inv.customerId : null,
-        prospect_name: inv.prospectName || '',
-        billing_address: inv.billingAddress || inv.address || '',
-        address: inv.billingAddress || inv.address || '',
-        amount: Number(inv.amount) || 0,
-        status: inv.status || 'Draft',
-        items: inv.items || [],
-        reminder_sent: !!inv.reminderSent,
-        installment_plan: inv.installmentPlan || {}
-      }));
+      const invoiceRecords = (invoices || [])
+        .filter(inv => {
+          const invNum = String(inv.invoiceNumber || '').toUpperCase();
+          const p = String(inv.prospectName || '').toLowerCase();
+          return invNum !== 'INV-2003' && invNum !== 'INV-2004' && !p.includes('ironcore') && !p.includes('fit focus');
+        })
+        .map(inv => ({
+          id: toUuid(inv.id),
+          user_id: safeUserId,
+          share_key: inv.shareKey || generateShareKey(),
+          invoice_number: inv.invoiceNumber || 'INV-1001',
+          date: inv.date || new Date().toISOString().split('T')[0],
+          due_date: inv.dueDate || null,
+          customer_id: isUuid(inv.customerId) ? inv.customerId : null,
+          prospect_name: inv.prospectName || '',
+          billing_address: inv.billingAddress || inv.address || '',
+          address: inv.billingAddress || inv.address || '',
+          amount: Number(inv.amount) || 0,
+          status: inv.status || 'Draft',
+          items: inv.items || [],
+          reminder_sent: !!inv.reminderSent,
+          installment_plan: inv.installmentPlan || {}
+        }));
 
       const leadRecords = (leads || []).map(l => ({
         id: toUuid(l.id),
@@ -3275,6 +3365,21 @@ export default function StoreContextProvider({ children }) {
           updated_at: new Date().toISOString()
         }], 'user_id')
       ]);
+
+      // Reconcile remote invoice deletions so deleted invoices stay deleted permanently in Supabase
+      try {
+        const { data: remoteInvs } = await activeClient.from('invoices').select('id, invoice_number').eq('business_id', activeBusinessId);
+        if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
+          const localInvIds = new Set((invoices || []).map(i => toUuid(i.id)));
+          const localInvNums = new Set((invoices || []).map(i => i.invoiceNumber));
+          const toDelete = remoteInvs.filter(r => !localInvIds.has(r.id) && !localInvNums.has(r.invoice_number));
+          for (const d of toDelete) {
+            await activeClient.from('invoices').delete().eq('id', d.id);
+          }
+        }
+      } catch (e) {
+        console.warn('[Sync Reconciliation Warning - Invoices]', e);
+      }
 
       // Also ensure all existing profiles have the latest config
       try {
@@ -3554,64 +3659,8 @@ export default function StoreContextProvider({ children }) {
     };
   }, [user]);
 
-  // 2. Autonomous Self-Healing / Auto-Reconnect:
-  // When cloudSyncStatus is 'error', automatically retry syncing every 5s until restored to Synced
-  useEffect(() => {
-    if (cloudSyncStatus !== 'error') return;
-
-    console.log('[Auto-Sync Engine] Status is "error" - scheduling automatic reconnect retry in 5s...');
-    const retryTimer = setTimeout(() => {
-      if (typeof navigator === 'undefined' || navigator.onLine) {
-        console.log('[Auto-Sync Engine] Auto-retrying background cloud sync to restore "Cloud Synced"...');
-        syncAllToCloud(true).catch(err => {
-          console.warn('[Auto-Sync Engine] Retry attempt failed, will re-attempt automatically:', err?.message);
-        });
-      }
-    }, 5000);
-
-    return () => clearTimeout(retryTimer);
-  }, [cloudSyncStatus]);
-
-  // 3. Continuous Autonomous Heartbeat:
-  // Silently keeps data synchronized every 45s so records stay live across sessions and tabs
-  useEffect(() => {
-    const heartbeatTimer = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine)) {
-        syncAllToCloud(true).catch(() => {});
-      }
-    }, 45000);
-
-    return () => clearInterval(heartbeatTimer);
-  }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
-
-  // 4. Autonomous Sync on Window Focus or Tab Resume:
-  useEffect(() => {
-    const handleFocusOrResume = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine)) {
-        console.log('[Auto-Sync Engine] Window focused / tab resumed - running background sync check...');
-        syncAllToCloud(true).catch(() => {});
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleFocusOrResume);
-    window.addEventListener('focus', handleFocusOrResume);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleFocusOrResume);
-      window.removeEventListener('focus', handleFocusOrResume);
-    };
-  }, [customers, inventory, invoices, quotes]);
-
-  // 5. Page Unload Auto-Flush:
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (autoSaveTimerRef.current) {
-        syncAllToCloud(true);
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  // Note: Continuous autonomous background saving has been disabled per user requirement.
+  // Saving is performed explicitly via the prominent 1-click "Save to Database" action in the top header.
 
   // Actions
   const addCustomer = (customer) => {
@@ -3845,10 +3894,20 @@ export default function StoreContextProvider({ children }) {
     if (inv && inv.items && inv.items.length > 0) {
       restoreStockForInvoice(inv.items);
     }
-    setInvoices(invoices.filter(i => i.id !== id));
+    const remaining = invoices.filter(i => i.id !== id);
+    setInvoices(remaining);
+    try {
+      localStorage.setItem('gym_invoices', JSON.stringify(remaining));
+      localStorage.setItem(`biz_data_${activeBusinessId}_invoices`, JSON.stringify(remaining));
+    } catch (e) {}
+    setHasUnsavedChanges(true);
     try {
       setCloudSyncStatus('syncing');
-      await supabase.from('invoices').delete().eq('id', toUuid(id));
+      await Promise.allSettled([
+        supabase.from('invoices').delete().eq('id', toUuid(id)),
+        supabase.from('invoices').delete().eq('id', id),
+        inv?.invoiceNumber ? supabase.from('invoices').delete().eq('invoice_number', inv.invoiceNumber) : Promise.resolve()
+      ]);
       setCloudSyncStatus('synced');
       setLastSyncTime(new Date());
     } catch (e) {
@@ -4027,10 +4086,20 @@ export default function StoreContextProvider({ children }) {
 
   const deleteQuote = async (id) => {
     const q = quotes.find(item => item.id === id);
-    setQuotes(quotes.filter(q => q.id !== id));
+    const remaining = quotes.filter(item => item.id !== id);
+    setQuotes(remaining);
+    try {
+      localStorage.setItem('gym_quotes', JSON.stringify(remaining));
+      localStorage.setItem(`biz_data_${activeBusinessId}_quotes`, JSON.stringify(remaining));
+    } catch (e) {}
+    setHasUnsavedChanges(true);
     try {
       setCloudSyncStatus('syncing');
-      await supabase.from('quotations').delete().eq('id', toUuid(id));
+      await Promise.allSettled([
+        supabase.from('quotations').delete().eq('id', toUuid(id)),
+        supabase.from('quotations').delete().eq('id', id),
+        q?.quoteNumber ? supabase.from('quotations').delete().eq('quote_number', q.quoteNumber) : Promise.resolve()
+      ]);
       setCloudSyncStatus('synced');
       setLastSyncTime(new Date());
     } catch (e) {
