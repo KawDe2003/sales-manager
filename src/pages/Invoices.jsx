@@ -1256,26 +1256,18 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                           </div>
                         </td>
                         <td>
-                          <select
-                            className="form-input"
-                            style={{ 
-                              height: '32px', 
-                              fontSize: '0.78rem', 
-                              padding: '2px 6px', 
-                              width: '110px',
-                              background: 'var(--subtle-bg)',
-                              border: '1px solid var(--panel-border)',
-                              borderRadius: '6px',
-                              color: 'var(--text-primary)',
-                              cursor: 'pointer'
-                            }}
+                          <CustomSelect
                             value={it.billingCycle || (it.type === 'Hardware' ? 'One-Time' : 'Annual')}
-                            onChange={(e) => handleUpdateItemBillingCycle(idx, e.target.value)}
-                          >
-                            <option value="Annual">Annual Fee</option>
-                            <option value="One-Time">One-Time Fee</option>
-                            <option value="Monthly">Monthly Fee</option>
-                          </select>
+                            onChange={(val) => handleUpdateItemBillingCycle(idx, val)}
+                            options={[
+                              { value: 'Annual', label: 'Annual Fee' },
+                              { value: 'One-Time', label: 'One-Time Fee' },
+                              { value: 'Monthly', label: 'Monthly Fee' }
+                            ]}
+                            style={{ width: '130px', minWidth: '115px' }}
+                            triggerStyle={{ height: '30px', fontSize: '0.78rem', padding: '2px 8px' }}
+                            size="sm"
+                          />
                         </td>
                         <td style={{ color: 'var(--text-muted)' }}>{it.quantity}</td>
                         <td style={{ color: 'var(--text-muted)' }}>

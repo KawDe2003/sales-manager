@@ -27,6 +27,7 @@ import {
   clearHistoricalAuditCache
 } from '../utils/cloudPushService';
 import DatePicker from '../components/DatePicker';
+import CustomSelect from '../components/CustomSelect';
 
 export default function CloudPushPortal() {
   const navigate = useNavigate();
@@ -1055,6 +1056,28 @@ export default function CloudPushPortal() {
     return { subscribedCustomers: subscribed, unsubscribedCustomers: unsubscribed };
   }, [customers]);
 
+  const customerSelectOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: '-- Direct Device / Custom Account --' }
+    ];
+    subscribedCustomers.forEach(c => {
+      const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
+      const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
+      const devInfo = devCount > 0 ? ` • ${devCount} Dev` : '';
+      opts.push({
+        value: c.id,
+        label: `${c.gymName || c.name}${accInfo}${devInfo}`
+      });
+    });
+    unsubscribedCustomers.forEach(c => {
+      opts.push({
+        value: c.id,
+        label: `${c.gymName || c.name} (Service Disabled)`
+      });
+    });
+    return opts;
+  }, [subscribedCustomers, unsubscribedCustomers]);
+
   const isClientCloudPushActive = useMemo(() => {
     if (!selectedCustomerId) return true; // Direct Device / Custom Account mode
     if (!selectedCustomer) return false;
@@ -1491,38 +1514,15 @@ export default function CloudPushPortal() {
               <Cpu size={17} style={{ color: 'var(--accent-primary)' }} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '240px', maxWidth: '420px' }}>
-              <select
-                className="form-control"
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '240px', maxWidth: '440px' }}>
+              <CustomSelect
                 value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
-                style={{ height: '38px', fontSize: '0.85rem', fontWeight: 700, flex: 1 }}
-              >
-                <option value="">-- Direct Device / Custom Account --</option>
-                {subscribedCustomers.length > 0 && (
-                  <optgroup label="── Cloud Push Subscribed Clients ──">
-                    {subscribedCustomers.map(c => {
-                      const devCount = (c.deviceSerials && Array.isArray(c.deviceSerials)) ? c.deviceSerials.length : (c.deviceSerial ? 1 : 0);
-                      const accInfo = c.cloudPushAcc ? ` • Acc #${c.cloudPushAcc}` : '';
-                      const devInfo = devCount > 0 ? ` • ${devCount} Dev` : '';
-                      return (
-                        <option key={c.id} value={c.id}>
-                          {c.gymName || c.name}{accInfo}{devInfo}
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                )}
-                {unsubscribedCustomers.length > 0 && (
-                  <optgroup label="── Standard Clients (No Cloud Push) ──">
-                    {unsubscribedCustomers.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.gymName || c.name} (Service Disabled)
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                onChange={(val) => setSelectedCustomerId(val)}
+                options={customerSelectOptions}
+                placeholder="-- Select Enterprise Client --"
+                style={{ flex: 1, minWidth: '220px' }}
+                triggerStyle={{ height: '38px', fontSize: '0.84rem', fontWeight: 700 }}
+              />
 
               {selectedCustomerId && (
                 <button
@@ -1650,9 +1650,9 @@ export default function CloudPushPortal() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>From</span>
-                  <DatePicker value={fromDate} onChange={setFromDate} placeholder="YYYY-MM-DD" style={{ width: '130px', height: '34px', fontSize: '0.78rem' }} />
+                  <DatePicker value={fromDate} onChange={setFromDate} placeholder="YYYY-MM-DD" size="sm" style={{ width: '150px', minWidth: '140px', height: '34px' }} />
                   <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>To</span>
-                  <DatePicker value={toDate} onChange={setToDate} placeholder="YYYY-MM-DD" style={{ width: '130px', height: '34px', fontSize: '0.78rem' }} />
+                  <DatePicker value={toDate} onChange={setToDate} placeholder="YYYY-MM-DD" size="sm" style={{ width: '150px', minWidth: '140px', height: '34px' }} />
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -2014,18 +2014,20 @@ export default function CloudPushPortal() {
                   style={{ height: '34px', fontSize: '0.8rem', width: '180px', fontFamily: 'monospace' }}
                 />
 
-                <select
-                  className="form-control"
+                <CustomSelect
                   value={newDeviceRole}
-                  onChange={(e) => setNewDeviceRole(e.target.value)}
-                  style={{ height: '34px', fontSize: '0.8rem', width: '185px', minWidth: '175px' }}
-                >
-                  <option value="IN">Entrance Biometric Device (IN)</option>
-                  <option value="OUT">Exit Biometric Device (OUT)</option>
-                  <option value="IN/OUT">Two-Way Device (IN/OUT)</option>
-                  <option value="RECEPTION">Reception Terminal</option>
-                  <option value="DOOR">Access Door Terminal</option>
-                </select>
+                  onChange={setNewDeviceRole}
+                  options={[
+                    { value: 'IN', label: 'Entrance Biometric Device (IN)' },
+                    { value: 'OUT', label: 'Exit Biometric Device (OUT)' },
+                    { value: 'IN/OUT', label: 'Two-Way Device (IN/OUT)' },
+                    { value: 'RECEPTION', label: 'Reception Terminal' },
+                    { value: 'DOOR', label: 'Access Door Terminal' }
+                  ]}
+                  style={{ width: '200px', minWidth: '180px' }}
+                  triggerStyle={{ height: '34px', fontSize: '0.8rem' }}
+                  size="sm"
+                />
 
                 <input
                   type="text"
@@ -3047,17 +3049,19 @@ export default function CloudPushPortal() {
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Window:</span>
-                  <select
-                    className="form-control"
-                    style={{ width: '130px', padding: '6px 10px', fontSize: '0.84rem' }}
+                  <CustomSelect
                     value={realtimeMinutes}
-                    onChange={(e) => setRealtimeMinutes(Number(e.target.value))}
-                  >
-                    <option value={15}>Past 15 Mins</option>
-                    <option value={30}>Past 30 Mins</option>
-                    <option value={60}>Past 1 Hour</option>
-                    <option value={120}>Past 2 Hours</option>
-                  </select>
+                    onChange={(val) => setRealtimeMinutes(Number(val))}
+                    options={[
+                      { value: 15, label: 'Past 15 Mins' },
+                      { value: 30, label: 'Past 30 Mins' },
+                      { value: 60, label: 'Past 1 Hour' },
+                      { value: 120, label: 'Past 2 Hours' }
+                    ]}
+                    style={{ width: '140px' }}
+                    triggerStyle={{ height: '34px', fontSize: '0.82rem' }}
+                    size="sm"
+                  />
                 </div>
 
                 <button
@@ -3223,18 +3227,18 @@ export default function CloudPushPortal() {
                 <div>
                   <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px', color: 'var(--text-muted)' }}>Target Terminal SN</label>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <select
-                      className="form-control"
-                      style={{ minWidth: '180px', fontWeight: 700, fontSize: '0.84rem' }}
+                    <CustomSelect
                       value={commandTargetSerial}
-                      onChange={(e) => setCommandTargetSerial(e.target.value)}
-                    >
-                      {deviceSerials.map(d => (
-                        <option key={d.id || d.sn} value={d.sn}>
-                          [{d.role}] {d.sn} — {d.label || 'Biometric Device'}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setCommandTargetSerial}
+                      options={deviceSerials.map(d => ({
+                        value: d.sn,
+                        label: `[${d.role}] ${d.sn}${d.label ? ` — ${d.label}` : ''}`
+                      }))}
+                      placeholder="Select Target Device"
+                      style={{ minWidth: '220px' }}
+                      triggerStyle={{ height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
+                      size="sm"
+                    />
                     <input
                       type="text"
                       className="form-control"

@@ -1959,27 +1959,21 @@ const Ledger = () => {
                       {voucherForm.lines.map((line, idx) => (
                         <tr key={idx} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                           <td style={{ padding: '8px 10px' }}>
-                            <select
+                            <CustomSelect
                               value={line.accountId}
-                              onChange={(e) => updateVoucherLine(idx, 'accountId', e.target.value)}
-                              style={{
-                                width: '100%',
-                                padding: '8px 10px',
-                                background: 'rgba(15, 23, 42, 0.85)',
-                                border: '1px solid rgba(255, 255, 255, 0.16)',
-                                borderRadius: '10px',
-                                color: '#ffffff',
-                                fontSize: '0.82rem',
-                                fontWeight: 600
-                              }}
-                            >
-                              <option value="">-- Select Account --</option>
-                              {accounts.map(a => (
-                                <option key={a.id} value={a.id}>
-                                  [{a.code}] {a.name} ({a.type?.toUpperCase()})
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(val) => updateVoucherLine(idx, 'accountId', val)}
+                              options={[
+                                { value: '', label: '-- Select Account --' },
+                                ...accounts.map(a => ({
+                                  value: a.id,
+                                  label: `[${a.code}] ${a.name} (${a.type?.toUpperCase()})`
+                                }))
+                              ]}
+                              placeholder="-- Select Account --"
+                              style={{ width: '100%' }}
+                              triggerStyle={{ height: '36px', fontSize: '0.82rem' }}
+                              size="sm"
+                            />
                           </td>
 
                           <td style={{ padding: '8px 10px' }}>

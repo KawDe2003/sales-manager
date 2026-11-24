@@ -478,7 +478,7 @@ button:focus,
   box-shadow: var(--card-shadow);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Dark Mode Dedicated Surface Elevation & Separation */
@@ -1495,24 +1495,63 @@ input[type="date"]::-webkit-datetime-edit {
   background: var(--surface) !important;
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius, 12px) !important;
-  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.5) !important;
+  border-radius: var(--radius, 14px) !important;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
 }
 
 [data-theme='light'] .custom-calendar-popover {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius, 12px) !important;
-  box-shadow: 0 20px 45px -8px rgba(15, 23, 42, 0.15) !important;
+  background: var(--surface, #ffffff) !important;
+  color: var(--text, #0f172a) !important;
+  border: 1px solid var(--border, #cbd5e1) !important;
+  border-radius: var(--radius, 14px) !important;
+  box-shadow: 0 20px 45px -8px rgba(15, 23, 42, 0.18), 0 0 0 1px var(--border, #cbd5e1) !important;
 }
 
-[data-theme='light'] .custom-calendar-popover button {
+.custom-calendar-popover button {
   color: var(--text);
+  font-family: inherit;
 }
 
-[data-theme='light'] .custom-calendar-popover button:hover {
-  background: var(--subtle-bg) !important;
+/* App-wide Unified Dropdown Select Styling (Ensures ALL dropdowns match CustomSelect) */
+select,
+select.form-control,
+select.form-input,
+.form-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--surface-2, var(--surface)) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  padding-right: 32px !important;
+  color: var(--text) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius, 10px) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease !important;
+  box-sizing: border-box !important;
+}
+
+select:focus,
+select.form-control:focus,
+select.form-input:focus,
+.form-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+  outline: none !important;
+}
+
+select option,
+select optgroup {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 8px 10px;
 }
 
 .form-input:focus,

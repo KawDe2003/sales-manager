@@ -1095,18 +1095,20 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
                       onChange={e => setNewCustDeviceSn(e.target.value)}
                       style={{ height: '32px', fontSize: '0.78rem', width: '160px', fontFamily: 'monospace' }}
                     />
-                    <select
-                      className="form-input"
+                    <CustomSelect
                       value={newCustDeviceRole}
-                      onChange={e => setNewCustDeviceRole(e.target.value)}
-                      style={{ height: '32px', fontSize: '0.78rem', width: '150px' }}
-                    >
-                      <option value="IN/OUT">Two-Way (IN/OUT)</option>
-                      <option value="IN">Entrance (IN)</option>
-                      <option value="OUT">Exit (OUT)</option>
-                      <option value="RECEPTION">Reception Terminal</option>
-                      <option value="DOOR">Access Door Terminal</option>
-                    </select>
+                      onChange={setNewCustDeviceRole}
+                      options={[
+                        { value: 'IN/OUT', label: 'Two-Way (IN/OUT)' },
+                        { value: 'IN', label: 'Entrance (IN)' },
+                        { value: 'OUT', label: 'Exit (OUT)' },
+                        { value: 'RECEPTION', label: 'Reception Terminal' },
+                        { value: 'DOOR', label: 'Access Door Terminal' }
+                      ]}
+                      style={{ width: '165px', minWidth: '150px' }}
+                      triggerStyle={{ height: '32px', fontSize: '0.78rem' }}
+                      size="sm"
+                    />
                     <input
                       type="text"
                       className="form-input"
