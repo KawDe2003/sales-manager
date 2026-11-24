@@ -146,12 +146,12 @@ const CustomSelect = ({
             minWidth:             Math.max(dropPos.width, 140),
             maxWidth:             'calc(100vw - 16px)',
             zIndex:               2147483647,
-            background:           'var(--bg-secondary, #121822)',
+            background:           'var(--surface)',
             backdropFilter:       'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border:               '1px solid var(--panel-border-highlight, rgba(16, 185, 129, 0.35))',
-            borderRadius:         'var(--radius-md, 12px)',
-            boxShadow:            '0 20px 50px -10px rgba(0,0,0,0.85), 0 0 25px rgba(16, 185, 129, 0.12)',
+            border:               '1px solid var(--border)',
+            borderRadius:         'var(--radius, 12px)',
+            boxShadow:            '0 20px 50px -10px rgba(0,0,0,0.5), 0 0 0 1px var(--border)',
             maxHeight:            '270px',
             overflowY:            'auto',
             padding:              '6px',
@@ -188,8 +188,8 @@ const CustomSelect = ({
                     borderRadius:   'var(--radius-sm, 8px)',
                     fontSize:       '0.84rem',
                     fontWeight:     isSel ? 700 : 500,
-                    color:          isSel ? (triggerStyle?.color || 'var(--accent-primary, #10b981)') : 'var(--text-primary, #eef2f6)',
-                    background:     isSel ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                    color:          isSel ? 'var(--accent)' : 'var(--text)',
+                    background:     isSel ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
                     cursor:         'pointer',
                     transition:     'background 0.14s ease, transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), color 0.14s ease',
                     marginBottom:   '2px',
@@ -200,7 +200,7 @@ const CustomSelect = ({
                   }}
                   onMouseEnter={e => {
                     if (!isSel) {
-                      e.currentTarget.style.background = 'var(--subtle-bg, rgba(255,255,255,0.06))';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)';
                       e.currentTarget.style.transform  = 'translateX(4px)';
                     }
                   }}
@@ -217,7 +217,7 @@ const CustomSelect = ({
                   {isSel && (
                     <Check
                       size={14}
-                      color={triggerStyle?.color || "var(--accent-primary, #10b981)"}
+                      color="var(--accent)"
                       style={{
                         flexShrink: 0,
                         marginLeft: '8px',
@@ -257,17 +257,17 @@ const CustomSelect = ({
           gap:            '8px',
           padding:        triggerPadding,
           height:         triggerHeight,
-          background:     'var(--input-bg, rgba(15, 20, 28, 0.8))',
-          border:         `1.5px solid ${isOpen ? 'var(--accent-primary, #10b981)' : 'var(--input-border, rgba(148, 163, 184, 0.18))'}`,
-          borderRadius:   'var(--radius-md, 12px)',
-          color:          hasValue ? 'var(--text-primary, #eef2f6)' : 'var(--text-muted, #5d6a80)',
+          background:     'var(--surface-2, var(--surface))',
+          border:         `1.5px solid ${isOpen ? 'var(--accent)' : 'var(--border)'}`,
+          borderRadius:   'var(--radius, 10px)',
+          color:          hasValue ? 'var(--text)' : 'var(--muted)',
           fontSize:       triggerFontSize,
           fontWeight:     600,
           cursor:         disabled ? 'not-allowed' : 'pointer',
           opacity:        disabled ? 0.6 : 1,
           boxShadow:      isOpen
-            ? '0 0 0 3.5px var(--accent-glow, rgba(16, 185, 129, 0.25))'
-            : '0 2px 8px rgba(0,0,0,0.06)',
+            ? '0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent)'
+            : 'none',
           transition:     'border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
           boxSizing:      'border-box',
           width:          '100%',
@@ -284,7 +284,7 @@ const CustomSelect = ({
         </span>
         <ChevronDown
           size={size === 'sm' ? 13 : 15}
-          color={triggerStyle?.color || "var(--accent-primary, #10b981)"}
+          color="var(--accent)"
           style={{
             transform:  isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',

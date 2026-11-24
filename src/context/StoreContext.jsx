@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { sendNotification } from '../utils/notificationService';
 import { isPeriodLocked, validatePeriodLock, createReversalJournalEntry } from '../utils/slfrsEngine';
+import { applyThemeTokens, loadThemeCustomizerConfig, saveThemeCustomizerConfig, THEME_PRESETS } from '../utils/themeManager';
 
 export const StoreContext = createContext();
 
@@ -1646,19 +1647,61 @@ export default function StoreContextProvider({ children }) {
   }, [customers, inventory, invoices, quotes, leads, expenses, fixedAssets, payments, tasks, smsConfig]);
 
   const [theme, setTheme] = useState(() => {
+    try {
+      const customizerCfg = loadThemeCustomizerConfig();
+      if (customizerCfg?.mode) return customizerCfg.mode;
+    } catch {}
     const saved = localStorage.getItem('gym_theme');
     if (saved) return saved;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
+
+  // Listen for real-time theme changes dispatched from ThemeCustomizerDrawer
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      const cfg = e.detail;
+      if (cfg?.mode && cfg.mode !== theme) {
+        setTheme(cfg.mode);
+        try { localStorage.setItem('gym_theme', cfg.mode); } catch {}
+      }
+    };
+    window.addEventListener('seynex_theme_changed', handleThemeChange);
+    return () => window.removeEventListener('seynex_theme_changed', handleThemeChange);
+  }, [theme]);
 
   const toggleTheme = () => {
     setTheme(prev => {
       const next = prev === 'dark' ? 'light' : 'dark';
       try {
         localStorage.setItem('gym_theme', next);
+        const currentCustomizer = loadThemeCustomizerConfig();
+        let targetPreset;
+        if (next === 'light') {
+          targetPreset = THEME_PRESETS.find(p => p.id === 'clean-daylight') || THEME_PRESETS[1];
+        } else {
+          targetPreset = (currentCustomizer?.presetId && currentCustomizer.presetId !== 'clean-daylight' && currentCustomizer.presetId !== 'cobalt-crisp')
+            ? THEME_PRESETS.find(p => p.id === currentCustomizer.presetId)
+            : THEME_PRESETS.find(p => p.id === 'seynex-indigo') || THEME_PRESETS[0];
+        }
+        if (!targetPreset) targetPreset = next === 'light' ? THEME_PRESETS[1] : THEME_PRESETS[0];
+
+        const updated = {
+          ...currentCustomizer,
+          presetId: targetPreset.id,
+          mode: next,
+          accent: targetPreset.accent,
+          bg: targetPreset.bg,
+          surface: targetPreset.surface,
+          surface2: targetPreset.surface2,
+          text: targetPreset.text,
+          muted: targetPreset.muted,
+          border: targetPreset.border
+        };
+        applyThemeTokens(updated);
+        saveThemeCustomizerConfig(updated);
+      } catch (e) {
         document.documentElement.setAttribute('data-theme', next);
-        document.documentElement.dataset.theme = next;
-      } catch (e) {}
+      }
       return next;
     });
   };
@@ -2037,8 +2080,6 @@ export default function StoreContextProvider({ children }) {
   useEffect(() => { 
     try {
       localStorage.setItem('gym_theme', theme);
-      document.documentElement.setAttribute('data-theme', theme);
-      document.documentElement.dataset.theme = theme;
     } catch {}
   }, [theme]);
 

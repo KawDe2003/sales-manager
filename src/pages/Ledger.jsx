@@ -1060,7 +1060,7 @@ const Ledger = () => {
                   startDate: statementStartDate, 
                   endDate: statementEndDate 
                 })}
-                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '10px 18px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 8px 16px rgba(99,102,241,0.3)' }}
+                style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-color)', border: 'none', borderRadius: 'var(--radius, 12px)', padding: '10px 18px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: 'var(--btn-primary-shadow)' }}
                 className="hover-lift"
               >
                 <Printer size={16} /> Export PDF
@@ -1602,7 +1602,7 @@ const Ledger = () => {
 
               <button 
                 onClick={() => exportTrialBalancePDF({ accounts, journalLines, journalEntries })}
-                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '10px 18px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 8px 16px rgba(99,102,241,0.3)' }}
+                style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-color)', border: 'none', borderRadius: 'var(--radius, 12px)', padding: '10px 18px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: 'var(--btn-primary-shadow)' }}
                 className="hover-lift"
               >
                 <Printer size={16} /> Export PDF
@@ -1743,14 +1743,14 @@ const Ledger = () => {
         }}>
           <div style={{ 
             width: '100%', maxWidth: '540px', 
-            background: '#0f172a', 
-            border: '1px solid rgba(255, 255, 255, 0.15)', 
-            borderRadius: '24px', 
+            background: 'var(--surface)', 
+            border: '1px solid var(--border)', 
+            borderRadius: 'var(--radius, 20px)', 
             padding: '32px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
                 {editingAccount ? 'Edit Ledger Account' : 'Add New Ledger Account'}
               </h3>
               <button 
@@ -1837,7 +1837,7 @@ const Ledger = () => {
                 </button>
                 <button 
                   type="submit" 
-                  style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(99,102,241,0.3)' }}
+                  style={{ padding: '10px 24px', background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-color)', border: 'none', borderRadius: 'var(--radius, 12px)', fontWeight: 800, cursor: 'pointer', boxShadow: 'var(--btn-primary-shadow)' }}
                 >
                   {editingAccount ? 'Save Changes' : 'Create Account'}
                 </button>
@@ -1857,16 +1857,16 @@ const Ledger = () => {
         }}>
           <div style={{ 
             width: '100%', maxWidth: '880px', 
-            background: '#0f172a', 
-            border: '1px solid rgba(255, 255, 255, 0.15)', 
-            borderRadius: '24px', 
+            background: 'var(--surface)', 
+            border: '1px solid var(--border)', 
+            borderRadius: 'var(--radius, 20px)', 
             padding: '32px',
             maxHeight: '90vh', overflowY: 'auto',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
                   Post Double-Entry Journal Voucher
                 </h3>
                 <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>

@@ -710,12 +710,12 @@ const Payments = () => {
                     borderRadius: '12px',
                     textAlign: 'left',
                     border: '1px solid',
-                    borderColor: renewalFrequency === freq.id ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)',
-                    background: renewalFrequency === freq.id ? 'rgba(99, 102, 241, 0.2)' : '#1e293b',
+                    borderColor: renewalFrequency === freq.id ? 'var(--accent)' : 'var(--border)',
+                    background: renewalFrequency === freq.id ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'var(--surface-2, var(--surface))',
                     cursor: 'pointer'
                   }}
                 >
-                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem' }}>{freq.label}</div>
+                  <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{freq.label}</div>
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{freq.desc}</div>
                 </button>
               ))}

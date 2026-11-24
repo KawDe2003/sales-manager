@@ -166,7 +166,7 @@ export default function ThemeCustomizerDrawer({ isOpen, onClose }) {
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              background: 'rgba(99, 102, 241, 0.15)',
+              background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -213,7 +213,7 @@ export default function ThemeCustomizerDrawer({ isOpen, onClose }) {
                     style={{
                       padding: '10px 14px',
                       borderRadius: '10px',
-                      background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'var(--surface-2)',
+                      background: isSelected ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'var(--surface-2)',
                       border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
                       display: 'flex',
                       alignItems: 'center',

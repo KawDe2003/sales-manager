@@ -146,14 +146,18 @@ export const applyThemeTokens = (config) => {
   root.setAttribute('data-theme', mode);
   root.dataset.theme = mode;
 
+  const fg = config.accentFg || computeAccentFg(config.accent);
+
   if (config.accent) {
-    const fg = computeAccentFg(config.accent);
     root.style.setProperty('--accent', config.accent);
     root.style.setProperty('--accent-primary', config.accent);
+    root.style.setProperty('--accent-secondary', config.accent);
     root.style.setProperty('--accent-fg', fg);
+    root.style.setProperty('--accent-glow', `color-mix(in srgb, ${config.accent} 25%, transparent)`);
     root.style.setProperty('--btn-primary-bg', config.accent);
     root.style.setProperty('--btn-primary-color', fg);
     root.style.setProperty('--btn-primary-border', config.accent);
+    root.style.setProperty('--btn-primary-shadow', `0 2px 10px color-mix(in srgb, ${config.accent} 40%, transparent)`);
   }
   if (config.bg) {
     root.style.setProperty('--bg', config.bg);
@@ -165,15 +169,17 @@ export const applyThemeTokens = (config) => {
     root.style.setProperty('--bg-secondary', config.surface);
     root.style.setProperty('--panel-bg', config.surface);
     root.style.setProperty('--header-bg', config.surface);
+    root.style.setProperty('--card-bg', config.surface);
   }
-  if (config.surface2) {
-    root.style.setProperty('--surface-2', config.surface2);
-    root.style.setProperty('--bg-tertiary', config.surface2);
-    root.style.setProperty('--input-bg', config.surface2);
-  }
+  const surface2 = config.surface2 || (isColorDark(config.surface || '#161a23') ? '#221b14' : '#f8fafc');
+  root.style.setProperty('--surface-2', surface2);
+  root.style.setProperty('--bg-tertiary', surface2);
+  root.style.setProperty('--input-bg', surface2);
+
   if (config.text) {
     root.style.setProperty('--text', config.text);
     root.style.setProperty('--text-primary', config.text);
+    root.style.setProperty('--btn-secondary-color', config.text);
   }
   if (config.muted) {
     root.style.setProperty('--muted', config.muted);
@@ -185,14 +191,27 @@ export const applyThemeTokens = (config) => {
     root.style.setProperty('--panel-border', config.border);
     root.style.setProperty('--subtle-border', config.border);
     root.style.setProperty('--input-border', config.border);
+    root.style.setProperty('--btn-secondary-border', config.border);
   }
+
+  const subtleBg = isColorDark(config.bg || '#000000') ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)';
+  root.style.setProperty('--subtle-bg', subtleBg);
+  root.style.setProperty('--btn-secondary-bg', surface2);
+
   if (config.radius) {
     root.style.setProperty('--radius', config.radius);
+    root.style.setProperty('--radius-sm', config.radius === '0px' ? '0px' : '6px');
     root.style.setProperty('--radius-md', config.radius);
+    root.style.setProperty('--radius-lg', config.radius === '0px' ? '0px' : '16px');
+    root.style.setProperty('--radius-xl', config.radius === '0px' ? '0px' : '22px');
   }
   if (config.cardPad) {
     root.style.setProperty('--card-pad', config.cardPad);
   }
+
+  try {
+    window.dispatchEvent(new CustomEvent('seynex_theme_changed', { detail: config }));
+  } catch (e) {}
 };
 
 /**

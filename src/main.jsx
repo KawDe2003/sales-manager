@@ -2,6 +2,13 @@ import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { applyThemeTokens, loadThemeCustomizerConfig } from './utils/themeManager'
+
+// Apply customizer theme tokens immediately on boot before DOM painting
+try {
+  const themeCfg = loadThemeCustomizerConfig();
+  if (themeCfg) applyThemeTokens(themeCfg);
+} catch (e) {}
 
 // Auto-purge any legacy placeholder database URLs from localStorage on startup
 try {

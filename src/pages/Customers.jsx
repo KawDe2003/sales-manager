@@ -625,21 +625,21 @@ const CustomerModal = ({ onClose, onSave, initialData, nextCustomerCode, custome
           flexDirection: 'column', 
           padding: 0, 
           overflow: 'hidden',
-          borderRadius: '16px',
-          background: 'linear-gradient(180deg, #1e293b 0%, #151f32 100%)',
-          border: '1px solid rgba(148, 163, 184, 0.22)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)'
+          borderRadius: 'var(--radius, 16px)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Modal Header */}
-        <div className="modal-header modal-header-solid" style={{ flexShrink: 0, padding: '18px 24px', borderBottom: '1px solid rgba(148, 163, 184, 0.18)' }}>
+        <div className="modal-header modal-header-solid" style={{ flexShrink: 0, padding: '18px 24px', borderBottom: '1px solid var(--border)' }}>
           <div className="flex justify-between items-center w-full">
             <div>
-              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h2 className="h2" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {initialData ? 'Edit Enterprise Client' : 'Create New Enterprise Client'}
               </h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Complete corporate details, contact person, and billing profile.
               </p>
             </div>
@@ -1198,10 +1198,10 @@ const NotesModal = ({ customer, onClose }) => {
           flexDirection: 'column',
           padding: 0,
           overflow: 'hidden',
-          borderRadius: '16px',
-          background: 'linear-gradient(180deg, #1e293b 0%, #151f32 100%)',
-          border: '1px solid rgba(148, 163, 184, 0.22)',
-          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)'
+          borderRadius: 'var(--radius, 16px)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 25px 65px -10px rgba(0, 0, 0, 0.5)'
         }}
         onClick={(e) => e.stopPropagation()}
       >

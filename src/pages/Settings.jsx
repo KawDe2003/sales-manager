@@ -930,9 +930,9 @@ END $$;`}
                   <div className="flex items-center gap-3">
                     <div style={{
                       width: '42px', height: '42px', borderRadius: '10px',
-                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(59, 130, 246, 0.2))',
+                      background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)'
+                      color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
                     }}>
                       <Building2 size={22} />
                     </div>

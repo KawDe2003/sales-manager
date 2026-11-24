@@ -147,22 +147,14 @@ const Dashboard = () => {
     return d >= start && d <= end;
   };
 
-  // Creative Lighter KPI Card Style Helper (elevated luminous slate with ambient corner aura)
+  // Creative Lighter KPI Card Style Helper (elevated luminous surface with ambient corner aura)
   const getKpiCardStyle = (accentColor, glowRgba, isHero = false, heroDarkBg = null) => ({
-    padding: '20px',
-    borderRadius: '16px',
-    background: isDark
-      ? (isHero && heroDarkBg
-          ? `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), ${heroDarkBg}`
-          : `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, rgba(36, 53, 85, 0.88) 0%, rgba(24, 37, 63, 0.94) 100%)`)
-      : (isHero
-          ? `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)`
-          : `radial-gradient(circle at 85% 15%, ${glowRgba} 0%, transparent 60%), linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)`),
-    border: isDark
-      ? (isHero ? `1.5px solid ${accentColor}` : `1px solid rgba(148, 163, 184, 0.28)`)
-      : (isHero ? `1.5px solid ${accentColor}` : `1px solid rgba(15, 23, 42, 0.1)`),
+    padding: 'var(--card-pad, 20px)',
+    borderRadius: 'var(--radius, 16px)',
+    background: 'var(--surface)',
+    border: isHero ? `1.5px solid ${accentColor}` : `1px solid var(--border)`,
     boxShadow: isDark
-      ? `0 12px 28px -4px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 16px ${glowRgba}`
+      ? `0 12px 28px -4px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 16px ${glowRgba}`
       : `0 8px 24px -2px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9)`,
     position: 'relative',
     overflow: 'hidden'
@@ -973,12 +965,10 @@ const Dashboard = () => {
             <div 
               className="glass-panel hover-lift"
               style={{
-                padding: '20px',
-                borderRadius: '16px',
-                background: isDark
-                  ? 'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
-                  : 'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%), #ffffff',
-                border: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(99, 102, 241, 0.18)',
+                padding: 'var(--card-pad, 20px)',
+                borderRadius: 'var(--radius, 16px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
               }}
             >
@@ -988,7 +978,7 @@ const Dashboard = () => {
                 </span>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '10px',
-                  background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8',
+                  background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                   <FileText size={18} />
@@ -998,7 +988,7 @@ const Dashboard = () => {
                 LKR {totalInvoicedThisMonth.toLocaleString()}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                <span style={{ color: '#818cf8', fontWeight: 700 }}>
+                <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
                   {invoicesThisMonth.length} {invoicesThisMonth.length === 1 ? 'invoice' : 'invoices'}
                 </span>
                 <span>issued this month</span>
@@ -1009,12 +999,10 @@ const Dashboard = () => {
             <div 
               className="glass-panel hover-lift"
               style={{
-                padding: '20px',
-                borderRadius: '16px',
-                background: isDark
-                  ? 'radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
-                  : 'radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.08) 0%, transparent 60%), #ffffff',
-                border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.18)',
+                padding: 'var(--card-pad, 20px)',
+                borderRadius: 'var(--radius, 16px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
               }}
             >
@@ -1045,12 +1033,10 @@ const Dashboard = () => {
             <div 
               className="glass-panel hover-lift"
               style={{
-                padding: '20px',
-                borderRadius: '16px',
-                background: isDark
-                  ? 'radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
-                  : 'radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.08) 0%, transparent 60%), #ffffff',
-                border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.18)',
+                padding: 'var(--card-pad, 20px)',
+                borderRadius: 'var(--radius, 16px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
               }}
             >
@@ -1081,12 +1067,10 @@ const Dashboard = () => {
             <div 
               className="glass-panel hover-lift"
               style={{
-                padding: '20px',
-                borderRadius: '16px',
-                background: isDark
-                  ? 'radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.15) 0%, transparent 60%), linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
-                  : 'radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 60%), #ffffff',
-                border: isDark ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid rgba(6, 182, 212, 0.18)',
+                padding: 'var(--card-pad, 20px)',
+                borderRadius: 'var(--radius, 16px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 boxShadow: isDark ? '0 10px 25px -5px rgba(0,0,0,0.3)' : '0 6px 20px -2px rgba(15, 23, 42, 0.06)'
               }}
             >
@@ -1118,10 +1102,10 @@ const Dashboard = () => {
           <div 
             className="glass-panel"
             style={{
-              padding: '22px 24px',
-              borderRadius: '18px',
-              background: isDark ? 'rgba(30, 41, 59, 0.65)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+              padding: 'var(--card-pad, 22px)',
+              borderRadius: 'var(--radius, 18px)',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
               boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.25)' : '0 4px 20px rgba(15, 23, 42, 0.05)'
             }}
           >
@@ -1136,7 +1120,7 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#6366f1' }}></span>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }}></span>
                   <span style={{ fontWeight: 600 }}>Invoiced Revenue</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
@@ -1151,8 +1135,8 @@ const Dashboard = () => {
                 <AreaChart data={financialStudioData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="simpleInvoicedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.4} />
-                      <stop offset="95%" stopColor={isDark ? "#818cf8" : "#6366f1"} stopOpacity={0.0} />
+                      <stop offset="5%" stopColor={isDark ? "var(--accent)" : "var(--accent)"} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={isDark ? "var(--accent)" : "var(--accent)"} stopOpacity={0.0} />
                     </linearGradient>
                     <linearGradient id="simpleCollectedGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor={isDark ? "#34d399" : "#10b981"} stopOpacity={0.45} />
@@ -1179,7 +1163,7 @@ const Dashboard = () => {
                     type="monotone" 
                     dataKey="invoiced" 
                     name="Invoiced Revenue" 
-                    stroke={isDark ? "#818cf8" : "#4f46e5"} 
+                    stroke="var(--accent)" 
                     strokeWidth={2.5} 
                     fillOpacity={1} 
                     fill="url(#simpleInvoicedGrad)" 
@@ -1202,10 +1186,10 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Column 1: Recent Quotations */}
-            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: 'var(--radius, 16px)', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={18} />
                   </div>
                   <div>
@@ -1221,7 +1205,7 @@ const Dashboard = () => {
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', margin: 0, fontSize: '0.82rem', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)' }}>
+                    <tr style={{ background: 'var(--subtle-bg)', borderBottom: '1px solid var(--border)' }}>
                       <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Quote & Client</th>
                       <th style={{ padding: '10px 10px', textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
                       <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Net Total</th>
@@ -1235,10 +1219,10 @@ const Dashboard = () => {
                           ? '#ef4444'
                           : '#f59e0b';
                       return (
-                        <tr key={q.id || q.quoteNumber} style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(15, 23, 42, 0.05)' }}>
+                        <tr key={q.id || q.quoteNumber} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '10px 16px' }}>
                             <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ color: 'var(--accent-primary, #6366f1)', fontWeight: 800 }}>#{q.quoteNumber}</span>
+                              <span style={{ color: 'var(--accent)', fontWeight: 800 }}>#{q.quoteNumber}</span>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>{q.prospectName || 'Client'}</span>
                             </div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -1278,8 +1262,8 @@ const Dashboard = () => {
             </div>
 
             {/* Column 2: Outstanding Invoices / Receivables */}
-            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: 'var(--radius, 16px)', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CreditCard size={18} />
@@ -1297,7 +1281,7 @@ const Dashboard = () => {
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', margin: 0, fontSize: '0.82rem', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)', borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)' }}>
+                    <tr style={{ background: 'var(--subtle-bg)', borderBottom: '1px solid var(--border)' }}>
                       <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Client & Invoice</th>
                       <th style={{ padding: '10px 10px', textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
                       <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Balance Due</th>
@@ -1309,7 +1293,7 @@ const Dashboard = () => {
                       const paid = (inv.payments || []).reduce((ps, p) => ps + (Number(p.amount) || 0), 0);
                       const out = Math.max(0, total - paid);
                       return (
-                        <tr key={inv.id} style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(15, 23, 42, 0.05)' }}>
+                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '10px 16px' }}>
                             <div style={{ fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
                               {inv.customerName || inv.prospectName || 'Client'}

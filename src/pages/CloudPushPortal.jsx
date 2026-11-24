@@ -1351,7 +1351,7 @@ export default function CloudPushPortal() {
             zIndex: 2
           }}
         >
-          <HardDrive size={17} style={{ color: portalSection === 'fleet' ? '#fff' : '#6366f1' }} />
+          <HardDrive size={17} style={{ color: portalSection === 'fleet' ? '#fff' : 'var(--accent)' }} />
           <span>Terminal Fleet & Devices</span>
         </button>
       </div>
@@ -1698,7 +1698,7 @@ export default function CloudPushPortal() {
                       fontSize: '0.72rem',
                       letterSpacing: '0.04em',
                       background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                      color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1',
+                      color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : 'var(--accent)',
                       border: `1px solid ${dev.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
                     }}>
                       {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
@@ -2195,7 +2195,7 @@ export default function CloudPushPortal() {
                           padding: '1px 5px',
                           borderRadius: '3px',
                           background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.2)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                          color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : '#6366f1'
+                          color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : 'var(--accent)'
                         }}>
                           {d.role}
                         </span>
@@ -2421,7 +2421,7 @@ export default function CloudPushPortal() {
                             fontWeight: 800,
                             fontSize: '0.72rem',
                             background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                            color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1'
+                            color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : 'var(--accent)'
                           }}>
                             {dev.role}
                           </span>
@@ -3928,7 +3928,7 @@ export default function CloudPushPortal() {
                         display: 'inline-flex', alignItems: 'center', gap: '3px',
                         padding: '3px 8px', borderRadius: '6px', fontWeight: 800, fontSize: '0.72rem',
                         background: dev.role === 'IN' ? 'rgba(16, 185, 129, 0.15)' : dev.role === 'OUT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                        color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : '#6366f1'
+                        color: dev.role === 'IN' ? '#10b981' : dev.role === 'OUT' ? '#ef4444' : 'var(--accent)'
                       }}>
                         {dev.role === 'IN' ? <LogIn size={11} /> : dev.role === 'OUT' ? <LogOut size={11} /> : <ArrowUpDown size={11} />}
                         {dev.role}
@@ -4193,7 +4193,7 @@ export default function CloudPushPortal() {
                               display: 'inline-flex', alignItems: 'center', gap: '4px',
                               padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
                               background: d.role === 'IN' ? 'rgba(16, 185, 129, 0.12)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                              color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : '#6366f1',
+                              color: d.role === 'IN' ? '#10b981' : d.role === 'OUT' ? '#ef4444' : 'var(--accent)',
                               border: `1px solid ${d.role === 'IN' ? 'rgba(16, 185, 129, 0.3)' : d.role === 'OUT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
                             }}
                           >

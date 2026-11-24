@@ -46,9 +46,9 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
       onTouchMove={(e) => e.stopPropagation()}
     >
       <div className="modal-card" style={{
-        maxWidth: '440px', width: '100%', padding: '24px 20px', borderRadius: '18px',
-        border: isDanger ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(99, 102, 241, 0.4)',
-        boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.3)' : '0 25px 50px -12px rgba(99, 102, 241, 0.3)',
+        maxWidth: '440px', width: '100%', padding: '24px 20px', borderRadius: 'var(--radius, 18px)',
+        border: isDanger ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+        boxShadow: isDanger ? '0 25px 50px -12px rgba(239, 68, 68, 0.3)' : '0 25px 50px -12px color-mix(in srgb, var(--accent) 30%, transparent)',
         position: 'relative'
       }}>
         <button 
@@ -66,8 +66,8 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Delete', cancelTe
         <div className="flex items-center gap-4 mb-4">
           <div style={{
             width: '48px', height: '48px', borderRadius: '14px',
-            background: isDanger ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-            border: `1px solid ${isDanger ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+            background: isDanger ? 'rgba(239, 68, 68, 0.12)' : 'color-mix(in srgb, var(--accent) 15%, transparent)',
+            border: isDanger ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             {isDanger ? (

@@ -992,15 +992,15 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
           flexDirection: 'column',
           padding: 0,
           overflow: 'hidden',
-          borderRadius: '16px',
-          background: 'var(--panel-bg, #0d1218)',
-          border: '1px solid var(--panel-border)',
+          borderRadius: 'var(--radius, 16px)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.55)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Compact Modal Header */}
-        <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -1028,19 +1028,20 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
           </div>
           <button 
             type="button"
-            className="btn btn-secondary" 
+            className="btn btn-secondary modal-close-btn" 
             style={{ 
-              width: '36px', 
-              height: '36px', 
-              minWidth: '36px',
+              width: '40px', 
+              height: '40px', 
+              minWidth: '40px',
+              minHeight: '40px',
               padding: 0, 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              borderRadius: '8px',
+              borderRadius: '10px',
               color: 'var(--text-primary)',
-              background: 'var(--subtle-bg)',
-              border: '1px solid var(--panel-border)',
+              background: 'var(--surface-2, var(--surface))',
+              border: '1px solid var(--border)',
               cursor: 'pointer'
             }} 
             onClick={onClose}
@@ -1571,11 +1572,11 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
             style={{
               flexShrink: 0,
               padding: '12px 20px',
-              borderTop: '1px solid var(--panel-border)',
+              borderTop: '1px solid var(--border)',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '10px',
-              background: 'var(--panel-bg, #0d1218)'
+              background: 'var(--surface)'
             }}
           >
             <button 

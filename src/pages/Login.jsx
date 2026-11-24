@@ -700,9 +700,9 @@ const Login = () => {
         }}>
           <div style={{
             maxWidth: '380px', width: '100%',
-            background: '#0f172a',
+            background: 'var(--surface)',
             border: `1px solid ${activePortal.glowColor}`,
-            borderRadius: '18px', padding: '26px', position: 'relative',
+            borderRadius: 'var(--radius, 18px)', padding: '26px', position: 'relative',
             boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
           }}>
             <button

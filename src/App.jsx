@@ -570,7 +570,7 @@ const AppContent = () => {
               background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
               border: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 16px rgba(99, 102, 241, 0.25)',
+              boxShadow: '0 6px 16px color-mix(in srgb, var(--accent) 25%, transparent)',
               overflow: 'hidden',
               flexShrink: 0
             }}>
@@ -684,17 +684,17 @@ const AppContent = () => {
               alignItems: 'center',
               gap: '7px',
               background: cloudSyncStatus === 'syncing'
-                ? 'rgba(99, 102, 241, 0.15)'
+                ? 'color-mix(in srgb, var(--accent) 15%, transparent)'
                 : cloudSyncStatus === 'error'
                   ? 'rgba(239, 68, 68, 0.12)'
                   : 'rgba(16, 185, 129, 0.12)',
               color: cloudSyncStatus === 'syncing'
-                ? 'var(--accent-primary)'
+                ? 'var(--accent)'
                 : cloudSyncStatus === 'error'
                   ? '#ef4444'
                   : '#10b981',
               border: cloudSyncStatus === 'syncing'
-                ? '1px solid rgba(99, 102, 241, 0.3)'
+                ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
                 : cloudSyncStatus === 'error'
                   ? '1px solid rgba(239, 68, 68, 0.3)'
                   : '1px solid rgba(16, 185, 129, 0.25)',

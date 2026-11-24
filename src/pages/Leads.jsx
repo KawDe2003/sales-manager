@@ -1735,10 +1735,9 @@ const LeadCommentsModal = ({ lead, onClose, markedActionDates, onAddComment, onM
           flexDirection: 'column',
           padding: 0, 
           overflow: 'hidden',
-          borderRadius: '16px',
-          background: 'var(--panel-bg, #0f172a)',
-          backgroundColor: '#0f172a',
-          border: '1px solid var(--subtle-border)',
+          borderRadius: 'var(--radius, 16px)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
         }}
         onClick={(e) => e.stopPropagation()}
