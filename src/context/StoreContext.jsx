@@ -1106,17 +1106,50 @@ export default function StoreContextProvider({ children }) {
 
   // Change tracking: count actual state changes after hydration and initial cloud load
   const isHydratingCloudRef = useRef(false);
-  const dataVersionRef = useRef(0);
+  const isInitialSetupDoneRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
+  const lastKnownDataHashRef = useRef(null);
+
+  const computeDataHash = () => {
+    try {
+      const { balance, balanceError, ...cleanSms } = smsConfig || {};
+      return JSON.stringify({
+        c: customers.length,
+        inv: inventory.length,
+        i: invoices.length,
+        q: quotes.length,
+        l: leads.length,
+        e: expenses.length,
+        p: payments.length,
+        t: tasks.length,
+        fa: (fixedAssets || []).length,
+        sms: cleanSms
+      });
+    } catch {
+      return '';
+    }
+  };
 
   useEffect(() => {
-    // Increment change counter
-    dataVersionRef.current += 1;
+    // Delay marking initial setup done until mount and cloud hydration effects stabilize
+    const timer = setTimeout(() => {
+      lastKnownDataHashRef.current = computeDataHash();
+      isInitialSetupDoneRef.current = true;
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, []);
 
-    // Skip the first 2 renders (mount + initial load) and whenever cloud is actively hydrating
-    if (dataVersionRef.current <= 2 || isHydratingCloudRef.current) {
+  useEffect(() => {
+    // Never mark unsaved changes during initial load or while cloud is hydrating
+    if (!isInitialSetupDoneRef.current || isHydratingCloudRef.current) {
       return;
     }
+
+    const currentHash = computeDataHash();
+    if (lastKnownDataHashRef.current && currentHash === lastKnownDataHashRef.current) {
+      return;
+    }
+    lastKnownDataHashRef.current = currentHash;
 
     setHasUnsavedChanges(true);
 
@@ -1127,7 +1160,7 @@ export default function StoreContextProvider({ children }) {
 
     autoSaveTimerRef.current = setTimeout(() => {
       syncAllToCloud(true);
-    }, 1200);
+    }, 1500);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -2358,9 +2391,9 @@ export default function StoreContextProvider({ children }) {
 
   const syncConfigToSupabase = async (config) => {
     try {
-      setCloudSyncStatus('syncing');
+      const activeClient = getSupabaseClient(activeBusinessId) || supabase;
       const effId = getEffectiveUserId();
-      let { error } = await supabase
+      let { error } = await activeClient
         .from('user_profiles')
         .upsert({
           user_id: effId,
@@ -2370,7 +2403,7 @@ export default function StoreContextProvider({ children }) {
 
       // If foreign key constraint failed on user_id, fallback to system admin UUID
       if (error && error.code === '23503' && effId !== '76bb4580-2006-464f-aab8-64029dbe9540') {
-        const fallbackRes = await supabase
+        const fallbackRes = await activeClient
           .from('user_profiles')
           .upsert({
             user_id: '76bb4580-2006-464f-aab8-64029dbe9540',
@@ -2382,7 +2415,7 @@ export default function StoreContextProvider({ children }) {
 
       // Also ensure all existing profiles have the latest company configuration so no stale row overrides it
       try {
-        await supabase
+        await activeClient
           .from('user_profiles')
           .update({
             config,
@@ -2395,14 +2428,14 @@ export default function StoreContextProvider({ children }) {
 
       if (error) {
         console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
-        setCloudSyncStatus('error');
       } else {
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toISOString());
+        setHasUnsavedChanges(false);
+        lastKnownDataHashRef.current = computeDataHash();
       }
     } catch (err) {
       console.warn('[Supabase Sync] Config Exception:', err.message);
-      setCloudSyncStatus('error');
     }
   };
 
@@ -2953,10 +2986,12 @@ export default function StoreContextProvider({ children }) {
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch(e) {}
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
+      lastKnownDataHashRef.current = computeDataHash();
       setTimeout(() => { 
         isHydratedRef.current = true; 
         isHydratingCloudRef.current = false;
         setHasUnsavedChanges(false);
+        lastKnownDataHashRef.current = computeDataHash();
       }, 300);
       console.log('[Supabase Sync] Cloud data hydration completed successfully.');
     } catch (err) {
@@ -3276,6 +3311,7 @@ export default function StoreContextProvider({ children }) {
       try { localStorage.setItem('gym_last_sync_time', syncTimeStr); } catch (e) {}
       setCloudSyncStatus('synced');
       setHasUnsavedChanges(false);
+      lastKnownDataHashRef.current = computeDataHash();
       if (!isSilent) showNotification(`Data Saved! ${savedCount} records saved to Supabase cloud.`, 'success');
       return { success: true, count: savedCount };
     } catch (err) {
@@ -5826,6 +5862,8 @@ export default function StoreContextProvider({ children }) {
     setSmsConfig(updated);
     try {
       localStorage.setItem('gym_sms_config', JSON.stringify(updated));
+      localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(updated));
+      localStorage.setItem('biz_data_biz_main_smsConfig', JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to save gym_sms_config to localStorage', e);
     }
@@ -6210,7 +6248,7 @@ export default function StoreContextProvider({ children }) {
       featureToggles, updateFeatureToggle, applyPlanPreset,
       currentPlan, selectPlan, checkPlanLimit, PLAN_CONFIGS,
       isStoreLoading,
-      cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud,
+      cloudSyncStatus, lastSyncTime, fetchCloudData, syncAllToCloud, hasUnsavedChanges, setHasUnsavedChanges,
       // Multi-Database Architecture & Connections
       getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient,
       // Multi-Business Entity Partitioning & Switcher

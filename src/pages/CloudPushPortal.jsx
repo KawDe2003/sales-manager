@@ -464,6 +464,45 @@ export default function CloudPushPortal() {
   }, []);
 
   // Save current device config for quick reuse
+  const getHardwareSnapshot = () => JSON.stringify({
+    accNo: String(accNo || '').trim(),
+    deviceSerials: (deviceSerials || []).map(d => ({ sn: String(d.sn || '').trim(), role: d.role || 'IN/OUT', label: d.label || '' })),
+    apiKey: String(apiKey || '').trim(),
+    ratePerUserMonth: Number(ratePerUserMonth) || 0
+  });
+
+  const savedHardwareSnapshotRef = useRef(null);
+
+  // When initial customer/storage load occurs, establish snapshot
+  useEffect(() => {
+    if (savedHardwareSnapshotRef.current === null) {
+      savedHardwareSnapshotRef.current = getHardwareSnapshot();
+    }
+  }, [accNo, deviceSerials, apiKey, ratePerUserMonth]);
+
+  // When customer changes, sync the baseline snapshot with the customer's data
+  useEffect(() => {
+    if (selectedCustomerId) {
+      const cust = customers?.find(c => c.id === selectedCustomerId);
+      if (cust) {
+        const devSerials = Array.isArray(cust.deviceSerials) && cust.deviceSerials.length > 0 
+          ? cust.deviceSerials 
+          : (cust.deviceSerial ? [{ sn: cust.deviceSerial, role: 'IN/OUT', label: 'Main Biometric Terminal (IN/OUT)' }] : []);
+        savedHardwareSnapshotRef.current = JSON.stringify({
+          accNo: String(cust.cloudPushAcc || '').trim(),
+          deviceSerials: devSerials.map(d => ({ sn: String(d.sn || '').trim(), role: d.role || 'IN/OUT', label: d.label || '' })),
+          apiKey: String(cust.cloudPushApiKey || '').trim(),
+          ratePerUserMonth: Number(cust.ratePerUserMonth) || 0
+        });
+      }
+    }
+  }, [selectedCustomerId]);
+
+  const isHardwareDirty = useMemo(() => {
+    if (!savedHardwareSnapshotRef.current) return false;
+    return getHardwareSnapshot() !== savedHardwareSnapshotRef.current;
+  }, [accNo, deviceSerials, apiKey, ratePerUserMonth]);
+
   const handleSaveConfig = () => {
     try {
       const primarySn = deviceSerials[0]?.sn || serialNo || '';
@@ -482,6 +521,7 @@ export default function CloudPushPortal() {
       } else {
         notify(`Hardware configuration & ${deviceSerials.length} biometric device(s) saved locally!`, 'success');
       }
+      savedHardwareSnapshotRef.current = getHardwareSnapshot();
     } catch (e) {
       console.error(e);
     }
@@ -1205,16 +1245,18 @@ export default function CloudPushPortal() {
 
         {/* Quick Actions Header */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button 
-            type="button" 
-            className="btn btn-secondary"
-            onClick={handleSaveConfig}
-            title="Save hardware and connection settings locally"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Save size={15} />
-            <span>Save Settings</span>
-          </button>
+          {isHardwareDirty && (
+            <button 
+              type="button" 
+              className="btn btn-primary"
+              onClick={handleSaveConfig}
+              title="Save hardware and connection settings locally"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', animation: 'fadeIn 0.2s ease' }}
+            >
+              <Save size={15} />
+              <span>Save Settings</span>
+            </button>
+          )}
 
           <a 
             href="https://documenter.getpostman.com/view/14215737/Uyxbpowh" 
@@ -1905,16 +1947,18 @@ export default function CloudPushPortal() {
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleSaveConfig}
-              title="Save configuration and device serials to customer profile"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
-            >
-              <Save size={14} />
-              <span>Save Hardware Profile</span>
-            </button>
+            {isHardwareDirty && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveConfig}
+                title="Save configuration and device serials to customer profile"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', animation: 'fadeIn 0.2s ease' }}
+              >
+                <Save size={14} />
+                <span>Save Hardware Profile</span>
+              </button>
+            )}
 
             {portalSection === 'audit' && (
               <>

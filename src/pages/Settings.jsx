@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
@@ -73,7 +73,7 @@ const Settings = () => {
     customRoles = [], addCustomRole, updateCustomRole, duplicateCustomRole, deleteCustomRole, confirmAction,
     featureToggles = {}, updateFeatureToggle, applyPlanPreset,
     cloudSyncStatus = 'synced', lastSyncTime, fetchCloudData, syncAllToCloud,
-    resetEverythingWithConfirmation, hasUnsavedChanges,
+    resetEverythingWithConfirmation, hasUnsavedChanges, setHasUnsavedChanges,
     customers = [], quotes = [], invoices = [], inventory = [], leads = [],
     businesses = [], activeBusinessId, activeBusiness, switchBusiness,
     getBusinessDbConfig, saveBusinessDbConfig, testDatabaseConnection, getSupabaseClient,
@@ -105,6 +105,15 @@ const Settings = () => {
   const [seynexTesting, setSeynexTesting] = useState(false);
   const [seynexTestResult, setSeynexTestResult] = useState(null);
 
+  const initialDbSnapshot = useRef({
+    url: (seynexInitialCfg.url && !seynexInitialCfg.url.includes('your-project-url')) ? seynexInitialCfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co',
+    anonKey: (seynexInitialCfg.anonKey && seynexInitialCfg.anonKey !== 'your-anon-key') ? seynexInitialCfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI'
+  });
+
+  const isDbDirty = useMemo(() => {
+    return seynexDbUrl !== initialDbSnapshot.current.url || seynexDbKey !== initialDbSnapshot.current.anonKey;
+  }, [seynexDbUrl, seynexDbKey]);
+
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
   const [copiedRpcSql, setCopiedRpcSql] = useState(false);
 
@@ -128,8 +137,11 @@ const Settings = () => {
     const handleDbUpdated = () => {
       if (getBusinessDbConfig) {
         const sCfg = getBusinessDbConfig('biz_main');
-        setSeynexDbUrl((sCfg.url && !sCfg.url.includes('your-project-url')) ? sCfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co');
-        setSeynexDbKey((sCfg.anonKey && sCfg.anonKey !== 'your-anon-key') ? sCfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
+        const nextUrl = (sCfg.url && !sCfg.url.includes('your-project-url')) ? sCfg.url : 'https://cavehtshlvorbzlgqmxs.supabase.co';
+        const nextKey = (sCfg.anonKey && sCfg.anonKey !== 'your-anon-key') ? sCfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI';
+        setSeynexDbUrl(nextUrl);
+        setSeynexDbKey(nextKey);
+        initialDbSnapshot.current = { url: nextUrl, anonKey: nextKey };
       }
     };
     window.addEventListener('business_db_config_updated', handleDbUpdated);
@@ -163,6 +175,7 @@ const Settings = () => {
       return;
     }
     saveBusinessDbConfig('biz_main', { url: seynexDbUrl, anonKey: seynexDbKey });
+    initialDbSnapshot.current = { url: seynexDbUrl, anonKey: seynexDbKey };
     showNotification('Seynex Enterprises database connection saved successfully.');
     handleTestSeynexConnection();
   };
@@ -170,8 +183,11 @@ const Settings = () => {
   const handleResetSeynexDb = () => {
     if (!saveBusinessDbConfig) return;
     saveBusinessDbConfig('biz_main', null);
-    setSeynexDbUrl('https://cavehtshlvorbzlgqmxs.supabase.co');
-    setSeynexDbKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI');
+    const defUrl = 'https://cavehtshlvorbzlgqmxs.supabase.co';
+    const defKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmVodHNobHZvcmJ6bGdxbXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzQxMzEsImV4cCI6MjA5MTQ1MDEzMX0.aApzqy2ByGpWInScx-vuxgZ_GHJjCwenN0cWz1CyadI';
+    setSeynexDbUrl(defUrl);
+    setSeynexDbKey(defKey);
+    initialDbSnapshot.current = { url: defUrl, anonKey: defKey };
     setSeynexTestResult(null);
     showNotification('Seynex Enterprises database reset to canonical production defaults.');
   };
@@ -204,14 +220,43 @@ const Settings = () => {
     handleRefreshBalance();
   }, []);
 
+  const getComparableConfig = (cfg) => {
+    if (!cfg || typeof cfg !== 'object') return '';
+    const { balance, balanceError, ...rest } = cfg;
+    return JSON.stringify(rest);
+  };
+
+  const initialConfigSnapshot = useRef(null);
+  if (initialConfigSnapshot.current === null && smsConfig && Object.keys(smsConfig).length > 0) {
+    initialConfigSnapshot.current = getComparableConfig(smsConfig);
+  }
+
+  const isSettingsDirty = useMemo(() => {
+    if (!initialConfigSnapshot.current) return false;
+    return getComparableConfig(smsConfig) !== initialConfigSnapshot.current;
+  }, [smsConfig]);
+
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSave = async () => {
-    if (updateSmsConfig) {
-      updateSmsConfig({ ...smsConfig });
+    setIsSaving(true);
+    try {
+      if (updateSmsConfig) {
+        updateSmsConfig({ ...smsConfig });
+      }
+      if (syncAllToCloud) {
+        await syncAllToCloud(false);
+      }
+      if (setHasUnsavedChanges) {
+        setHasUnsavedChanges(false);
+      }
+      initialConfigSnapshot.current = getComparableConfig(smsConfig);
+      showNotification('System configuration and SMS settings saved successfully.');
+    } catch (err) {
+      showNotification(`Failed to save settings: ${err.message}`, 'error');
+    } finally {
+      setIsSaving(false);
     }
-    if (syncAllToCloud) {
-      await syncAllToCloud();
-    }
-    showNotification('System configuration and SMS settings saved successfully to cloud.');
   };
 
   return (
@@ -221,9 +266,15 @@ const Settings = () => {
           <h1 className="h1 mb-2">System Settings</h1>
           <p className="text-secondary" style={{ fontSize: '1rem' }}>Manage team member accounts, corporate branding, SMS API integrations, and payment details.</p>
         </div>
-        {(hasUnsavedChanges || cloudSyncStatus === 'syncing') && (
-          <button className="btn btn-primary" style={{ height: '44px', padding: '0 24px' }} onClick={handleSave}>
-            <Save size={18} /> Save All Changes
+        {isSettingsDirty && (
+          <button 
+            className="btn btn-primary" 
+            style={{ height: '44px', padding: '0 24px', animation: 'fadeIn 0.25s ease' }} 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            <Save size={18} className={isSaving ? 'animate-spin' : ''} /> 
+            {isSaving ? 'Saving Changes...' : 'Save All Changes'}
           </button>
         )}
       </div>
@@ -1044,15 +1095,37 @@ END $$;`}
                     <RefreshCw size={14} className={seynexTesting ? 'animate-spin' : ''} />
                     Test Connection
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleSaveSeynexDb}
-                    style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
-                  >
-                    <Save size={14} />
-                    Save Credentials
-                  </button>
+                  {isDbDirty ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSaveSeynexDb}
+                      style={{ flex: 1, height: '36px', fontSize: '0.8rem', gap: '6px' }}
+                    >
+                      <Save size={14} />
+                      Save Credentials
+                    </button>
+                  ) : (
+                    <div 
+                      style={{ 
+                        flex: 1, 
+                        height: '36px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '6px', 
+                        fontSize: '0.78rem', 
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--subtle-border)'
+                      }}
+                    >
+                      <Check size={14} color="var(--success)" />
+                      Credentials Saved
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -2067,6 +2140,26 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
 
         </div>
 
+        {/* Corporate Identity Save Bar (Only appears when changes are made) */}
+        {isSettingsDirty && (
+          <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-4" style={{ gridColumn: '1 / -1', padding: '18px 24px', marginTop: '4px', animation: 'fadeIn 0.25s ease', border: '1px solid var(--accent-primary)' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Save Corporate Identity Changes</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>You have unsaved changes to your company branding, address, or tax details.</div>
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ padding: '11px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Save size={18} className={isSaving ? 'animate-spin' : ''} /> 
+              {isSaving ? 'Saving Changes...' : 'Save Corporate Identity'}
+            </button>
+          </div>
+        )}
+
       </div>
       )}
 
@@ -2129,24 +2222,29 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
               </span>
             </div>
 
-            <button 
-              type="button" 
-              className="btn btn-primary" 
-              onClick={handleSave}
-              style={{ 
-                width: '100%', 
-                marginTop: '16px', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '8px', 
-                padding: '10px 18px', 
-                fontWeight: 700, 
-                fontSize: '0.88rem' 
-              }}
-            >
-              <Save size={16} /> Save Gateway & Sender ID
-            </button>
+            {isSettingsDirty && (
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleSave}
+                disabled={isSaving}
+                style={{ 
+                  width: '100%', 
+                  marginTop: '16px', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px', 
+                  padding: '10px 18px', 
+                  fontWeight: 700, 
+                  fontSize: '0.88rem',
+                  animation: 'fadeIn 0.25s ease'
+                }}
+              >
+                <Save size={16} className={isSaving ? 'animate-spin' : ''} /> 
+                {isSaving ? 'Saving...' : 'Save Gateway & Sender ID'}
+              </button>
+            )}
 
             <div style={{ 
               marginTop: '24px', 
@@ -2561,21 +2659,25 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
 
         </div>
 
-        {/* Full-width SMS Save Bar */}
-        <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-4" style={{ gridColumn: '1 / -1', padding: '18px 24px', marginTop: '4px' }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Save SMS Gateway & Automation Settings</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Changes are saved locally and synced directly to Supabase cloud.</div>
+        {/* Full-width SMS Save Bar (Only appears when changes are made) */}
+        {isSettingsDirty && (
+          <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-4" style={{ gridColumn: '1 / -1', padding: '18px 24px', marginTop: '4px', animation: 'fadeIn 0.25s ease', border: '1px solid var(--accent-primary)' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Save SMS Gateway & Automation Settings</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>You have unsaved changes to your SMS settings and templates.</div>
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ padding: '11px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Save size={18} className={isSaving ? 'animate-spin' : ''} /> 
+              {isSaving ? 'Saving Changes...' : 'Save All SMS Settings'}
+            </button>
           </div>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
-            onClick={handleSave}
-            style={{ padding: '11px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Save size={18} /> Save All SMS Settings
-          </button>
-        </div>
+        )}
 
       </div>
       )}
@@ -2797,6 +2899,26 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
           </div>
 
         </div>
+
+        {/* Bank & Payments Save Bar (Only appears when changes are made) */}
+        {isSettingsDirty && (
+          <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-4" style={{ gridColumn: '1 / -1', padding: '18px 24px', marginTop: '4px', animation: 'fadeIn 0.25s ease', border: '1px solid var(--accent-primary)' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Save Bank & Payment Changes</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>You have unsaved changes to your bank account details or payment instructions.</div>
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{ padding: '11px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Save size={18} className={isSaving ? 'animate-spin' : ''} /> 
+              {isSaving ? 'Saving Changes...' : 'Save Banking Settings'}
+            </button>
+          </div>
+        )}
 
       </div>
       )}
