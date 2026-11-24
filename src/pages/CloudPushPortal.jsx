@@ -19,6 +19,7 @@ import { StoreContext } from '../context/StoreContext';
 import { 
   calculateMonthwiseActiveUsers, 
   generateSimulatedMonthwiseData, 
+  getTransactionsChunk,
   getTerminalStatus,
   sendTerminalCommand,
   getRealtimeTransactions,
@@ -822,28 +823,86 @@ export default function CloudPushPortal() {
           showNotification('success', `Retrieved ${data.length} live attendance punch records!`);
         }
       } else {
-        // If device has no punches in last N minutes, generate realistic live feed so the view remains functional
-        if (realtimeLogs.length === 0) {
-          const sampleFeed = [
-            { pin: 21, name: 'Kasun Perera', time: new Date(Date.now() - 4 * 60000).toISOString().replace('T', ' ').substring(0, 19), punch_state: 'Check-In', verify_type: 'Fingerprint', terminal_serial: serialNo || 'NYU7254000011' },
-            { pin: 84, name: 'Dilshan Silva', time: new Date(Date.now() - 11 * 60000).toISOString().replace('T', ' ').substring(0, 19), punch_state: 'Check-In', verify_type: 'Face ID', terminal_serial: serialNo || 'NYU7254000011' },
-            { pin: 112, name: 'Nadeeka Fernando', time: new Date(Date.now() - 18 * 60000).toISOString().replace('T', ' ').substring(0, 19), punch_state: 'Check-Out', verify_type: 'Fingerprint', terminal_serial: serialNo || 'NYU7254000011' },
-            { pin: 45, name: 'Chaminda Bandara', time: new Date(Date.now() - 32 * 60000).toISOString().replace('T', ' ').substring(0, 19), punch_state: 'Check-In', verify_type: 'RFID Card', terminal_serial: serialNo || 'NYU7254000011' },
-            { pin: 201, name: 'Sanduni Wickrama', time: new Date(Date.now() - 45 * 60000).toISOString().replace('T', ' ').substring(0, 19), punch_state: 'Check-In', verify_type: 'Face ID', terminal_serial: serialNo || 'NYU7254000011' }
-          ];
-          setRealtimeLogs(sampleFeed);
-        }
+        // TRUE DATA ONLY: Never inject fake or sample attendance records
+        setRealtimeLogs([]);
         if (!isSilent && showNotification) {
-          showNotification('info', `No new punches on gateway in last ${realtimeMinutes} min. Showing live stream buffer.`);
+          showNotification('info', `No new punches recorded on gateway in the last ${realtimeMinutes} min.`);
         }
       }
     } catch (err) {
       console.warn('Realtime fetch error:', err.message);
+      setRealtimeLogs([]);
       if (!isSilent && showNotification) {
-        showNotification('info', `Realtime Stream: ${err.message}. Displaying live buffer.`);
+        showNotification('error', `Realtime Stream: ${err.message}`);
       }
     } finally {
       if (!isSilent) setRealtimeLoading(false);
+    }
+  };
+
+  // Fetch true punches logged today across all configured biometric devices
+  const handleFetchTodayPunches = async () => {
+    if (!accNo) {
+      notify('Please select a client with a valid Push Account #', 'warning');
+      return;
+    }
+    setRealtimeLoading(true);
+
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const fromD = `${todayStr} 00:00:00`;
+      const toD = `${todayStr} 23:59:59`;
+      
+      let allPunches = [];
+      const devicesToQuery = (deviceSerials && deviceSerials.length > 0) 
+        ? deviceSerials 
+        : [{ sn: serialNo || '' }];
+
+      for (const dev of devicesToQuery) {
+        const targetSn = dev.sn || '';
+        if (!targetSn) continue;
+        try {
+          const punches = await getTransactionsChunk({
+            baseUrl,
+            accNo,
+            serialNo: targetSn,
+            fromDate: fromD,
+            toDate: toD,
+            apiKey
+          });
+          if (Array.isArray(punches)) {
+            allPunches = [
+              ...allPunches,
+              ...punches.map(p => ({
+                ...p,
+                terminal_serial: p.terminal_serial || targetSn,
+                time: p.time || p.punch_time || p.date || p.datetime || '',
+                pin: p.pin || p.PIN || p.user_id || '',
+                name: p.name || p.nameshort || '',
+                punch_state: p.punch_state || (dev.role === 'OUT' ? 'Check-Out' : 'Check-In'),
+                verify_type: p.verify_type || 'Biometric ID'
+              }))
+            ];
+          }
+        } catch (e) {
+          console.warn(`Query today for ${targetSn} error:`, e.message);
+        }
+      }
+
+      // Sort newest first
+      allPunches.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+      setRealtimeLogs(allPunches);
+      setLastRealtimeFetch(new Date());
+
+      if (allPunches.length > 0) {
+        notify(`Retrieved ${allPunches.length} true punches recorded today (${todayStr})!`, 'success');
+      } else {
+        notify(`No punch transactions found on gateway for today (${todayStr}).`, 'info');
+      }
+    } catch (err) {
+      notify(`Failed to fetch today punches: ${err.message}`, 'error');
+    } finally {
+      setRealtimeLoading(false);
     }
   };
 
@@ -1681,16 +1740,6 @@ export default function CloudPushPortal() {
 
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleRunSimulated}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', padding: '6px 12px' }}
-                >
-                  <Sparkles size={13} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Preview Sample</span>
-                </button>
-
-                <button
-                  type="button"
                   className="btn btn-primary"
                   onClick={() => handleRunAudit(false)}
                   disabled={loading}
@@ -1813,12 +1862,13 @@ export default function CloudPushPortal() {
               <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button 
                   type="button" 
-                  className="btn btn-sm btn-secondary"
-                  onClick={handleRunSimulated}
+                  className="btn btn-sm btn-primary"
+                  onClick={() => handleRunAudit(true)}
+                  disabled={loading}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Preview Simulated Statement Now</span>
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  <span>Retry Statement Fetch</span>
                 </button>
               </div>
             </div>
@@ -1842,15 +1892,6 @@ export default function CloudPushPortal() {
                 Configure the billing cycle dates and rate in the hardware section above, then click <strong>Fetch Active User Statement</strong> to scan active biometric members across all biometric devices, or preview sample audit data.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleRunSimulated}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Sparkles size={15} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Preview Sample Audit</span>
-                </button>
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -1910,11 +1951,12 @@ export default function CloudPushPortal() {
               <button 
                 type="button" 
                 className="btn btn-sm btn-primary"
-                onClick={handleRunSimulated}
+                onClick={() => handleRunAudit(true)}
+                disabled={loading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Sparkles size={14} />
-                <span>Load Sample Annual Audit for {serialNo}</span>
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                <span>Refresh Live Gateway Data</span>
               </button>
             </div>
           )}
@@ -2776,6 +2818,18 @@ export default function CloudPushPortal() {
                 <button
                   type="button"
                   className="btn btn-secondary"
+                  onClick={handleFetchTodayPunches}
+                  disabled={realtimeLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
+                  title="Fetch all true attendance punches logged on the hardware gateway today"
+                >
+                  <Calendar size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Query Today's Real Punches</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
                   onClick={() => handleFetchRealtime(false)}
                   disabled={realtimeLoading}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
@@ -2881,8 +2935,10 @@ export default function CloudPushPortal() {
                     <tr>
                       <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <Radio size={32} style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.4 }} />
-                        <div style={{ fontWeight: 600 }}>No attendance punches recorded in the last {realtimeMinutes} minutes.</div>
-                        <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>Click "Refresh Now" or expand the window to view earlier punches.</div>
+                        <div style={{ fontWeight: 600 }}>No attendance punches recorded on the gateway in the last {realtimeMinutes} minutes.</div>
+                        <div style={{ fontSize: '0.8rem', marginTop: '6px' }}>
+                          Click <strong>Query Today's Real Punches</strong> to scan all punches logged today, or <strong>Refresh Now</strong>.
+                        </div>
                       </td>
                     </tr>
                   )}
