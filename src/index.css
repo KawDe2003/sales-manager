@@ -489,15 +489,19 @@ button:focus,
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius, 12px) !important;
-  box-shadow: var(--card-shadow) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
 [data-theme='dark'] .glass-panel:hover,
 [data-theme='dark'] .card:hover,
 [data-theme='dark'] .panel:hover,
 [data-theme='dark'] .dashboard-card:hover {
+  border-color: color-mix(in srgb, var(--text) 20%, var(--border)) !important;
+  box-shadow: 0 8px 26px -4px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='dark'] .hover-lift:hover {
   border-color: var(--accent) !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Light Mode Dedicated Surface Elevation & Separation */
@@ -515,8 +519,12 @@ button:focus,
 [data-theme='light'] .card:hover,
 [data-theme='light'] .panel:hover,
 [data-theme='light'] .dashboard-card:hover {
+  border-color: color-mix(in srgb, var(--text) 18%, var(--border)) !important;
+  box-shadow: 0 10px 26px -4px rgba(15, 23, 42, 0.09) !important;
+}
+
+[data-theme='light'] .hover-lift:hover {
   border-color: var(--accent) !important;
-  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.10) !important;
 }
 
 /* Use .chart-panel on panels containing Recharts to allow SVG overflow */
@@ -1230,8 +1238,31 @@ input[type="password"]:focus,
 textarea:focus,
 .form-input:focus,
 .form-control:focus {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+  border-color: var(--accent, var(--accent-primary));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #6366f1) 24%, transparent);
+}
+
+/* Financial Tabular Numerals, Tactile Focus Rings & Table Row Polish */
+.tabular-nums,
+table.table td,
+table.table th,
+.kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+
+table.table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+table.table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent, #6366f1) 5%, transparent);
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent, #6366f1);
+  outline-offset: 2px;
 }
 
 /* Dark Mode High-Contrast Form Inputs (Clearly Identified Recessed Surface) */
