@@ -307,12 +307,31 @@ async function runCustomWebhookAgent(agent) {
 }
 
 export default async function handler(request, response) {
-  // Optional CRON_SECRET verification when configured in Vercel environment
+  // Verify CRON_SECRET on scheduled runs, and require CRON_SECRET or valid Supabase JWT on manual triggers in production
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers['authorization'] || '';
   const isManualTrigger = request.query?.manual === '1' || request.method === 'POST';
+
   if (cronSecret && !isManualTrigger && authHeader !== `Bearer ${cronSecret}`) {
     return response.status(401).json({ ok: false, error: 'Unauthorized cron invocation' });
+  }
+
+  if (isManualTrigger && process.env.NODE_ENV === 'production') {
+    const token = authHeader.replace('Bearer ', '').trim();
+    const isCronToken = Boolean(cronSecret && token === cronSecret);
+    if (!isCronToken) {
+      const sbUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || CANONICAL_SUPABASE_URL).trim();
+      const sbKey = (process.env.VITE_SUPABASE_ANON_KEY || CANONICAL_SUPABASE_ANON_KEY).trim();
+      if (!token) {
+        return response.status(401).json({ ok: false, error: 'Staff authorization token required for manual execution.' });
+      }
+      const verifyRes = await fetch(`${sbUrl.replace(/\/$/, '')}/auth/v1/user`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'apikey': sbKey }
+      });
+      if (!verifyRes.ok) {
+        return response.status(401).json({ ok: false, error: 'Invalid staff session token.' });
+      }
+    }
   }
 
   const supabase = getSupabaseAdmin();

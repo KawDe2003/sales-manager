@@ -359,12 +359,23 @@ export default function AutomationAgents() {
     }).eq('id', agent.id);
   };
 
+  const getAuthHeaders = async () => {
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+      const { data } = await supabase?.auth?.getSession?.() || {};
+      const token = data?.session?.access_token;
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch {}
+    return headers;
+  };
+
   const handleRunAgentNow = async (agent) => {
     setRunningAgentId(agent.id);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/cron/run-agents?agentId=${encodeURIComponent(agent.id)}&manual=1`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
@@ -393,7 +404,8 @@ export default function AutomationAgents() {
     }
     setRunningAll(true);
     try {
-      const res = await fetch('/api/cron/run-agents?manual=1', { method: 'POST' });
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/cron/run-agents?manual=1', { method: 'POST', headers });
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();

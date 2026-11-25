@@ -38,7 +38,7 @@ export default function CloudPushPortal() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, confirmAction, updateCustomer, addCustomer, deleteCustomer, syncAllToCloud } = useContext(StoreContext) || {};
+  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, confirmAction, updateCustomer, addCustomer, deleteCustomer, syncAllToCloud, addLog } = useContext(StoreContext) || {};
 
   // Parse any passed state or URL query parameters (e.g. from invoice fee calculation button)
   const initialCustomerId = searchParams.get('customerId') || location.state?.customerId || '';
@@ -997,6 +997,9 @@ export default function CloudPushPortal() {
       };
 
       setCommandHistory(prev => [logEntry, ...prev.slice(0, 19)]);
+      if (typeof addLog === 'function') {
+        addLog('HardwareCommand', `Dispatched ${commandName} (${commandLabel}) to terminal ${target} — Status: ${logEntry.status}`);
+      }
       if (showNotification) {
         showNotification('success', `Command "${commandLabel}" dispatched to ${target}!`);
       }

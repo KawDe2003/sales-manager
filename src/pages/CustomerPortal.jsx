@@ -24,6 +24,7 @@ const CustomerPortal = () => {
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [otpExpiresAt, setOtpExpiresAt] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpCooldownSec, setOtpCooldownSec] = useState(0);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [authenticatedCustomer, setAuthenticatedCustomer] = useState(null);
@@ -47,6 +48,13 @@ const CustomerPortal = () => {
       setPhoneNumber(urlPhone);
     }
   }, [urlPhone]);
+
+  // 60s OTP resend cooldown countdown
+  useEffect(() => {
+    if (otpCooldownSec <= 0) return;
+    const t = setTimeout(() => setOtpCooldownSec(s => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [otpCooldownSec]);
 
   // Close payment modal on Escape key
   useEffect(() => {
@@ -219,10 +227,35 @@ const CustomerPortal = () => {
       };
     }
 
-    // Generate random 4-digit OTP (valid 10 minutes)
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate OTP via server-side RPC (with 60s per-phone cooldown) or fallback
+    let code = null;
+    if (supabase) {
+      try {
+        const { data: otpRes, error: otpErr } = await supabase.rpc('create_portal_otp', { p_phone: cleanPhone });
+        if (!otpErr && otpRes) {
+          if (otpRes.ok === false) {
+            if (otpRes.cooldown) setOtpCooldownSec(Number(otpRes.cooldown) || 60);
+            showNotification(otpRes.error || 'Please wait before requesting another OTP.', 'warning');
+            setIsSendingOtp(false);
+            return;
+          }
+          code = otpRes.code;
+        }
+      } catch {}
+    }
+
+    if (!code) {
+      if (otpCooldownSec > 0) {
+        showNotification(`Please wait ${otpCooldownSec}s before requesting another OTP.`, 'warning');
+        setIsSendingOtp(false);
+        return;
+      }
+      code = Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
     setGeneratedOtp(code);
     setOtpExpiresAt(Date.now() + 10 * 60 * 1000);
+    setOtpCooldownSec(60);
     setOtpSent(true);
 
     const targetPhone = foundCustomer.phone || phoneNumber;
@@ -252,9 +285,30 @@ const CustomerPortal = () => {
     if (e) e.preventDefault();
     setIsVerifying(true);
 
-    const isOtpValid = Boolean(generatedOtp) && otpInput.trim() === generatedOtp && (!otpExpiresAt || Date.now() <= otpExpiresAt);
+    let isOtpValid = false;
+    let otpErrMsg = '';
+    const cleanPhone = getCleanDigits(phoneNumber);
+
+    if (supabase) {
+      try {
+        const { data: vRes, error: vErr } = await supabase.rpc('verify_portal_otp', {
+          p_phone: cleanPhone,
+          p_code: otpInput.trim()
+        });
+        if (!vErr && vRes && typeof vRes.ok === 'boolean') {
+          isOtpValid = vRes.ok;
+          otpErrMsg = vRes.error || '';
+        } else {
+          isOtpValid = Boolean(generatedOtp) && otpInput.trim() === generatedOtp && (!otpExpiresAt || Date.now() <= otpExpiresAt);
+        }
+      } catch {
+        isOtpValid = Boolean(generatedOtp) && otpInput.trim() === generatedOtp && (!otpExpiresAt || Date.now() <= otpExpiresAt);
+      }
+    } else {
+      isOtpValid = Boolean(generatedOtp) && otpInput.trim() === generatedOtp && (!otpExpiresAt || Date.now() <= otpExpiresAt);
+    }
+
     if (isOtpValid) {
-      const cleanPhone = getCleanDigits(phoneNumber);
       const searchLast9 = cleanPhone.slice(-9);
 
       let foundCustomer = customers.find(c => {
@@ -462,19 +516,29 @@ const CustomerPortal = () => {
       if (addPayment) addPayment(newPayment);
       setPortalPayments(prev => [newPayment, ...prev]);
 
-      // Sync to Supabase directly for unauthenticated session
+      // Sync to Supabase via tamper-proof RPC (with fallback)
       if (supabase) {
         try {
-          await supabase.from('payments').insert({
-            customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
-            document_id: selectedInvoice.id,
-            amount: amount,
-            payment_type: payMethodStr,
-            reference_number: refNo,
-            status: 'Pending Verification',
-            notes: newPayment.notes,
-            created_at: nowIso
+          const { data: payRpc, error: payRpcErr } = await supabase.rpc('submit_portal_payment', {
+            p_invoice_id: String(selectedInvoice.id),
+            p_customer_id: String(authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId || ''),
+            p_amount: amount,
+            p_payment_type: payMethodStr,
+            p_reference_number: refNo,
+            p_notes: newPayment.notes
           });
+          if (payRpcErr || payRpc?.ok === false) {
+            await supabase.from('payments').insert({
+              customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
+              document_id: selectedInvoice.id,
+              amount: amount,
+              payment_type: payMethodStr,
+              reference_number: refNo,
+              status: 'Pending Verification',
+              notes: newPayment.notes,
+              created_at: nowIso
+            });
+          }
         } catch (err) {
           console.error('Supabase payment sync error:', err);
         }
@@ -751,8 +815,16 @@ const CustomerPortal = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1, height: '46px' }} onClick={() => setOtpSent(false)}>
-                    <RefreshCw size={16} /> Resend
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ flex: 1, height: '46px' }}
+                    disabled={otpCooldownSec > 0 || isSendingOtp}
+                    onClick={() => {
+                      if (otpCooldownSec <= 0) handleSendOTP();
+                    }}
+                  >
+                    <RefreshCw size={16} /> {otpCooldownSec > 0 ? `Resend (${otpCooldownSec}s)` : 'Resend'}
                   </button>
                   <button type="submit" className="btn btn-primary" style={{ flex: 2, height: '46px', fontWeight: 700 }} disabled={isVerifying}>
                     {isVerifying ? 'Verifying...' : 'Verify & Access'} <CheckCircle size={18} />
