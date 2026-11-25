@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { StoreContext } from '../context/StoreContext';
 import { supabase } from '../lib/supabase';
@@ -39,6 +40,7 @@ const CustomerPortal = () => {
 
   // Tab navigation for authenticated customer: 'active' | 'paid' | 'receipts'
   const [activeTab, setActiveTab] = useState('active');
+  const [tokenError, setTokenError] = useState('');
 
   useEffect(() => {
     if (urlPhone) {
@@ -46,17 +48,32 @@ const CustomerPortal = () => {
     }
   }, [urlPhone]);
 
+  // Close payment modal on Escape key
+  useEffect(() => {
+    if (!selectedInvoice) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSelectedInvoice(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedInvoice]);
+
   // Direct tokenized portal access (/portal/:shareToken or /pay/token/:shareToken)
   useEffect(() => {
     if (!shareToken || !supabase) return;
     let cancelled = false;
+    setTokenError('');
     (async () => {
       try {
         const { data: rpcDoc, error } = await supabase.rpc('get_shared_document', {
           p_doc_type: 'invoice',
           p_token: shareToken
         });
-        if (!cancelled && rpcDoc && !error) {
+        if (cancelled) return;
+        if (rpcDoc && !error) {
+          const totalAmt = Number(rpcDoc.amount) || 0;
+          const paidAmt = Number(rpcDoc.amountPaid) || 0;
+          const outAmt = Number(rpcDoc.outstandingBalance ?? Math.max(0, totalAmt - paidAmt)) || 0;
           const invObj = {
             id: rpcDoc.id,
             shareKey: rpcDoc.shareKey || shareToken,
@@ -64,7 +81,7 @@ const CustomerPortal = () => {
             date: rpcDoc.date,
             dueDate: rpcDoc.dueDate,
             customerId: rpcDoc.customerId,
-            amount: Number(rpcDoc.amount) || 0,
+            amount: totalAmt,
             status: rpcDoc.status || 'Sent',
             items: Array.isArray(rpcDoc.items) ? rpcDoc.items : [],
             prospectName: rpcDoc.prospectName || rpcDoc.customerName,
@@ -78,13 +95,31 @@ const CustomerPortal = () => {
             ownerName: rpcDoc.customerName || 'Valued Client'
           });
           setPortalInvoices([invObj]);
-          if (invObj.status !== 'Paid') {
-            setSelectedInvoice(invObj);
-            setPaymentAmount(String(Number(rpcDoc.outstandingBalance ?? invObj.amount) || 0));
+          if (paidAmt > 0) {
+            setPortalPayments([{
+              id: `prior-${rpcDoc.id}`,
+              documentId: rpcDoc.id,
+              invoiceNumber: rpcDoc.invoiceNumber,
+              customerId: rpcDoc.customerId,
+              amount: paidAmt,
+              status: 'Verified',
+              method: 'Previously Recorded Payment',
+              referenceNumber: 'PRIOR-BAL',
+              paymentDate: rpcDoc.date || new Date().toISOString().split('T')[0],
+              timestamp: rpcDoc.date || new Date().toISOString()
+            }]);
           }
+          if (invObj.status !== 'Paid' && outAmt > 0) {
+            setSelectedInvoice(invObj);
+            setPaymentAmount(String(outAmt));
+          }
+        } else {
+          setTokenError('This payment link is invalid or has expired. Please sign in with your registered mobile number.');
         }
       } catch (err) {
-        console.warn('[CustomerPortal] Token lookup notice:', err?.message || err);
+        if (!cancelled) {
+          setTokenError('Could not load tokenized invoice. Please sign in with your registered mobile number.');
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -191,13 +226,24 @@ const CustomerPortal = () => {
     setOtpSent(true);
 
     const targetPhone = foundCustomer.phone || phoneNumber;
-    const msg = `[${smsConfig.companyName || 'GymSales'}] Your portal login verification OTP code is: ${code}. Valid for 10 minutes.`;
+    const brandTitle = smsConfig.companyName || 'Seynex Enterprises';
+    const msg = `[${brandTitle}] Your portal login verification OTP code is: ${code}. Valid for 10 minutes.`;
 
+    let smsDelivered = false;
     if (sendDirectSMS) {
-      await sendDirectSMS(targetPhone, msg);
+      try {
+        const smsRes = await sendDirectSMS(targetPhone, msg);
+        smsDelivered = smsRes !== false && smsRes?.ok !== false;
+      } catch {
+        smsDelivered = false;
+      }
     }
 
-    showNotification(`Verification OTP code sent to ${targetPhone}`, 'success');
+    if (smsDelivered) {
+      showNotification(`Verification OTP code sent to ${targetPhone}`, 'success');
+    } else {
+      showNotification(`Could not dispatch SMS to ${targetPhone}. Please check SMS gateway configuration or try again.`, 'warning');
+    }
     setIsSendingOtp(false);
   };
 
@@ -518,11 +564,6 @@ const CustomerPortal = () => {
         customerInvoicesMap.set(inv.id, inv);
       }
     });
-
-    // Failsafe: If no invoices matched specific criteria but invoices exist in store/DB, pull them in
-    if (customerInvoicesMap.size === 0 && allInvoices.length > 0) {
-      allInvoices.forEach(inv => customerInvoicesMap.set(inv.id, inv));
-    }
   }
 
   const customerInvoices = Array.from(customerInvoicesMap.values());
@@ -549,20 +590,29 @@ const CustomerPortal = () => {
 
   const allPayments = Array.from(matchedPaymentsMap.values());
 
+  // Only verified/settled payments reduce balance due; pending verification slips stay active until approved
+  const getVerifiedPaidSum = (invId) => allPayments
+    .filter(p => p.documentId === invId && p.status !== 'Pending Verification' && p.status !== 'Rejected')
+    .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  const getPendingSum = (invId) => allPayments
+    .filter(p => p.documentId === invId && p.status === 'Pending Verification')
+    .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
   const activeInvoices = customerInvoices.filter(inv => {
-    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const paidSum = getVerifiedPaidSum(inv.id);
     const dueAmount = Math.max(0, inv.amount - paidSum);
     return inv.status !== 'Paid' && dueAmount > 0;
   });
 
   const paidInvoices = customerInvoices.filter(inv => {
-    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const paidSum = getVerifiedPaidSum(inv.id);
     const dueAmount = Math.max(0, inv.amount - paidSum);
     return inv.status === 'Paid' || dueAmount <= 0;
   });
 
   const totalOutstanding = activeInvoices.reduce((sum, inv) => {
-    const historicalPays = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+    const historicalPays = getVerifiedPaidSum(inv.id);
     return sum + Math.max(0, inv.amount - historicalPays);
   }, 0);
 
@@ -574,10 +624,10 @@ const CustomerPortal = () => {
         <div className="flex items-center gap-3">
           <div style={{
             width: '44px', height: '44px', borderRadius: '12px',
-            background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'rgba(255, 255, 255, 0.08)' : 'linear-gradient(135deg, #6366f1, #a855f7)',
-            border: (smsConfig.receiptLogo || smsConfig.companyLogo) ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
+            background: (smsConfig.receiptLogo || smsConfig.companyLogo) ? 'var(--surface-2)' : 'var(--accent)',
+            border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent)',
             overflow: 'hidden'
           }}>
             {(smsConfig.receiptLogo || smsConfig.companyLogo) ? (
@@ -620,15 +670,26 @@ const CustomerPortal = () => {
       {/* LOGIN SCREEN (UNAUTHENTICATED) */}
       {!authenticatedCustomer && (
         <div style={{ maxWidth: '460px', margin: '60px auto 0 auto' }}>
-          <div className="glass-panel" style={{ padding: '36px 28px', border: '1px solid rgba(99, 102, 241, 0.25)', boxShadow: '0 24px 48px rgba(0,0,0,0.3)' }}>
+          <div className="glass-panel" style={{ padding: '36px 28px', border: '1px solid var(--border)', boxShadow: '0 24px 48px rgba(0,0,0,0.3)' }}>
             
+            {tokenError && (
+              <div style={{
+                padding: '12px 14px', borderRadius: '10px', marginBottom: '20px',
+                background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#f59e0b', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px'
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{tokenError}</span>
+              </div>
+            )}
+
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
               <div style={{
-                width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(99, 102, 241, 0.12)',
+                width: '64px', height: '64px', borderRadius: '20px', background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto',
-                border: '1px solid rgba(99, 102, 241, 0.25)'
+                border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
               }}>
-                <ShieldCheck size={32} color="var(--accent-primary)" />
+                <ShieldCheck size={32} color="var(--accent)" />
               </div>
               <h2 className="h2" style={{ fontSize: '1.5rem', marginBottom: '6px' }}>Client Access Verification</h2>
               <p className="text-secondary" style={{ fontSize: '0.88rem' }}>
@@ -664,13 +725,10 @@ const CustomerPortal = () => {
               </form>
             ) : (
               <form onSubmit={handleVerifyOTP}>
-                <div style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid rgba(99, 102, 241, 0.2)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>OTP Code sent to: <strong>{phoneNumber}</strong></div>
-                  {generatedOtp && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Key size={13} /> DEMO OTP CODE: <span style={{ letterSpacing: '0.2em', fontSize: '0.95rem' }}>{generatedOtp}</span>
-                    </div>
-                  )}
+                <div style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Enter the 4-digit OTP code sent via SMS to <strong>{phoneNumber}</strong>
+                  </div>
                 </div>
 
                 <div className="form-group mb-6">
@@ -680,6 +738,8 @@ const CustomerPortal = () => {
                     <input 
                       required 
                       type="text" 
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={6}
                       className="form-input" 
                       style={{ paddingLeft: '44px', height: '48px', fontSize: '1.2rem', fontWeight: 800, letterSpacing: '0.3em', textAlign: 'center' }}
@@ -713,23 +773,23 @@ const CustomerPortal = () => {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
           {/* WELCOME BANNER */}
-          <div className="glass-panel hover-lift" style={{ padding: '28px', marginBottom: '24px', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08))', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+          <div className="glass-panel hover-lift" style={{ padding: '28px', marginBottom: '24px', background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))', border: '1px solid color-mix(in srgb, var(--accent) 28%, var(--border))' }}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-                  Authenticated Gym Client Account
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                  Authenticated Client Account
                 </div>
                 <h1 className="h1" style={{ margin: 0, fontSize: '1.8rem' }}>{authenticatedCustomer.gymName}</h1>
                 <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Owner / Contact: <strong>{authenticatedCustomer.ownerName || authenticatedCustomer.contactPerson || 'Gym Manager'}</strong> • Phone: {authenticatedCustomer.phone}
+                  Contact: <strong>{authenticatedCustomer.ownerName || authenticatedCustomer.contactPerson || 'Client Contact'}</strong>{authenticatedCustomer.phone ? ` • Phone: ${authenticatedCustomer.phone}` : ''}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--bg-secondary)', padding: '16px 24px', borderRadius: '16px', border: '1px solid var(--panel-border)', minWidth: '220px', textAlign: 'right' }}>
+              <div style={{ background: 'var(--surface-2)', padding: '16px 24px', borderRadius: '16px', border: '1px solid var(--border)', minWidth: '220px', textAlign: 'right' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                  Total Balance Due
+                  Total Verified Balance Due
                 </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: totalOutstanding > 0 ? 'var(--warning)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
+                <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 900, color: totalOutstanding > 0 ? 'var(--warning)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
                   LKR {totalOutstanding.toLocaleString()}
                 </div>
               </div>
@@ -801,7 +861,8 @@ const CustomerPortal = () => {
               ) : (
                 <div className="flex flex-col gap-6">
                   {activeInvoices.map(inv => {
-                    const paidSum = allPayments.filter(p => p.documentId === inv.id).reduce((s, p) => s + p.amount, 0);
+                    const paidSum = getVerifiedPaidSum(inv.id);
+                    const pendingSum = getPendingSum(inv.id);
                     const dueAmount = Math.max(0, inv.amount - paidSum);
                     const plan = inv.installmentPlan;
 
@@ -809,9 +870,14 @@ const CustomerPortal = () => {
                       <div key={inv.id} style={{ background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--panel-border)', padding: '20px' }}>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-panel">
                           <div>
-                            <div className="flex items-center gap-3 mb-1">
+                            <div className="flex items-center gap-3 mb-1 flex-wrap">
                               <span style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Invoice #{inv.invoiceNumber}</span>
                               <span className="badge badge-warning">{inv.status}</span>
+                              {pendingSum > 0 && (
+                                <span className="tabular-nums" style={{ fontSize: '0.74rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.12)', padding: '3px 9px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                                  Pending Verification: LKR {pendingSum.toLocaleString()}
+                                </span>
+                              )}
                               {plan?.enabled && (
                                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                   <Calendar size={12} /> {plan.count} {plan.frequency} Installments
@@ -927,7 +993,7 @@ const CustomerPortal = () => {
                                       {!isPaidInst && (
                                         <button 
                                           className="btn btn-secondary" 
-                                          style={{ width: '100%', marginTop: '8px', padding: '6px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--accent-primary)15', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                                          style={{ width: '100%', marginTop: '8px', padding: '6px', fontSize: '0.72rem', fontWeight: 700, background: 'color-mix(in srgb, var(--accent) 14%, transparent)', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 32%, transparent)' }}
                                           onClick={() => {
                                             setSelectedInvoice(inv);
                                             setPaymentAmount(instDueAmount.toString());
@@ -1035,6 +1101,7 @@ const CustomerPortal = () => {
                         <th>Invoice #</th>
                         <th>Payment Method</th>
                         <th>Reference #</th>
+                        <th>Status</th>
                         <th>Amount Paid</th>
                         <th style={{ textAlign: 'right' }}>Receipt PDF</th>
                       </tr>
@@ -1044,14 +1111,20 @@ const CustomerPortal = () => {
                         const invMatch = customerInvoices.find(i => i.id === pay.documentId);
                         const invNo = pay.invoiceNumber || (invMatch ? invMatch.invoiceNumber : 'GENERAL');
                         const pDate = pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : (pay.timestamp ? new Date(pay.timestamp).toLocaleDateString() : 'N/A');
+                        const isPendingPay = pay.status === 'Pending Verification';
                         
                         return (
                           <tr key={pay.id || idx}>
                             <td style={{ fontWeight: 600 }}>{pDate}</td>
-                            <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>#{invNo}</td>
+                            <td style={{ fontWeight: 800, color: 'var(--accent)' }}>#{invNo}</td>
                             <td>{pay.method || pay.paymentType || 'Online Payment'}</td>
-                            <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: 0.8 }}>{pay.referenceNumber || pay.id.substring(0,10)}</td>
-                            <td style={{ fontWeight: 850, color: 'var(--success)' }}>LKR {(pay.amount || 0).toLocaleString()}</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: 0.85 }}>{pay.referenceNumber || String(pay.id || '').substring(0, 10)}</td>
+                            <td>
+                              <span className={`badge ${isPendingPay ? 'badge-warning' : 'badge-success'}`} style={{ fontSize: '0.7rem' }}>
+                                {pay.status || 'Verified'}
+                              </span>
+                            </td>
+                            <td className="tabular-nums" style={{ fontWeight: 850, color: isPendingPay ? '#f59e0b' : 'var(--success)' }}>LKR {(pay.amount || 0).toLocaleString()}</td>
                             <td style={{ textAlign: 'right' }}>
                               <button 
                                 className="btn btn-secondary" 
@@ -1085,23 +1158,33 @@ const CustomerPortal = () => {
       )}
 
       {/* ONLINE PAYMENT MODAL */}
-      {selectedInvoice && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(14px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '24px'
-        }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', border: '1px solid rgba(99, 102, 241, 0.3)', boxShadow: '0 32px 64px rgba(0,0,0,0.5)' }}>
+      {selectedInvoice && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setSelectedInvoice(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(14px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000,
+            padding: '16px'
+          }}
+        >
+          <div
+            className="glass-panel"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto',
+              padding: 0, border: '1px solid var(--border)', boxShadow: '0 32px 64px rgba(0,0,0,0.5)'
+            }}
+          >
             
-            <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), transparent)' }}>
+            <div className="modal-header" style={{ background: 'color-mix(in srgb, var(--accent) 12%, var(--surface))' }}>
               <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Secure Online Checkout
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Secure Payment Submission
                 </div>
                 <h2 className="h2" style={{ margin: 0, fontSize: '1.25rem' }}>Pay Invoice #{selectedInvoice.invoiceNumber}</h2>
               </div>
-              <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={() => setSelectedInvoice(null)} aria-label="Close modal"><X size={16} /></button>
+              <button type="button" className="btn btn-secondary" style={{ padding: '8px' }} onClick={() => setSelectedInvoice(null)} aria-label="Close modal"><X size={16} /></button>
             </div>
 
             <form onSubmit={handleCompletePayment} className="modal-body">
@@ -1114,8 +1197,10 @@ const CustomerPortal = () => {
                   <input 
                     required 
                     type="number" 
-                    className="form-input" 
-                    style={{ paddingLeft: '54px', height: '48px', fontSize: '1.3rem', fontWeight: 850, color: 'var(--accent-primary)' }}
+                    min="1"
+                    step="any"
+                    className="form-input tabular-nums" 
+                    style={{ paddingLeft: '54px', height: '48px', fontSize: '1.3rem', fontWeight: 850, color: 'var(--accent)' }}
                     value={paymentAmount} 
                     onChange={e => setPaymentAmount(e.target.value)} 
                   />
@@ -1207,6 +1292,27 @@ const CustomerPortal = () => {
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>Transaction Reference / Slip #</label>
                     <input type="text" className="form-input" style={{ height: '40px' }} placeholder="e.g. TR-940291" value={referenceNo} onChange={e => setReferenceNo(e.target.value)} />
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Attach Deposit Slip (Image / PDF)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <Upload size={14} />
+                        <span>{slipFile ? slipFile.name : 'Choose Slip File'}</span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          style={{ display: 'none' }}
+                          onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                      {slipFile && (
+                        <button type="button" className="btn btn-sm btn-secondary" onClick={() => setSlipFile(null)} style={{ color: '#ef4444' }}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1214,13 +1320,14 @@ const CustomerPortal = () => {
 
               <div className="flex justify-end gap-3">
                 <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setSelectedInvoice(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px', background: 'var(--accent-primary)' }} disabled={isProcessingPay}>
-                  {isProcessingPay ? 'Processing Payment...' : `Confirm Pay LKR ${(Number(paymentAmount)||0).toLocaleString()}`}
+                <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px' }} disabled={isProcessingPay}>
+                  {isProcessingPay ? 'Submitting...' : `Submit Payment LKR ${(Number(paymentAmount)||0).toLocaleString()}`}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
