@@ -406,16 +406,6 @@ const SharedDocument = () => {
             }
           }
 
-          if (!foundDoc && Array.isArray(sampleMainInvoices)) {
-            const sampleMatch = sampleMainInvoices.find(item =>
-              item.id === searchKey ||
-              item.shareKey === searchKey ||
-              item.invoiceNumber === searchKey ||
-              String(item.invoiceNumber || '').toLowerCase() === searchKey.toLowerCase()
-            );
-            if (sampleMatch) foundDoc = { ...sampleMatch };
-          }
-
           if (foundDoc) {
             setDocData(foundDoc);
             const c = customers.find(cust => cust.id === foundDoc.customerId);
@@ -1468,7 +1458,7 @@ const SharedDocument = () => {
                             } catch (e) {}
                           });
 
-                          // Direct cloud update to Supabase
+                          // Direct cloud update to Supabase (awaited with invoice persistence)
                           try {
                             const upData = {
                               status: nextStatus,
@@ -1477,15 +1467,32 @@ const SharedDocument = () => {
                               converted_invoice_number: invNum
                             };
                             if (acceptedData.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedData.id)) {
-                              activeClient.from('quotations').update(upData).eq('id', acceptedData.id).then();
+                              await activeClient.from('quotations').update(upData).eq('id', acceptedData.id);
+                            } else if (acceptedData.shareKey) {
+                              await activeClient.from('quotations').update(upData).eq('share_key', acceptedData.shareKey);
+                            } else if (acceptedData.quoteNumber) {
+                              await activeClient.from('quotations').update(upData).eq('quote_number', acceptedData.quoteNumber);
                             }
-                            if (acceptedData.shareKey) {
-                              activeClient.from('quotations').update(upData).eq('share_key', acceptedData.shareKey).then();
+
+                            if (res?.invoice) {
+                              const inv = res.invoice;
+                              await activeClient.from('invoices').upsert({
+                                id: inv.id,
+                                invoice_number: inv.invoiceNumber,
+                                share_key: inv.shareKey || inv.id,
+                                customer_id: inv.customerId || null,
+                                prospect_name: inv.prospectName || customerName || '',
+                                prospect_phone: inv.prospectPhone || docData.prospectPhone || '',
+                                date: inv.date || nowIso.slice(0, 10),
+                                due_date: inv.dueDate || nowIso.slice(0, 10),
+                                status: inv.status || 'Sent',
+                                amount: Number(inv.amount) || 0,
+                                items: inv.items || docData.items || []
+                              }, { onConflict: 'id' });
                             }
-                            if (acceptedData.quoteNumber) {
-                              activeClient.from('quotations').update(upData).eq('quote_number', acceptedData.quoteNumber).then();
-                            }
-                          } catch (e) {}
+                          } catch (cloudErr) {
+                            console.warn('[SharedDocument] Cloud accept sync warning:', cloudErr?.message || cloudErr);
+                          }
 
                           setShowGratitude(true);
                         } finally {
@@ -1534,9 +1541,9 @@ const SharedDocument = () => {
                       onClick={() => setShowRejectModal(true)}
                       className="btn btn-secondary" 
                       style={{ 
-                        color: '#ef4444', 
-                        background: '#fef2f2', 
-                        border: '1px solid #fee2e2', 
+                        color: 'var(--danger, #ef4444)', 
+                        background: 'rgba(239, 68, 68, 0.1)', 
+                        border: '1.5px solid rgba(239, 68, 68, 0.35)', 
                         padding: '14px 22px', 
                         fontWeight: 700,
                         fontSize: '0.95rem',
@@ -1553,24 +1560,25 @@ const SharedDocument = () => {
 
         {/* FOOTER BAR */}
         <div className="shared-doc-footer" style={{ 
-          background: '#0f172a', 
+          background: 'var(--surface, #0f172a)', 
+          borderTop: '1px solid var(--border, rgba(255,255,255,0.1))',
           padding: '20px 32px', 
           position: 'relative',
           borderBottomLeftRadius: '28px',
           borderBottomRightRadius: '28px',
           overflow: 'hidden'
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #0ea5e9, #8b5cf6, #ec4899)' }}></div>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent, #0ea5e9), #8b5cf6, #ec4899)' }}></div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
-              <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent, #3b82f6)' }}></div>
+              <span style={{ color: 'var(--muted, #94a3b8)', fontSize: '0.85rem', fontWeight: 600 }}>
                 Authenticated Computer-Generated Document
               </span>
             </div>
 
-            <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>
-              Powered by <strong style={{ color: '#ffffff', fontWeight: 800 }}>{smsConfig.dashboardName || smsConfig.companyName || 'Seynex Enterprises'}</strong>
+            <div style={{ color: 'var(--muted, #94a3b8)', fontSize: '0.85rem', fontWeight: 600 }}>
+              Powered by <strong style={{ color: 'var(--text, #ffffff)', fontWeight: 800 }}>{smsConfig.dashboardName || smsConfig.companyName || 'Seynex Enterprises'}</strong>
             </div>
           </div>
         </div>

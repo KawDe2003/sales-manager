@@ -10,16 +10,18 @@ import {
 import { generateDocumentPDF } from '../utils/pdfGenerator';
 
 const CustomerPortal = () => {
-  const { phone: urlPhone } = useParams();
+  const { phone: urlPhone, shareToken } = useParams();
   const { 
     customers = [], invoices = [], payments = [], addPayment, 
-    updateInvoiceStatus, smsConfig = {}, sendDirectSMS, showNotification 
+    updateInvoiceStatus, recalculateInvoiceBalanceAndInstallments,
+    smsConfig = {}, sendDirectSMS, showNotification 
   } = useContext(StoreContext) || {};
 
   // Auth State for Customer Portal
   const [phoneNumber, setPhoneNumber] = useState(urlPhone || '');
   const [otpInput, setOtpInput] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState(null);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -29,7 +31,7 @@ const CustomerPortal = () => {
 
   // Payment Modal State
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'bank', 'koko'
+  const [paymentMethod, setPaymentMethod] = useState('bank'); // 'bank', 'card', 'koko'
   const [paymentAmount, setPaymentAmount] = useState('');
   const [referenceNo, setReferenceNo] = useState('');
   const [slipFile, setSlipFile] = useState(null);
@@ -43,6 +45,50 @@ const CustomerPortal = () => {
       setPhoneNumber(urlPhone);
     }
   }, [urlPhone]);
+
+  // Direct tokenized portal access (/portal/:shareToken or /pay/token/:shareToken)
+  useEffect(() => {
+    if (!shareToken || !supabase) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: rpcDoc, error } = await supabase.rpc('get_shared_document', {
+          p_doc_type: 'invoice',
+          p_token: shareToken
+        });
+        if (!cancelled && rpcDoc && !error) {
+          const invObj = {
+            id: rpcDoc.id,
+            shareKey: rpcDoc.shareKey || shareToken,
+            invoiceNumber: rpcDoc.invoiceNumber,
+            date: rpcDoc.date,
+            dueDate: rpcDoc.dueDate,
+            customerId: rpcDoc.customerId,
+            amount: Number(rpcDoc.amount) || 0,
+            status: rpcDoc.status || 'Sent',
+            items: Array.isArray(rpcDoc.items) ? rpcDoc.items : [],
+            prospectName: rpcDoc.prospectName || rpcDoc.customerName,
+            prospectPhone: rpcDoc.prospectPhone || '',
+            installmentPlan: rpcDoc.installmentPlan || null
+          };
+          setAuthenticatedCustomer({
+            id: rpcDoc.customerId || `token-${shareToken.slice(0, 8)}`,
+            gymName: rpcDoc.customerName || rpcDoc.prospectName || 'Valued Client',
+            phone: rpcDoc.prospectPhone || '',
+            ownerName: rpcDoc.customerName || 'Valued Client'
+          });
+          setPortalInvoices([invObj]);
+          if (invObj.status !== 'Paid') {
+            setSelectedInvoice(invObj);
+            setPaymentAmount(String(Number(rpcDoc.outstandingBalance ?? invObj.amount) || 0));
+          }
+        }
+      } catch (err) {
+        console.warn('[CustomerPortal] Token lookup notice:', err?.message || err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shareToken]);
 
   const getCleanDigits = (num) => {
     if (!num) return '';
@@ -70,20 +116,26 @@ const CustomerPortal = () => {
       return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
     });
 
-    // 2. If not found in local state (unauthenticated portal visitor), fetch from Supabase
-    if (!foundCustomer) {
+    // 2. If not found in local state (unauthenticated portal visitor), query targeted RPC
+    if (!foundCustomer && supabase) {
       try {
-        const { data: dbCustomers } = await supabase.from('customers').select('*');
-        if (dbCustomers && dbCustomers.length > 0) {
-          const match = dbCustomers.find(c => {
-            if (!c.phone) return false;
-            const cClean = getCleanDigits(c.phone);
-            return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
-          });
-          if (match) {
+        const { data: portalData, error: rpcErr } = await supabase.rpc('get_customer_portal_data', {
+          p_phone: cleanPhone
+        });
+        if (!rpcErr && portalData?.customer) {
+          foundCustomer = portalData.customer;
+        } else if (rpcErr) {
+          // Targeted fallback if RPC migration hasn't been run yet (never download full tables)
+          const { data: dbCustomers } = await supabase
+            .from('customers')
+            .select('id, gym_name, name, email, phone, dob, purchase_date, renewal_date, annual_fee, status')
+            .ilike('phone', `%${searchLast9}`)
+            .limit(1);
+          if (dbCustomers && dbCustomers.length > 0) {
+            const match = dbCustomers[0];
             foundCustomer = {
               id: match.id,
-              gymName: match.gym_name,
+              gymName: match.gym_name || match.name,
               name: match.name,
               email: match.email,
               phone: match.phone,
@@ -91,8 +143,7 @@ const CustomerPortal = () => {
               purchaseDate: match.purchase_date,
               renewalDate: match.renewal_date,
               annualFee: Number(match.annual_fee),
-              status: match.status,
-              notes: match.notes || []
+              status: match.status
             };
           }
         }
@@ -101,24 +152,22 @@ const CustomerPortal = () => {
       }
     }
 
-    // 3. Search invoices table in Supabase if still not found in customers table
-    if (!foundCustomer) {
+    // 3. Targeted invoice phone lookup if still not found
+    if (!foundCustomer && supabase) {
       try {
-        const { data: dbInvoices } = await supabase.from('invoices').select('*');
+        const { data: dbInvoices } = await supabase
+          .from('invoices')
+          .select('id, customer_id, prospect_name, prospect_phone')
+          .ilike('prospect_phone', `%${searchLast9}`)
+          .limit(1);
         if (dbInvoices && dbInvoices.length > 0) {
-          const matchInv = dbInvoices.find(inv => {
-            if (!inv.prospect_phone && !inv.customer_id) return false;
-            const pClean = getCleanDigits(inv.prospect_phone || '');
-            return pClean.endsWith(searchLast9) || cleanPhone.endsWith(pClean.slice(-9));
-          });
-          if (matchInv) {
-            foundCustomer = {
-              id: matchInv.customer_id || `prospect-${searchLast9}`,
-              gymName: matchInv.prospect_name || `Client (${phoneNumber})`,
-              phone: matchInv.prospect_phone || phoneNumber,
-              ownerName: matchInv.prospect_name
-            };
-          }
+          const matchInv = dbInvoices[0];
+          foundCustomer = {
+            id: matchInv.customer_id || `prospect-${searchLast9}`,
+            gymName: matchInv.prospect_name || `Client (${phoneNumber})`,
+            phone: matchInv.prospect_phone || phoneNumber,
+            ownerName: matchInv.prospect_name
+          };
         }
       } catch (err) {
         console.error('Supabase invoice lookup exception:', err);
@@ -135,9 +184,10 @@ const CustomerPortal = () => {
       };
     }
 
-    // Generate random 4-digit OTP
+    // Generate random 4-digit OTP (valid 10 minutes)
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     setGeneratedOtp(code);
+    setOtpExpiresAt(Date.now() + 10 * 60 * 1000);
     setOtpSent(true);
 
     const targetPhone = foundCustomer.phone || phoneNumber;
@@ -156,7 +206,8 @@ const CustomerPortal = () => {
     if (e) e.preventDefault();
     setIsVerifying(true);
 
-    if (otpInput.trim() === generatedOtp || otpInput.trim() === '1234') {
+    const isOtpValid = Boolean(generatedOtp) && otpInput.trim() === generatedOtp && (!otpExpiresAt || Date.now() <= otpExpiresAt);
+    if (isOtpValid) {
       const cleanPhone = getCleanDigits(phoneNumber);
       const searchLast9 = cleanPhone.slice(-9);
 
@@ -166,35 +217,94 @@ const CustomerPortal = () => {
         return cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9));
       });
 
-      let matchedCustomerIds = [];
-      if (foundCustomer) matchedCustomerIds.push(foundCustomer.id);
+      let matchedInvoices = [];
+      let matchedPayments = [];
 
-      try {
-        const { data: dbCustomers } = await supabase.from('customers').select('*');
-        if (dbCustomers && dbCustomers.length > 0) {
-          dbCustomers.forEach(c => {
-            const cClean = getCleanDigits(c.phone);
-            if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) {
-              matchedCustomerIds.push(c.id);
-              if (!foundCustomer) {
-                foundCustomer = {
-                  id: c.id,
-                  gymName: c.gym_name,
-                  name: c.name,
-                  email: c.email,
-                  phone: c.phone,
-                  dob: c.dob,
-                  purchaseDate: c.purchase_date,
-                  renewalDate: c.renewal_date,
-                  annualFee: Number(c.annual_fee),
-                  status: c.status,
-                  notes: c.notes || []
+      if (supabase) {
+        try {
+          const { data: portalData, error: rpcErr } = await supabase.rpc('get_customer_portal_data', {
+            p_phone: cleanPhone
+          });
+          if (!rpcErr && portalData) {
+            if (portalData.customer && !foundCustomer) {
+              foundCustomer = portalData.customer;
+            }
+            if (Array.isArray(portalData.invoices)) {
+              matchedInvoices = portalData.invoices;
+            }
+            if (Array.isArray(portalData.payments)) {
+              matchedPayments = portalData.payments.map(p => {
+                const invMatch = matchedInvoices.find(i => i.id === p.documentId);
+                return {
+                  ...p,
+                  invoiceNumber: invMatch ? invMatch.invoiceNumber : `INV-${String(p.documentId || '').substring(0, 6) || 'PAY'}`
                 };
+              });
+            }
+          } else if (rpcErr) {
+            // Targeted fallback if RPC is not yet deployed
+            const { data: dbCust } = await supabase
+              .from('customers')
+              .select('id, gym_name, name, email, phone, dob, purchase_date, renewal_date, annual_fee, status')
+              .ilike('phone', `%${searchLast9}`)
+              .limit(1);
+            if (dbCust?.[0] && !foundCustomer) {
+              const c = dbCust[0];
+              foundCustomer = {
+                id: c.id,
+                gymName: c.gym_name || c.name,
+                name: c.name,
+                email: c.email,
+                phone: c.phone,
+                annualFee: Number(c.annual_fee),
+                status: c.status
+              };
+            }
+            const targetId = foundCustomer?.id;
+            const invQuery = targetId
+              ? supabase.from('invoices').select('*').or(`customer_id.eq.${targetId},prospect_phone.ilike.%${searchLast9}`)
+              : supabase.from('invoices').select('*').ilike('prospect_phone', `%${searchLast9}`);
+            const { data: dbInvoices } = await invQuery;
+            if (Array.isArray(dbInvoices)) {
+              matchedInvoices = dbInvoices.map(i => ({
+                id: i.id,
+                shareKey: i.share_key,
+                invoiceNumber: i.invoice_number,
+                date: i.date,
+                dueDate: i.due_date,
+                customerId: i.customer_id,
+                amount: Number(i.amount) || 0,
+                status: i.status,
+                items: i.items || [],
+                prospectName: i.prospect_name,
+                prospectPhone: i.prospect_phone,
+                installmentPlan: (i.installment_plan && i.installment_plan.enabled) ? i.installment_plan : null
+              }));
+            }
+            if (targetId) {
+              const { data: dbPayments } = await supabase.from('payments').select('*').eq('customer_id', targetId);
+              if (Array.isArray(dbPayments)) {
+                matchedPayments = dbPayments.map(p => {
+                  const invMatch = matchedInvoices.find(i => i.id === p.document_id);
+                  return {
+                    id: p.id,
+                    customerId: p.customer_id,
+                    documentId: p.document_id,
+                    invoiceNumber: invMatch ? invMatch.invoiceNumber : `INV-${String(p.document_id || '').substring(0, 6) || 'PAY'}`,
+                    amount: Number(p.amount) || 0,
+                    method: p.payment_type || 'Online Portal Payment',
+                    referenceNumber: p.reference_number || `REF-${String(p.id).substring(0, 8)}`,
+                    paymentDate: p.payment_timestamp ? p.payment_timestamp.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+                    timestamp: p.payment_timestamp || p.created_at || new Date().toISOString()
+                  };
+                });
               }
             }
-          });
+          }
+        } catch (err) {
+          console.error('Error fetching portal invoices:', err);
         }
-      } catch (err) {}
+      }
 
       if (!foundCustomer) {
         foundCustomer = {
@@ -203,95 +313,15 @@ const CustomerPortal = () => {
           phone: phoneNumber,
           ownerName: 'Valued Client'
         };
-        matchedCustomerIds.push(foundCustomer.id);
       }
 
       setAuthenticatedCustomer(foundCustomer);
+      setPortalInvoices(matchedInvoices);
+      setPortalPayments(matchedPayments);
       showNotification(`Welcome back, ${foundCustomer.gymName}!`, 'success');
 
-      // Fetch matching invoices & payments from Supabase
-      try {
-        let dbCustomersList = [];
-        try {
-          const { data: dbCust } = await supabase.from('customers').select('*');
-          if (dbCust) dbCustomersList = dbCust;
-        } catch (e) {}
-
-        const allKnownCustomers = [...customers, ...dbCustomersList];
-        allKnownCustomers.forEach(c => {
-          if (c && (c.phone || c.phone_number)) {
-            const cClean = getCleanDigits(c.phone || c.phone_number);
-            if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) {
-              if (!matchedCustomerIds.includes(c.id)) matchedCustomerIds.push(c.id);
-            }
-          }
-        });
-
-        const { data: dbInvoices } = await supabase.from('invoices').select('*');
-        let matchedInvoices = [];
-        if (dbInvoices) {
-          matchedInvoices = dbInvoices.filter(inv => {
-            if (matchedCustomerIds.includes(inv.customer_id)) return true;
-            if (inv.prospect_name && inv.prospect_name.toLowerCase() === (foundCustomer.gymName || '').toLowerCase()) return true;
-            if (inv.prospect_phone) {
-              const pClean = getCleanDigits(inv.prospect_phone);
-              if (pClean.endsWith(searchLast9) || cleanPhone.endsWith(pClean.slice(-9))) return true;
-            }
-            if (inv.customer_id) {
-              const custObj = allKnownCustomers.find(c => c.id === inv.customer_id);
-              if (custObj && (custObj.phone || custObj.phone_number)) {
-                const cClean = getCleanDigits(custObj.phone || custObj.phone_number);
-                if (cClean.endsWith(searchLast9) || cleanPhone.endsWith(cClean.slice(-9))) return true;
-              }
-            }
-            return false;
-          }).map(i => ({
-            id: i.id,
-            shareKey: i.share_key,
-            invoiceNumber: i.invoice_number,
-            date: i.date,
-            dueDate: i.due_date,
-            customerId: i.customer_id,
-            amount: Number(i.amount) || 0,
-            status: i.status,
-            items: i.items || [],
-            prospectName: i.prospect_name,
-            prospectPhone: i.prospect_phone,
-            installmentPlan: (i.installment_plan && i.installment_plan.enabled) ? i.installment_plan : null
-          }));
-          setPortalInvoices(matchedInvoices);
-        }
-
-        const matchedInvIds = matchedInvoices.map(m => m.id);
-
-        const { data: dbPayments } = await supabase.from('payments').select('*');
-        if (dbPayments) {
-          const matchedPays = dbPayments.filter(p => {
-            if (matchedCustomerIds.includes(p.customer_id)) return true;
-            if (matchedInvIds.includes(p.document_id)) return true;
-            return false;
-          }).map(p => {
-            const invMatch = matchedInvoices.find(i => i.id === p.document_id);
-            return {
-              id: p.id,
-              customerId: p.customer_id,
-              documentId: p.document_id,
-              invoiceNumber: invMatch ? invMatch.invoiceNumber : `INV-${p.document_id?.substring(0,6) || 'PAY'}`,
-              amount: Number(p.amount) || 0,
-              method: p.payment_type || 'Online Portal Payment',
-              referenceNumber: p.reference_number || `REF-${p.id.substring(0,8)}`,
-              paymentDate: p.payment_timestamp ? p.payment_timestamp.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-              timestamp: p.payment_timestamp || p.created_at || new Date().toISOString()
-            };
-          });
-          setPortalPayments(matchedPays);
-        }
-      } catch (err) {
-        console.error('Error fetching portal invoices:', err);
-      }
-
     } else {
-      showNotification('Invalid OTP verification code. Please check and retry.', 'error');
+      showNotification(otpExpiresAt && Date.now() > otpExpiresAt ? 'OTP expired. Please request a new code.' : 'Invalid OTP verification code. Please check and retry.', 'error');
     }
     setIsVerifying(false);
   };
@@ -347,7 +377,7 @@ const CustomerPortal = () => {
     };
   };
 
-  // --- STEP 3: SUBMIT ONLINE PAYMENT ---
+  // --- STEP 3: SUBMIT ONLINE PAYMENT / SLIP VERIFICATION ---
   const handleCompletePayment = async (e) => {
     e.preventDefault();
     if (!selectedInvoice) return;
@@ -358,89 +388,93 @@ const CustomerPortal = () => {
       return;
     }
 
+    if (paymentMethod === 'bank' && !String(referenceNo || '').trim() && !slipFile) {
+      showNotification('Please enter your Bank Transfer Reference / Slip #.', 'warning');
+      return;
+    }
+
     setIsProcessingPay(true);
-
-    const refNo = referenceNo || `ONLINE-${Math.floor(100000 + Math.random() * 900000)}`;
-    const payMethodStr = paymentMethod === 'card' ? 'Credit/Debit Card Online' : paymentMethod === 'bank' ? 'Bank Transfer Deposit' : 'Koko Online';
-
-    const newPayment = {
-      id: `pay-${Date.now()}`,
-      documentId: selectedInvoice.id,
-      invoiceNumber: selectedInvoice.invoiceNumber,
-      customerId: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
-      amount: amount,
-      paymentDate: new Date().toISOString().split('T')[0],
-      timestamp: new Date().toISOString(),
-      method: payMethodStr,
-      referenceNumber: refNo,
-      notes: `Customer Online Portal Payment via ${paymentMethod.toUpperCase()}`
-    };
-
-    if (addPayment) addPayment(newPayment);
-    setPortalPayments(prev => [newPayment, ...prev]);
-
-    // Sync to Supabase directly for unauthenticated session
-    if (supabase) {
-      try {
-        await supabase.from('payments').insert({
-          customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
-          document_id: selectedInvoice.id,
-          amount: amount,
-          payment_type: payMethodStr,
-          created_at: new Date().toISOString()
-        });
-      } catch (e) {
-        console.error('Supabase payment sync error:', e);
-      }
-    }
-
-    const allCurrentPays = [...payments, ...portalPayments, newPayment];
-    const invoicePayments = allCurrentPays.filter(p => p.documentId === selectedInvoice.id).reduce((s, p) => s + p.amount, 0);
-    const newStatus = invoicePayments >= selectedInvoice.amount ? 'Paid' : 'Partially Paid';
-    const updatedPlan = calculateUpdatedInstallmentPlan(selectedInvoice.installmentPlan, invoicePayments, selectedInvoice.amount);
-
-    if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, newStatus);
-    if (recalculateInvoiceBalanceAndInstallments) recalculateInvoiceBalanceAndInstallments(selectedInvoice.id, 0);
-
     try {
-      const updateObj = { status: newStatus };
-      if (updatedPlan) updateObj.installment_plan = updatedPlan;
-      await supabase.from('invoices').update(updateObj).eq('id', selectedInvoice.id);
-    } catch (e) {}
+      const refNo = String(referenceNo || '').trim() || `PORTAL-${Math.floor(100000 + Math.random() * 900000)}`;
+      const payMethodStr = paymentMethod === 'bank' ? 'Bank Transfer Deposit' : paymentMethod === 'card' ? 'Card Reference Submission' : 'Koko Reference Submission';
+      const nowIso = new Date().toISOString();
 
-    // Update portalInvoices state immediately
-    setPortalInvoices(prev => prev.map(inv => {
-      if (inv.id === selectedInvoice.id) {
-        return {
-          ...inv,
-          status: newStatus,
-          installmentPlan: updatedPlan || inv.installmentPlan
-        };
+      const newPayment = {
+        id: `pay-${Date.now()}`,
+        documentId: selectedInvoice.id,
+        invoiceNumber: selectedInvoice.invoiceNumber,
+        customerId: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
+        amount: amount,
+        paymentDate: nowIso.split('T')[0],
+        timestamp: nowIso,
+        method: payMethodStr,
+        referenceNumber: refNo,
+        status: 'Pending Verification',
+        notes: `Customer Portal Submission (${paymentMethod.toUpperCase()}) • Ref: ${refNo}${slipFile ? ` • Slip: ${slipFile.name || 'Attached'}` : ''}`
+      };
+
+      if (addPayment) addPayment(newPayment);
+      setPortalPayments(prev => [newPayment, ...prev]);
+
+      // Sync to Supabase directly for unauthenticated session
+      if (supabase) {
+        try {
+          await supabase.from('payments').insert({
+            customer_id: authenticatedCustomer ? authenticatedCustomer.id : selectedInvoice.customerId,
+            document_id: selectedInvoice.id,
+            amount: amount,
+            payment_type: payMethodStr,
+            reference_number: refNo,
+            status: 'Pending Verification',
+            notes: newPayment.notes,
+            created_at: nowIso
+          });
+        } catch (err) {
+          console.error('Supabase payment sync error:', err);
+        }
       }
-      return inv;
-    }));
 
-    // Send SMS Receipt
-    if (authenticatedCustomer && (authenticatedCustomer.phone || phoneNumber) && sendDirectSMS) {
-      const targetPhone = authenticatedCustomer.phone || phoneNumber;
-      const smsMsg = `PAYMENT RECEIVED! Thank you ${authenticatedCustomer.gymName}. Received LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber}. Ref: ${newPayment.referenceNumber}`;
-      sendDirectSMS(targetPhone, smsMsg);
+      const nextInvoiceStatus = 'Pending Verification';
+      if (updateInvoiceStatus) updateInvoiceStatus(selectedInvoice.id, nextInvoiceStatus);
+      if (typeof recalculateInvoiceBalanceAndInstallments === 'function') {
+        recalculateInvoiceBalanceAndInstallments(selectedInvoice.id, 0);
+      }
+
+      if (supabase) {
+        try {
+          await supabase.from('invoices').update({ status: nextInvoiceStatus }).eq('id', selectedInvoice.id);
+        } catch (err) {}
+      }
+
+      // Update portalInvoices state immediately
+      setPortalInvoices(prev => prev.map(inv => (
+        inv.id === selectedInvoice.id ? { ...inv, status: nextInvoiceStatus } : inv
+      )));
+
+      // Send SMS Confirmation
+      if (authenticatedCustomer && (authenticatedCustomer.phone || phoneNumber) && sendDirectSMS) {
+        const targetPhone = authenticatedCustomer.phone || phoneNumber;
+        const smsMsg = `PAYMENT SUBMITTED! Thank you ${authenticatedCustomer.gymName}. Submission of LKR ${amount.toLocaleString()} for Invoice #${selectedInvoice.invoiceNumber} (Ref: ${refNo}) is pending staff verification.`;
+        sendDirectSMS(targetPhone, smsMsg);
+      }
+
+      showNotification(`Payment submission of LKR ${amount.toLocaleString()} recorded (Pending Verification).`, 'success');
+
+      // Generate Receipt PDF download automatically
+      const receiptData = {
+        ...selectedInvoice,
+        amountPaidNow: amount,
+        receiptNumber: newPayment.referenceNumber,
+        gymName: authenticatedCustomer ? authenticatedCustomer.gymName : 'Client Account'
+      };
+      generateDocumentPDF('Receipt', receiptData, selectedInvoice.items || []);
+
+      setSelectedInvoice(null);
+      setReferenceNo('');
+      setSlipFile(null);
+    } finally {
+      setIsProcessingPay(false);
     }
-
-    showNotification(`Payment of LKR ${amount.toLocaleString()} processed successfully!`, 'success');
-
-    // Generate Receipt PDF download automatically
-    const receiptData = {
-      ...selectedInvoice,
-      amountPaidNow: amount,
-      receiptNumber: newPayment.referenceNumber,
-      gymName: authenticatedCustomer ? authenticatedCustomer.gymName : 'Client Account'
-    };
-    generateDocumentPDF('Receipt', receiptData, selectedInvoice.items || []);
-
-    setIsProcessingPay(false);
-    setSelectedInvoice(null);
-    setSlipFile(null);
   };
 
   // Combine invoices & payments from StoreContext state AND fetched portal data
@@ -1133,22 +1167,26 @@ const CustomerPortal = () => {
                 </div>
               </div>
 
-              {/* CARD DETAILS FORM */}
-              {paymentMethod === 'card' && (
-                <div style={{ background: 'var(--subtle-bg)', padding: '16px', borderRadius: '14px', marginBottom: '20px', border: '1px solid var(--subtle-border)' }}>
-                  <div className="form-group mb-3">
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Card Number</label>
-                    <input type="text" className="form-input" style={{ height: '40px' }} placeholder="4111 •••• •••• 1111" defaultValue="4532 8920 1029 4812" />
+              {/* CARD / KOKO GATEWAY NOTICE (NO FAKE CARD DEFAULTS) */}
+              {(paymentMethod === 'card' || paymentMethod === 'koko') && (
+                <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '16px', borderRadius: '14px', marginBottom: '20px', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.82rem' }}>
+                  <div style={{ fontWeight: 800, color: '#f59e0b', marginBottom: '6px' }}>
+                    {paymentMethod === 'card' ? 'Online Card Gateway Pending Integration' : 'Koko Pay Gateway Pending Integration'}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Expiry Date</label>
-                      <input type="text" className="form-input" style={{ height: '40px' }} placeholder="MM/YY" defaultValue="12/28" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>CVV Code</label>
-                      <input type="password" className="form-input" style={{ height: '40px' }} placeholder="•••" defaultValue="849" />
-                    </div>
+                  <p style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    Direct automated card processing is not yet enabled. Please enter your payment reference number below or switch to <strong>Bank Deposit</strong> to submit for instant staff verification.
+                  </p>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Payment Reference # *</label>
+                    <input
+                      required
+                      type="text"
+                      className="form-input"
+                      style={{ height: '40px' }}
+                      placeholder="Enter transaction reference #"
+                      value={referenceNo}
+                      onChange={e => setReferenceNo(e.target.value)}
+                    />
                   </div>
                 </div>
               )}
