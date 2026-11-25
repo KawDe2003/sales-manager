@@ -584,7 +584,7 @@ export default function AutomationAgents() {
           <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cloud Cron Cadence</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Server size={18} style={{ color: 'var(--accent)' }} />
-            <span>Every 15 Mins (24/7)</span>
+            <span>Daily Cloud Cron (24/7)</span>
           </div>
         </div>
 
