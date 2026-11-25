@@ -222,21 +222,17 @@ export const AuthProvider = ({ children }) => {
         return { data: null, error: new Error('This account has been suspended. Contact your administrator.') };
       }
 
-      // Validate password
-      const acceptedPasswords = [
-        matchedMember.password,
-        matchedMember.password ? String(matchedMember.password).trim() : '',
-        'seynex2026',
-        'password123',
-        'admin123',
-        'adminpassword123',
-        'salespassword123',
-        'accountspassword123'
-      ].filter(Boolean);
+      // Validate password strictly against the member's stored password (no backdoors or empty-password bypass)
+      const storedPwd = matchedMember.password ? String(matchedMember.password).trim() : '';
+      const isPasswordValid = Boolean(storedPwd) && (
+        password === matchedMember.password ||
+        cleanPassword === storedPwd
+      );
 
-      const isPasswordValid = !matchedMember.password || 
-        acceptedPasswords.includes(password) || 
-        acceptedPasswords.includes(cleanPassword);
+      // Non-blocking Supabase Auth JWT sync if user also exists in auth.users
+      if (isPasswordValid && supabase?.auth?.signInWithPassword) {
+        supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword }).catch(() => {});
+      }
 
       if (isPasswordValid) {
         const resolvedBizId = matchedMember.businessId || targetBusinessId || 'biz_main';

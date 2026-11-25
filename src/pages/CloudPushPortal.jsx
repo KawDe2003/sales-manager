@@ -56,9 +56,9 @@ export default function CloudPushPortal() {
 
   // Form & Hardware State (Defaulted to your NYU7254000011 hardware profile)
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
-  const [accNo, setAccNo] = useState('192');
-  const [serialNo, setSerialNo] = useState('NYU7254000011');
-  const [apiKey, setApiKey] = useState('cGYm94tX97qA6cXw7UKgh64nr');
+  const [accNo, setAccNo] = useState('');
+  const [serialNo, setSerialNo] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [baseUrl, setBaseUrl] = useState('/api/etechno');
   const [ratePerUserMonth, setRatePerUserMonth] = useState(100);
@@ -1176,7 +1176,7 @@ export default function CloudPushPortal() {
       ? cust.deviceSerials 
       : [{ id: `dev-${Date.now()}`, sn: cust.deviceSerial || 'NYU7254000011', role: 'IN/OUT', label: 'Main Biometric Terminal (IN/OUT)', status: 'idle' }];
     const newAcc = cust.cloudPushAcc || '192';
-    const newKey = cust.cloudPushApiKey || apiKey || 'cGYm94tX97qA6cXw7UKgh64nr';
+    const newKey = cust.cloudPushApiKey || apiKey || '';
     const newRate = Number(cust.ratePerUserMonth) || 100;
 
     setAccNo(newAcc);

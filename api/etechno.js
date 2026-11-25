@@ -9,15 +9,19 @@ export default async function handler(request, response) {
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
   if (process.env.NODE_ENV === 'production') {
-    if (!incomingAuth && !apiKeyHeader) {
+    const hasBearer = incomingAuth.startsWith('Bearer ');
+    const proxySecret = process.env.ETECHNO_PROXY_SECRET;
+    const hasValidProxySecret = Boolean(proxySecret && request.headers['x-proxy-secret'] === proxySecret);
+
+    if (!hasBearer && !hasValidProxySecret) {
       return response.status(401).json({
         ok: false,
         code: 'UNAUTHORIZED',
-        message: 'Missing required authentication token or API key for eTechno Gateway proxy.'
+        message: 'Staff Bearer JWT or valid proxy secret required for eTechno Gateway proxy.'
       });
     }
 
-    if (incomingAuth.startsWith('Bearer ') && supabaseUrl && supabaseAnonKey) {
+    if (hasBearer && supabaseUrl && supabaseAnonKey) {
       try {
         const token = incomingAuth.replace('Bearer ', '').trim();
         const verifyRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
@@ -64,8 +68,11 @@ export default async function handler(request, response) {
   const headers = {
     'Accept': 'application/json, text/plain, */*'
   };
-  if (request.headers['authorization']) headers['authorization'] = request.headers['authorization'];
-  if (request.headers['api_key']) headers['api_key'] = request.headers['api_key'];
+  if (request.headers['authorization'] && !request.headers['authorization'].startsWith('Bearer ')) {
+    headers['authorization'] = request.headers['authorization'];
+  }
+  const effectiveApiKey = request.headers['api_key'] || process.env.ETECHNO_API_KEY;
+  if (effectiveApiKey) headers['api_key'] = effectiveApiKey;
   if (request.headers['content-type']) headers['content-type'] = request.headers['content-type'];
 
   // 4. Execute Upstream Request with 10-Second Abort Timeout
