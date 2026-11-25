@@ -194,9 +194,21 @@ export const applyThemeTokens = (config) => {
     root.style.setProperty('--btn-secondary-border', config.border);
   }
 
-  const subtleBg = isColorDark(config.bg || '#000000') ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)';
+  const isDarkTheme = isColorDark(config.bg || '#000000');
+  const subtleBg = isDarkTheme ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.04)';
   root.style.setProperty('--subtle-bg', subtleBg);
-  root.style.setProperty('--btn-secondary-bg', surface2);
+
+  if (isDarkTheme) {
+    const textCol = config.text || '#f8fafc';
+    const borderCol = config.border || 'rgba(255, 255, 255, 0.14)';
+    root.style.setProperty('--btn-secondary-bg', `color-mix(in srgb, ${textCol} 10%, ${surface2})`);
+    root.style.setProperty('--btn-secondary-border', `color-mix(in srgb, ${textCol} 24%, ${borderCol})`);
+    root.style.setProperty('--btn-secondary-shadow', '0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08)');
+  } else {
+    root.style.setProperty('--btn-secondary-bg', config.surface || '#ffffff');
+    root.style.setProperty('--btn-secondary-border', config.border || '#cbd5e1');
+    root.style.setProperty('--btn-secondary-shadow', '0 1px 3px rgba(15, 23, 42, 0.08)');
+  }
 
   if (config.radius) {
     root.style.setProperty('--radius', config.radius);

@@ -76,14 +76,14 @@
   --btn-primary-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
   --btn-primary-hover-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
 
-  --btn-secondary-bg: var(--surface-2, var(--surface));
+  --btn-secondary-bg: color-mix(in srgb, var(--text) 10%, var(--surface-2, var(--surface)));
   --btn-secondary-color: var(--text);
-  --btn-secondary-border: var(--border);
-  --btn-secondary-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --btn-secondary-hover-bg: color-mix(in srgb, var(--accent) 15%, var(--surface-2, var(--surface)));
+  --btn-secondary-border: color-mix(in srgb, var(--text) 24%, var(--border));
+  --btn-secondary-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --btn-secondary-hover-bg: color-mix(in srgb, var(--accent) 18%, var(--surface-2, var(--surface)));
   --btn-secondary-hover-border: var(--accent);
   --btn-secondary-hover-color: var(--text);
-  --btn-secondary-hover-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  --btn-secondary-hover-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 22%, rgba(0, 0, 0, 0.45));
 
   --btn-success-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
   --btn-success-color: #ffffff;
@@ -737,7 +737,7 @@ button:focus,
 .btn-secondary {
   background: var(--btn-secondary-bg) !important;
   color: var(--btn-secondary-color) !important;
-  border: 1px solid var(--btn-secondary-border) !important;
+  border: 1.5px solid var(--btn-secondary-border) !important;
   box-shadow: var(--btn-secondary-shadow) !important;
 }
 
@@ -2295,69 +2295,43 @@ tbody tr:hover td {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Header buttons in Dark Mode */
+/* Header buttons in Dark Mode (Elevated contrast so every button stands out) */
 [data-theme='dark'] #header-sidebar-toggle-btn,
 [data-theme='dark'] #header-sidebar-toggle-btn-desktop,
-[data-theme='dark'] .header-sidebar-toggle-btn {
-  background: var(--surface-2, var(--surface)) !important;
-  border: 1px solid var(--border) !important;
+[data-theme='dark'] .header-sidebar-toggle-btn,
+[data-theme='dark'] #header-search-btn,
+[data-theme='dark'] #notification-bell-btn,
+[data-theme='dark'] #header-customize-theme-btn {
+  background: var(--btn-secondary-bg) !important;
+  border: 1.5px solid var(--btn-secondary-border) !important;
   color: var(--text) !important;
+  box-shadow: var(--btn-secondary-shadow) !important;
 }
 
 [data-theme='dark'] #header-sidebar-toggle-btn:hover,
 [data-theme='dark'] #header-sidebar-toggle-btn-desktop:hover,
-[data-theme='dark'] .header-sidebar-toggle-btn:hover {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-2, var(--surface))) !important;
+[data-theme='dark'] .header-sidebar-toggle-btn:hover,
+[data-theme='dark'] #header-search-btn:hover,
+[data-theme='dark'] #notification-bell-btn:hover,
+[data-theme='dark'] #header-customize-theme-btn:hover {
+  background: var(--btn-secondary-hover-bg) !important;
   border-color: var(--accent) !important;
   color: var(--accent) !important;
-}
-
-[data-theme='dark'] #header-search-btn {
-  background: var(--surface-2, var(--surface)) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-}
-
-[data-theme='dark'] #header-search-btn:hover {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-2, var(--surface))) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
+  box-shadow: var(--btn-secondary-hover-shadow) !important;
 }
 
 [data-theme='dark'] #header-theme-toggle-btn {
-  background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
-  border: 1px solid var(--border) !important;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2, var(--surface))) !important;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
   color: var(--accent) !important;
+  box-shadow: var(--btn-secondary-shadow) !important;
 }
 
 [data-theme='dark'] #header-theme-toggle-btn:hover {
   background: var(--accent) !important;
   color: var(--accent-fg) !important;
+  border-color: var(--accent) !important;
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent) !important;
-}
-
-[data-theme='dark'] #notification-bell-btn {
-  background: var(--surface-2, var(--surface)) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-}
-
-[data-theme='dark'] #notification-bell-btn:hover {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-2, var(--surface))) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-}
-
-[data-theme='dark'] #header-customize-theme-btn {
-  background: var(--surface-2, var(--surface)) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-}
-
-[data-theme='dark'] #header-customize-theme-btn:hover {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-2, var(--surface))) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
 }
 
 [data-theme='dark'] #header-theme-toggle-btn .theme-toggle-icon,
@@ -4253,13 +4227,47 @@ body.sidebar-open-locked .app-sidebar {
 @media (max-width: 640px) {
 
   /* Header save button text hidden on mobile, compact pulsing icon remains */
-  #header-save-data-btn span {
+  #header-save-data-btn span,
+  #header-save-to-database-btn span:not([style*="border-radius"]) {
     display: none;
   }
 
-  #header-save-data-btn {
-    padding: 0 8px !important;
-    height: 32px !important;
+  #header-save-data-btn,
+  #header-save-to-database-btn {
+    padding: 0 10px !important;
+    height: 36px !important;
+    min-width: 38px !important;
+    gap: 4px !important;
+  }
+
+  .btn {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+    max-width: 100%;
+  }
+
+  .btn-sm {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.76rem;
+  }
+
+  .btn-group {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .btn-group .btn {
+    flex: 1 1 auto;
+  }
+
+  .cloud-push-page {
+    padding: 14px 10px !important;
+  }
+
+  .cloud-hardware-static-card {
+    padding: 14px 12px !important;
   }
 
   .action-bar {
