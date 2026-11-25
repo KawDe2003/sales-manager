@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { 
   Search, Plus, Calendar, MessageSquareText, Edit2, Trash2, X, User, 
   StickyNote, Send, Clock, Cake, Download, Tag, Compass, History, 
-  FileText, Receipt, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck, 
+  FileText, Receipt, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck, Shield, 
   Phone, Mail, MapPin, DollarSign, Building, ExternalLink, Lock, Cloud, Cpu, Key
 } from 'lucide-react';
 import { StoreContext, getNextSequentialCustomerCode } from '../context/StoreContext';
