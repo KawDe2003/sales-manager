@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 
 // Professional number to words helper for payslips and salary certificates
 const numberToWords = (num) => {
@@ -1272,12 +1273,12 @@ const HR = () => {
               {attViewMode === 'daily' ? (
                 <>
                   <div>
-                    <input 
-                      type="date"
-                      className="form-input"
+                    <DatePicker
                       value={attDate}
-                      onChange={(e) => setAttDate(e.target.value)}
-                      style={{ height: '36px', width: '150px' }}
+                      onChange={(val) => setAttDate(val)}
+                      placeholder="Select date"
+                      size="sm"
+                      style={{ width: '160px', height: '36px' }}
                     />
                   </div>
                   <button className="btn btn-secondary btn-sm" onClick={markAllPresent} title="Mark All Active Staff Present">
@@ -2499,11 +2500,11 @@ const HR = () => {
                     </div>
                     <div>
                       <label className="form-label">DATE OF BIRTH</label>
-                      <input 
-                        type="date" 
-                        className="form-input"
+                      <DatePicker
                         value={empForm.dob}
-                        onChange={(e) => setEmpForm({ ...empForm, dob: e.target.value })}
+                        onChange={(val) => setEmpForm({ ...empForm, dob: val })}
+                        placeholder="Select DOB"
+                        style={{ width: '100%', height: '42px' }}
                       />
                     </div>
                     <div>
@@ -2631,20 +2632,20 @@ const HR = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="form-label">DATE OF JOINING</label>
-                      <input 
-                        type="date" 
-                        className="form-input"
+                      <DatePicker
                         value={empForm.joinDate}
-                        onChange={(e) => setEmpForm({ ...empForm, joinDate: e.target.value })}
+                        onChange={(val) => setEmpForm({ ...empForm, joinDate: val })}
+                        placeholder="Select join date"
+                        style={{ width: '100%', height: '42px' }}
                       />
                     </div>
                     <div>
                       <label className="form-label">CONFIRMATION / PROBATION END DATE</label>
-                      <input 
-                        type="date" 
-                        className="form-input"
+                      <DatePicker
                         value={empForm.confirmationDate}
-                        onChange={(e) => setEmpForm({ ...empForm, confirmationDate: e.target.value })}
+                        onChange={(val) => setEmpForm({ ...empForm, confirmationDate: val })}
+                        placeholder="Select date"
+                        style={{ width: '100%', height: '42px' }}
                       />
                     </div>
                   </div>
@@ -3002,22 +3003,20 @@ const HR = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">START DATE</label>
-                  <input 
-                    type="date" 
-                    className="form-input"
+                  <DatePicker
                     value={leaveForm.startDate}
-                    onChange={(e) => handleLeaveDateChange('startDate', e.target.value)}
-                    required
+                    onChange={(val) => handleLeaveDateChange('startDate', val)}
+                    placeholder="Select start date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
                 <div>
                   <label className="form-label">END DATE</label>
-                  <input 
-                    type="date" 
-                    className="form-input"
+                  <DatePicker
                     value={leaveForm.endDate}
-                    onChange={(e) => handleLeaveDateChange('endDate', e.target.value)}
-                    required
+                    onChange={(val) => handleLeaveDateChange('endDate', val)}
+                    placeholder="Select end date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
               </div>
@@ -3096,11 +3095,11 @@ const HR = () => {
 
               <div>
                 <label className="form-label">ISSUE DATE</label>
-                <input 
-                  type="date" 
-                  className="form-input"
+                <DatePicker
                   value={advForm.requestDate}
-                  onChange={(e) => setAdvForm({ ...advForm, requestDate: e.target.value })}
+                  onChange={(val) => setAdvForm({ ...advForm, requestDate: val })}
+                  placeholder="Select issue date"
+                  style={{ width: '100%', height: '42px' }}
                 />
               </div>
 
@@ -3794,11 +3793,11 @@ const HR = () => {
                 </div>
                 <div>
                   <label className="form-label">DATE OF ISSUANCE</label>
-                  <input 
-                    type="date" 
-                    className="form-input"
+                  <DatePicker
                     value={letterForm.date}
-                    onChange={(e) => setLetterForm({ ...letterForm, date: e.target.value })}
+                    onChange={(val) => setLetterForm({ ...letterForm, date: val })}
+                    placeholder="Select date"
+                    style={{ width: '100%', height: '42px' }}
                   />
                 </div>
               </div>

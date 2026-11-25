@@ -25,8 +25,12 @@ import {
   getRealtimeTransactions,
   getTerminalsByAccount,
   addTerminalToAccount,
+  getTerminalUsers,
+  getUserByPin,
+  getTemplateInfo,
   clearHistoricalAuditCache
 } from '../utils/cloudPushService';
+import { exportToCSV } from '../utils/export';
 import DatePicker from '../components/DatePicker';
 import CustomSelect from '../components/CustomSelect';
 
@@ -34,7 +38,7 @@ export default function CloudPushPortal() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, updateCustomer, addCustomer, deleteCustomer, syncAllToCloud } = useContext(StoreContext) || {};
+  const { customers = [], invoices = [], setInvoices, addInvoice, showNotification, confirmAction, updateCustomer, addCustomer, deleteCustomer, syncAllToCloud } = useContext(StoreContext) || {};
 
   // Parse any passed state or URL query parameters (e.g. from invoice fee calculation button)
   const initialCustomerId = searchParams.get('customerId') || location.state?.customerId || '';
@@ -126,6 +130,14 @@ export default function CloudPushPortal() {
   const [fleetLoading, setFleetLoading] = useState(false);
   const [newTerminalSerial, setNewTerminalSerial] = useState('');
   const [registeringTerminal, setRegisteringTerminal] = useState(false);
+
+  // Enrolled Biometric Users & PIN Lookup State
+  const [terminalUsers, setTerminalUsers] = useState([]);
+  const [terminalUsersLoading, setTerminalUsersLoading] = useState(false);
+  const [selectedUsersTerminalSn, setSelectedUsersTerminalSn] = useState('');
+  const [pinLookupQuery, setPinLookupQuery] = useState('');
+  const [pinLookupResult, setPinLookupResult] = useState(null);
+  const [pinLookupLoading, setPinLookupLoading] = useState(false);
 
   const statementRef = useRef(null);
 
@@ -403,7 +415,7 @@ export default function CloudPushPortal() {
 
   const handleDeleteGymProfile = (cust) => {
     if (!cust) return;
-    if (window.confirm(`Are you sure you want to delete the hardware profile for "${cust.gymName || cust.name}"?`)) {
+    const performDelete = () => {
       if (selectedCustomerId === cust.id) {
         setSelectedCustomerId('');
       }
@@ -411,6 +423,16 @@ export default function CloudPushPortal() {
         deleteCustomer(cust.id);
       }
       notify(`Profile "${cust.gymName || cust.name}" deleted.`, 'info');
+    };
+
+    if (confirmAction) {
+      confirmAction({
+        title: 'Delete Client Hardware Profile',
+        message: `Are you sure you want to delete the hardware profile for "${cust.gymName || cust.name}"?`,
+        onConfirm: performDelete
+      });
+    } else if (window.confirm(`Are you sure you want to delete the hardware profile for "${cust.gymName || cust.name}"?`)) {
+      performDelete();
     }
   };
 
@@ -1177,7 +1199,7 @@ export default function CloudPushPortal() {
     if (!selectedCustomerId) return;
     const cust = customers.find(c => c.id === selectedCustomerId);
     if (!cust) return;
-    if (window.confirm(`Disable Cloud Push biometric service for "${cust.gymName || cust.name}"? This client will be treated as a standard non-biometric client.`)) {
+    const performDisable = () => {
       setAccNo('');
       setApiKey('');
       setDeviceSerials([]);
@@ -1188,6 +1210,91 @@ export default function CloudPushPortal() {
         });
         notify(`Cloud Push Service disabled for "${cust.gymName || cust.name}".`, 'info');
       }
+    };
+
+    if (confirmAction) {
+      confirmAction({
+        title: 'Disable Cloud Push Service',
+        message: `Disable Cloud Push biometric service for "${cust.gymName || cust.name}"? This client will be treated as a standard non-biometric client.`,
+        onConfirm: performDisable
+      });
+    } else if (window.confirm(`Disable Cloud Push biometric service for "${cust.gymName || cust.name}"? This client will be treated as a standard non-biometric client.`)) {
+      performDisable();
+    }
+  };
+
+  // Export Monthwise Audited Statement to CSV
+  const handleExportAuditCSV = () => {
+    if (!auditData || !Array.isArray(auditData.monthResults)) return;
+    const clientLabel = selectedCustomer?.gymName || selectedCustomer?.name || `Account_${accNo}`;
+    const rows = auditData.monthResults.map(m => ({
+      Client: clientLabel,
+      PushAccount: accNo || '',
+      Month: m.monthLabel || m.key,
+      ActiveUsers: m.activeUserCount || 0,
+      TotalPunches: m.totalPunches || 0,
+      RatePerUserLKR: ratePerUserMonth || 0,
+      TotalFeeLKR: m.fee || (Number(m.activeUserCount || 0) * Number(ratePerUserMonth || 0)),
+      IncludedInInvoice: includedMonths[m.key] !== false ? 'Yes' : 'Excluded',
+      Devices: (deviceSerials || []).map(d => `${d.sn}[${d.role}]`).join('; ')
+    }));
+    exportToCSV(rows, `CloudPush_Audit_${clientLabel.replace(/[^a-z0-9]/gi, '_')}_${fromDate}_to_${toDate}.csv`);
+    notify(`Exported ${rows.length} audited months to CSV.`, 'success');
+  };
+
+  // Fetch enrolled biometric users from a terminal via gateway API
+  const handleFetchTerminalUsers = async (targetSn) => {
+    const sn = targetSn || selectedUsersTerminalSn || deviceSerials[0]?.sn || serialNo;
+    if (!accNo || !sn) {
+      notify('Select a valid Push Account # and Terminal SN first.', 'warning');
+      return;
+    }
+    setSelectedUsersTerminalSn(sn);
+    setTerminalUsersLoading(true);
+    try {
+      const res = await getTerminalUsers({ baseUrl, accNo, serialNo: sn, apiKey });
+      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.users) ? res.users : []));
+      setTerminalUsers(list);
+      if (list.length > 0) {
+        notify(`Loaded ${list.length} enrolled biometric users from terminal ${sn}.`, 'success');
+      } else {
+        notify(`No enrolled users returned for terminal ${sn}.`, 'info');
+      }
+    } catch (err) {
+      setTerminalUsers([]);
+      notify(`Failed to load terminal users: ${err.message}`, 'error');
+    } finally {
+      setTerminalUsersLoading(false);
+    }
+  };
+
+  // Lookup specific Member PIN + biometric templates from live gateway
+  const handleLookupPin = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanPin = String(pinLookupQuery || '').trim();
+    if (!accNo || !cleanPin) {
+      notify('Enter a valid Member PIN to look up.', 'warning');
+      return;
+    }
+    setPinLookupLoading(true);
+    setPinLookupResult(null);
+    try {
+      const [userRes, tplRes] = await Promise.all([
+        getUserByPin({ baseUrl, accNo, apiKey, pin: cleanPin }),
+        getTemplateInfo({ baseUrl, accNo, apiKey, pin: cleanPin })
+      ]);
+      const userObj = Array.isArray(userRes) ? userRes[0] : (Array.isArray(userRes?.data) ? userRes.data[0] : userRes);
+      const tplObj = Array.isArray(tplRes) ? tplRes[0] : (Array.isArray(tplRes?.data) ? tplRes.data[0] : tplRes);
+      if (!userObj && !tplObj) {
+        notify(`No biometric user record found for PIN #${cleanPin} on Account #${accNo}.`, 'info');
+      } else {
+        setPinLookupResult({ pin: cleanPin, user: userObj, templates: tplObj });
+        notify(`Retrieved live hardware profile for PIN #${cleanPin}.`, 'success');
+      }
+    } catch (err) {
+      notify(`PIN lookup failed: ${err.message}`, 'error');
+    } finally {
+      setPinLookupLoading(false);
     }
   };
 
@@ -1429,6 +1536,17 @@ export default function CloudPushPortal() {
 
           {auditData && (
             <>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={handleExportAuditCSV}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Download audited monthly active user breakdown as CSV"
+              >
+                <Download size={15} />
+                <span>Export CSV</span>
+              </button>
+
               <button 
                 type="button" 
                 className="btn btn-secondary"
@@ -3405,6 +3523,115 @@ export default function CloudPushPortal() {
               </table>
             </div>
           </div>
+
+          {/* Enrolled Biometric Users & PIN Lookup (Live Gateway API) */}
+          <div className="card" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--panel-border)', marginTop: '24px' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Enrolled Biometric Users &amp; PIN Lookup</span>
+                </h4>
+                <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Query real enrolled cardholders and biometric template counts directly from Account #{accNo || '—'}.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <form onSubmit={handleLookupPin} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Lookup PIN #..."
+                    value={pinLookupQuery}
+                    onChange={(e) => setPinLookupQuery(e.target.value)}
+                    style={{ height: '32px', width: '130px', fontSize: '0.8rem' }}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-sm btn-secondary"
+                    disabled={pinLookupLoading}
+                    style={{ height: '32px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {pinLookupLoading ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
+                    <span>Inspect PIN</span>
+                  </button>
+                </form>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => handleFetchTerminalUsers(deviceSerials[0]?.sn || serialNo)}
+                  disabled={terminalUsersLoading}
+                  style={{ height: '32px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <RefreshCw size={12} className={terminalUsersLoading ? 'animate-spin' : ''} />
+                  <span>Load Enrolled Users</span>
+                </button>
+              </div>
+            </div>
+
+            {pinLookupResult && (
+              <div style={{ padding: '14px 20px', background: 'var(--subtle-bg)', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span style={{ padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', fontWeight: 800, fontSize: '0.82rem' }}>
+                    PIN #{pinLookupResult.pin}
+                  </span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                    {pinLookupResult.user?.name || pinLookupResult.user?.Name || 'Registered Hardware User'}
+                  </span>
+                  {pinLookupResult.templates && (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      Templates: {JSON.stringify(pinLookupResult.templates)}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setPinLookupResult(null)}
+                  style={{ fontSize: '0.74rem', padding: '4px 8px' }}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
+            <div className="table-responsive">
+              <table className="table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'var(--subtle-bg)', borderBottom: '1px solid var(--panel-border)' }}>
+                    <th style={{ padding: '10px 16px', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>PIN</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Name</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Card #</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Privilege</th>
+                    <th style={{ padding: '10px 16px', fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Terminal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {terminalUsers.length > 0 ? (
+                    terminalUsers.slice(0, 100).map((u, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--subtle-border)' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: 800, fontFamily: 'monospace' }}>#{u.pin || u.PIN || u.user_id || '—'}</td>
+                        <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{u.name || u.Name || '—'}</td>
+                        <td style={{ padding: '10px 16px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{u.card || u.CardNo || '—'}</td>
+                        <td style={{ padding: '10px 16px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{u.privilege || u.Privilege || 'User'}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {selectedUsersTerminalSn || serialNo}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
+                        Click <strong>Load Enrolled Users</strong> or search a specific <strong>PIN #</strong> to fetch authentic user enrollments from the hardware gateway.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -4220,9 +4447,18 @@ export default function CloudPushPortal() {
                           type="button"
                           className="btn btn-sm btn-secondary"
                           onClick={() => {
-                            if (window.confirm(`Disable Cloud Push service for "${c.gymName || c.name}"?`)) {
+                            const doOptOut = () => {
                               if (updateCustomer) updateCustomer(c.id, { cloudPushEnabled: false });
                               notify(`Cloud Push disabled for "${c.gymName || c.name}".`, 'info');
+                            };
+                            if (confirmAction) {
+                              confirmAction({
+                                title: 'Disable Cloud Push Service',
+                                message: `Disable Cloud Push service for "${c.gymName || c.name}"?`,
+                                onConfirm: doOptOut
+                              });
+                            } else if (window.confirm(`Disable Cloud Push service for "${c.gymName || c.name}"?`)) {
+                              doOptOut();
                             }
                           }}
                           title="Disable Cloud Push service for this client"
