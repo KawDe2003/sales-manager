@@ -7,7 +7,7 @@ import {
   X, Target, ClipboardList, Menu, BadgeDollarSign, LogIn, LogOut,
   PanelLeftClose, PanelLeftOpen, Bell, Search, PlusCircle, CreditCard, ChevronRight,
   Sun, Moon, Building2, CalendarDays, Wallet, ShieldAlert, Shield, MessageSquare, Scale, BookOpen, ShoppingBag, Truck, Sparkles,
-  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Zap, Sliders, Palette
+  Cloud, RefreshCw, Save, RotateCcw, CloudUpload, Zap, Sliders, Palette, Bot
 } from 'lucide-react';
 import StoreContextProvider, { StoreContext } from './context/StoreContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -38,6 +38,7 @@ const HR = lazy(() => import('./pages/HR'));
 const Login = lazy(() => import('./pages/Login'));
 const Features = lazy(() => import('./pages/Features'));
 const CloudPushPortal = lazy(() => import('./pages/CloudPushPortal'));
+const AutomationAgents = lazy(() => import('./pages/AutomationAgents'));
 
 // Smooth, non-flickering skeleton loader for page transitions
 const RouteSkeletonLoader = () => (
@@ -1157,6 +1158,7 @@ const AppContent = () => {
             {isFeatureEnabled('smsPortal') && (
               <NavItem to="/sms" icon={<MessageSquare size={18} />} label="SMS Portal & Broadcast" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
+            <NavItem to="/automations" icon={<Bot size={18} />} label="24/7 Automation Agents" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             {checkPerm(['view_logs', 'manage_users']) && (
               <NavItem to="/logs" icon={<ClipboardList size={18} />} label="Activity Logs" onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             )}
@@ -1247,6 +1249,7 @@ const AppContent = () => {
                 <Route path="/logs" element={<ProtectedRoute requiredPermission={['view_logs', 'manage_users']} userPermissions={userPermissions}><Logs /></ProtectedRoute>} />
                 <Route path="/sms" element={<ProtectedRoute userPermissions={userPermissions}><SmsPortal /></ProtectedRoute>} />
                 <Route path="/cloud-push" element={<ProtectedRoute userPermissions={userPermissions}><CloudPushPortal /></ProtectedRoute>} />
+                <Route path="/automations" element={<ProtectedRoute userPermissions={userPermissions}><AutomationAgents /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute requiredPermission={['manage_users', 'manage_settings']} userPermissions={userPermissions}><Settings /></ProtectedRoute>} />
                 <Route path="/features" element={<ProtectedRoute userPermissions={userPermissions}><Features /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />

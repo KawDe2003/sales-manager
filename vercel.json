@@ -1,5 +1,11 @@
 {
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/cron/run-agents",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
