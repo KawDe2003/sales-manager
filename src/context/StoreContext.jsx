@@ -2432,13 +2432,32 @@ export default function StoreContextProvider({ children }) {
     try {
       const activeClient = getSupabaseClient(activeBusinessId) || supabase;
       const effId = getEffectiveUserId();
+      const nowIso = new Date().toISOString();
       let { error } = await activeClient
         .from('user_profiles')
         .upsert({
           user_id: effId,
           config,
-          updated_at: new Date().toISOString()
+          updated_at: nowIso
         }, { onConflict: 'user_id' });
+
+      // Fallback to authenticated Supabase auth user if effId is a team_members UUID not in auth.users
+      if (error && (error.code === '23503' || error.code === '42501')) {
+        try {
+          const { data: authData } = await activeClient.auth.getUser();
+          const authUid = authData?.user?.id;
+          if (authUid && authUid !== effId) {
+            const authRes = await activeClient
+              .from('user_profiles')
+              .upsert({
+                user_id: authUid,
+                config,
+                updated_at: nowIso
+              }, { onConflict: 'user_id' });
+            error = authRes.error;
+          }
+        } catch (e) {}
+      }
 
       // If foreign key constraint failed on user_id, fallback to system admin UUID
       if (error && error.code === '23503' && effId !== '76bb4580-2006-464f-aab8-64029dbe9540') {
@@ -2447,34 +2466,55 @@ export default function StoreContextProvider({ children }) {
           .upsert({
             user_id: '76bb4580-2006-464f-aab8-64029dbe9540',
             config,
-            updated_at: new Date().toISOString()
+            updated_at: nowIso
           }, { onConflict: 'user_id' });
         error = fallbackRes.error;
       }
 
+      // Final fallback via SECURITY DEFINER RPC if RLS or FK blocked direct table upsert
+      if (error) {
+        try {
+          const { data: rpcData, error: rpcErr } = await activeClient.rpc('upsert_company_config', {
+            p_config: config,
+            p_user_id: effId
+          });
+          if (!rpcErr && rpcData?.ok) {
+            error = null;
+          }
+        } catch (e) {}
+      }
+
       // Also ensure all existing profiles have the latest company configuration so no stale row overrides it
-      try {
-        await activeClient
-          .from('user_profiles')
-          .update({
-            config,
-            updated_at: new Date().toISOString()
-          })
-          .neq('user_id', '00000000-0000-0000-0000-000000000000');
-      } catch (e) {
-        // Non-fatal if update fails
+      if (!error) {
+        try {
+          await activeClient
+            .from('user_profiles')
+            .update({
+              config,
+              updated_at: nowIso
+            })
+            .neq('user_id', '00000000-0000-0000-0000-000000000000');
+        } catch (e) {
+          // Non-fatal if update fails
+        }
       }
 
       if (error) {
         console.warn('[Supabase Sync] Config Upsert Warning:', error.message);
+        return { ok: false, error: error.message };
       } else {
         setCloudSyncStatus('synced');
-        setLastSyncTime(new Date().toISOString());
+        setLastSyncTime(nowIso);
         setHasUnsavedChanges(false);
         lastKnownDataHashRef.current = computeDataHash();
+        try {
+          localStorage.setItem('gym_sms_config_synced_at', nowIso);
+        } catch (e) {}
+        return { ok: true };
       }
     } catch (err) {
       console.warn('[Supabase Sync] Config Exception:', err.message);
+      return { ok: false, error: err.message };
     }
   };
 
@@ -2581,24 +2621,42 @@ export default function StoreContextProvider({ children }) {
 
       // 2. Company Config & Branding Profile
       let remoteConfig = null;
+      let remoteUpdatedAt = null;
       if (Array.isArray(profData) && profData.length > 0) {
         const effId = getEffectiveUserId();
         const matched = profData.find(p => p.user_id === effId) || profData[0];
         remoteConfig = matched?.config;
+        remoteUpdatedAt = matched?.updated_at || null;
       } else if (profData && typeof profData === 'object') {
         remoteConfig = profData.config;
+        remoteUpdatedAt = profData.updated_at || null;
       }
 
       if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {
-        setSmsConfig(prev => {
-          const merged = { ...prev, ...remoteConfig };
-          try {
-            localStorage.setItem('gym_sms_config', JSON.stringify(merged));
-            localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(merged));
-            localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(merged));
-          } catch (e) {}
-          return merged;
-        });
+        let localUpdatedMs = 0;
+        try {
+          const localTs = localStorage.getItem('gym_sms_config_updated_at');
+          if (localTs) localUpdatedMs = Date.parse(localTs) || 0;
+        } catch (e) {}
+        const remoteUpdatedMs = remoteUpdatedAt ? (Date.parse(remoteUpdatedAt) || 0) : 0;
+
+        if (localUpdatedMs > remoteUpdatedMs) {
+          // Local config (e.g. recently uploaded logo/favicon) is newer than cloud row — preserve it and retry sync
+          setSmsConfig(prev => {
+            syncConfigToSupabase(prev);
+            return prev;
+          });
+        } else {
+          setSmsConfig(prev => {
+            const merged = { ...prev, ...remoteConfig };
+            try {
+              localStorage.setItem('gym_sms_config', JSON.stringify(merged));
+              localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(merged));
+              localStorage.setItem(`biz_data_${activeBusinessId}_sms_config`, JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
+        }
       }
 
       // 3. Customers
@@ -5926,17 +5984,19 @@ export default function StoreContextProvider({ children }) {
   }, [customers.length, invoices.length, tasks.length, smsConfig?.autoRenewalEnabled, smsConfig?.autoTaskReminderEnabled, activeBusinessId]);
 
   // SMS Service Core
-  const updateSmsConfig = (newConfig) => {
+  const updateSmsConfig = async (newConfig) => {
     const updated = typeof newConfig === 'function' ? newConfig(smsConfig) : newConfig;
+    const nowIso = new Date().toISOString();
     setSmsConfig(updated);
     try {
       localStorage.setItem('gym_sms_config', JSON.stringify(updated));
+      localStorage.setItem('gym_sms_config_updated_at', nowIso);
       localStorage.setItem(`biz_data_${activeBusinessId}_smsConfig`, JSON.stringify(updated));
       localStorage.setItem('biz_data_biz_main_smsConfig', JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to save gym_sms_config to localStorage', e);
     }
-    syncConfigToSupabase(updated);
+    return await syncConfigToSupabase(updated);
   };
 
   const getBasicAuthHeader = () => {

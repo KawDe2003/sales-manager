@@ -387,14 +387,26 @@ const AppContent = () => {
   }, [user, smsConfig.sessionTimeout, signOut, showNotification]);
 
   useEffect(() => {
+    const iconLinks = document.querySelectorAll("link[rel~='icon']");
+    const targets = iconLinks.length > 0 ? Array.from(iconLinks) : [(() => {
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
+      return link;
+    })()];
+
     if (smsConfig.appFavicon) {
-      let link = document.querySelector("link[rel~='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = smsConfig.appFavicon;
+      const match = /^data:([^;,]+)[;,]/i.exec(smsConfig.appFavicon);
+      const mimeType = match ? match[1] : 'image/png';
+      targets.forEach((link) => {
+        link.type = mimeType;
+        link.href = smsConfig.appFavicon;
+      });
+    } else {
+      targets.forEach((link) => {
+        link.type = 'image/svg+xml';
+        link.href = '/favicon.svg';
+      });
     }
   }, [smsConfig.appFavicon]);
 

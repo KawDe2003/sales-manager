@@ -17,19 +17,37 @@ import {
 } from 'lucide-react';
 
 // Compress/scale images in-memory via HTML5 canvas to prevent localStorage quota exhaustion
+const ALLOWED_IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico'];
+
 const compressImageFile = (file, maxWidth = 360, maxHeight = 360, quality = 0.88) => {
   return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      return reject(new Error('Please select a valid image file'));
+    const fileName = (file?.name || '').toLowerCase();
+    const hasImageExt = ALLOWED_IMAGE_EXTS.some(ext => fileName.endsWith(ext));
+    if (!file || (!file.type?.startsWith('image/') && !hasImageExt)) {
+      return reject(new Error('Please select a valid image file (PNG, JPG, WebP, SVG, or ICO)'));
     }
+    const isSvg = file.type === 'image/svg+xml' || fileName.endsWith('.svg');
+    const isIco = file.type === 'image/x-icon' || file.type === 'image/vnd.microsoft.icon' || fileName.endsWith('.ico');
+
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Failed to read image file'));
     reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      // Preserve crisp vector SVGs directly when under 150 KB
+      if (isSvg && typeof rawDataUrl === 'string' && rawDataUrl.length <= 200000) {
+        return resolve(rawDataUrl);
+      }
+
       const img = new window.Image();
-      img.onerror = () => reject(new Error('Failed to decode image'));
+      img.onerror = () => {
+        if (isIco && typeof rawDataUrl === 'string' && rawDataUrl.length <= 200000) {
+          return resolve(rawDataUrl);
+        }
+        reject(new Error('Failed to decode image'));
+      };
       img.onload = () => {
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
+        let width = img.naturalWidth || img.width || maxWidth;
+        let height = img.naturalHeight || img.height || maxHeight;
         if (width > maxWidth || height > maxHeight) {
           if (width / height > maxWidth / maxHeight) {
             height = Math.round((height * maxWidth) / width);
@@ -45,13 +63,13 @@ const compressImageFile = (file, maxWidth = 360, maxHeight = 360, quality = 0.88
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        const isPng = file.type === 'image/png' || file.type === 'image/svg+xml';
-        const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', quality);
+        const keepAlpha = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif' || isSvg || isIco;
+        const dataUrl = canvas.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', quality);
         resolve(dataUrl);
       };
-      img.src = e.target.result;
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   });
@@ -243,7 +261,7 @@ const Settings = () => {
     setIsSaving(true);
     try {
       if (updateSmsConfig) {
-        updateSmsConfig({ ...smsConfig });
+        await updateSmsConfig({ ...smsConfig });
       }
       if (syncAllToCloud) {
         await syncAllToCloud(false);
@@ -1746,15 +1764,22 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
                 style={{ display: 'none' }}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
+                  e.target.value = '';
                   if (file) {
                     try {
                       const compressed = await compressImageFile(file, 360, 360, 0.9);
-                      updateSmsConfig({
+                      const nextConfig = {
                         ...smsConfig,
                         receiptLogo: compressed,
                         companyLogo: compressed
-                      });
-                      showNotification('Company logo updated and applied across navbar and documents!');
+                      };
+                      const syncRes = await updateSmsConfig(nextConfig);
+                      initialConfigSnapshot.current = getComparableConfig(nextConfig);
+                      if (syncRes && syncRes.ok === false) {
+                        showNotification('Logo saved locally, but cloud sync failed: ' + (syncRes.error || 'Check database permissions'), 'warning');
+                      } else {
+                        showNotification('Company logo saved and applied across navbar and documents!');
+                      }
                     } catch (err) {
                       showNotification('Could not process image: ' + err.message, 'warning');
                     }
@@ -1819,10 +1844,16 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
                       type="button" 
                       className="btn btn-secondary"
                       style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
-                      onClick={() => {
-                        updateSmsConfig({ ...smsConfig, receiptLogo: '', companyLogo: '' });
+                      onClick={async () => {
+                        const nextConfig = { ...smsConfig, receiptLogo: '', companyLogo: '' };
+                        const syncRes = await updateSmsConfig(nextConfig);
+                        initialConfigSnapshot.current = getComparableConfig(nextConfig);
                         if (logoInputRef.current) logoInputRef.current.value = '';
-                        showNotification('Company logo removed.');
+                        if (syncRes && syncRes.ok === false) {
+                          showNotification('Logo removed locally, but cloud sync failed: ' + (syncRes.error || 'Check database permissions'), 'warning');
+                        } else {
+                          showNotification('Company logo removed.');
+                        }
                       }}
                       title="Remove Logo"
                     >
@@ -1851,14 +1882,21 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
                 style={{ display: 'none' }}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
+                  e.target.value = '';
                   if (file) {
                     try {
                       const compressed = await compressImageFile(file, 64, 64, 0.95);
-                      updateSmsConfig({
+                      const nextConfig = {
                         ...smsConfig,
                         appFavicon: compressed
-                      });
-                      showNotification('Application favicon updated!');
+                      };
+                      const syncRes = await updateSmsConfig(nextConfig);
+                      initialConfigSnapshot.current = getComparableConfig(nextConfig);
+                      if (syncRes && syncRes.ok === false) {
+                        showNotification('Favicon saved locally, but cloud sync failed: ' + (syncRes.error || 'Check database permissions'), 'warning');
+                      } else {
+                        showNotification('Application favicon saved and applied to browser tab!');
+                      }
                     } catch (err) {
                       showNotification('Could not process favicon: ' + err.message, 'warning');
                     }
@@ -1923,10 +1961,16 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
                       type="button" 
                       className="btn btn-secondary"
                       style={{ padding: '8px 12px', fontSize: '0.82rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
-                      onClick={() => {
-                        updateSmsConfig({ ...smsConfig, appFavicon: '' });
+                      onClick={async () => {
+                        const nextConfig = { ...smsConfig, appFavicon: '' };
+                        const syncRes = await updateSmsConfig(nextConfig);
+                        initialConfigSnapshot.current = getComparableConfig(nextConfig);
                         if (faviconInputRef.current) faviconInputRef.current.value = '';
-                        showNotification('Favicon reset to default.');
+                        if (syncRes && syncRes.ok === false) {
+                          showNotification('Favicon reset locally, but cloud sync failed: ' + (syncRes.error || 'Check database permissions'), 'warning');
+                        } else {
+                          showNotification('Favicon reset to default.');
+                        }
                       }}
                       title="Remove Favicon"
                     >
