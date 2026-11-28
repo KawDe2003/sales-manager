@@ -362,7 +362,7 @@ const AppContent = () => {
 
   // Inactivity Timer
   useEffect(() => {
-    if (!user) return;
+    if (!user || smsConfig.sessionTimeoutEnabled === false) return;
 
     let timeoutId;
     const timeoutMinutes = smsConfig.sessionTimeout || 5;
@@ -384,7 +384,7 @@ const AppContent = () => {
       if (timeoutId) clearTimeout(timeoutId);
       events.forEach(event => document.removeEventListener(event, resetTimer));
     };
-  }, [user, smsConfig.sessionTimeout, signOut, showNotification]);
+  }, [user, smsConfig.sessionTimeout, smsConfig.sessionTimeoutEnabled, signOut, showNotification]);
 
   useEffect(() => {
     const iconLinks = document.querySelectorAll("link[rel~='icon']");

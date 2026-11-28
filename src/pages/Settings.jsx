@@ -2799,37 +2799,101 @@ GRANT EXECUTE ON FUNCTION public.get_shared_document(text, text) TO anon, authen
 
           {/* Security & Access */}
           <div className="glass-panel">
-            <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
-              <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
-                <ShieldCheck size={22} color="var(--danger)" />
-              </div>
-              <div>
-                <h2 className="h2" style={{ margin: 0 }}>Security & Session Controls</h2>
-                <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Configure access timeouts and session lifetime for financial data protection.</p>
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Inactivity Session Timeout</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minutes</span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
-                <input 
-                  type="number" 
-                  className="form-input" 
-                  style={{ paddingLeft: '40px' }}
-                  min="1"
-                  max="1440"
-                  value={smsConfig.sessionTimeout || 5} 
-                  onChange={e => updateSmsConfig({...smsConfig, sessionTimeout: parseInt(e.target.value) || 1})} 
-                />
-              </div>
-              <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Automatically logout the user after the specified period of inactivity to safeguard financial data.
-              </p>
-            </div>
+            {(() => {
+              const isTimeoutEnabled = smsConfig.sessionTimeoutEnabled !== false;
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-3" style={{ marginBottom: '28px', flexWrap: 'wrap' }}>
+                    <div className="flex items-center gap-3">
+                      <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                        <ShieldCheck size={22} color="var(--danger)" />
+                      </div>
+                      <div>
+                        <h2 className="h2" style={{ margin: 0 }}>Security & Session Controls</h2>
+                        <p className="text-secondary" style={{ fontSize: '0.85rem', margin: 0 }}>Configure access timeouts and session lifetime for financial data protection.</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isTimeoutEnabled}
+                      onClick={() => {
+                        const nextEnabled = !isTimeoutEnabled;
+                        updateSmsConfig({ ...smsConfig, sessionTimeoutEnabled: nextEnabled });
+                        showNotification(nextEnabled ? 'Inactivity session timeout enabled.' : 'Inactivity session timeout disabled.');
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '6px 12px 6px 10px',
+                        borderRadius: '999px',
+                        border: `1px solid ${isTimeoutEnabled ? 'rgba(16, 185, 129, 0.35)' : 'var(--border)'}`,
+                        background: isTimeoutEnabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.08)',
+                        color: isTimeoutEnabled ? 'var(--success)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '34px',
+                          height: '18px',
+                          borderRadius: '999px',
+                          background: isTimeoutEnabled ? 'var(--success)' : 'rgba(148, 163, 184, 0.4)',
+                          position: 'relative',
+                          display: 'inline-block',
+                          transition: 'background 0.2s ease'
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            position: 'absolute',
+                            top: '2px',
+                            left: isTimeoutEnabled ? '18px' : '2px',
+                            transition: 'left 0.2s ease',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.25)'
+                          }}
+                        />
+                      </span>
+                      <span>{isTimeoutEnabled ? 'Enabled' : 'Disabled'}</span>
+                    </button>
+                  </div>
+                  
+                  <div className="form-group" style={{ opacity: isTimeoutEnabled ? 1 : 0.55, transition: 'opacity 0.2s ease' }}>
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Inactivity Session Timeout</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Minutes</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Zap size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        style={{ paddingLeft: '40px', cursor: isTimeoutEnabled ? 'text' : 'not-allowed' }}
+                        min="1"
+                        max="1440"
+                        disabled={!isTimeoutEnabled}
+                        value={smsConfig.sessionTimeout || 5} 
+                        onChange={e => updateSmsConfig({...smsConfig, sessionTimeout: parseInt(e.target.value) || 1})} 
+                      />
+                    </div>
+                    <p style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {isTimeoutEnabled
+                        ? 'Automatically logout the user after the specified period of inactivity to safeguard financial data.'
+                        : 'Session timeout is currently disabled. Users will remain signed in until they log out manually.'}
+                    </p>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Accounting Period Locking & LKAS / SLFRS Compliance */}

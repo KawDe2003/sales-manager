@@ -294,6 +294,7 @@ export default function StoreContextProvider({ children }) {
     pdfColor: '#4f46e5',
     pdfFooterText: 'Thank you for your business. Seynex Enterprises.',
     pdfNotes: 'Computer-generated document by Seynex Enterprises Management Suite.',
+    sessionTimeoutEnabled: true,
     sessionTimeout: 5,
     balance: 0,
     invoicePrefix: 'INV-',
