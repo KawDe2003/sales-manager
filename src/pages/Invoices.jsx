@@ -923,6 +923,7 @@ const InstallmentPlanDetailsModal = ({ invoice, onClose, payments = [], getCusto
 
 const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) => {
   const { smsConfig = {}, generateInstallmentSchedule, payments = [], showNotification, invoices = [] } = useContext(StoreContext) || {};
+  const navigate = useNavigate();
   const isLocked = Boolean(
     initialData && (
       initialData.status === 'Sent' || 
@@ -1209,7 +1210,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                     type="button"
                     className="btn btn-sm btn-secondary"
                     onClick={() => {
-                      setShowModal(false);
+                      onClose();
                       navigate(`/cloud-push?customerId=${encodeURIComponent(formData.customerId || '')}`, { state: { customerId: formData.customerId } });
                     }}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
@@ -1333,7 +1334,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                     <button
                       key={pIdx}
                       type="button"
-                      onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateTotal(formData.items, discountVal) })}
+                      onClick={() => setFormData({ ...formData, discount: discountVal, amount: calculateNetTotal(formData.items, discountVal, taxRate) })}
                       style={{
                         background: Number(formData.discount) === discountVal ? '#f59e0b' : 'rgba(245, 158, 11, 0.15)',
                         border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -1511,7 +1512,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
                   </div>
                 </div>
                 {(() => {
-                  const netTotal = calculateTotal(formData.items, formData.discount);
+                  const netTotal = calculateNetTotal(formData.items, formData.discount, taxRate);
                   if (!generateInstallmentSchedule) return null;
                   const planPreview = generateInstallmentSchedule(netTotal, installmentCount, downPayment, formData.date, installmentFrequency);
                   return (

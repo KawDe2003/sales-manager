@@ -559,6 +559,7 @@ export default function CloudPushPortal() {
       savedHardwareSnapshotRef.current = getHardwareSnapshot();
     } catch (e) {
       console.error(e);
+      notify(`Failed to save configuration: ${e.message}`, 'error');
     }
   };
 

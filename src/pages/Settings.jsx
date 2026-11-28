@@ -260,8 +260,9 @@ const Settings = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      let syncRes = null;
       if (updateSmsConfig) {
-        await updateSmsConfig({ ...smsConfig });
+        syncRes = await updateSmsConfig({ ...smsConfig });
       }
       if (syncAllToCloud) {
         await syncAllToCloud(false);
@@ -270,7 +271,11 @@ const Settings = () => {
         setHasUnsavedChanges(false);
       }
       initialConfigSnapshot.current = getComparableConfig(smsConfig);
-      showNotification('System configuration and SMS settings saved successfully.');
+      if (syncRes && syncRes.ok === false) {
+        showNotification(`Settings saved locally, but cloud sync failed: ${syncRes.error || 'Check database permissions'}`, 'warning');
+      } else {
+        showNotification('System configuration and SMS settings saved successfully.');
+      }
     } catch (err) {
       showNotification(`Failed to save settings: ${err.message}`, 'error');
     } finally {

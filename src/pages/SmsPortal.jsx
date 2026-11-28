@@ -172,11 +172,15 @@ const SmsPortal = () => {
     setIsSendingDirect(false);
   };
 
-  const handleSaveTemplates = (e) => {
+  const handleSaveTemplates = async (e) => {
     e.preventDefault();
     if (updateSmsConfig) {
-      updateSmsConfig(localConfig);
-      showNotification && showNotification('SMS templates and gateway settings saved successfully!');
+      const syncRes = await updateSmsConfig(localConfig);
+      if (syncRes && syncRes.ok === false) {
+        showNotification && showNotification(`Templates saved locally, but cloud sync failed: ${syncRes.error || 'Check database permissions'}`, 'warning');
+      } else {
+        showNotification && showNotification('SMS templates and gateway settings saved successfully!');
+      }
     }
   };
 
