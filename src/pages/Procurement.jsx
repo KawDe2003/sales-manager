@@ -8,6 +8,7 @@ import {
 import { StoreContext } from '../context/StoreContext';
 import CustomSelect from '../components/CustomSelect';
 import DatePicker from '../components/DatePicker';
+import DiscardDraftModal from '../components/DiscardDraftModal';
 import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
 
 const Procurement = () => {
@@ -27,6 +28,7 @@ const Procurement = () => {
 
   // Modals
   const [showPOModal, setShowPOModal] = useState(false);
+  const [showPODiscardConfirm, setShowPODiscardConfirm] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [viewingPO, setViewingPO] = useState(null);
@@ -894,17 +896,34 @@ Please confirm receipt of this order and acknowledge your dispatch schedule. Tha
 
       {/* ===== MODAL: CREATE / EDIT PURCHASE ORDER ===== */}
       {showPOModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-          padding: '20px', animation: 'backdropFade 0.14s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%', maxWidth: '680px', padding: 0, borderRadius: '20px',
-            maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
-            boxShadow: '0 30px 70px rgba(0,0,0,0.7)', animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              const isPODirty = Boolean(
+                poForm.supplierId ||
+                poForm.notes?.trim() ||
+                poForm.items?.some(it => it.name?.trim() || Number(it.unitCost) > 0)
+              );
+              if (isPODirty) setShowPODiscardConfirm(true);
+              else setShowPOModal(false);
+            }
+          }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(2, 6, 23, 0.78)', backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999,
+            padding: '20px', animation: 'backdropFade 0.14s ease-out'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{
+              width: '100%', maxWidth: '680px', padding: 0, borderRadius: '20px',
+              maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--panel-border)',
+              boxShadow: '0 30px 70px rgba(0,0,0,0.7)', animation: 'modalPop 0.16s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
             <div className="modal-header">
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Issue Purchase Order
@@ -1074,6 +1093,17 @@ Please confirm receipt of this order and acknowledge your dispatch schedule. Tha
           </div>
         </div>
       )}
+
+      <DiscardDraftModal
+        isOpen={showPODiscardConfirm}
+        title="Discard purchase order draft?"
+        message="You have unsaved changes in this purchase order. Are you sure you want to discard them?"
+        onKeepEditing={() => setShowPODiscardConfirm(false)}
+        onDiscard={() => {
+          setShowPODiscardConfirm(false);
+          setShowPOModal(false);
+        }}
+      />
 
       {/* ===== MODAL: ADD / EDIT SUPPLIER ===== */}
       {showSupplierModal && (

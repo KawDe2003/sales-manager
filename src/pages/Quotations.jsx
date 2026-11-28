@@ -8,6 +8,7 @@ import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { openWhatsApp } from '../utils/notificationService';
 import CustomSelect from '../components/CustomSelect';
 import DatePicker from '../components/DatePicker';
+import DiscardDraftModal from '../components/DiscardDraftModal';
 
 const Quotations = () => {
   const { quotes = [], addQuote, updateQuote, updateQuoteStatus, convertQuoteToInvoice, unlockQuote, voidQuote, deleteQuote, inventory = [], triggerSMS, smsConfig, customers = [], leads = [], showNotification } = useContext(StoreContext) || {};
@@ -878,6 +879,12 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
     setFormData({ ...formData, items: newItems });
   };
 
+  const handleUpdateItemType = (idx, newType) => {
+    const newItems = [...formData.items];
+    newItems[idx] = { ...newItems[idx], type: newType };
+    setFormData({ ...formData, items: newItems });
+  };
+
   const handleUpdateItemQty = (idx, deltaOrVal, isAbsolute = false) => {
     const newItems = [...formData.items];
     let newQty = isAbsolute ? Number(deltaOrVal) : (Number(newItems[idx].quantity) || 1) + deltaOrVal;
@@ -958,12 +965,25 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
 
   if (typeof document === 'undefined') return null;
 
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [initialDraftSnapshot] = useState(() => JSON.stringify({ formData, taxRate }));
+
+  const handleAttemptClose = () => {
+    const isDraftDirty = !isLocked && JSON.stringify({ formData, taxRate }) !== initialDraftSnapshot;
+    if (isDraftDirty) {
+      setShowDiscardConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
   const currentSubtotal = calculateSubtotal(formData.items);
   const currentDiscount = calculateDiscount(formData.discount);
   const currentTaxAmount = calculateTaxAmount(formData.items, formData.discount, taxRate);
   const currentNetTotal = calculateNetTotal(formData.items, formData.discount, taxRate);
 
   return createPortal(
+    <>
     <div 
       className="modal-overlay app-modal-backdrop"
       style={{
@@ -981,7 +1001,7 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
         zIndex: 999999,
         padding: '12px'
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleAttemptClose(); }}
     >
       <div 
         className="glass-panel app-modal-dialog" 
@@ -1306,31 +1326,54 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
                         <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                background: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.15)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                                color: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? '#38bdf8' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? '#34d399' : '#c084fc',
-                                border: `1px solid ${(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.3)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
-                                flexShrink: 0
-                              }}>
-                                {(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'Hardware' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'Service' : 'Software'}
-                              </span>
                               {String(it.id || '').startsWith('custom-') ? (
-                                <input
-                                  type="text"
-                                  className="form-input"
-                                  style={{ height: '28px', fontSize: '0.8rem', padding: '2px 8px', flex: 1, minWidth: '130px' }}
-                                  value={it.name}
-                                  onChange={e => handleUpdateItemName(idx, e.target.value)}
-                                  placeholder="Item / service description"
-                                />
+                                <>
+                                  <CustomSelect
+                                    value={it.type === 'Hardware' ? 'Hardware' : 'Service'}
+                                    onChange={(val) => handleUpdateItemType(idx, val)}
+                                    options={[
+                                      { value: 'Hardware', label: 'Hardware' },
+                                      { value: 'Service', label: 'Service' }
+                                    ]}
+                                    style={{ width: '98px', minWidth: '92px', flexShrink: 0 }}
+                                    triggerStyle={{
+                                      height: '28px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      padding: '1px 6px',
+                                      color: it.type === 'Hardware' ? '#38bdf8' : '#34d399',
+                                      background: it.type === 'Hardware' ? 'rgba(14, 165, 233, 0.14)' : 'rgba(16, 185, 129, 0.14)',
+                                      borderColor: it.type === 'Hardware' ? 'rgba(14, 165, 233, 0.35)' : 'rgba(16, 185, 129, 0.35)'
+                                    }}
+                                    size="sm"
+                                  />
+                                  <input
+                                    type="text"
+                                    className="form-input"
+                                    style={{ height: '28px', fontSize: '0.8rem', padding: '2px 8px', flex: 1, minWidth: '130px' }}
+                                    value={it.name}
+                                    onChange={e => handleUpdateItemName(idx, e.target.value)}
+                                    placeholder="Item / service description"
+                                  />
+                                </>
                               ) : (
-                                <div style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
-                                  {it.name}
-                                </div>
+                                <>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    background: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.15)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                                    color: (it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? '#38bdf8' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? '#34d399' : '#c084fc',
+                                    border: `1px solid ${(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'rgba(14, 165, 233, 0.3)' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'rgba(16, 185, 129, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+                                    flexShrink: 0
+                                  }}>
+                                    {(it.type === 'Hardware' || /(device|reader|lock|sensor|switch|power supply|battery|terminal|zkteco|biometric|face|hardware)/i.test(it.name || '')) ? 'Hardware' : (it.type === 'Service' || /(install|service|training|support|setup)/i.test(it.name || '')) ? 'Service' : 'Software'}
+                                  </span>
+                                  <div style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>
+                                    {it.name}
+                                  </div>
+                                </>
                               )}
                             </div>
                           </td>
@@ -1590,7 +1633,18 @@ const QuoteModal = ({ onClose, onSave, inventory = [], initialData, customers = 
           </div>
         </form>
       </div>
-    </div>,
+    </div>
+    <DiscardDraftModal
+      isOpen={showDiscardConfirm}
+      title="Discard quotation draft?"
+      message="You have unsaved changes in this quotation. Are you sure you want to discard them?"
+      onKeepEditing={() => setShowDiscardConfirm(false)}
+      onDiscard={() => {
+        setShowDiscardConfirm(false);
+        onClose();
+      }}
+    />
+    </>,
     document.body
   );
 };

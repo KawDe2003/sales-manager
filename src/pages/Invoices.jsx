@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { StoreContext, getNextSequentialInvoiceNumber } from '../context/StoreContext';
@@ -7,6 +7,7 @@ import { generateDocumentPDF } from '../utils/pdfGenerator';
 import { exportToCSV } from '../utils/export';
 import CustomSelect from '../components/CustomSelect';
 import DatePicker from '../components/DatePicker';
+import DiscardDraftModal from '../components/DiscardDraftModal';
 
 const Invoices = () => {
   const { 
@@ -1015,9 +1016,22 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
     };
   }, []);
 
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [initialDraftSnapshot] = useState(() => JSON.stringify({ formData, taxRate }));
+
+  const handleAttemptClose = () => {
+    const isDraftDirty = !isLocked && JSON.stringify({ formData, taxRate }) !== initialDraftSnapshot;
+    if (isDraftDirty) {
+      setShowDiscardConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
   if (typeof document === 'undefined') return null;
 
   return createPortal(
+    <>
     <div
       className="app-modal-backdrop modal-overlay"
       style={{
@@ -1026,7 +1040,7 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
         WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '12px'
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleAttemptClose(); }}
     >
       <div 
         className="app-modal-dialog glass-panel" 
@@ -1556,7 +1570,18 @@ const InvoiceModal = ({ onClose, onSave, customers, inventory, initialData }) =>
           </div>
         </form>
       </div>
-    </div>,
+    </div>
+    <DiscardDraftModal
+      isOpen={showDiscardConfirm}
+      title="Discard invoice draft?"
+      message="You have unsaved changes in this invoice. Are you sure you want to discard them?"
+      onKeepEditing={() => setShowDiscardConfirm(false)}
+      onDiscard={() => {
+        setShowDiscardConfirm(false);
+        onClose();
+      }}
+    />
+    </>,
     document.body
   );
 };
